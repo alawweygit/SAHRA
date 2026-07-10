@@ -623,3 +623,64 @@ body.ar .eyebrow{letter-spacing:0;}
 .cat-icon-sm{font-size:clamp(20px,3.2vmin,30px);}
 .cat-name-sm{font-family:'Fredoka One',sans-serif;font-size:clamp(10px,1.5vmin,13px);text-align:center;}
 .gs-actions{display:flex;gap:1.4vmin;align-items:center;margin-top:0.6vmin;}
+
+/* ============ TITLE SCREEN V2 ============ */
+#scr-title{justify-content:flex-start;padding-top:3vmin;gap:1.6vmin;overflow-y:auto;}
+.title-top{display:flex;align-items:center;justify-content:space-between;width:min(94vw,1100px);gap:2vmin;flex-wrap:wrap;}
+.title-games-label{font-size:clamp(11px,1.8vmin,16px);color:var(--text3);letter-spacing:3px;text-align:center;width:100%;}
+.title-game-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.6vmin;
+  width:min(94vw,1100px);
+}
+@media(max-width:700px){.title-game-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+.title-game-card{
+  position:relative;overflow:hidden;
+  display:flex;flex-direction:column;align-items:flex-start;gap:0.5vmin;
+  background:var(--card);border:2px solid var(--border);border-radius:20px;
+  padding:2.2vmin 2.2vmin 1.8vmin;cursor:pointer;color:var(--text);font-family:inherit;
+  box-shadow:0 4px 0 var(--shadow);
+  transition:all 0.18s var(--ease-out);animation:cardDeal 0.5s var(--ease-out) both;
+  text-align:left;
+}
+.title-game-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--mc,var(--pink));border-radius:20px 20px 0 0;
+}
+.title-game-card:hover{transform:translateY(-5px) scale(1.02);border-color:var(--mc,var(--pink));box-shadow:0 10px 30px var(--shadow),0 0 20px color-mix(in srgb, var(--mc,var(--pink)) 30%, transparent);}
+.tgc-icon{font-size:clamp(26px,4vmin,40px);margin-bottom:0.3vmin;}
+.tgc-name{font-size:clamp(14px,2.1vmin,20px);color:var(--mc,var(--pink));}
+.tgc-tag{font-size:clamp(10px,1.5vmin,13px);font-weight:600;color:var(--text2);line-height:1.4;}
+.tgc-min{font-size:clamp(9px,1.3vmin,12px);font-weight:700;color:var(--text3);margin-top:auto;padding-top:0.8vmin;}
+
+/* ============ PRE-GAME SCREEN ============ */
+#scr-pregame{justify-content:flex-start;padding-top:3vmin;overflow-y:auto;}
+.pregame-header{display:flex;flex-direction:column;align-items:center;gap:0.6vmin;text-align:center;}
+.pregame-icon{font-size:clamp(38px,6.5vmin,60px);}
+.pregame-title{font-size:clamp(28px,5vmin,50px);}
+.pregame-desc{font-size:clamp(13px,2vmin,18px);font-weight:600;color:var(--text2);}
+.pregame-rules{
+  font-size:clamp(12px,1.8vmin,16px);font-weight:600;color:var(--text2);
+  line-height:1.65;background:var(--card);border:1.5px solid var(--border);
+  border-radius:16px;padding:1.6vmin 2.2vmin;width:100%;
+}
+.pregame-settings{display:flex;flex-direction:column;gap:1.2vmin;width:100%;}
+.pregame-how{display:flex;flex-direction:column;gap:1.2vmin;width:100%;}
+.play-modes-mini{display:flex;flex-direction:column;gap:0.9vmin;}
+.pmm-btn{
+  display:flex;align-items:center;gap:1.4vmin;
+  background:var(--card-hi);border:2px solid var(--border);border-radius:16px;
+  padding:1.6vmin 2vmin;cursor:pointer;color:var(--text);font-family:inherit;
+  transition:all 0.15s var(--ease-out);text-align:left;width:100%;
+}
+.pmm-btn:hover{border-color:var(--pink);transform:translateX(4px);}
+.pmm-btn.feature{border-color:rgba(244,114,182,0.35);}
+.pmm-btn.feature:hover{border-color:var(--orange);}
+.pmm-icon{font-size:clamp(20px,3.2vmin,28px);}
+.pmm-name{font-family:'Fredoka One','Lalezar',sans-serif;font-size:clamp(15px,2.4vmin,22px);color:var(--pink);}
+.pmm-btn.feature .pmm-name{color:var(--orange);}
+
+/* ============ LOBBY SHARE ============ */
+.lobby-share{display:flex;flex-direction:column;align-items:center;gap:1vmin;width:100%;}
+.share-url{font-size:clamp(11px,1.7vmin,14px);color:var(--text2);font-weight:600;text-align:center;}
+.share-url b{color:var(--yellow);font-family:'Fredoka One',sans-serif;font-size:1.3em;letter-spacing:3px;}
+.share-btns{display:flex;gap:1vmin;}
