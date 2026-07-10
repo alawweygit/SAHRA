@@ -325,7 +325,11 @@ const Content = {
   /* Async so an AI backend can be swapped in with zero changes elsewhere.
      region: 'mena' | 'weur' | 'asia' | 'africa' | null (null = universal only) */
   async get(mode, lang, count, region) {
-    region = region || (window.HYPOX_STATE && window.HYPOX_STATE.region) || null;
+    // Arab Flavor = use MENA regional pack first; Global Mix = no regional preference
+    if (!region) {
+      const flavor = window.HYPOX_STATE && window.HYPOX_STATE.flavor;
+      region = (flavor === 'arab') ? 'mena' : null;
+    }
     const cfg = window.HYPOX_CONFIG || {};
     if (cfg.aiEndpoint) {
       try {

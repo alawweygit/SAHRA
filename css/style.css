@@ -589,3 +589,37 @@ body.ar .eyebrow{letter-spacing:0;}
 .cat-card.selected{border-color:var(--yellow);background:rgba(250,204,21,0.1);}
 .cat-icon{font-size:clamp(26px,4.5vmin,40px);}
 .cat-name{font-family:'Fredoka One',sans-serif;font-size:clamp(12px,1.9vmin,17px);color:var(--text);text-align:center;}
+
+/* ============ GAME SETTINGS SCREEN ============ */
+.game-settings-card{
+  display:flex;flex-direction:column;align-items:center;gap:2.2vmin;
+  width:min(92vw,680px);
+}
+.gs-header{display:flex;align-items:center;gap:1.4vmin;margin-bottom:0.4vmin;}
+.gs-icon{font-size:clamp(32px,5.5vmin,52px);}
+.gs-title{font-size:clamp(28px,5.5vmin,52px);color:var(--yellow);}
+.gs-section{
+  width:100%;background:var(--card);border:1.5px solid var(--border);
+  border-radius:18px;padding:1.8vmin 2.4vmin;display:flex;flex-direction:column;gap:1.2vmin;
+}
+.gs-label{font-size:clamp(10px,1.6vmin,13px);font-weight:800;letter-spacing:3px;color:var(--text3);text-transform:uppercase;}
+.content-btns{display:flex;gap:1.2vmin;flex-wrap:wrap;}
+.content-btn{
+  font-family:'Fredoka One',sans-serif;font-size:clamp(14px,2.2vmin,20px);
+  color:var(--text);background:var(--card-hi);border:2px solid var(--border);
+  border-radius:14px;padding:1.1vmin 2.2vmin;cursor:pointer;transition:all 0.15s;
+  flex:1;text-align:center;
+}
+.content-btn:hover{border-color:var(--yellow);}
+.content-btn.selected{border-color:var(--yellow);background:rgba(250,204,21,0.12);color:var(--yellow);}
+.cat-grid-small{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1vmin;width:100%;}
+.cat-card-sm{
+  display:flex;flex-direction:column;align-items:center;gap:0.4vmin;
+  background:var(--card-hi);border:2px solid var(--border);border-radius:12px;
+  padding:1.2vmin 0.8vmin;cursor:pointer;transition:all 0.14s;font-family:inherit;color:var(--text);
+}
+.cat-card-sm:hover{transform:scale(1.04);border-color:var(--blue);}
+.cat-card-sm.selected{border-color:var(--yellow);background:rgba(250,204,21,0.1);color:var(--yellow);}
+.cat-icon-sm{font-size:clamp(20px,3.2vmin,30px);}
+.cat-name-sm{font-family:'Fredoka One',sans-serif;font-size:clamp(10px,1.5vmin,13px);text-align:center;}
+.gs-actions{display:flex;gap:1.4vmin;align-items:center;margin-top:0.6vmin;}

@@ -29,7 +29,7 @@
     {id:'sports',   icon:'⚽', name:'Sports'},
   ];
 
-  window.HYPOX_STATE = window.HYPOX_STATE || { region:null, rounds:5, category:'general' };
+  window.HYPOX_STATE = window.HYPOX_STATE || { region:null, rounds:5, category:'general', flavor:'global' };
 
   let net=null, players=[], myPid=null, isVip=false, hostMode='tv';
   let selectedAvatar = AVATARS_LIST[0];
@@ -218,12 +218,7 @@
     const modeList = Object.keys(MODE_ICONS);
     Host.scene(`
       <div class="lobby-title display">PICK A GAME</div>
-      <div class="round-picker">
-        <div class="round-picker-title">How many rounds?</div>
-        <div class="round-btns">
-          ${[5,10,15].map(n=>`<button class="round-btn${window.HYPOX_STATE.rounds===n?' selected':''}" data-r="${n}">${n}</button>`).join('')}
-        </div>
-      </div>
+
       <div class="pack-grid">
         ${modeList.map((m,i)=>`
           <button class="pack-card" data-mode="${m}" style="animation-delay:${i*.08}s">
@@ -237,14 +232,6 @@
     Audio_.startMusic('lobby');
     net.setState({ phase:'wait', msg:'Watch the main screen!' });
 
-    // Round selector
-    $$('.round-btn').forEach(btn => btn.addEventListener('click', () => {
-      $$('.round-btn').forEach(b=>b.classList.remove('selected'));
-      btn.classList.add('selected');
-      window.HYPOX_STATE.rounds = +btn.dataset.r;
-      Audio_.sfx.blip();
-    }));
-
     $$('.pack-card').forEach(btn => btn.addEventListener('click', async () => {
       const mode = btn.dataset.mode;
       const minP = MODE_MIN_PLAYERS[mode]||2;
@@ -252,8 +239,6 @@
         Audio_.sfx.buzzer();
         btn.classList.add('shake');
         setTimeout(()=>btn.classList.remove('shake'),500);
-        Host.scene(Host.lastScene || document.getElementById('hostStage').innerHTML);
-        // show error briefly
         const err = document.createElement('div');
         err.style.cssText='position:fixed;bottom:4vmin;left:50%;transform:translateX(-50%);background:var(--pink);color:#fff;font-family:Fredoka One,sans-serif;font-size:18px;padding:12px 28px;border-radius:50px;z-index:50;animation:popIn .3s both';
         err.textContent=`Need ${minP}+ players for this game`;
@@ -262,37 +247,90 @@
         return;
       }
       Audio_.sfx.submit();
-      if(mode==='trivia' || mode==='quiz'){
-        await showCategoryPicker(mode);
-      } else {
-        await Host.run(net, players, mode);
-        showPackPicker();
-      }
+      await showGameSettings(mode);
     }, {once:true}));
   }
 
-  /* ---- Category picker for trivia ---- */
-  async function showCategoryPicker(mode) {
+  /* ---- Game settings screen (rounds + content flavor + category for trivia) ---- */
+  async function showGameSettings(mode) {
     await FX.wipe();
-    $('#roundPill').textContent='Pick Category';
-    Host.scene(`
-      <div class="lobby-title display">PICK A CATEGORY</div>
-      <div class="cat-grid">
-        ${CAT_INFO.map((c,i)=>`
-          <button class="cat-card" data-cat="${c.id}" style="animation-delay:${i*.07}s">
-            <div class="cat-icon">${c.icon}</div>
-            <div class="cat-name">${c.name}</div>
-          </button>`).join('')}
-      </div>
-      <button class="bar-btn" id="backToPacks" style="margin-top:2vmin;">← Back</button>`);
+    $('#roundPill').textContent = t('mode_names')[mode] || mode;
+    const isTrivia = mode === 'trivia' || mode === 'quiz';
+    const modeName = t('mode_names')[mode] || mode;
+    const modeIcon = MODE_ICONS[mode] || '🎮';
 
-    $('#backToPacks').addEventListener('click', () => showPackPicker(), {once:true});
-    $$('.cat-card').forEach(btn => btn.addEventListener('click', async () => {
-      window.HYPOX_STATE.category = btn.dataset.cat;
+    Host.scene(`
+      <div class="game-settings-card">
+        <div class="gs-header">
+          <div class="gs-icon">${modeIcon}</div>
+          <div class="gs-title display">${esc(modeName)}</div>
+        </div>
+
+        <div class="gs-section">
+          <div class="gs-label">ROUNDS</div>
+          <div class="round-btns">
+            ${[5,10,15].map(n=>`<button class="round-btn${window.HYPOX_STATE.rounds===n?' selected':''}" data-r="${n}">${n}</button>`).join('')}
+          </div>
+        </div>
+
+        <div class="gs-section">
+          <div class="gs-label">CONTENT</div>
+          <div class="content-btns">
+            <button class="content-btn${window.HYPOX_STATE.flavor==='arab'?' selected':''}" data-flavor="arab">🕌 Arab Flavor</button>
+            <button class="content-btn${window.HYPOX_STATE.flavor!=='arab'?' selected':''}" data-flavor="global">🌍 Global Mix</button>
+          </div>
+        </div>
+
+        ${isTrivia ? `
+        <div class="gs-section">
+          <div class="gs-label">CATEGORY</div>
+          <div class="cat-grid-small">
+            ${CAT_INFO.map((c,i)=>`
+              <button class="cat-card-sm${window.HYPOX_STATE.category===c.id?' selected':''}" data-cat="${c.id}" style="animation-delay:${i*.06}s">
+                <div class="cat-icon-sm">${c.icon}</div>
+                <div class="cat-name-sm">${c.name}</div>
+              </button>`).join('')}
+          </div>
+        </div>` : ''}
+
+        <div class="gs-actions">
+          <button class="big-btn" id="gsStart">START GAME →</button>
+          <button class="bar-btn" id="gsBack">← Back</button>
+        </div>
+      </div>`);
+
+    // Round buttons
+    $$('.round-btn').forEach(btn => btn.addEventListener('click', () => {
+      $$('.round-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      window.HYPOX_STATE.rounds = +btn.dataset.r;
+      Audio_.sfx.blip();
+    }));
+
+    // Content flavor
+    $$('.content-btn').forEach(btn => btn.addEventListener('click', () => {
+      $$('.content-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      window.HYPOX_STATE.flavor = btn.dataset.flavor;
+      Audio_.sfx.blip();
+    }));
+
+    // Category (trivia only)
+    if(isTrivia) {
+      $$('.cat-card-sm').forEach(btn => btn.addEventListener('click', () => {
+        $$('.cat-card-sm').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        window.HYPOX_STATE.category = btn.dataset.cat;
+        Audio_.sfx.blip();
+      }));
+    }
+
+    $('#gsBack').addEventListener('click', () => showPackPicker(), {once:true});
+    $('#gsStart').addEventListener('click', async () => {
       Audio_.sfx.submit();
       await Host.run(net, players, mode);
       showPackPicker();
-    }, {once:true}));
+    }, {once:true});
   }
 
   /* ---- Pass & Play overlay ---- */

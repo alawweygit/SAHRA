@@ -561,14 +561,22 @@ const Host = (() => {
   async function playQuiz() {
     await modeTitleCard('quiz');
     const cat = window.HYPOX_STATE?.category || 'general';
+    const flavor = window.HYPOX_STATE?.flavor || 'global';
+    const rounds = window.HYPOX_STATE?.rounds || 5;
     let qs;
+    // If specific category chosen (not general), use TRIVIA_CATS
     if (cat !== 'general' && typeof TRIVIA_CATS !== 'undefined' && TRIVIA_CATS[cat]) {
       const pool = TRIVIA_CATS[cat][LANG] || TRIVIA_CATS[cat].en || [];
-      // shuffle and take rounds count
       const shuffled = pool.slice().sort(()=>Math.random()-.5);
-      qs = shuffled.slice(0, window.HYPOX_STATE?.rounds||3);
+      qs = shuffled.slice(0, rounds);
+    } else if (cat === 'general' && flavor === 'arab' && typeof TRIVIA_CATS !== 'undefined' && TRIVIA_CATS['gulf']) {
+      // Arab Flavor + General = mix gulf + standard quiz
+      const gulfPool = TRIVIA_CATS['gulf'][LANG] || TRIVIA_CATS['gulf'].en || [];
+      const stdPool = (await Content.get('quiz', LANG, rounds));
+      const mixed = [...gulfPool.slice().sort(()=>Math.random()-.5).slice(0, Math.ceil(rounds/2)), ...stdPool].slice(0, rounds);
+      qs = mixed;
     } else {
-      qs = await Content.get('quiz', LANG, window.HYPOX_STATE?.rounds||3);
+      qs = await Content.get('quiz', LANG, rounds);
     }
     const pids = players.map(p => p.pid);
     const SPEED_PTS = [1000, 850, 700, 600, 500, 450, 400, 400, 400, 400];
