@@ -135,6 +135,7 @@ const I18N = {
       wyr: 'One player secretly picks A or B. Everyone else predicts their choice. Match it: +500.',
       interrogation: 'Everyone anonymously answers a spicy question. Then vote on who wrote each answer. Catch someone: +400. Stay hidden: +300 per person you fooled.',
       diss: 'Two players face the same roast prompt. Everyone votes for the best line. +250 per vote, +500 if you sweep.',
+      trivia: 'Pick a category, then answer as fast as you can. Right answer = points. Fastest = more points.',
       quiz: 'Speed trivia. Right answer = points. Faster = more points. No mercy.',
     },
     banter_lobby: [
@@ -295,6 +296,7 @@ const I18N = {
       wyr: 'لاعب واحد يجاوب سراً على "يا هذا يا هذا". الباقي يتوقعون اختياره. توقعت صح: +٥٠٠.',
       interrogation: 'الكل يجاوب على سؤال شخصي بشكل مجهول. بعدها الكل يصوّت منو كاتبها. توقعت صح: +٤٠٠. ما انكشفت: +٣٠٠ عن كل واحد انخدع.',
       diss: 'لاعبين يتواجهون بنفس التحدي. والكل يصوّت على أقوى سطر. +٢٥٠ لكل صوت، و+٥٠٠ إذا كسحت.',
+      trivia: 'اختر فئة، وجاوب بأسرع ما تقدر. جواب صح = نقاط. أسرع = أكثر نقاط.',
       quiz: 'أسئلة سرعة. جواب صح = نقاط. أسرع = أكثر. بسيطة وقاسية.',
     },
     banter_lobby: [

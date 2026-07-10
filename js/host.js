@@ -619,7 +619,7 @@ const Host = (() => {
   }
 
   /* ================================================================ */
-  const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz };
+  const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz };
 
   async function run(netInstance, playerList, mode) {
     net = netInstance;
