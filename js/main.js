@@ -125,15 +125,15 @@
     const modeIcon=MODE_ICONS[mode]||'🎮';
     const modeColor=MODE_COLORS[mode]||'var(--pink)';
 
-    $('#pregameContent').innerHTML=`
+    // Build scrollable content + sticky play mode footer
+    const pregameEl = document.getElementById('pregameContent');
+    pregameEl.innerHTML=`
       <div class="pregame-header">
         <div class="pregame-icon">${modeIcon}</div>
         <div class="pregame-title display" style="color:${modeColor}">${esc(modeName)}</div>
         <div class="pregame-desc">${esc(t('mode_taglines')[mode]||'')}</div>
       </div>
-
       <div class="pregame-rules">${esc(t('mode_rules')[mode]||'')}</div>
-
       <div class="pregame-settings">
         <div class="gs-section">
           <div class="gs-label">ROUNDS</div>
@@ -159,16 +159,23 @@
               </button>`).join('')}
           </div>
         </div>`:''}
-      </div>
-
-      <div class="pregame-how">
-        <div class="gs-label">HOW ARE YOU PLAYING?</div>
-        <div class="play-modes-mini">
-          <button class="pmm-btn" id="pgHostBtn"><span class="pmm-icon">📺</span><span class="pmm-name">TV + Phones</span></button>
-          <button class="pmm-btn feature" id="pgPhonesBtn"><span class="pmm-icon">📱</span><span class="pmm-name">Phones Only</span></button>
-          <button class="pmm-btn" id="pgOfflineBtn"><span class="pmm-icon">🤝</span><span class="pmm-name">One Device</span></button>
-        </div>
       </div>`;
+
+    // Sticky bottom — always visible, no scrolling needed
+    // Remove old sticky if any
+    const oldSticky = document.getElementById('pregameSticky');
+    if(oldSticky) oldSticky.remove();
+    const sticky = document.createElement('div');
+    sticky.id = 'pregameSticky';
+    sticky.className = 'pregame-sticky-bottom';
+    sticky.innerHTML = `
+      <div class="gs-label">HOW ARE YOU PLAYING?</div>
+      <div class="play-modes-mini">
+        <button class="pmm-btn" id="pgHostBtn"><span class="pmm-icon">📺</span><span class="pmm-name">TV + Phones</span></button>
+        <button class="pmm-btn feature" id="pgPhonesBtn"><span class="pmm-icon">📱</span><span class="pmm-name">Phones Only</span></button>
+        <button class="pmm-btn" id="pgOfflineBtn"><span class="pmm-icon">🤝</span><span class="pmm-name">One Device</span></button>
+      </div>`;
+    document.getElementById('scr-pregame').appendChild(sticky);
 
     // Settings listeners
     $$('.round-btn').forEach(btn=>btn.addEventListener('click',()=>{

@@ -653,7 +653,18 @@ body.ar .eyebrow{letter-spacing:0;}
 .tgc-min{font-size:clamp(9px,1.3vmin,12px);font-weight:700;color:var(--text3);margin-top:auto;padding-top:0.8vmin;}
 
 /* ============ PRE-GAME SCREEN ============ */
-#scr-pregame{justify-content:flex-start;padding-top:3vmin;overflow-y:auto;}
+#scr-pregame{justify-content:flex-start;padding-top:3vmin;overflow-y:auto;padding-bottom:0;}
+#pregameContent{overflow-y:auto;max-height:calc(100vh - 14vmin);padding-bottom:1vmin;}
+.pregame-sticky-bottom{
+  position:sticky;bottom:0;left:0;right:0;
+  background:var(--bg);
+  border-top:1.5px solid var(--border);
+  padding:1.8vmin 0 1.8vmin;
+  display:flex;flex-direction:column;gap:1.2vmin;
+  width:min(94vw,680px);
+  margin:0 auto;
+  z-index:10;
+}
 .pregame-header{display:flex;flex-direction:column;align-items:center;gap:0.6vmin;text-align:center;}
 .pregame-icon{font-size:clamp(38px,6.5vmin,60px);}
 .pregame-title{font-size:clamp(28px,5vmin,50px);}
