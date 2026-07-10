@@ -1,113 +1,205 @@
-/* SAHRA — bootstrap: routing between Title → (Host lobby | Join) → Pack picker → Game */
-
+/* HYPOX — main.js: routing, lobby, join, avatar picker, pass & play */
 (() => {
-  let net = null, players = [], myPid = null, isVip = false;
+  const AVATARS_LIST = [
+    { emoji:'🦊', color:'#f472b6', label:'Fox' },
+    { emoji:'🐼', color:'#60a5fa', label:'Panda' },
+    { emoji:'🐸', color:'#34d399', label:'Frog' },
+    { emoji:'🦄', color:'#a78bfa', label:'Unicorn' },
+    { emoji:'🤖', color:'#fb923c', label:'Robot' },
+    { emoji:'🐫', color:'#facc15', label:'Camel' },
+    { emoji:'🦅', color:'#38bdf8', label:'Eagle' },
+    { emoji:'🐙', color:'#f87171', label:'Octopus' },
+    { emoji:'🦁', color:'#fbbf24', label:'Lion' },
+    { emoji:'🐢', color:'#4ade80', label:'Turtle' },
+    { emoji:'🦋', color:'#c084fc', label:'Butterfly' },
+    { emoji:'🐬', color:'#22d3ee', label:'Dolphin' },
+    { emoji:'🐺', color:'#94a3b8', label:'Wolf' },
+    { emoji:'🦊', color:'#fb923c', label:'Fox2' },
+    { emoji:'🐯', color:'#f59e0b', label:'Tiger' },
+  ];
 
-  const show = id => {
-    $$('.screen').forEach(s => s.classList.remove('active'));
-    $(id).classList.add('active');
-  };
-
-  // Shared app state (region readable by content.js)
   window.SAHRA_STATE = window.SAHRA_STATE || { region: null };
-  const REGION_EMOJI = { mena: '🕌', weur: '🗽', asia: '🏯', africa: '🦁', global: '🌍' };
+  const REGION_EMOJI = { mena:'🕌', weur:'🗽', asia:'🏯', africa:'🦁', global:'🌍' };
 
-  /* ------------------------------------------------ boot */
+  let net = null, players = [], myPid = null, isVip = false;
+  let hostMode = 'tv';
+  let selectedAvatar = AVATARS_LIST[Math.floor(Math.random() * AVATARS_LIST.length)];
+  let _ppDismiss = null;
+
+  const show = id => { $$('.screen').forEach(s => s.classList.remove('active')); $(id).classList.add('active'); };
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  window.esc = esc;
+
+  /* ---- boot ---- */
   let booted = false;
   document.addEventListener('DOMContentLoaded', () => {
     if (booted) return; booted = true;
     FX.init();
+    applyTheme();
     applyLang();
     paintStatics();
+    buildAvatarGrid();
 
-    // --- language picker ---
-    $$('.lang-card').forEach(card => card.addEventListener('click', () => {
+    // Theme picker
+    $$('.theme-card').forEach(c => c.addEventListener('click', () => {
       Audio_.unlock(); Audio_.sfx.pop();
-      setLang(card.dataset.lang);
-      paintStatics();
+      setTheme(c.dataset.theme);
+      show('#scr-lang'); paintStatics();
+    }));
+    $('#backToTheme').addEventListener('click', () => { Audio_.sfx.blip(); show('#scr-theme'); });
+
+    // Lang picker
+    $$('.lang-card').forEach(c => c.addEventListener('click', () => {
+      Audio_.sfx.pop(); setLang(c.dataset.lang); paintStatics();
       show('#scr-region');
     }));
+    $('#backToLang').addEventListener('click', () => { Audio_.sfx.blip(); show('#scr-lang'); });
 
-    // --- region picker ---
-    $$('.region-card').forEach(card => card.addEventListener('click', () => {
+    // Region picker
+    $$('.region-card').forEach(c => c.addEventListener('click', () => {
       Audio_.sfx.submit();
-      const r = card.dataset.region;
-      window.SAHRA_STATE.region = (r === 'global') ? null : r;
+      const r = c.dataset.region;
+      window.SAHRA_STATE.region = r === 'global' ? null : r;
       $('#regionBadge').textContent = REGION_EMOJI[r] || '🌍';
-      show('#scr-title');
+      show('#scr-title'); paintStatics(); Audio_.startMusic('lobby');
     }));
-    $('#regionBack').addEventListener('click', () => { Audio_.sfx.pop(); show('#scr-lang'); });
+    $('#regionBadge').addEventListener('click', () => { Audio_.sfx.blip(); show('#scr-region'); });
+    $('#backToRegion').addEventListener('click', () => { Audio_.sfx.blip(); show('#scr-region'); });
 
-    // --- region badge on title re-opens region picker ---
-    $('#regionBadge').addEventListener('click', () => { Audio_.sfx.pop(); show('#scr-region'); });
-
-    $('#soundBtn').addEventListener('click', e => {
-      e.target.textContent = Audio_.toggle() ? '🔊' : '🔇';
-    });
-
+    // Title / play modes
     $('#hostBtn').addEventListener('click', () => { Audio_.unlock(); startHost('tv'); });
     $('#phonesBtn').addEventListener('click', () => { Audio_.unlock(); startHost('phones'); });
     $('#offlineBtn').addEventListener('click', () => { Audio_.unlock(); startHost('offline'); });
-    $('#joinBtn').addEventListener('click', () => { Audio_.unlock(); show('#scr-join'); paintStatics(); });
-    $('#joinGo').addEventListener('click', joinAsPlayer);
-    $('#addLocalBtn').addEventListener('click', addLocalPlayer);
-    $('#localName').addEventListener('keydown', e => { if (e.key === 'Enter') addLocalPlayer(); });
+    $('#joinBtn').addEventListener('click', () => { Audio_.sfx.blip(); show('#scr-join'); paintStatics(); });
+    $('#backFromJoin').addEventListener('click', () => { Audio_.sfx.blip(); show('#scr-title'); });
+
+    // Avatar picker
+    $('#avatarDone').addEventListener('click', confirmAvatar);
+    $('#avatarName').addEventListener('keydown', e => { if (e.key === 'Enter') confirmAvatar(); });
+    $('#backFromAvatar').addEventListener('click', () => { Audio_.sfx.blip(); show('#scr-title'); });
+
+    // Lobby
+    $('#addLocalBtn').addEventListener('click', () => showAvatarPicker('offline'));
     $('#startGameBtn').addEventListener('click', () => {
       if (players.length < 3) { Audio_.sfx.buzzer(); $('#lobbyHint').classList.add('shake'); setTimeout(() => $('#lobbyHint').classList.remove('shake'), 500); return; }
       showPackPicker();
     });
+
+    // Join
+    $('#joinGo').addEventListener('click', joinAsPlayer);
+    $('#joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('#joinName').focus(); });
+    $('#joinName').addEventListener('keydown', e => { if (e.key === 'Enter') joinAsPlayer(); });
+
+    // Sound / theme toggles
+    $('#soundBtn').addEventListener('click', e => {
+      const on = Audio_.toggle();
+      e.target.textContent = on ? '🔊' : '🔇';
+    });
+    $('#themeBtn').addEventListener('click', () => {
+      setTheme(THEME === 'dark' ? 'light' : 'dark');
+      $('#themeBtn').textContent = THEME === 'dark' ? '🌙' : '☀️';
+    });
+    $('#themeBtn').textContent = THEME === 'dark' ? '🌙' : '☀️';
+
+    // Skip
+    $('#skipBtn').addEventListener('click', () => {
+      if (window.__sahraSkip) { window.__sahraSkip(); window.__sahraSkip = null; }
+    });
   });
 
   function paintStatics() {
-    // Repaint every element carrying a data-i18n key
     $$('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
     $$('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
   }
 
-  /* ------------------------------------------------ HOST flow
-     mode: 'tv'   → shared screen + remote phones (Firebase)
-           'phones' → no TV; creator's phone hosts AND plays (Firebase)
-           'offline' → pass & play on one device (LocalNet) */
-  let hostMode = 'tv';
+  /* ---- Avatar grid ---- */
+  function buildAvatarGrid() {
+    const grid = $('#avatarGrid');
+    grid.innerHTML = AVATARS_LIST.map((av, i) => `
+      <button class="avatar-opt ${i===0?'selected':''}" data-i="${i}" style="border-color:${i===0?av.color:''}">
+        <div class="avatar-emoji">${av.emoji}</div>
+        <div class="avatar-label">${av.label}</div>
+      </button>`).join('');
+    $$('.avatar-opt').forEach(btn => btn.addEventListener('click', () => {
+      Audio_.sfx.vote();
+      $$('.avatar-opt').forEach(b => { b.classList.remove('selected'); b.style.borderColor=''; });
+      btn.classList.add('selected');
+      const i = +btn.dataset.i;
+      selectedAvatar = AVATARS_LIST[i];
+      btn.style.borderColor = selectedAvatar.color;
+    }));
+  }
+
+  /* Avatar picker can be shown for: 'offline' (add local player), 'phones' (host self) */
+  let _avatarCallback = null;
+  function showAvatarPicker(context, cb) {
+    _avatarCallback = cb;
+    buildAvatarGrid();
+    $('#avatarName').value = '';
+    $('#backFromAvatar').onclick = () => {
+      Audio_.sfx.blip();
+      if (context === 'offline') show('#scr-lobby');
+      else if (context === 'phones') show('#scr-title');
+      else show('#scr-title');
+    };
+    show('#scr-avatar');
+  }
+
+  function confirmAvatar() {
+    const name = $('#avatarName').value.trim();
+    if (!name) { $('#avatarName').classList.add('shake'); setTimeout(() => $('#avatarName').classList.remove('shake'), 500); return; }
+    Audio_.sfx.submit();
+    if (_avatarCallback) { _avatarCallback(name, selectedAvatar); return; }
+    // offline: add local player directly
+    if (net && net.isOffline) {
+      const p = net.addLocalPlayer(name, selectedAvatar);
+      if (p) { show('#scr-lobby'); }
+    }
+  }
+
+  /* ---- HOST flow ---- */
   async function startHost(mode) {
     hostMode = mode;
     const offline = mode === 'offline';
 
     if (!offline && !FirebaseNet.available()) {
-      // Online modes need Firebase; guide the user instead of silently degrading.
       Audio_.sfx.buzzer();
       alert(t('no_firebase'));
       return;
     }
 
     net = createNet(offline);
-    if (offline && FirebaseNet && !net.isOffline) net = new LocalNet(); // force
-
-    if (net.isOffline) {
-      net.promptLocal = passAndPlayPrompt; // wire the overlay
-    }
+    if (offline && !net.isOffline) net = new LocalNet();
+    if (net.isOffline) net.promptLocal = passAndPlayPrompt;
 
     const code = await net.createRoom(LANG);
     $('#roomCodeText').textContent = net.isOffline ? t('offline_badge') : code;
     $('#topbar').classList.add('show');
     $('#roundPill').textContent = t('lobby');
 
-    // In phones-only mode the creator is ALSO a player — register them now.
     if (mode === 'phones') {
-      const name = (prompt(t('player_name')) || 'Host').trim().slice(0, 14) || 'Host';
-      const res = await net.joinRoom(code, name);
-      myPid = res.pid; isVip = res.isVip;
-      // the host's own turns are collected via the pass&play overlay
-      net.hostSelfPid = myPid;
-      net.promptLocal = passAndPlayPrompt;
+      // host is also a player — show avatar picker, then register
+      showAvatarPicker('phones', async (name, av) => {
+        const res = await net.joinRoom(code, name, av);
+        myPid = res.pid; isVip = res.isVip;
+        net.hostSelfPid = myPid;
+        net.promptLocal = passAndPlayPrompt;
+        show('#scr-lobby'); setupLobby();
+      });
+      return;
     }
 
     show('#scr-lobby');
+    setupLobby();
+  }
+
+  function setupLobby() {
     $('#localAdd').classList.toggle('hidden', !net.isOffline);
     $('#joinHint').classList.toggle('hidden', net.isOffline);
-
-    Audio_.startMusic('lobby');
-    Host.say(tPick('banter_lobby'));
+    if (!net.isOffline) $('#joinHint').innerHTML = t('join_hint').replace(/→/g,'<b>→</b>');
 
     net.onPlayers(list => {
       const prev = players.length;
@@ -115,23 +207,16 @@
       if (list.length > prev) Audio_.sfx.pop();
       $('#playerRow').innerHTML = list.map(p => `
         <div class="player">
-          ${Host.avatarHTML(p)}
-          <div class="pname">${p.isVip ? '👑 ' : ''}${esc(p.name)}</div>
+          <div class="avatar" style="background:${p.color}">${p.emoji}</div>
+          <div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div>
         </div>`).join('');
       $('#startGameBtn').classList.toggle('dim', list.length < 3);
       $('#lobbyHint').textContent = list.length < 3 ? t('need_players') : '';
     });
   }
 
-  function addLocalPlayer() {
-    const inp = $('#localName');
-    const name = inp.value.trim();
-    if (!name) return;
-    if (net.addLocalPlayer(name)) { Audio_.sfx.pop(); inp.value = ''; inp.focus(); }
-  }
-
-  /* ------------------------------------------------ Pack picker */
-  const MODE_ICONS = { bluff: '🎭', wyr: '⚖️', interrogation: '🔦', diss: '🎤', quiz: '⚡' };
+  /* ---- Pack picker ---- */
+  const MODE_ICONS = { bluff:'🔍', wyr:'⚖️', interrogation:'🔦', diss:'🎤', quiz:'⚡' };
 
   async function showPackPicker() {
     Audio_.stopMusic();
@@ -142,26 +227,24 @@
     Host.scene(`
       <div class="lobby-title display">${esc(t('pick_pack'))}</div>
       <div class="pack-grid">
-        ${Object.keys(MODE_ICONS).map((m, i) => `
-          <button class="pack-card" data-mode="${m}" style="animation-delay:${i * .1}s">
+        ${Object.keys(MODE_ICONS).map((m,i) => `
+          <button class="pack-card" data-mode="${m}" style="animation-delay:${i*.09}s">
             <div class="pack-icon">${MODE_ICONS[m]}</div>
             <div class="pack-name display">${esc(t('mode_names')[m])}</div>
             <div class="pack-tag">${esc(t('mode_taglines')[m])}</div>
           </button>`).join('')}
       </div>`);
     Audio_.startMusic('lobby');
-    net.setState({ phase: 'wait', msg: t('watch_screen') });
-
+    net.setState({ phase:'wait', msg:t('watch_screen') });
     $$('.pack-card').forEach(btn => btn.addEventListener('click', async () => {
       Audio_.sfx.submit();
       const mode = btn.dataset.mode;
       await Host.run(net, players, mode);
-      showPackPicker(); // back to picker, scores persist across packs
-    }, { once: true }));
+      showPackPicker();
+    }, { once:true }));
   }
 
-  /* ------------------------------------------------ Pass & Play overlay */
-  let _ppDismiss = null;
+  /* ---- Pass & Play overlay ---- */
   function passAndPlayPrompt(spec, player) {
     return new Promise(resolve => {
       const ov = $('#ppOverlay');
@@ -170,32 +253,30 @@
       const done = value => {
         if (settled) return; settled = true;
         _ppDismiss = null;
-        setTimeout(() => { ov.classList.remove('show'); resolve(value); }, 450);
+        setTimeout(() => { ov.classList.remove('show'); resolve(value); }, 400);
       };
-      // Allow the game to force-close this overlay (e.g. round timer expired
-      // in phones-only mode before the host submitted).
       _ppDismiss = () => { if (settled) return; settled = true; _ppDismiss = null; ov.classList.remove('show'); resolve(null); };
+      window.__sahraDismissPP = () => { if (_ppDismiss) _ppDismiss(); };
 
-      // Step 1: pass screen
       ov.innerHTML = `
         <div class="pp-card">
           <div class="eyebrow">${esc(t('pass_to'))}</div>
-          <div class="pp-player">${Host.avatarHTML(player)}<div class="pp-name display">${esc(player.name)}</div></div>
+          <div class="pp-player">
+            <div class="avatar" style="background:${player.color}">${player.emoji}</div>
+            <div class="pp-name display">${esc(player.name)}</div>
+          </div>
           <button class="big-btn" id="ppReady">${esc(t('tap_ready'))}</button>
         </div>`;
       Audio_.sfx.sting();
       $('#ppReady').addEventListener('click', () => {
         Audio_.sfx.pop();
-        // Step 2: the actual input
         ov.innerHTML = `<div class="pp-card"><div id="ppCtrl"></div></div>`;
         Controller.render($('#ppCtrl'), spec, value => done(value));
-      }, { once: true });
+      }, { once:true });
     });
   }
-  // exposed so net.collect can close a stale host overlay when a phase ends
-  window.__sahraDismissPP = () => { if (_ppDismiss) _ppDismiss(); };
 
-  /* ------------------------------------------------ PLAYER (phone) flow */
+  /* ---- JOIN (phone) ---- */
   async function joinAsPlayer() {
     const code = $('#joinCode').value.trim().toUpperCase();
     const name = $('#joinName').value.trim();
@@ -205,7 +286,7 @@
     $('#joinErr').textContent = t('connecting');
     try {
       net = FirebaseNet.create();
-      const res = await net.joinRoom(code, name);
+      const res = await net.joinRoom(code, name, selectedAvatar);
       myPid = res.pid; isVip = res.isVip;
     } catch (e) {
       $('#joinErr').textContent = t('conn_fail');
@@ -216,8 +297,6 @@
     const ctrl = $('#ctrlArea');
     Controller.waitScreen(ctrl, isVip ? t('vip_hint') : t('joined_wait'));
 
-    // Phone mirror: show what's happening on "the screen" right on the phone.
-    // Populated from both the mirror channel and the mirror embedded in states.
     const mstrip = $('#phoneMirror');
     function renderMirror(m) {
       if (!m) return;
@@ -246,8 +325,7 @@
         } else {
           Controller.waitScreen(ctrl, t('watch_screen'));
         }
-      }
-      else if (state.phase === 'input-split' && state.phaseId !== lastPhaseId) {
+      } else if (state.phase === 'input-split' && state.phaseId !== lastPhaseId) {
         lastPhaseId = state.phaseId;
         const spec = state.specs[myPid] || state.specs._default;
         Audio_.sfx.sting();
@@ -256,11 +334,9 @@
           net.submitInput(state.phaseId, value);
           setTimeout(() => Controller.waitScreen(ctrl), 600);
         });
-      }
-      else if (state.phase === 'wait') {
+      } else if (state.phase === 'wait') {
         Controller.waitScreen(ctrl, state.msg || t('watch_screen'));
-      }
-      else if (state.phase === 'winner') {
+      } else if (state.phase === 'winner') {
         ctrl.innerHTML = `<div class="ctrl-wrap"><div class="crown">👑</div>
           <div class="ctrl-title display">${state.emoji} ${esc(state.name)}</div>
           <div class="ctrl-sub">${esc(t('winner'))}</div></div>`;

@@ -51,7 +51,7 @@ class FirebaseNet {
     return this.code;
   }
 
-  async joinRoom(code, name) {
+  async joinRoom(code, name, av) {
     this.code = code.toUpperCase().trim();
     const snap = await this.room('createdAt').get();
     if (!snap.exists()) throw new Error('no-room');
@@ -59,7 +59,7 @@ class FirebaseNet {
     const existing = playersSnap.val() || {};
     const n = Object.keys(existing).length;
     if (n >= 10) throw new Error('full');
-    const av = AVATARS[n % AVATARS.length];
+    if (!av) av = AVATARS[n % AVATARS.length];
     this.pid = 'p' + Date.now() + Math.floor(Math.random() * 999);
     const isVip = n === 0;
     await this.room('players/' + this.pid).set({
@@ -144,10 +144,10 @@ class LocalNet {
     this.promptLocal = null;
   }
   async createRoom() { return this.code; }
-  addLocalPlayer(name) {
+  addLocalPlayer(name, av) {
     const n = this.players.length;
     if (n >= 10) return null;
-    const av = AVATARS[n % AVATARS.length];
+    if (!av) av = AVATARS[n % AVATARS.length];
     const p = { pid: 'local' + n, name: name.slice(0, 14), emoji: av.emoji, color: av.color, score: 0, isVip: n === 0 };
     this.players.push(p);
     if (this._playersCb) this._playersCb(this.players.slice());

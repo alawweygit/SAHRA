@@ -43,10 +43,9 @@ const Host = (() => {
     return `<div class="${cls}" style="background:${p.color}">${p.emoji}</div>`;
   }
 
-  function skippable() { // host can click SKIP to fast-forward waits
-    return new Promise(res => { skipResolve = res; });
+  function skippable() {
+    return new Promise(res => { window.__sahraSkip = () => { window.__sahraSkip = null; res('skip'); }; });
   }
-  $('#skipBtn')?.addEventListener('click', () => { if (skipResolve) { skipResolve('skip'); skipResolve = null; } });
 
   /* ---------- input collection with big timer ---------- */
   async function collectWithTimer(spec, pids, seconds, statusLabelFn) {
@@ -123,10 +122,16 @@ const Host = (() => {
         <div class="mode-title display">${esc(t('mode_names')[mode])}</div>
         <div class="mode-tag">${esc(t('mode_taglines')[mode])}</div>
         <div class="mode-rules">${esc(t('mode_rules')[mode])}</div>
+        <button class="big-btn" id="startModeBtn" style="margin-top:2vmin">START ▶</button>
       </div>`);
     setPill(t('mode_names')[mode]);
-    await sleep(1000);
-    await Promise.race([sleep(7000), skippable()]);
+    // Wait for explicit tap OR skip button — no auto-advance
+    await new Promise(res => {
+      const btn = document.getElementById('startModeBtn');
+      const onStart = () => { window.__sahraSkip = null; res(); };
+      if (btn) btn.addEventListener('click', onStart, { once: true });
+      window.__sahraSkip = onStart;
+    });
   }
 
   async function showScores(final = false) {
@@ -151,8 +156,19 @@ const Host = (() => {
       const b = $('#bar-' + p.pid);
       if (b) b.style.width = Math.max(18, (p.score / max) * 100) + '%';
     }, i * 220));
-    await sleep(1600);
-    if (!final) { await say(tPick('banter_scores')); Audio_.stopMusic(); }
+    await sleep(800);
+    if (!final) {
+      await say(tPick('banter_scores'));
+      Audio_.stopMusic();
+      // wait for explicit Next press
+      scene(document.getElementById('hostStage').innerHTML + `<button class="big-btn" id="nextBtn" style="margin-top:2vmin" data-i18n="next_round">${t('next_round')}</button>`);
+      await new Promise(res => {
+        const btn = document.getElementById('nextBtn');
+        const onNext = () => { window.__sahraSkip = null; res(); };
+        if (btn) btn.addEventListener('click', onNext, { once: true });
+        window.__sahraSkip = onNext;
+      });
+    }
   }
 
   async function winnerScene() {

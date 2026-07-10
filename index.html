@@ -3,57 +3,87 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#120626">
-<title>SAHRA — Party Games · سهرة</title>
+<meta name="theme-color" content="#131020">
+<title>HYPOX — Party Games</title>
 <link rel="stylesheet" href="css/style.css">
-<!-- Firebase (compat SDK — same style as the padel app) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 </head>
-<body>
+<body class="theme-dark">
 <div id="app">
-  <div id="rays"></div>
-  <div class="bg-blob" style="width:42vmin;height:42vmin;background:var(--purple);top:-10vmin;left:-8vmin;"></div>
-  <div class="bg-blob" style="width:36vmin;height:36vmin;background:var(--magenta);bottom:-8vmin;right:-6vmin;animation-delay:-6s;"></div>
-  <div class="bg-blob" style="width:24vmin;height:24vmin;background:var(--cyan);top:20%;right:12%;animation-delay:-3s;opacity:.16;"></div>
-  <div id="shapes">
-    <div class="f-shape sq" style="width:26px;height:26px;left:8%;animation-duration:19s;"></div>
-    <div class="f-shape ci" style="width:20px;height:20px;left:22%;animation-duration:25s;animation-delay:-9s;"></div>
-    <div class="f-shape tr" style="left:37%;animation-duration:22s;animation-delay:-4s;"></div>
-    <div class="f-shape pl" style="left:52%;animation-duration:27s;animation-delay:-14s;">+</div>
-    <div class="f-shape ci" style="width:28px;height:28px;left:66%;animation-duration:20s;animation-delay:-7s;"></div>
-    <div class="f-shape sq" style="width:18px;height:18px;left:79%;animation-duration:24s;animation-delay:-17s;"></div>
-    <div class="f-shape tr" style="left:91%;animation-duration:21s;animation-delay:-11s;"></div>
-    <div class="f-shape pl" style="left:14%;animation-duration:26s;animation-delay:-20s;">+</div>
+
+  <!-- Background -->
+  <div id="bg-deco">
+    <div class="deco-blob deco-blob-1"></div>
+    <div class="deco-blob deco-blob-2"></div>
+    <div class="deco-blob deco-blob-3"></div>
+    <div class="deco-float" style="left:8%;animation-duration:7s;animation-delay:0s">🎉</div>
+    <div class="deco-float" style="left:25%;animation-duration:9s;animation-delay:2s">⭐</div>
+    <div class="deco-float" style="left:55%;animation-duration:6.5s;animation-delay:1s">🎊</div>
+    <div class="deco-float" style="left:78%;animation-duration:8s;animation-delay:3s">✨</div>
+    <div class="deco-float" style="left:90%;animation-duration:7.5s;animation-delay:0.5s">🎈</div>
   </div>
-  <div id="grain"></div>
-  <div class="vignette"></div>
+
+  <!-- SVG defs for ring timer gradient -->
   <svg width="0" height="0" style="position:absolute"><defs>
     <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#7dff6a"/><stop offset="55%" stop-color="#ffd23f"/><stop offset="100%" stop-color="#ff3d8a"/>
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="55%" stop-color="#facc15"/>
+      <stop offset="100%" stop-color="#f472b6"/>
     </linearGradient>
   </defs></svg>
 
   <!-- TOP BAR -->
   <div id="topbar">
     <div class="room-pill"><span data-i18n="room">ROOM</span> <span class="room-code" id="roomCodeText">—</span></div>
-    <div class="round-pill" id="roundPill">SAHRA</div>
-    <div style="display:flex;gap:1vmin;">
-      <button class="bar-btn hidden" id="skipBtn" data-i18n="skip">SKIP ▸</button>
+    <div class="round-pill display" id="roundPill">HYPOX</div>
+    <div style="display:flex;gap:0.8vmin;">
+      <button class="bar-btn hidden" id="skipBtn" data-i18n="skip">Skip ▸</button>
       <button class="bar-btn" id="soundBtn" title="Sound">🔊</button>
+      <button class="bar-btn" id="themeBtn" title="Theme">🌙</button>
     </div>
   </div>
 
-  <!-- LANGUAGE PICKER (first screen) -->
-  <div class="screen active" id="scr-lang">
-    <div class="marquee">
-      <div class="logo display">
-        <span class="lt" style="--i:0">S</span><span class="lt" style="--i:1">A</span><span class="lt" style="--i:2">H</span><span class="lt" style="--i:3">R</span><span class="lt" style="--i:4">A</span>
-      </div>
-      <div class="logo-sub">سهرة</div>
+  <!-- SCREEN 1: THEME PICKER -->
+  <div class="screen active" id="scr-theme">
+    <div class="logo-letters display">
+      <span class="logo-lt" style="--i:0">H</span>
+      <span class="logo-lt" style="--i:1">Y</span>
+      <span class="logo-lt" style="--i:2">P</span>
+      <span class="logo-lt" style="--i:3">O</span>
+      <span class="logo-lt" style="--i:4">X</span>
     </div>
-    <div class="pick-title display" data-i18n="choose_lang">CHOOSE YOUR LANGUAGE</div>
+    <div class="pick-title display" data-i18n="choose_theme">PICK YOUR VIBE</div>
+    <div class="theme-cards">
+      <button class="theme-card dark-card" data-theme="dark">
+        <div class="theme-preview">
+          <div class="theme-preview-dots">
+            <div class="tpd" style="background:#f472b6"></div>
+            <div class="tpd" style="background:#fb923c"></div>
+            <div class="tpd" style="background:#facc15"></div>
+          </div>
+        </div>
+        <div class="theme-name display" data-i18n="theme_dark">Night Mode</div>
+        <div class="theme-sub" data-i18n="theme_dark_sub">Dark & electric</div>
+      </button>
+      <button class="theme-card light-card" data-theme="light">
+        <div class="theme-preview">
+          <div class="theme-preview-dots">
+            <div class="tpd" style="background:#ec4899"></div>
+            <div class="tpd" style="background:#f97316"></div>
+            <div class="tpd" style="background:#eab308"></div>
+          </div>
+        </div>
+        <div class="theme-name display" data-i18n="theme_light">Day Mode</div>
+        <div class="theme-sub" data-i18n="theme_light_sub">Bright & clean</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: LANGUAGE PICKER -->
+  <div class="screen" id="scr-lang">
+    <div class="pick-title display" data-i18n="choose_lang">CHOOSE LANGUAGE</div>
     <div class="lang-choices">
       <button class="lang-card" data-lang="en">
         <div class="lang-flag">🇬🇧</div>
@@ -64,9 +94,10 @@
         <div class="lang-word display" style="font-family:'Lalezar',sans-serif;">العربية</div>
       </button>
     </div>
+    <button class="bar-btn" id="backToTheme" data-i18n="back">Back</button>
   </div>
 
-  <!-- REGION PICKER -->
+  <!-- SCREEN 3: REGION PICKER -->
   <div class="screen" id="scr-region">
     <div class="pick-title display" data-i18n="choose_region">WHERE ARE YOU PLAYING?</div>
     <div class="pick-sub" data-i18n="region_hint"></div>
@@ -75,68 +106,81 @@
       <button class="region-card" data-region="weur"><div class="region-emoji">🗽</div><div class="region-name display" data-i18n="region_weur">USA &amp; Europe</div></button>
       <button class="region-card" data-region="asia"><div class="region-emoji">🏯</div><div class="region-name display" data-i18n="region_asia">Asia</div></button>
       <button class="region-card" data-region="africa"><div class="region-emoji">🦁</div><div class="region-name display" data-i18n="region_africa">Africa</div></button>
-      <button class="region-card wide" data-region="global"><div class="region-emoji">🌍</div><div class="region-name display" data-i18n="region_global">Mix It Up (Global)</div></button>
+      <button class="region-card wide" data-region="global"><div class="region-emoji">🌍</div><div class="region-name display" data-i18n="region_global">Mix It Up</div></button>
     </div>
-    <button class="bar-btn" id="regionBack" data-i18n="back" style="margin-top:1vmin;">Back</button>
+    <button class="bar-btn" id="backToLang" data-i18n="back">Back</button>
   </div>
 
-  <!-- TITLE -->
+  <!-- SCREEN 4: TITLE / PLAY MODE -->
   <div class="screen" id="scr-title">
-    <div class="marquee">
-      <div class="logo display">
-        <span class="lt" style="--i:0">S</span><span class="lt" style="--i:1">A</span><span class="lt" style="--i:2">H</span><span class="lt" style="--i:3">R</span><span class="lt" style="--i:4">A</span>
+    <div class="marquee-box">
+      <div class="marquee-dots"></div>
+      <div class="logo-letters display">
+        <span class="logo-lt" style="--i:0">H</span>
+        <span class="logo-lt" style="--i:1">Y</span>
+        <span class="logo-lt" style="--i:2">P</span>
+        <span class="logo-lt" style="--i:3">O</span>
+        <span class="logo-lt" style="--i:4">X</span>
       </div>
-      <div class="logo-sub">سهرة</div>
-      <div class="tagline" data-i18n="tagline">THE AI-POWERED PARTY NIGHT</div>
     </div>
     <div class="play-modes">
       <button class="play-card" id="hostBtn">
         <div class="play-emoji">📺</div>
         <div class="play-name display" data-i18n="mode_tv">TV + Phones</div>
-        <div class="play-desc" data-i18n="mode_tv_sub">Big screen shows the game, phones are controllers</div>
+        <div class="play-desc" data-i18n="mode_tv_sub">Big screen hosts, phones are controllers</div>
       </button>
       <button class="play-card feature" id="phonesBtn">
         <div class="play-emoji">📱</div>
         <div class="play-name display" data-i18n="mode_phones">Phones Only</div>
-        <div class="play-desc" data-i18n="mode_phones_sub">No TV — everyone plays on their own phone</div>
+        <div class="play-desc" data-i18n="mode_phones_sub">No TV needed — everyone on their phone</div>
       </button>
       <button class="play-card" id="offlineBtn">
         <div class="play-emoji">🤝</div>
         <div class="play-name display" data-i18n="mode_pass">One Device</div>
-        <div class="play-desc" data-i18n="mode_pass_sub">Pass &amp; play on a single phone, no internet</div>
+        <div class="play-desc" data-i18n="mode_pass_sub">Pass the phone around, no internet</div>
       </button>
     </div>
     <div class="title-foot">
-      <button class="big-btn alt" id="joinBtn" data-i18n="join_game" style="font-size:clamp(15px,2.4vmin,22px);padding:1.5vmin 4vmin;">JOIN A GAME</button>
+      <button class="big-btn alt" id="joinBtn" style="font-size:clamp(14px,2.3vmin,21px);padding:1.4vmin 4vmin;" data-i18n="join_game">JOIN A GAME</button>
       <button class="bar-btn" id="regionBadge">🌍</button>
+      <button class="bar-btn" id="backToRegion" data-i18n="back">Back</button>
     </div>
   </div>
 
-  <!-- LOBBY (host) -->
+  <!-- SCREEN 5: AVATAR PICKER (new player) -->
+  <div class="screen" id="scr-avatar">
+    <div class="pick-title display" data-i18n="pick_avatar">PICK YOUR AVATAR</div>
+    <div class="avatar-grid" id="avatarGrid"></div>
+    <input class="text-input" id="avatarName" maxlength="14" data-i18n-ph="player_name" placeholder="Your name" style="text-align:center;margin-top:1vmin;">
+    <button class="big-btn" id="avatarDone" data-i18n="join_btn">Join</button>
+    <button class="bar-btn" id="backFromAvatar" data-i18n="back">Back</button>
+  </div>
+
+  <!-- SCREEN 6: LOBBY (host) -->
   <div class="screen" id="scr-lobby">
-    <div class="lobby-title display" data-i18n="waiting_players">WAITING FOR PLAYERS…</div>
-    <div class="join-line" id="joinHint" data-i18n="join_hint"></div>
+    <div class="lobby-title display" data-i18n="waiting_players">WAITING FOR PLAYERS</div>
+    <div class="join-line" id="joinHint"></div>
     <div id="playerRow"></div>
     <div class="local-add hidden" id="localAdd">
-      <input class="text-input" id="localName" maxlength="14" data-i18n-ph="player_name" placeholder="Your name">
-      <button class="big-btn alt" id="addLocalBtn" data-i18n="add_player" style="font-size:clamp(14px,2.2vmin,20px);padding:1.4vmin 3vmin;">ADD PLAYER</button>
+      <button class="big-btn" id="addLocalBtn" data-i18n="add_player" style="font-size:clamp(14px,2.2vmin,19px);padding:1.4vmin 3vmin;">Add Player</button>
     </div>
-    <button class="big-btn dim" id="startGameBtn" data-i18n="start_game">START</button>
-    <div class="hint" id="lobbyHint"></div>
+    <button class="big-btn dim" id="startGameBtn" data-i18n="start_game">START GAME</button>
+    <div class="hint" id="lobbyHint" style="font-size:clamp(11px,1.7vmin,14px);color:var(--text3);font-weight:700;"></div>
   </div>
 
-  <!-- JOIN (phone) -->
+  <!-- SCREEN 7: JOIN (phone) -->
   <div class="screen" id="scr-join">
-    <div class="lobby-title display" data-i18n="join_game">JOIN A GAME</div>
+    <div class="pick-title display" data-i18n="join_game">JOIN A GAME</div>
     <div class="join-form">
-      <input class="text-input" id="joinCode" maxlength="4" data-i18n-ph="enter_code" placeholder="Room code" autocomplete="off">
-      <input class="text-input" id="joinName" maxlength="14" data-i18n-ph="player_name" placeholder="Your name" autocomplete="off">
-      <button class="big-btn" id="joinGo" data-i18n="join_btn">JOIN</button>
+      <input class="text-input" id="joinCode" maxlength="4" placeholder="Room code" autocomplete="off" data-i18n-ph="enter_code">
+      <input class="text-input" id="joinName" maxlength="14" placeholder="Your name" autocomplete="off" data-i18n-ph="player_name">
+      <button class="big-btn" id="joinGo" data-i18n="join_btn">Join</button>
       <div class="join-err" id="joinErr"></div>
     </div>
+    <button class="bar-btn" id="backFromJoin" data-i18n="back" style="margin-top:1vmin;">Back</button>
   </div>
 
-  <!-- CONTROLLER (phone, in-game) -->
+  <!-- SCREEN 8: CONTROLLER (phone in-game) -->
   <div class="screen" id="scr-controller">
     <div id="phoneMirror" class="phone-mirror hidden">
       <div class="pm-pill" id="pmPill"></div>
@@ -146,7 +190,7 @@
     <div id="ctrlArea"></div>
   </div>
 
-  <!-- GAME (host main screen) -->
+  <!-- SCREEN 9: GAME (host main) -->
   <div class="screen" id="scr-game">
     <div id="hostStage"></div>
   </div>
