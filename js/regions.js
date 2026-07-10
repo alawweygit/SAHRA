@@ -1,4 +1,4 @@
-/* SAHRA — regional content packs.
+/* HYPOX — regional content packs.
    The base PACKS (content.js) are the UNIVERSAL pool — they work anywhere.
    Below are region flavors for the two location-sensitive modes: quiz + bluff.
    When a region is chosen, its pool is MERGED with the universal pool so games

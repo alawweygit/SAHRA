@@ -18,7 +18,7 @@
     { emoji:'🐯', color:'#f59e0b', label:'Tiger' },
   ];
 
-  window.SAHRA_STATE = window.SAHRA_STATE || { region: null };
+  window.HYPOX_STATE = window.HYPOX_STATE || { region: null };
   const REGION_EMOJI = { mena:'🕌', weur:'🗽', asia:'🏯', africa:'🦁', global:'🌍' };
 
   let net = null, players = [], myPid = null, isVip = false;
@@ -62,7 +62,7 @@
     $$('.region-card').forEach(c => c.addEventListener('click', () => {
       Audio_.sfx.submit();
       const r = c.dataset.region;
-      window.SAHRA_STATE.region = r === 'global' ? null : r;
+      window.HYPOX_STATE.region = r === 'global' ? null : r;
       $('#regionBadge').textContent = REGION_EMOJI[r] || '🌍';
       show('#scr-title'); paintStatics(); Audio_.startMusic('lobby');
     }));
@@ -106,7 +106,7 @@
 
     // Skip
     $('#skipBtn').addEventListener('click', () => {
-      if (window.__sahraSkip) { window.__sahraSkip(); window.__sahraSkip = null; }
+      if (window.__hypoxSkip) { window.__hypoxSkip(); window.__hypoxSkip = null; }
     });
   });
 
@@ -256,7 +256,7 @@
         setTimeout(() => { ov.classList.remove('show'); resolve(value); }, 400);
       };
       _ppDismiss = () => { if (settled) return; settled = true; _ppDismiss = null; ov.classList.remove('show'); resolve(null); };
-      window.__sahraDismissPP = () => { if (_ppDismiss) _ppDismiss(); };
+      window.__hypoxDismissPP = () => { if (_ppDismiss) _ppDismiss(); };
 
       ov.innerHTML = `
         <div class="pp-card">

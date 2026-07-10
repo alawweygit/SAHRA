@@ -1,4 +1,4 @@
-/* SAHRA — visual FX: confetti + transitions */
+/* HYPOX — visual FX: confetti + transitions */
 const FX = (() => {
   let canvas, ctx, parts = [], raf = null;
 

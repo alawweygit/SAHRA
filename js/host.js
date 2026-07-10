@@ -1,4 +1,4 @@
-/* SAHRA — host engine: the main-screen state machine + all game modes.
+/* HYPOX — host engine: the main-screen state machine + all game modes.
    Everything original: format is the classic party-game loop
    (prompt → submit → vote → reveal → score), content & art are ours. */
 
@@ -44,7 +44,7 @@ const Host = (() => {
   }
 
   function skippable() {
-    return new Promise(res => { window.__sahraSkip = () => { window.__sahraSkip = null; res('skip'); }; });
+    return new Promise(res => { window.__hypoxSkip = () => { window.__hypoxSkip = null; res('skip'); }; });
   }
 
   /* ---------- input collection with big timer ---------- */
@@ -128,9 +128,9 @@ const Host = (() => {
     // Wait for explicit tap OR skip button — no auto-advance
     await new Promise(res => {
       const btn = document.getElementById('startModeBtn');
-      const onStart = () => { window.__sahraSkip = null; res(); };
+      const onStart = () => { window.__hypoxSkip = null; res(); };
       if (btn) btn.addEventListener('click', onStart, { once: true });
-      window.__sahraSkip = onStart;
+      window.__hypoxSkip = onStart;
     });
   }
 
@@ -164,9 +164,9 @@ const Host = (() => {
       scene(document.getElementById('hostStage').innerHTML + `<button class="big-btn" id="nextBtn" style="margin-top:2vmin" data-i18n="next_round">${t('next_round')}</button>`);
       await new Promise(res => {
         const btn = document.getElementById('nextBtn');
-        const onNext = () => { window.__sahraSkip = null; res(); };
+        const onNext = () => { window.__hypoxSkip = null; res(); };
         if (btn) btn.addEventListener('click', onNext, { once: true });
-        window.__sahraSkip = onNext;
+        window.__hypoxSkip = onNext;
       });
     }
   }

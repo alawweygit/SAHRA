@@ -1,11 +1,11 @@
-/* SAHRA — configuration
+/* HYPOX — configuration
    1) ONLINE PLAY: create a Firebase project → Realtime Database → paste the web config below.
       (Same steps as your padel app.) Until then, Pass & Play works with zero setup.
    2) AI PROMPTS (later): point aiEndpoint at your Railway backend.
       It receives POST { mode, lang, count } and must return { prompts: [...] }
       matching the shapes in js/content.js. Leave as null to use built-in packs. */
 
-window.SAHRA_CONFIG = {
+window.HYPOX_CONFIG = {
   firebase: {
     apiKey: "PASTE_YOUR_API_KEY",
     authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",

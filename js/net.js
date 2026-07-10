@@ -1,4 +1,4 @@
-/* SAHRA — networking: FirebaseNet (online) + LocalNet (pass & play)
+/* HYPOX — networking: FirebaseNet (online) + LocalNet (pass & play)
    Both expose the same API so the game engine never cares which is active.
 
    API:
@@ -30,12 +30,12 @@ class FirebaseNet {
 
   static available() {
     return typeof firebase !== 'undefined'
-      && window.SAHRA_CONFIG && window.SAHRA_CONFIG.firebase
-      && window.SAHRA_CONFIG.firebase.databaseURL
-      && !String(window.SAHRA_CONFIG.firebase.databaseURL).includes('PASTE_');
+      && window.HYPOX_CONFIG && window.HYPOX_CONFIG.firebase
+      && window.HYPOX_CONFIG.firebase.databaseURL
+      && !String(window.HYPOX_CONFIG.firebase.databaseURL).includes('PASTE_');
   }
   static create() {
-    if (!firebase.apps.length) firebase.initializeApp(window.SAHRA_CONFIG.firebase);
+    if (!firebase.apps.length) firebase.initializeApp(window.HYPOX_CONFIG.firebase);
     return new FirebaseNet(firebase.database());
   }
 
@@ -102,7 +102,7 @@ class FirebaseNet {
         if (done) return; done = true;
         ref.off(); clearTimeout(timer);
         // Close the host's own input overlay if it's still open (timer expired).
-        if (this.hostSelfPid && typeof window !== 'undefined' && window.__sahraDismissPP) window.__sahraDismissPP();
+        if (this.hostSelfPid && typeof window !== 'undefined' && window.__hypoxDismissPP) window.__hypoxDismissPP();
         resolve(out);
       };
       const timer = setTimeout(finish, ms);

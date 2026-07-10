@@ -1,4 +1,4 @@
-/* SAHRA — controller renderers
+/* HYPOX — controller renderers
    A "spec" describes what input we need. The same renderers power:
    1) remote phones (online mode)  2) the pass-and-play overlay (offline mode)
 
