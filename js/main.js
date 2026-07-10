@@ -125,57 +125,94 @@
     const modeIcon=MODE_ICONS[mode]||'🎮';
     const modeColor=MODE_COLORS[mode]||'var(--pink)';
 
-    // Build scrollable content + sticky play mode footer
     const pregameEl = document.getElementById('pregameContent');
-    pregameEl.innerHTML=`
-      <div class="pregame-header">
-        <div class="pregame-icon">${modeIcon}</div>
-        <div class="pregame-title display" style="color:${modeColor}">${esc(modeName)}</div>
-        <div class="pregame-desc">${esc(t('mode_taglines')[mode]||'')}</div>
-      </div>
-      <div class="pregame-rules">${esc(t('mode_rules')[mode]||'')}</div>
-      <div class="pregame-settings">
-        <div class="gs-section">
-          <div class="gs-label">ROUNDS</div>
-          <div class="round-btns">
-            ${[5,10,15].map(n=>`<button class="round-btn${window.HYPOX_STATE.rounds===n?' selected':''}" data-r="${n}">${n}</button>`).join('')}
-          </div>
-        </div>
-        <div class="gs-section">
-          <div class="gs-label">CONTENT</div>
-          <div class="content-btns">
-            <button class="content-btn${window.HYPOX_STATE.flavor==='arab'?' selected':''}" data-flavor="arab">🕌 Arab Flavor</button>
-            <button class="content-btn${window.HYPOX_STATE.flavor!=='arab'?' selected':''}" data-flavor="global">🌍 Global Mix</button>
-          </div>
-        </div>
-        ${isTrivia?`
-        <div class="gs-section">
-          <div class="gs-label">CATEGORY</div>
-          <div class="cat-grid-small">
-            ${CAT_INFO.map((c,i)=>`
-              <button class="cat-card-sm${window.HYPOX_STATE.category===c.id?' selected':''}" data-cat="${c.id}" style="animation-delay:${i*.06}s">
-                <div class="cat-icon-sm">${c.icon}</div>
-                <div class="cat-name-sm">${c.name}</div>
-              </button>`).join('')}
-          </div>
-        </div>`:''}
-      </div>`;
 
-    // Sticky bottom — always visible, no scrolling needed
-    // Remove old sticky if any
-    const oldSticky = document.getElementById('pregameSticky');
-    if(oldSticky) oldSticky.remove();
-    const sticky = document.createElement('div');
-    sticky.id = 'pregameSticky';
-    sticky.className = 'pregame-sticky-bottom';
-    sticky.innerHTML = `
-      <div class="gs-label">HOW ARE YOU PLAYING?</div>
-      <div class="play-modes-mini">
-        <button class="pmm-btn" id="pgHostBtn"><span class="pmm-icon">📺</span><span class="pmm-name">TV + Phones</span></button>
-        <button class="pmm-btn feature" id="pgPhonesBtn"><span class="pmm-icon">📱</span><span class="pmm-name">Phones Only</span></button>
-        <button class="pmm-btn" id="pgOfflineBtn"><span class="pmm-icon">🤝</span><span class="pmm-name">One Device</span></button>
-      </div>`;
-    document.getElementById('scr-pregame').appendChild(sticky);
+    // STEP 1: Settings
+    function showStep1() {
+      pregameEl.innerHTML=`
+        <div class="pregame-header">
+          <div class="pregame-icon">${modeIcon}</div>
+          <div class="pregame-title display" style="color:${modeColor}">${esc(modeName)}</div>
+          <div class="pregame-desc">${esc(t('mode_taglines')[mode]||'')}</div>
+        </div>
+        <div class="pregame-rules">${esc(t('mode_rules')[mode]||'')}</div>
+        <div class="pregame-settings">
+          <div class="gs-section">
+            <div class="gs-label">ROUNDS</div>
+            <div class="round-btns">
+              ${[5,10,15].map(n=>`<button class="round-btn${window.HYPOX_STATE.rounds===n?' selected':''}" data-r="${n}">${n}</button>`).join('')}
+            </div>
+          </div>
+          <div class="gs-section">
+            <div class="gs-label">CONTENT</div>
+            <div class="content-btns">
+              <button class="content-btn${window.HYPOX_STATE.flavor==='arab'?' selected':''}" data-flavor="arab">🕌 Arab Flavor</button>
+              <button class="content-btn${window.HYPOX_STATE.flavor!=='arab'?' selected':''}" data-flavor="global">🌍 Global Mix</button>
+            </div>
+          </div>
+          ${isTrivia?`
+          <div class="gs-section">
+            <div class="gs-label">CATEGORY</div>
+            <div class="cat-grid-small">
+              ${CAT_INFO.map((c,i)=>`
+                <button class="cat-card-sm${window.HYPOX_STATE.category===c.id?' selected':''}" data-cat="${c.id}" style="animation-delay:${i*.06}s">
+                  <div class="cat-icon-sm">${c.icon}</div>
+                  <div class="cat-name-sm">${c.name}</div>
+                </button>`).join('')}
+            </div>
+          </div>`:''}
+        </div>
+        <button class="big-btn" id="pgNext" style="margin-top:1vmin">NEXT →</button>`;
+
+      // Settings listeners
+      $$('.round-btn').forEach(btn=>btn.addEventListener('click',()=>{
+        $$('.round-btn').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        window.HYPOX_STATE.rounds=+btn.dataset.r;
+        Audio_.sfx.blip();
+      }));
+      $$('.content-btn').forEach(btn=>btn.addEventListener('click',()=>{
+        $$('.content-btn').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        window.HYPOX_STATE.flavor=btn.dataset.flavor;
+        Audio_.sfx.blip();
+      }));
+      if(isTrivia){
+        $$('.cat-card-sm').forEach(btn=>btn.addEventListener('click',()=>{
+          $$('.cat-card-sm').forEach(b=>b.classList.remove('selected'));
+          btn.classList.add('selected');
+          window.HYPOX_STATE.category=btn.dataset.cat;
+          Audio_.sfx.blip();
+        }));
+      }
+      document.getElementById('pgNext').addEventListener('click',()=>{
+        Audio_.sfx.submit();
+        showStep2();
+      },{once:true});
+    }
+
+    // STEP 2: How are you playing?
+    function showStep2() {
+      pregameEl.innerHTML=`
+        <div class="pregame-header">
+          <div class="pregame-icon">${modeIcon}</div>
+          <div class="pregame-title display" style="color:${modeColor}">${esc(modeName)}</div>
+        </div>
+        <div class="gs-label" style="text-align:center;font-size:clamp(14px,2.2vmin,20px);color:var(--text2);">HOW ARE YOU PLAYING?</div>
+        <div class="play-modes-mini">
+          <button class="pmm-btn" id="pgHostBtn"><span class="pmm-icon">📺</span><div><div class="pmm-name">TV + Phones</div><div class="pmm-sub">Big screen hosts · phones are controllers</div></div></button>
+          <button class="pmm-btn feature" id="pgPhonesBtn"><span class="pmm-icon">📱</span><div><div class="pmm-name">Phones Only</div><div class="pmm-sub">No TV needed · everyone on their own phone</div></div></button>
+          <button class="pmm-btn" id="pgOfflineBtn"><span class="pmm-icon">🤝</span><div><div class="pmm-name">One Device</div><div class="pmm-sub">Pass the phone around · no internet needed</div></div></button>
+        </div>
+        <button class="bar-btn" id="pgBack2">← Back</button>`;
+
+      document.getElementById('pgBack2').addEventListener('click',()=>{ Audio_.sfx.blip(); showStep1(); },{once:true});
+      document.getElementById('pgHostBtn').addEventListener('click',()=>startGameWithMode('tv',mode),{once:true});
+      document.getElementById('pgPhonesBtn').addEventListener('click',()=>startGameWithMode('phones',mode),{once:true});
+      document.getElementById('pgOfflineBtn').addEventListener('click',()=>startGameWithMode('offline',mode),{once:true});
+    }
+
+    showStep1();
 
     // Settings listeners
     $$('.round-btn').forEach(btn=>btn.addEventListener('click',()=>{
@@ -199,12 +236,7 @@
       }));
     }
 
-    // Play mode buttons
-    document.getElementById('pgHostBtn').addEventListener('click',()=>startGameWithMode('tv',mode),{once:true});
-    document.getElementById('pgPhonesBtn').addEventListener('click',()=>startGameWithMode('phones',mode),{once:true});
-    document.getElementById('pgOfflineBtn').addEventListener('click',()=>startGameWithMode('offline',mode),{once:true});
-
-    // Back
+    // Back from step 1 goes to title
     const backBtn=$('#backFromPregame');
     const newBack=backBtn.cloneNode(true);
     backBtn.parentNode.replaceChild(newBack,backBtn);
@@ -308,14 +340,12 @@
       $('#lobbyHint').textContent=list.length<2?'Need at least 2 players':list.length<3?'Some games need 3+ players':'';
     });
 
-    // Auto-start with the chosen game mode
-    const btn=$('#startGameBtn');
-    const newBtn=btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn,btn);
-    newBtn.addEventListener('click',()=>{
+    // Wire start button for this game mode (use onclick to avoid accumulating listeners)
+    const startBtn = document.getElementById('startGameBtn');
+    if(startBtn) startBtn.onclick = () => {
       if(players.length<2){Audio_.sfx.buzzer();$('#lobbyHint').classList.add('shake');setTimeout(()=>$('#lobbyHint').classList.remove('shake'),500);return;}
       startDirectGame(gameMode);
-    });
+    };
   }
 
   async function startDirectGame(gameMode){

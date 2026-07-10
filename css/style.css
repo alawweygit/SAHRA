@@ -695,3 +695,7 @@ body.ar .eyebrow{letter-spacing:0;}
 .share-url{font-size:clamp(11px,1.7vmin,14px);color:var(--text2);font-weight:600;text-align:center;}
 .share-url b{color:var(--yellow);font-family:'Fredoka One',sans-serif;font-size:1.3em;letter-spacing:3px;}
 .share-btns{display:flex;gap:1vmin;}
+
+/* Step 2 play mode sub-text */
+.pmm-sub{font-size:clamp(10px,1.5vmin,13px);font-weight:600;color:var(--text3);margin-top:2px;}
+.pmm-btn{align-items:flex-start;}
