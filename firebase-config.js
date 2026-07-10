@@ -1,12 +1,19 @@
+/* SAHRA — configuration
+   1) ONLINE PLAY: create a Firebase project → Realtime Database → paste the web config below.
+      (Same steps as your padel app.) Until then, Pass & Play works with zero setup.
+   2) AI PROMPTS (later): point aiEndpoint at your Railway backend.
+      It receives POST { mode, lang, count } and must return { prompts: [...] }
+      matching the shapes in js/content.js. Leave as null to use built-in packs. */
+
 window.SAHRA_CONFIG = {
   firebase: {
-    apiKey: "AIzaSyCwLgQPaMojnCtph326HPeBauvOKuXg3nw",
-    authDomain: "highpox-1eec7.firebaseapp.com",
-    databaseURL: "https://highpox-1eec7-default-rtdb.firebaseio.com",
-    projectId: "highpox-1eec7",
-    storageBucket: "highpox-1eec7.firebasestorage.app",
-    messagingSenderId: "305902826099",
-    appId: "1:305902826099:web:7ec2e126cbf5ad82913006",
+    apiKey: "PASTE_YOUR_API_KEY",
+    authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "PASTE_YOUR_DATABASE_URL", // e.g. https://sahra-xxxx-default-rtdb.firebaseio.com
+    projectId: "PASTE_YOUR_PROJECT",
+    storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
+    messagingSenderId: "PASTE_SENDER_ID",
+    appId: "PASTE_APP_ID",
   },
-  aiEndpoint: null,
+  aiEndpoint: null, // e.g. "https://your-backend.up.railway.app/api/prompts"
 };
