@@ -120,6 +120,7 @@ const I18N = {
       interrogation: 'CONFESSIONS',
       diss: 'ROAST BATTLE',
       quiz: 'SPEED TRIVIA',
+      trivia: 'QUESTIONS',
     },
     mode_taglines: {
       bluff: 'Spot the lie. Fool your friends.',
@@ -127,6 +128,7 @@ const I18N = {
       interrogation: 'Anonymous answers. Public blame.',
       diss: 'One-liner battle. Crowd decides.',
       quiz: 'Fastest fingers win.',
+      trivia: 'Pick a category. Fastest wins.',
     },
     mode_rules: {
       bluff: 'A weird fact appears with a blank. Everyone writes a fake answer to fill it. Then vote for what you think is real. Fool someone: +500. Find the truth: +1000.',
@@ -278,6 +280,7 @@ const I18N = {
       interrogation: 'الاعترافات',
       diss: 'حرب القصايد',
       quiz: 'سرعة المعلومات',
+      trivia: 'أسئلة',
     },
     mode_taglines: {
       bluff: 'اكتشف الكذبة. اخدع ربعك.',
@@ -285,6 +288,7 @@ const I18N = {
       interrogation: 'اعترافات مجهولة. اتهامات علنية.',
       diss: 'مواجهة بسطر واحد. الجمهور يحكم.',
       quiz: 'أسرع إصبع يفوز.',
+      trivia: 'اختر فئة. أسرع واحد يفوز.',
     },
     mode_rules: {
       bluff: 'تظهر معلومة غريبة ناقصها جزء. كل واحد يكتب كذبة تكمّل الفراغ، وبعدها الكل يصوّت. خدعت صديق: +٥٠٠. لقيت الحقيقة: +١٠٠٠.',

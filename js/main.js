@@ -29,7 +29,7 @@
     {id:'sports',   icon:'⚽', name:'Sports'},
   ];
 
-  window.HYPOX_STATE = window.HYPOX_STATE || { region:null, rounds:3, category:'general' };
+  window.HYPOX_STATE = window.HYPOX_STATE || { region:null, rounds:5, category:'general' };
 
   let net=null, players=[], myPid=null, isVip=false, hostMode='tv';
   let selectedAvatar = AVATARS_LIST[0];
@@ -52,8 +52,7 @@
     $('#soundBtn').addEventListener('click', e => { const on=Audio_.toggle(); e.target.textContent=on?'🔊':'🔇'; });
     $('#themeBtn').addEventListener('click', () => { setTheme(THEME==='dark'?'light':'dark'); $('#themeBtn').textContent=THEME==='dark'?'🌙':'☀️'; });
     $('#themeBtn').textContent = THEME==='dark'?'🌙':'☀️';
-    $('#langBtn').addEventListener('click', () => { setLang(LANG==='en'?'ar':'en'); $('#langBtn').textContent=LANG==='en'?'عر':'EN'; });
-    $('#langBtn').textContent = LANG==='en'?'عر':'EN';
+    // lang button removed — English only
     $('#skipBtn').addEventListener('click', () => { if(window.__hypoxSkip){window.__hypoxSkip();window.__hypoxSkip=null;} });
 
     // Menu
@@ -222,7 +221,7 @@
       <div class="round-picker">
         <div class="round-picker-title">How many rounds?</div>
         <div class="round-btns">
-          ${[2,3,5].map(n=>`<button class="round-btn${window.HYPOX_STATE.rounds===n?' selected':''}" data-r="${n}">${n}</button>`).join('')}
+          ${[5,10,15].map(n=>`<button class="round-btn${window.HYPOX_STATE.rounds===n?' selected':''}" data-r="${n}">${n}</button>`).join('')}
         </div>
       </div>
       <div class="pack-grid">
