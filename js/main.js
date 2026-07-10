@@ -79,7 +79,7 @@
     // Avatar picker
     $('#avatarDone').addEventListener('click', confirmAvatar);
     $('#avatarName').addEventListener('keydown', e => { if (e.key === 'Enter') confirmAvatar(); });
-    $('#backFromAvatar').addEventListener('click', () => { Audio_.sfx.blip(); show('#scr-title'); });
+    // backFromAvatar is wired dynamically in showAvatarPicker() per context
 
     // Lobby
     $('#addLocalBtn').addEventListener('click', () => showAvatarPicker('offline'));
@@ -139,12 +139,16 @@
     _avatarCallback = cb;
     buildAvatarGrid();
     $('#avatarName').value = '';
-    $('#backFromAvatar').onclick = () => {
+    // Replace back button listener fresh each call
+    const backBtn = $('#backFromAvatar');
+    const newBack = backBtn.cloneNode(true);
+    backBtn.parentNode.replaceChild(newBack, backBtn);
+    newBack.addEventListener('click', () => {
       Audio_.sfx.blip();
       if (context === 'offline') show('#scr-lobby');
       else if (context === 'phones') show('#scr-title');
       else show('#scr-title');
-    };
+    });
     show('#scr-avatar');
   }
 
