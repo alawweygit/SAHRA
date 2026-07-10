@@ -254,6 +254,7 @@
   /* ---- Game settings screen (rounds + content flavor + category for trivia) ---- */
   async function showGameSettings(mode) {
     await FX.wipe();
+    show('#scr-game');
     $('#roundPill').textContent = t('mode_names')[mode] || mode;
     const isTrivia = mode === 'trivia' || mode === 'quiz';
     const modeName = t('mode_names')[mode] || mode;
@@ -325,12 +326,18 @@
       }));
     }
 
-    $('#gsBack').addEventListener('click', () => showPackPicker(), {once:true});
-    $('#gsStart').addEventListener('click', async () => {
+    // Small yield to ensure DOM is painted before attaching listeners
+    await new Promise(r => setTimeout(r, 20));
+
+    const gsBack = document.getElementById('gsBack');
+    const gsStart = document.getElementById('gsStart');
+    if (gsBack) gsBack.addEventListener('click', () => showPackPicker(), {once:true});
+    if (gsStart) gsStart.addEventListener('click', async () => {
       Audio_.sfx.submit();
       await Host.run(net, players, mode);
       showPackPicker();
     }, {once:true});
+    if (!gsStart) console.error('gsStart button not found in DOM');
   }
 
   /* ---- Pass & Play overlay ---- */
