@@ -13,7 +13,6 @@
 <body class="theme-dark">
 <div id="app">
 
-  <!-- Background -->
   <div id="bg-deco">
     <div class="deco-blob deco-blob-1"></div>
     <div class="deco-blob deco-blob-2"></div>
@@ -25,7 +24,6 @@
     <div class="deco-float" style="left:90%;animation-duration:7.5s;animation-delay:0.5s">🎈</div>
   </div>
 
-  <!-- SVG defs for ring timer gradient -->
   <svg width="0" height="0" style="position:absolute"><defs>
     <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#34d399"/>
@@ -36,83 +34,29 @@
 
   <!-- TOP BAR -->
   <div id="topbar">
-    <div class="room-pill"><span data-i18n="room">ROOM</span> <span class="room-code" id="roomCodeText">—</span></div>
+    <div class="room-pill"><span>ROOM</span> <span class="room-code" id="roomCodeText">—</span></div>
     <div class="round-pill display" id="roundPill">HYPOX</div>
     <div style="display:flex;gap:0.8vmin;">
-      <button class="bar-btn hidden" id="skipBtn" data-i18n="skip">Skip ▸</button>
-      <button class="bar-btn" id="soundBtn" title="Sound">🔊</button>
-      <button class="bar-btn" id="themeBtn" title="Theme">🌙</button>
+      <button class="bar-btn hidden" id="menuBtn" title="Menu">☰</button>
+      <button class="bar-btn hidden" id="skipBtn">Skip ▸</button>
+      <button class="bar-btn" id="soundBtn">🔊</button>
+      <button class="bar-btn" id="themeBtn">🌙</button>
+      <button class="bar-btn" id="langBtn">عر</button>
     </div>
   </div>
 
-  <!-- SCREEN 1: THEME PICKER -->
-  <div class="screen active" id="scr-theme">
-    <div class="logo-letters display">
-      <span class="logo-lt" style="--i:0">H</span>
-      <span class="logo-lt" style="--i:1">Y</span>
-      <span class="logo-lt" style="--i:2">P</span>
-      <span class="logo-lt" style="--i:3">O</span>
-      <span class="logo-lt" style="--i:4">X</span>
-    </div>
-    <div class="pick-title display" data-i18n="choose_theme">PICK YOUR VIBE</div>
-    <div class="theme-cards">
-      <button class="theme-card dark-card" data-theme="dark">
-        <div class="theme-preview">
-          <div class="theme-preview-dots">
-            <div class="tpd" style="background:#f472b6"></div>
-            <div class="tpd" style="background:#fb923c"></div>
-            <div class="tpd" style="background:#facc15"></div>
-          </div>
-        </div>
-        <div class="theme-name display" data-i18n="theme_dark">Night Mode</div>
-        <div class="theme-sub" data-i18n="theme_dark_sub">Dark & electric</div>
-      </button>
-      <button class="theme-card light-card" data-theme="light">
-        <div class="theme-preview">
-          <div class="theme-preview-dots">
-            <div class="tpd" style="background:#ec4899"></div>
-            <div class="tpd" style="background:#f97316"></div>
-            <div class="tpd" style="background:#eab308"></div>
-          </div>
-        </div>
-        <div class="theme-name display" data-i18n="theme_light">Day Mode</div>
-        <div class="theme-sub" data-i18n="theme_light_sub">Bright & clean</div>
-      </button>
+  <!-- MENU OVERLAY -->
+  <div id="menuOverlay" class="hidden">
+    <div class="menu-card">
+      <div class="menu-title display">MENU</div>
+      <button class="menu-item" id="menuResume">▶ Resume Game</button>
+      <button class="menu-item danger" id="menuLeave">✕ Leave Game</button>
+      <button class="bar-btn" id="menuClose" style="margin-top:1vmin;">Cancel</button>
     </div>
   </div>
 
-  <!-- SCREEN 2: LANGUAGE PICKER -->
-  <div class="screen" id="scr-lang">
-    <div class="pick-title display" data-i18n="choose_lang">CHOOSE LANGUAGE</div>
-    <div class="lang-choices">
-      <button class="lang-card" data-lang="en">
-        <div class="lang-flag">🇬🇧</div>
-        <div class="lang-word display">English</div>
-      </button>
-      <button class="lang-card" data-lang="ar">
-        <div class="lang-flag">🇸🇦</div>
-        <div class="lang-word display" style="font-family:'Lalezar',sans-serif;">العربية</div>
-      </button>
-    </div>
-    <button class="bar-btn" id="backToTheme" data-i18n="back">Back</button>
-  </div>
-
-  <!-- SCREEN 3: REGION PICKER -->
-  <div class="screen" id="scr-region">
-    <div class="pick-title display" data-i18n="choose_region">WHERE ARE YOU PLAYING?</div>
-    <div class="pick-sub" data-i18n="region_hint"></div>
-    <div class="region-grid">
-      <button class="region-card" data-region="mena"><div class="region-emoji">🕌</div><div class="region-name display" data-i18n="region_mena">Middle East</div></button>
-      <button class="region-card" data-region="weur"><div class="region-emoji">🗽</div><div class="region-name display" data-i18n="region_weur">USA &amp; Europe</div></button>
-      <button class="region-card" data-region="asia"><div class="region-emoji">🏯</div><div class="region-name display" data-i18n="region_asia">Asia</div></button>
-      <button class="region-card" data-region="africa"><div class="region-emoji">🦁</div><div class="region-name display" data-i18n="region_africa">Africa</div></button>
-      <button class="region-card wide" data-region="global"><div class="region-emoji">🌍</div><div class="region-name display" data-i18n="region_global">Mix It Up</div></button>
-    </div>
-    <button class="bar-btn" id="backToLang" data-i18n="back">Back</button>
-  </div>
-
-  <!-- SCREEN 4: TITLE / PLAY MODE -->
-  <div class="screen" id="scr-title">
+  <!-- SCREEN 1: TITLE -->
+  <div class="screen active" id="scr-title">
     <div class="marquee-box">
       <div class="marquee-dots"></div>
       <div class="logo-letters display">
@@ -122,65 +66,64 @@
         <span class="logo-lt" style="--i:3">O</span>
         <span class="logo-lt" style="--i:4">X</span>
       </div>
+      <div class="tagline">PARTY GAMES · العاب السهرة</div>
     </div>
     <div class="play-modes">
       <button class="play-card" id="hostBtn">
         <div class="play-emoji">📺</div>
-        <div class="play-name display" data-i18n="mode_tv">TV + Phones</div>
-        <div class="play-desc" data-i18n="mode_tv_sub">Big screen hosts, phones are controllers</div>
+        <div class="play-name display">TV + Phones</div>
+        <div class="play-desc">Big screen hosts · phones are controllers</div>
       </button>
       <button class="play-card feature" id="phonesBtn">
         <div class="play-emoji">📱</div>
-        <div class="play-name display" data-i18n="mode_phones">Phones Only</div>
-        <div class="play-desc" data-i18n="mode_phones_sub">No TV needed — everyone on their phone</div>
+        <div class="play-name display">Phones Only</div>
+        <div class="play-desc">No TV needed · everyone on their own phone</div>
       </button>
       <button class="play-card" id="offlineBtn">
         <div class="play-emoji">🤝</div>
-        <div class="play-name display" data-i18n="mode_pass">One Device</div>
-        <div class="play-desc" data-i18n="mode_pass_sub">Pass the phone around, no internet</div>
+        <div class="play-name display">One Device</div>
+        <div class="play-desc">Pass the phone around · no internet needed</div>
       </button>
     </div>
     <div class="title-foot">
-      <button class="big-btn alt" id="joinBtn" style="font-size:clamp(14px,2.3vmin,21px);padding:1.4vmin 4vmin;" data-i18n="join_game">JOIN A GAME</button>
-      <button class="bar-btn" id="regionBadge">🌍</button>
-      <button class="bar-btn" id="backToRegion" data-i18n="back">Back</button>
+      <button class="big-btn alt" id="joinBtn" style="font-size:clamp(14px,2.3vmin,21px);padding:1.4vmin 4vmin;">JOIN A GAME</button>
     </div>
   </div>
 
-  <!-- SCREEN 5: AVATAR PICKER (new player) -->
+  <!-- SCREEN 2: AVATAR PICKER -->
   <div class="screen" id="scr-avatar">
-    <div class="pick-title display" data-i18n="pick_avatar">PICK YOUR AVATAR</div>
+    <div class="pick-title display">PICK YOUR AVATAR</div>
     <div class="avatar-grid" id="avatarGrid"></div>
-    <input class="text-input" id="avatarName" maxlength="14" data-i18n-ph="player_name" placeholder="Your name" style="text-align:center;margin-top:1vmin;">
-    <button class="big-btn" id="avatarDone" data-i18n="join_btn">Join</button>
-    <button class="bar-btn" id="backFromAvatar" data-i18n="back">Back</button>
+    <input class="text-input" id="avatarName" maxlength="14" placeholder="Your name" style="text-align:center;margin-top:1vmin;">
+    <button class="big-btn" id="avatarDone">Let's Go →</button>
+    <button class="bar-btn" id="backFromAvatar">← Back</button>
   </div>
 
-  <!-- SCREEN 6: LOBBY (host) -->
+  <!-- SCREEN 3: LOBBY -->
   <div class="screen" id="scr-lobby">
-    <div class="lobby-title display" data-i18n="waiting_players">WAITING FOR PLAYERS</div>
+    <div class="lobby-title display">WAITING FOR PLAYERS</div>
     <div class="join-line" id="joinHint"></div>
     <div id="playerRow"></div>
     <div class="local-add hidden" id="localAdd">
-      <button class="big-btn" id="addLocalBtn" data-i18n="add_player" style="font-size:clamp(14px,2.2vmin,19px);padding:1.4vmin 3vmin;">Add Player</button>
+      <button class="big-btn" id="addLocalBtn" style="font-size:clamp(14px,2.2vmin,19px);padding:1.4vmin 3vmin;">+ Add Player</button>
     </div>
-    <button class="big-btn dim" id="startGameBtn" data-i18n="start_game">START GAME</button>
-    <div class="hint" id="lobbyHint" style="font-size:clamp(11px,1.7vmin,14px);color:var(--text3);font-weight:700;"></div>
+    <button class="big-btn dim" id="startGameBtn">START GAME</button>
+    <div id="lobbyHint" style="font-size:clamp(11px,1.7vmin,14px);color:var(--text3);font-weight:700;min-height:1.5em;"></div>
   </div>
 
-  <!-- SCREEN 7: JOIN (phone) -->
+  <!-- SCREEN 4: JOIN (phone) -->
   <div class="screen" id="scr-join">
-    <div class="pick-title display" data-i18n="join_game">JOIN A GAME</div>
+    <div class="pick-title display">JOIN A GAME</div>
     <div class="join-form">
-      <input class="text-input" id="joinCode" maxlength="4" placeholder="Room code" autocomplete="off" data-i18n-ph="enter_code">
-      <input class="text-input" id="joinName" maxlength="14" placeholder="Your name" autocomplete="off" data-i18n-ph="player_name">
-      <button class="big-btn" id="joinGo" data-i18n="join_btn">Join</button>
+      <input class="text-input" id="joinCode" maxlength="4" placeholder="Room code" autocomplete="off" style="text-align:center;letter-spacing:6px;font-family:'Fredoka One',sans-serif;">
+      <input class="text-input" id="joinName" maxlength="14" placeholder="Your name" autocomplete="off">
+      <button class="big-btn" id="joinGo">Join →</button>
       <div class="join-err" id="joinErr"></div>
     </div>
-    <button class="bar-btn" id="backFromJoin" data-i18n="back" style="margin-top:1vmin;">Back</button>
+    <button class="bar-btn" id="backFromJoin" style="margin-top:1vmin;">← Back</button>
   </div>
 
-  <!-- SCREEN 8: CONTROLLER (phone in-game) -->
+  <!-- SCREEN 5: CONTROLLER (phone in-game) -->
   <div class="screen" id="scr-controller">
     <div id="phoneMirror" class="phone-mirror hidden">
       <div class="pm-pill" id="pmPill"></div>
@@ -190,7 +133,7 @@
     <div id="ctrlArea"></div>
   </div>
 
-  <!-- SCREEN 9: GAME (host main) -->
+  <!-- SCREEN 6: GAME (host main) -->
   <div class="screen" id="scr-game">
     <div id="hostStage"></div>
   </div>
@@ -209,9 +152,7 @@
     </div>
   </div>
 
-  <!-- PASS & PLAY OVERLAY -->
   <div id="ppOverlay"></div>
-
   <canvas id="confetti"></canvas>
   <div id="wipe"></div>
 </div>

@@ -518,3 +518,74 @@ body.ar .eyebrow{letter-spacing:0;}
 @keyframes wipeAcross{0%{transform:translateX(-115%) skewX(-8deg) scaleX(1.18);}45%,55%{transform:translateX(0) skewX(-8deg) scaleX(1.18);}100%{transform:translateX(115%) skewX(-8deg) scaleX(1.18);}}
 
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.001s!important;transition-duration:0.001s!important;}}
+
+/* ============ MENU OVERLAY ============ */
+#menuOverlay{
+  position:absolute;inset:0;z-index:80;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);
+  animation:fadeIn 0.2s ease;
+}
+#menuOverlay.hidden{display:none;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.menu-card{
+  background:var(--card);border:1.5px solid var(--border-hi);
+  border-radius:24px;padding:3vmin 4vmin;
+  display:flex;flex-direction:column;align-items:center;gap:1.4vmin;
+  width:min(90vw,360px);box-shadow:0 24px 60px rgba(0,0,0,0.6);
+  animation:popIn 0.3s var(--ease-out);
+}
+.menu-title{font-size:clamp(28px,5vmin,42px);color:var(--yellow);margin-bottom:0.8vmin;}
+.menu-item{
+  width:100%;font-family:'Fredoka One','Lalezar',sans-serif;
+  font-size:clamp(16px,2.6vmin,22px);color:var(--text);
+  background:var(--card-hi);border:1.5px solid var(--border);
+  border-radius:16px;padding:1.6vmin 2vmin;cursor:pointer;
+  transition:all 0.15s;text-align:center;
+}
+.menu-item:hover{background:var(--border-hi);transform:scale(1.02);}
+.menu-item.danger{color:var(--pink);border-color:rgba(244,114,182,0.3);}
+.menu-item.danger:hover{background:rgba(244,114,182,0.12);}
+
+/* ============ TAGLINE ============ */
+.tagline{
+  font-size:clamp(12px,1.9vmin,16px);font-weight:700;
+  color:var(--text2);letter-spacing:2px;text-align:center;
+}
+
+/* ============ ROUND PICKER ============ */
+.round-picker{
+  display:flex;flex-direction:column;align-items:center;gap:1.6vmin;
+  background:var(--card);border:1.5px solid var(--border-hi);
+  border-radius:22px;padding:2.4vmin 3vmin;width:min(88vw,480px);
+  box-shadow:0 12px 40px var(--shadow);
+}
+.round-picker-title{font-family:'Fredoka One',sans-serif;font-size:clamp(16px,2.5vmin,22px);color:var(--text2);}
+.round-btns{display:flex;gap:1.2vmin;}
+.round-btn{
+  font-family:'Fredoka One',sans-serif;font-size:clamp(18px,3vmin,28px);
+  color:var(--text);background:var(--card-hi);border:2px solid var(--border);
+  border-radius:14px;padding:1.2vmin 2.2vmin;cursor:pointer;transition:all 0.15s;
+}
+.round-btn:hover{border-color:var(--yellow);color:var(--yellow);}
+.round-btn.selected{border-color:var(--yellow);background:rgba(250,204,21,0.12);color:var(--yellow);}
+
+/* ============ MIN PLAYERS BADGE ============ */
+.pack-min{
+  font-size:clamp(9px,1.4vmin,12px);font-weight:700;
+  color:var(--text3);display:flex;align-items:center;gap:4px;
+}
+.pack-min span{color:var(--green);}
+
+/* ============ CATEGORY PICKER ============ */
+.cat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.4vmin;width:min(90vw,560px);}
+.cat-card{
+  display:flex;flex-direction:column;align-items:center;gap:0.6vmin;
+  background:var(--card);border:2px solid var(--border);border-radius:16px;
+  padding:2vmin 1.2vmin;cursor:pointer;font-family:inherit;color:var(--text);
+  transition:all 0.15s var(--ease-out);animation:popIn 0.4s var(--ease-out) both;
+}
+.cat-card:hover{transform:translateY(-4px) scale(1.03);border-color:var(--blue);}
+.cat-card.selected{border-color:var(--yellow);background:rgba(250,204,21,0.1);}
+.cat-icon{font-size:clamp(26px,4.5vmin,40px);}
+.cat-name{font-family:'Fredoka One',sans-serif;font-size:clamp(12px,1.9vmin,17px);color:var(--text);text-align:center;}

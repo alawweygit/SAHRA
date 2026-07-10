@@ -96,6 +96,24 @@ const I18N = {
     your_phone: 'On your phone',
     host_screen: 'The Game',
     // mode names — simplified English only
+    // round picker
+    pick_rounds: 'HOW MANY ROUNDS?',
+    // menu
+    menu_resume: 'Resume Game',
+    menu_leave: 'Leave Game',
+    // categories (quiz mode)
+    pick_category: 'PICK A CATEGORY',
+    cat_general: 'General Mix',
+    cat_geography: 'Geography',
+    cat_science: 'Science',
+    cat_history: 'History',
+    cat_pop: 'Pop Culture',
+    cat_sports: 'Sports',
+    cat_food: 'Food & Drink',
+    cat_tech: 'Tech & Internet',
+    cat_gulf: 'Gulf & Arab World',
+    // min players
+    min_players: 'min players',
     mode_names: {
       bluff: 'LIE DETECTOR',
       wyr: 'WOULD YOU RATHER',
@@ -222,6 +240,38 @@ const I18N = {
     tap_ready: 'اضغط إذا جاهز',
     your_phone: 'على جوالك',
     host_screen: 'اللعبة',
+    // round picker
+    pick_rounds: 'HOW MANY ROUNDS?',
+    // menu
+    menu_resume: 'Resume Game',
+    menu_leave: 'Leave Game',
+    // categories (quiz mode)
+    pick_category: 'PICK A CATEGORY',
+    cat_general: 'General Mix',
+    cat_geography: 'Geography',
+    cat_science: 'Science',
+    cat_history: 'History',
+    cat_pop: 'Pop Culture',
+    cat_sports: 'Sports',
+    cat_food: 'Food & Drink',
+    cat_tech: 'Tech & Internet',
+    cat_gulf: 'Gulf & Arab World',
+    // min players
+    min_players: 'min players',
+    pick_rounds: 'كم جولة؟',
+    menu_resume: 'استمر في اللعبة',
+    menu_leave: 'اخرج من اللعبة',
+    pick_category: 'اختر فئة',
+    cat_general: 'خلطة عامة',
+    cat_geography: 'جغرافيا',
+    cat_science: 'علوم',
+    cat_history: 'تاريخ',
+    cat_pop: 'ثقافة شعبية',
+    cat_sports: 'رياضة',
+    cat_food: 'أكل وشرب',
+    cat_tech: 'تقنية وإنترنت',
+    cat_gulf: 'الخليج والعالم العربي',
+    min_players: 'لاعبين كحد أدنى',
     mode_names: {
       bluff: 'كاشف الكذب',
       wyr: 'يا هذا يا هذا',

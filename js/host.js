@@ -204,7 +204,8 @@ const Host = (() => {
   ================================================================ */
   async function playBluff() {
     await modeTitleCard('bluff');
-    const rounds = await Content.get('bluff', LANG, 2);
+    const numRounds = Math.min(window.HYPOX_STATE?.rounds||3, 2);
+    const rounds = await Content.get('bluff', LANG, numRounds);
 
     for (let r = 0; r < rounds.length; r++) {
       const R = rounds[r];
@@ -322,7 +323,7 @@ const Host = (() => {
   ================================================================ */
   async function playWyr() {
     await modeTitleCard('wyr');
-    const count = Math.min(players.length, 3);
+    const count = Math.min(players.length, window.HYPOX_STATE?.rounds||3);
     const prompts = await Content.get('wyr', LANG, count);
     const seats = shuffle(players).slice(0, count);
 
@@ -479,7 +480,7 @@ const Host = (() => {
   ================================================================ */
   async function playDiss() {
     await modeTitleCard('diss');
-    const nBattles = Math.min(3, Math.floor(players.length / 2) + 1);
+    const nBattles = Math.min(window.HYPOX_STATE?.rounds||3, Math.floor(players.length / 2) + 1);
     const prompts = await Content.get('diss', LANG, nBattles);
     const order = shuffle(players);
 
@@ -559,7 +560,16 @@ const Host = (() => {
   ================================================================ */
   async function playQuiz() {
     await modeTitleCard('quiz');
-    const qs = await Content.get('quiz', LANG, 4);
+    const cat = window.HYPOX_STATE?.category || 'general';
+    let qs;
+    if (cat !== 'general' && typeof TRIVIA_CATS !== 'undefined' && TRIVIA_CATS[cat]) {
+      const pool = TRIVIA_CATS[cat][LANG] || TRIVIA_CATS[cat].en || [];
+      // shuffle and take rounds count
+      const shuffled = pool.slice().sort(()=>Math.random()-.5);
+      qs = shuffled.slice(0, window.HYPOX_STATE?.rounds||3);
+    } else {
+      qs = await Content.get('quiz', LANG, window.HYPOX_STATE?.rounds||3);
+    }
     const pids = players.map(p => p.pid);
     const SPEED_PTS = [1000, 850, 700, 600, 500, 450, 400, 400, 400, 400];
 
