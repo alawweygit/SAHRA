@@ -675,58 +675,64 @@ body.ar .eyebrow{letter-spacing:0;}
 .pmm-sub{font-size:clamp(10px,1.5vmin,13px);font-weight:600;color:var(--text3);margin-top:2px;}
 .pmm-btn{align-items:flex-start;}
 
-/* ============ TITLE V4 — final ============ */
+/* ============ TITLE FINAL ============ */
 #scr-title{
-  padding:2.5vmin;justify-content:center;align-items:center;
-  gap:0;overflow:hidden;
+  padding:2.5vmin;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
 }
+/* Two columns: logo left, games right */
 .title-layout{
   display:grid;
-  grid-template-columns:minmax(220px,280px) 1fr;
-  grid-template-rows:1fr;
+  grid-template-columns:240px 1fr;
   gap:2.5vmin;
-  width:100%;height:100%;
+  width:100%;
   max-width:1200px;
   align-items:center;
 }
-@media(max-width:750px){
-  .title-layout{grid-template-columns:1fr;grid-template-rows:auto auto;align-items:start;}
+@media(max-width:700px){
+  .title-layout{grid-template-columns:1fr;}
+  .title-left{flex-direction:row;align-items:center;flex-wrap:wrap;}
 }
 .title-left{
-  display:flex;flex-direction:column;gap:2vmin;
-  align-items:flex-start;
+  display:flex;flex-direction:column;gap:1.8vmin;align-items:flex-start;
 }
 .title-right{
   display:flex;flex-direction:column;gap:1.2vmin;
-  height:100%;justify-content:center;
 }
 .title-games-label{
-  font-size:clamp(9px,1.3vmin,12px);color:var(--text3);
-  letter-spacing:3px;text-align:left;
+  font-size:clamp(9px,1.2vmin,12px);
+  color:var(--text3);letter-spacing:3px;
 }
-[dir="rtl"] .title-games-label{text-align:right;letter-spacing:0;}
+[dir="rtl"] .title-games-label{letter-spacing:0;}
 
+/* 3×2 grid, auto rows so cards don't stretch */
 .title-game-grid{
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  grid-template-rows:repeat(2,1fr);
-  gap:clamp(6px,1.1vmin,12px);
-  flex:1;
+  grid-template-columns:repeat(3,1fr);
+  grid-auto-rows:auto;
+  gap:clamp(6px,1vmin,12px);
 }
-@media(max-width:600px){.title-game-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:500px){
+  .title-game-grid{grid-template-columns:repeat(2,1fr);}
+}
 
+/* Cards: compact, content-height only */
 .title-game-card{
-  position:relative;overflow:hidden;
-  display:flex;flex-direction:column;gap:0.3vmin;
-  background:var(--card);border:1.5px solid var(--border);
+  position:relative;
+  display:flex;flex-direction:column;gap:4px;
+  background:var(--card);
+  border:1.5px solid var(--border);
   border-top:3px solid var(--mc,var(--pink));
-  border-radius:14px;
-  padding:clamp(8px,1.4vmin,16px);
+  border-radius:12px;
+  padding:12px 14px 10px;
   cursor:pointer;color:var(--text);font-family:inherit;
   text-align:left;
   box-shadow:0 2px 0 var(--shadow);
   transition:all 0.15s var(--ease-out);
   animation:cardDeal 0.4s var(--ease-out) both;
+  /* No min-height, no height:100% — content only */
 }
 [dir="rtl"] .title-game-card{text-align:right;}
 .title-game-card:hover{
@@ -736,17 +742,17 @@ body.ar .eyebrow{letter-spacing:0;}
 }
 .tgc-top{
   display:flex;justify-content:space-between;align-items:flex-start;
-  margin-bottom:0.4vmin;
+  margin-bottom:2px;
 }
-.tgc-icon{font-size:clamp(16px,2.4vmin,26px);}
-.tgc-min{font-size:clamp(8px,1.1vmin,11px);font-weight:700;color:var(--text3);white-space:nowrap;}
+.tgc-icon{font-size:clamp(18px,2.5vmin,28px);}
+.tgc-min{font-size:11px;font-weight:700;color:var(--text3);white-space:nowrap;}
 .tgc-name{
   font-family:'Fredoka One','Lalezar',sans-serif;
-  font-size:clamp(11px,1.6vmin,16px);
+  font-size:clamp(12px,1.6vmin,16px);
   color:var(--mc,var(--pink));line-height:1.1;
 }
 .tgc-tag{
-  font-size:clamp(9px,1.2vmin,12px);font-weight:600;
+  font-size:clamp(10px,1.3vmin,13px);font-weight:600;
   color:var(--text2);line-height:1.3;
 }
 
