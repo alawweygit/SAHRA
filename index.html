@@ -17,10 +17,10 @@
     <div class="deco-blob deco-blob-2"></div>
     <div class="deco-blob deco-blob-3"></div>
     <div class="deco-float" style="left:8%;animation-duration:7s">🎉</div>
-    <div class="deco-float" style="left:25%;animation-duration:9s;animation-delay:2s">⭐</div>
-    <div class="deco-float" style="left:55%;animation-duration:6.5s;animation-delay:1s">🎊</div>
-    <div class="deco-float" style="left:78%;animation-duration:8s;animation-delay:3s">✨</div>
-    <div class="deco-float" style="left:90%;animation-duration:7.5s;animation-delay:0.5s">🎈</div>
+    <div class="deco-float" style="left:28%;animation-duration:9s;animation-delay:2s">⭐</div>
+    <div class="deco-float" style="left:52%;animation-duration:6.5s;animation-delay:1s">🎊</div>
+    <div class="deco-float" style="left:76%;animation-duration:8s;animation-delay:3s">✨</div>
+    <div class="deco-float" style="left:91%;animation-duration:7.5s;animation-delay:0.5s">🎈</div>
   </div>
   <svg width="0" height="0" style="position:absolute"><defs>
     <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
@@ -32,17 +32,18 @@
 
   <!-- TOP BAR -->
   <div id="topbar">
-    <div class="room-pill"><span>ROOM</span> <span class="room-code" id="roomCodeText">—</span></div>
+    <div class="room-pill"><span class="room-code" id="roomCodeText">—</span></div>
     <div class="round-pill display" id="roundPill">HYPOX</div>
     <div style="display:flex;gap:0.8vmin;">
       <button class="bar-btn hidden" id="menuBtn">☰</button>
       <button class="bar-btn hidden" id="skipBtn">Skip ▸</button>
       <button class="bar-btn" id="soundBtn">🔊</button>
       <button class="bar-btn" id="themeBtn">🌙</button>
+      <button class="bar-btn" id="langBtn">عر</button>
     </div>
   </div>
 
-  <!-- MENU OVERLAY -->
+  <!-- MENU -->
   <div id="menuOverlay" class="hidden">
     <div class="menu-card">
       <div class="menu-title display">MENU</div>
@@ -52,35 +53,35 @@
     </div>
   </div>
 
-  <!-- SCREEN 1: TITLE — games shown immediately -->
+  <!-- SCREEN 1: TITLE -->
   <div class="screen active" id="scr-title">
-    <div class="title-top">
-      <div class="marquee-box" style="padding:clamp(10px,2vmin,20px) clamp(20px,4vmin,44px);">
-        <div class="marquee-dots"></div>
-        <div class="logo-letters display">
-          <span class="logo-lt" style="--i:0">H</span>
-          <span class="logo-lt" style="--i:1">Y</span>
-          <span class="logo-lt" style="--i:2">P</span>
-          <span class="logo-lt" style="--i:3">O</span>
-          <span class="logo-lt" style="--i:4">X</span>
+    <div class="title-layout">
+      <div class="title-left">
+        <div class="marquee-box">
+          <div class="marquee-dots"></div>
+          <div class="logo-letters display">
+            <span class="logo-lt" style="--i:0">H</span><span class="logo-lt" style="--i:1">Y</span><span class="logo-lt" style="--i:2">P</span><span class="logo-lt" style="--i:3">O</span><span class="logo-lt" style="--i:4">X</span>
+          </div>
+          <div class="tagline">PARTY GAMES · العاب السهرة</div>
         </div>
-        <div class="tagline">PARTY GAMES · العاب السهرة</div>
+        <button class="big-btn alt" id="joinBtn" style="font-size:clamp(13px,2vmin,18px);padding:1.3vmin 4vmin;align-self:flex-start;">JOIN A GAME</button>
       </div>
-      <button class="big-btn alt" id="joinBtn" style="font-size:clamp(13px,2vmin,18px);padding:1.2vmin 3.5vmin;">JOIN A GAME</button>
+      <div class="title-right">
+        <div class="title-games-label display" id="tapLabel">TAP A GAME TO START</div>
+        <div class="title-game-grid" id="titleGameGrid"></div>
+      </div>
     </div>
-    <div class="title-games-label display">TAP A GAME TO START</div>
-    <div class="title-game-grid" id="titleGameGrid"></div>
   </div>
 
-  <!-- SCREEN 2: PRE-GAME (settings + play mode selection) -->
+  <!-- SCREEN 2: PREGAME -->
   <div class="screen" id="scr-pregame">
-    <div id="pregameContent" style="width:min(94vw,680px);display:flex;flex-direction:column;gap:2vmin;overflow-y:auto;max-height:80vh;"></div>
-    <button class="bar-btn" id="backFromPregame" style="margin-top:1vmin">← Back</button>
+    <div id="pregameInner" class="pregame-inner"></div>
+    <button class="bar-btn" id="backFromPregame" style="margin-top:1.5vmin">← Back</button>
   </div>
 
-  <!-- SCREEN 3: AVATAR PICKER -->
+  <!-- SCREEN 3: AVATAR -->
   <div class="screen" id="scr-avatar">
-    <div class="pick-title display">PICK YOUR AVATAR</div>
+    <div class="pick-title display" id="avatarTitle">PICK YOUR AVATAR</div>
     <div class="avatar-grid" id="avatarGrid"></div>
     <input class="text-input" id="avatarName" maxlength="14" placeholder="Your name" style="text-align:center;margin-top:1vmin;">
     <button class="big-btn" id="avatarDone">Let's Go →</button>
@@ -89,7 +90,7 @@
 
   <!-- SCREEN 4: LOBBY -->
   <div class="screen" id="scr-lobby">
-    <div class="lobby-title display">WAITING FOR PLAYERS</div>
+    <div class="lobby-title display">WAITING FOR PLAYERS…</div>
     <div id="joinHint"></div>
     <div id="playerRow"></div>
     <div class="local-add hidden" id="localAdd">
@@ -99,7 +100,7 @@
     <div id="lobbyHint" style="font-size:clamp(11px,1.7vmin,14px);color:var(--text3);font-weight:700;min-height:1.5em;"></div>
   </div>
 
-  <!-- SCREEN 5: JOIN (phone) -->
+  <!-- SCREEN 5: JOIN -->
   <div class="screen" id="scr-join">
     <div class="pick-title display">JOIN A GAME</div>
     <div class="join-form">
@@ -111,7 +112,7 @@
     <button class="bar-btn" id="backFromJoin" style="margin-top:1vmin">← Back</button>
   </div>
 
-  <!-- SCREEN 6: CONTROLLER (phone in-game) -->
+  <!-- SCREEN 6: CONTROLLER -->
   <div class="screen" id="scr-controller">
     <div id="phoneMirror" class="phone-mirror hidden">
       <div class="pm-pill" id="pmPill"></div>
@@ -121,23 +122,19 @@
     <div id="ctrlArea"></div>
   </div>
 
-  <!-- SCREEN 7: GAME (host main) -->
+  <!-- SCREEN 7: GAME -->
   <div class="screen" id="scr-game">
     <div id="hostStage"></div>
   </div>
 
-  <!-- HOST CHARACTER -->
+  <!-- HOST -->
   <div id="host">
     <div class="host-body">
       <div class="brow l"></div><div class="brow r"></div>
       <div class="eye l"></div><div class="eye r"></div>
-      <div class="mouth"></div>
-      <div class="bowtie"></div>
+      <div class="mouth"></div><div class="bowtie"></div>
     </div>
-    <div class="speech">
-      <div class="host-name">LAITH · ليث</div>
-      <span id="speechText"></span>
-    </div>
+    <div class="speech"><div class="host-name">LAITH · ليث</div><span id="speechText"></span></div>
   </div>
 
   <div id="ppOverlay"></div>
