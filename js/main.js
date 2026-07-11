@@ -107,7 +107,8 @@
     $('#menuResume').addEventListener('click',closeMenu);
     $('#menuLeave').addEventListener('click',()=>{closeMenu();leaveGame();});
 
-    // Join screen
+    // Join screen — build mini avatar picker
+    buildJoinAvatarRow();
     $('#joinGo').addEventListener('click',joinAsPlayer);
     $('#joinCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('#joinName').focus();});
     $('#joinName').addEventListener('keydown',e=>{if(e.key==='Enter')joinAsPlayer();});
@@ -312,7 +313,11 @@
 
     net.onPlayers(list=>{
       const prev=players.length;players=list;
-      if(list.length>prev)Audio_.sfx.pop();
+      if(list.length>prev){
+        Audio_.sfx.pop();
+        // Laith greets on first player joining
+        if(prev===0&&list.length===1) Host.say(tPick('banter_lobby'));
+      }
       $('#playerRow').innerHTML=list.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('');
       const canStart=list.length>=2;
       $('#startGameBtn').classList.toggle('dim',!canStart);
@@ -440,6 +445,21 @@
   }
 
   /* ---- JOIN ---- */
+  function buildJoinAvatarRow(){
+    const row=document.getElementById('joinAvatarRow');
+    if(!row)return;
+    // Show first 10 avatars in a horizontal row
+    row.innerHTML=AVATARS_LIST.slice(0,10).map((av,i)=>`
+      <button class="join-av${i===0?' selected':''}" data-i="${i}" style="background:${av.color};${i===0?'outline:3px solid #fff;transform:scale(1.15)':''}" title="${av.label}">${av.emoji}</button>`).join('');
+    row.querySelectorAll('.join-av').forEach(btn=>btn.addEventListener('click',()=>{
+      row.querySelectorAll('.join-av').forEach(b=>{b.style.outline='';b.style.transform='';b.classList.remove('selected');});
+      btn.classList.add('selected');
+      btn.style.outline='3px solid #fff';btn.style.transform='scale(1.15)';
+      selectedAvatar=AVATARS_LIST[+btn.dataset.i];
+      Audio_.sfx.vote();
+    }));
+  }
+
   async function joinAsPlayer(){
     const code=$('#joinCode').value.trim().toUpperCase();
     const name=$('#joinName').value.trim();

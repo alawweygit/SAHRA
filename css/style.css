@@ -778,3 +778,14 @@ body.ar .eyebrow{letter-spacing:0;}
 /* Lobby share code */
 .share-code{font-family:'Fredoka One',sans-serif;font-size:clamp(28px,5vmin,48px);color:var(--yellow);letter-spacing:4px;text-align:center;}
 .share-btns{display:flex;gap:1vmin;justify-content:center;}
+
+/* ---- Join screen mini avatar row ---- */
+.join-avatar-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:4px 0;}
+.join-av{
+  width:clamp(36px,6vw,44px);height:clamp(36px,6vw,44px);border-radius:50%;
+  font-size:clamp(18px,3.5vw,24px);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform 0.12s,outline 0.12s;
+}
+.join-av:hover{transform:scale(1.1);}
+.join-av.selected{outline:3px solid #fff;transform:scale(1.15);}
