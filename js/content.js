@@ -348,6 +348,36 @@ const Content = {
     // Guard: nothing to fetch
     if (count <= 0) return [];
 
+    // Warn host if static pool is smaller than requested (content will repeat)
+    const poolSize = ((PACKS[mode] && (PACKS[mode][lang] || PACKS[mode].en)) || []).length;
+    if (poolSize > 0 && count > poolSize) {
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:4vmin;left:50%;transform:translateX(-50%);background:#374151;color:#facc15;font-family:Fredoka One,sans-serif;font-size:15px;padding:10px 22px;border-radius:50px;z-index:99;opacity:0.92;pointer-events:none';
+      toast.textContent = '🔄 Content repeating — AI backend will fix this';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3500);
+    }
+
+    // Warn host if static pool is smaller than requested (content will repeat)
+    const poolSize = ((PACKS[mode] && (PACKS[mode][lang] || PACKS[mode].en)) || []).length;
+    if (poolSize > 0 && count > poolSize) {
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:4vmin;left:50%;transform:translateX(-50%);background:#374151;color:#facc15;font-family:Fredoka One,sans-serif;font-size:15px;padding:10px 22px;border-radius:50px;z-index:99;opacity:0.92;pointer-events:none';
+      toast.textContent = '🔄 Content repeating — AI backend will fix this';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3500);
+    }
+
+    // Warn host if static pool is smaller than requested (content will repeat)
+    const poolSize = ((PACKS[mode] && (PACKS[mode][lang] || PACKS[mode].en)) || []).length;
+    if (poolSize > 0 && count > poolSize) {
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:4vmin;left:50%;transform:translateX(-50%);background:#374151;color:#facc15;font-family:Fredoka One,sans-serif;font-size:15px;padding:10px 22px;border-radius:50px;z-index:99;opacity:0.92;pointer-events:none';
+      toast.textContent = '🔄 Content repeating — AI backend will fix this';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3500);
+    }
+
     // Universal pool (always available)
     const universal = (PACKS[mode] && (PACKS[mode][lang] || PACKS[mode].en)) || [];
 

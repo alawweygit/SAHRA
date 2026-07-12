@@ -1,0 +1,23 @@
+{
+  "rules": {
+    "rooms": {
+      "$roomId": {
+        ".read": true,
+        ".write": "auth == null || auth != null",
+        "state": { ".write": true },
+        "mirror": { ".write": true },
+        "players": {
+          "$pid": {
+            ".write": true,
+            ".validate": "newData.hasChildren(['name','avatar'])"
+          }
+        },
+        "inputs": {
+          "$phaseId": {
+            "$pid": { ".write": true }
+          }
+        }
+      }
+    }
+  }
+}
