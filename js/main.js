@@ -10,9 +10,9 @@
     {emoji:'🐺',color:'#94a3b8',label:'Wolf'},{emoji:'🐯',color:'#f59e0b',label:'Tiger'},
     {emoji:'🦈',color:'#0ea5e9',label:'Shark'},
   ];
-  const MODE_MIN = {bluff:3,wyr:3,interrogation:3,diss:4,quiz:2,trivia:2,pinpoint:2,emoji:2,year:2};
-  const MODE_ICONS = {bluff:'🔍',wyr:'⚖️',interrogation:'🔦',diss:'🎤',quiz:'⚡',trivia:'📚',pinpoint:'📍',emoji:'🧩',year:'⏳'};
-  const MODE_COLORS = {bluff:'#f472b6',wyr:'#60a5fa',interrogation:'#a78bfa',diss:'#fb923c',quiz:'#facc15',trivia:'#34d399',pinpoint:'#22d3ee',emoji:'#e879f9',year:'#fbbf24'};
+  const MODE_MIN = {bluff:3,wyr:3,interrogation:3,diss:4,trivia:2,pinpoint:2,emoji:2,year:2};
+  const MODE_ICONS = {bluff:'🔍',wyr:'⚖️',interrogation:'🔦',diss:'🎤',trivia:'⚡',pinpoint:'📍',emoji:'🧩',year:'⏳'};
+  const MODE_COLORS = {bluff:'#f472b6',wyr:'#60a5fa',interrogation:'#a78bfa',diss:'#fb923c',trivia:'#facc15',pinpoint:'#22d3ee',emoji:'#e879f9',year:'#fbbf24'};
   const CAT_INFO = [
     {id:'general',icon:'🎲',name:'General Mix',nameAr:'خلطة عامة'},
     {id:'geography',icon:'🌍',name:'Geography',nameAr:'جغرافيا'},
@@ -290,7 +290,7 @@
     currentRoomCode=code;
     $('#roomCodeText').textContent=net.isOffline?(LANG==='ar'?'مرّر الجوال':'PASS & PLAY'):code;
     $('#topbar').classList.add('show');
-    $('#menuBtn').classList.remove('hidden');
+    $('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');
     $('#roundPill').textContent=LANG==='ar'?'الصالة':'Lobby';
     updateMenu();
     if(playMode==='phones'){
@@ -353,7 +353,7 @@
 
   async function startDirectGame(gameMode){
     Audio_.stopMusic();await FX.wipe();Host.hideHost();
-    show('#scr-game');gameActive=true;$('#skipBtn').classList.remove('hidden');$('#menuBtn').classList.remove('hidden');
+    show('#scr-game');gameActive=true;$('#skipBtn').classList.remove('hidden');$('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');
     $('#skipBtn').textContent=T.skip();
     $('#roundPill').textContent=(t('mode_names')||{})[gameMode]||gameMode;
     net.setState({phase:'wait',msg:T.watchScreen()});
@@ -489,7 +489,7 @@
     try{net=FirebaseNet.create();const res=await net.joinRoom(code,name,selectedAvatar);myPid=res.pid;isVip=res.isVip;}
     catch(e){$('#joinErr').textContent=T.connFail();return;}
     show('#scr-controller');
-    $('#menuBtn').classList.remove('hidden');
+    $('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');
     updateMenu();
     const ctrl=$('#ctrlArea');
     Controller.waitScreen(ctrl,isVip?T.youreHost():T.youreIn());

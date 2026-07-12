@@ -698,7 +698,7 @@ const Host = (() => {
           center: [city.lat, city.lon], zoom: 3, zoomControl: false, attributionControl: false,
           dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
         });
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 10 }).addTo(rm);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 10 }).addTo(rm);
         L.circleMarker([city.lat, city.lon], { radius: 13, color: '#fff', weight: 3, fillColor: '#facc15', fillOpacity: 1 })
           .addTo(rm).bindTooltip('⭐ ' + cityName, { permanent: true, direction: 'top' });
         const bounds = [[city.lat, city.lon]];

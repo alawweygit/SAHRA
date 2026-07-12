@@ -108,7 +108,7 @@ const Controller = (() => {
       const mapWrap = document.createElement('div');
       mapWrap.className = 'ctrl-map';
       mapWrap.innerHTML = `
-        <div class="leaf-map" style="width:100%;height:52vh;min-height:280px;border-radius:16px;overflow:hidden;background:#0e1626;"></div>
+        <div class="leaf-map" style="width:100%;height:64vh;min-height:340px;border-radius:16px;overflow:hidden;background:#0e1626;"></div>
         <div class="ctrl-sub" style="margin-top:6px">${typeof LANG!=='undefined'&&LANG==='ar'?'حرّك وكبّر الخريطة، واضغط لتحط دبوسك':'Pan & zoom, tap to drop your pin'}</div>`;
       wrap.appendChild(mapWrap);
 
@@ -125,7 +125,7 @@ const Controller = (() => {
             center: [22, 25], zoom: 2, minZoom: 2, maxZoom: 10,
             worldCopyJump: true, attributionControl: false,
           });
-          L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
             subdomains: 'abcd', maxZoom: 10,
           }).addTo(map);
           map.on('click', e => {
