@@ -641,13 +641,15 @@ const Host = (() => {
   async function playPinpoint() {
     await modeTitleCard('pinpoint');
     const rounds = window.HYPOX_STATE?.rounds || 5;
-    const pool = (typeof PINPOINT_CITIES !== 'undefined' ? PINPOINT_CITIES : []).slice().sort(() => Math.random() - .5).slice(0, rounds);
+    const ALLPP = (typeof PINPOINT_CITIES !== 'undefined' ? PINPOINT_CITIES : []).concat(typeof PINPOINT_PLACES !== 'undefined' ? PINPOINT_PLACES : []);
+    const pool = ALLPP.slice().sort(() => Math.random() - .5).slice(0, rounds);
     for (let r = 0; r < pool.length; r++) {
       const city = pool[r];
       const cityName = LANG === 'ar' ? city.ar : city.en;
       setPill(`${t('round')} ${r+1} ${t('of')} ${pool.length}`);
       scene(`
         <div class="eyebrow">📍 ${esc(t('mode_names').pinpoint || 'PIN POINT')}</div>
+        ${city.img ? `<img class="pp-photo" src="${city.img}" alt="" onerror="this.style.display='none'"/>` : ''}
         <div class="prompt-card">${esc(cityName)}</div>
         <div class="pick-sub">${LANG==='ar'?'وين هالمدينة؟ حط دبوسك على الخريطة!':'Where is this city? Drop your pin on the map!'}</div>`);
       pushMirror({ headline: cityName, pill: `${r+1}/${pool.length}` });
@@ -742,7 +744,106 @@ const Host = (() => {
     });
   }
 
-  const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz, pinpoint: playPinpoint };
+  /* ================= EMOJI RIDDLE ================= */
+  async function playEmoji() {
+    await modeTitleCard('emoji');
+    const rounds = window.HYPOX_STATE?.rounds || 5;
+    const qs = await Content.get('emoji', LANG, rounds);
+    const pids = players.map(p => p.pid);
+    const SPEED_PTS = [1000, 850, 700, 600, 500, 450, 400, 400, 400, 400];
+    for (let i = 0; i < qs.length; i++) {
+      const Q = qs[i];
+      // shuffle options so the answer position is unpredictable
+      const idxs = Q.options.map((_, j) => j).sort(() => Math.random() - .5);
+      const opts = idxs.map(j => Q.options[j]);
+      const correct = idxs.indexOf(Q.correct);
+      await FX.wipe();
+      setPill(`${i + 1} / ${qs.length}`);
+      const colors = ['#2de1fc', '#ff3d8a', '#ffd23f', '#7dff6a'];
+      scene(frameWithTimer(`
+        <div class="eyebrow">🧩 ${LANG==='ar'?'وين هالمكان؟':'WHERE IS THIS?'}</div>
+        <div class="emoji-riddle">${esc(Q.e)}</div>
+        <div class="quiz-grid">
+          ${opts.map((o, j) => `<div class="quiz-opt" id="qopt-${j}" style="--qc:${colors[j]}"><span class="q-letter display">${'ABCD'[j]}</span> ${esc(o)}</div>`).join('')}
+        </div>`, LANG==='ar'?'فك الرموز!':'Decode it!'));
+      pushMirror({ headline: Q.e, pill: `${i+1}/${qs.length}` });
+      Audio_.sfx.sting();
+      const answers = await collectWithTimer({
+        type: 'choice', title: LANG==='ar'?'فك الرموز!':'Decode the emojis!', context: Q.e, seconds: 12,
+        options: opts.map((o, j) => ({ id: j, label: `${'ABCD'[j]} · ${o}`, color: colors[j] })),
+      }, pids, 12);
+      Audio_.sfx.drum(); await sleep(900);
+      document.getElementById('qopt-' + correct)?.classList.add('q-correct');
+      opts.forEach((_, j) => { if (j !== correct) document.getElementById('qopt-' + j)?.classList.add('q-dim'); });
+      Audio_.sfx.correct(); FX.burst(80);
+      const right = pids.filter(pid => val(answers, pid) === correct)
+        .sort((a, b) => answers[a].order - answers[b].order);
+      right.forEach((pid, rank) => addScore(pid, net.isOffline ? 700 : (SPEED_PTS[rank] || 400)));
+      const names = right.map(pid => players.find(p => p.pid === pid).name).join(', ');
+      pushMirror({ headline: `${Q.e} = ${opts[correct]}` + (right.length ? ` — ${names}` : '') });
+      await say(right.length
+        ? `${names} ${t('got_it_right')}!`
+        : (LANG === 'ar' ? 'ولا واحد عرفها! الجواب: ' + opts[correct] : 'Nobody got it! It was ' + opts[correct] + '.'));
+      hideHost();
+      await waitNext();
+      if (i < qs.length - 1) await showScores();
+    }
+    await showScores(true);
+  }
+
+  /* ================= TIME MACHINE ================= */
+  async function playYear() {
+    await modeTitleCard('year');
+    const rounds = window.HYPOX_STATE?.rounds || 5;
+    const qs = await Content.get('year', LANG, rounds);
+    for (let i = 0; i < qs.length; i++) {
+      const Q = qs[i];
+      await FX.wipe();
+      setPill(`${i + 1} / ${qs.length}`);
+      scene(`
+        <div class="eyebrow">⏳ ${esc(t('mode_names').year || 'TIME MACHINE')}</div>
+        <div class="prompt-card display">${esc(Q.q)}</div>
+        <div class="pick-sub">${LANG==='ar'?'أي سنة صارت؟ اكتب تخمينك!':'What year did this happen? Type your guess!'}</div>`);
+      pushMirror({ headline: Q.q, pill: `${i+1}/${qs.length}` });
+      Audio_.sfx.sting();
+      const answers = await collectWithTimer({
+        type: 'text', title: LANG==='ar'?'اكتب السنة':'Type the year', context: Q.q, maxLen: 4, seconds: 20,
+      }, players.map(p => p.pid), 20);
+      const results = players.map(p => {
+        const raw = answers[p.pid] ? String(answers[p.pid].value || '').trim() : '';
+        const yr = parseInt(raw, 10);
+        const ok = !isNaN(yr) && yr > 0;
+        return { p, yr: ok ? yr : null, diff: ok ? Math.abs(yr - Q.y) : 99999 };
+      }).sort((a, b) => a.diff - b.diff);
+      const AWARD = [1000, 700, 500];
+      results.forEach((r2, idx) => {
+        if (r2.yr === null) return;
+        let pts = AWARD[idx] !== undefined ? AWARD[idx] : 300;
+        if (r2.diff === 0) pts += 500;
+        addScore(r2.p.pid, pts);
+      });
+      Audio_.sfx.reveal(); FX.burst(60);
+      scene(`
+        <div class="eyebrow">${esc(Q.q)}</div>
+        <div class="prompt-card display year-reveal">${Q.y}</div>
+        <div class="score-list">
+          ${results.map((r2, idx) => `
+            <div class="score-row" style="animation-delay:${idx*.12}s">
+              <div class="medal">${idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':''}</div>
+              <div class="avatar" style="background:${r2.p.color}">${r2.p.emoji}</div>
+              <div class="bar-track"><div class="bar-fill" style="width:${Math.max(15,100-idx*20)}%;background:linear-gradient(90deg,var(--purple),var(--pink))">
+                ${esc(r2.p.name)} · ${r2.yr !== null ? r2.yr + (r2.diff===0 ? ' 🎯' : ' (±'+r2.diff+')') : (LANG==='ar'?'ما جاوب':'no guess')}
+              </div></div>
+            </div>`).join('')}
+        </div>`);
+      pushMirror({ headline: `${Q.y}` });
+      await waitNext();
+      if (i < qs.length - 1) await showScores();
+    }
+    await showScores(true);
+  }
+
+  const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz, pinpoint: playPinpoint, emoji: playEmoji, year: playYear };
 
   async function run(netInstance, playerList, mode) {
     net = netInstance;

@@ -12,14 +12,18 @@ const SHAPES = {
   diss: '[{"p":"A roast battle setup prompt about your opponent"}]',
   quiz: '[{"q":"Trivia question","options":["Correct answer","Wrong answer","Wrong answer","Wrong answer"],"correct":0}]',
   pinpoint: '[{"city":"City name in English","city_ar":"اسم المدينة بالعربي","lat":25.2,"lng":55.3}]',
+  emoji: '[{"e":"🗼🥐🍷","options":["Paris","Rome","London","Madrid"],"correct":0}]',
+  year: '[{"q":"The first iPhone was released","y":2007}]',
 };
 const GUIDANCE = {
   bluff: 'Fill-in-the-blank weird facts. The blank (___) replaces the most surprising element. Truth in CAPS. Mix global and Gulf/Arab facts when in Arabic.',
   wyr: 'Would You Rather dilemmas where both options are equally appealing or equally terrible. No obvious right answer. Gulf situations welcome in Arabic.',
   interrogation: 'Anonymous confession prompts revealing personality differences between friends. Spicy but not offensive.',
   diss: 'Roast battle setup lines — a prompt letting players write a funny insult about their opponent.',
-  quiz: 'Multiple choice trivia. Put the correct answer ALWAYS at index 0 (code randomizes display). Gulf/Arab trivia when in Arabic.',
+  quiz: 'Multiple choice trivia. Vary the position of the correct answer randomly across questions and set the correct index accordingly. Gulf/Arab trivia when in Arabic.',
   pinpoint: 'Real world cities — mix of famous and surprising. Must include accurate lat/lng coordinates.',
+  emoji: 'Emoji riddles: 3-4 emojis representing a country, city, or famous place, plus 4 answer options. Vary the correct index. Mix global and Arab/Gulf places when in Arabic.',
+  year: 'Historical events with their exact year (y as a number). Mix world history, tech, pop culture, sports, and Arab/Gulf milestones.',
 };
 const cache = new Map();
 app.post('/api/prompts', async (req, res) => {

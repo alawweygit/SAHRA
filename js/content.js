@@ -584,3 +584,96 @@ const PINPOINT_CITIES = [
   { en:'Rome', ar:'روما', lat:41.9, lon:12.5 },
   { en:'Bangkok', ar:'بانكوك', lat:13.75, lon:100.5 },
 ];
+
+/* ===== EMOJI RIDDLE pack ===== */
+PACKS.emoji = {
+  en: [
+    { e:'🗼🥐🍷', options:['Paris','Rome','London','Madrid'], correct:0 },
+    { e:'🕌🐪🛢️', options:['Saudi Arabia','Morocco','Turkey','Iran'], correct:0 },
+    { e:'🍕🏛️🛵', options:['Rome','Athens','Barcelona','Lisbon'], correct:0 },
+    { e:'🗽🍔🚕', options:['New York','Chicago','Los Angeles','Toronto'], correct:0 },
+    { e:'🍣🗻🚄', options:['Tokyo','Seoul','Beijing','Bangkok'], correct:0 },
+    { e:'🏙️🛍️🏎️', options:['Dubai','Doha','Riyadh','Kuwait City'], correct:0 },
+    { e:'🐨🏄☀️', options:['Australia','South Africa','Brazil','Hawaii'], correct:0 },
+    { e:'🍫⌚🏔️', options:['Switzerland','Austria','Norway','Belgium'], correct:0 },
+    { e:'🐫🔺🏺', options:['Egypt','Jordan','Tunisia','Sudan'], correct:0 },
+    { e:'🌷🚲🧀', options:['Netherlands','Denmark','Belgium','Germany'], correct:0 },
+    { e:'🫖👑☔', options:['London','Dublin','Edinburgh','Amsterdam'], correct:0 },
+    { e:'🌮🌶️🎸', options:['Mexico','Spain','Colombia','Peru'], correct:0 },
+    { e:'🍁🏒🐻', options:['Canada','Russia','Finland','Sweden'], correct:0 },
+    { e:'🏰🍺🚗', options:['Germany','Czechia','Poland','Austria'], correct:0 },
+    { e:'⚽🎭🏖️', options:['Rio de Janeiro','Buenos Aires','Lisbon','Miami'], correct:0 },
+    { e:'🌋🧊♨️', options:['Iceland','Greenland','New Zealand','Chile'], correct:0 },
+  ],
+  ar: [
+    { e:'🗼🥐🍷', options:['باريس','روما','لندن','مدريد'], correct:0 },
+    { e:'🕌🐪🛢️', options:['السعودية','المغرب','تركيا','إيران'], correct:0 },
+    { e:'🍕🏛️🛵', options:['روما','أثينا','برشلونة','لشبونة'], correct:0 },
+    { e:'🗽🍔🚕', options:['نيويورك','شيكاغو','لوس أنجلوس','تورونتو'], correct:0 },
+    { e:'🍣🗻🚄', options:['طوكيو','سيول','بكين','بانكوك'], correct:0 },
+    { e:'🏙️🛍️🏎️', options:['دبي','الدوحة','الرياض','الكويت'], correct:0 },
+    { e:'🐨🏄☀️', options:['أستراليا','جنوب أفريقيا','البرازيل','هاواي'], correct:0 },
+    { e:'🍫⌚🏔️', options:['سويسرا','النمسا','النرويج','بلجيكا'], correct:0 },
+    { e:'🐫🔺🏺', options:['مصر','الأردن','تونس','السودان'], correct:0 },
+    { e:'🌷🚲🧀', options:['هولندا','الدنمارك','بلجيكا','ألمانيا'], correct:0 },
+    { e:'🫖👑☔', options:['لندن','دبلن','إدنبرة','أمستردام'], correct:0 },
+    { e:'🌮🌶️🎸', options:['المكسيك','إسبانيا','كولومبيا','بيرو'], correct:0 },
+    { e:'🍁🏒🐻', options:['كندا','روسيا','فنلندا','السويد'], correct:0 },
+    { e:'🏰🍺🚗', options:['ألمانيا','التشيك','بولندا','النمسا'], correct:0 },
+    { e:'⚽🎭🏖️', options:['ريو دي جانيرو','بوينس آيرس','لشبونة','ميامي'], correct:0 },
+    { e:'🌋🧊♨️', options:['آيسلندا','جرينلاند','نيوزيلندا','تشيلي'], correct:0 },
+  ],
+};
+
+/* ===== TIME MACHINE pack ===== */
+PACKS.year = {
+  en: [
+    { q:'The first iPhone was released', y:2007 },
+    { q:'Man first walked on the Moon', y:1969 },
+    { q:'The Titanic sank', y:1912 },
+    { q:'Burj Khalifa officially opened', y:2010 },
+    { q:'The FIFA World Cup was held in Qatar', y:2022 },
+    { q:'Facebook was founded', y:2004 },
+    { q:'The Berlin Wall fell', y:1989 },
+    { q:'The first Harry Potter book was published', y:1997 },
+    { q:'YouTube was launched', y:2005 },
+    { q:'Sultan Qaboos began his reign in Oman', y:1970 },
+    { q:'The UAE was founded', y:1971 },
+    { q:'WhatsApp was launched', y:2009 },
+    { q:'The first FIFA World Cup was played', y:1930 },
+    { q:'Google was founded', y:1998 },
+  ],
+  ar: [
+    { q:'صدر أول آيفون', y:2007 },
+    { q:'أول هبوط للإنسان على القمر', y:1969 },
+    { q:'غرقت سفينة التايتنك', y:1912 },
+    { q:'افتتح برج خليفة رسمياً', y:2010 },
+    { q:'أقيم كأس العالم في قطر', y:2022 },
+    { q:'تأسس فيسبوك', y:2004 },
+    { q:'سقط جدار برلين', y:1989 },
+    { q:'صدر أول كتاب هاري بوتر', y:1997 },
+    { q:'انطلق يوتيوب', y:2005 },
+    { q:'تولى السلطان قابوس الحكم في عمان', y:1970 },
+    { q:'تأسست دولة الإمارات', y:1971 },
+    { q:'انطلق واتساب', y:2009 },
+    { q:'أقيم أول كأس عالم لكرة القدم', y:1930 },
+    { q:'تأسست جوجل', y:1998 },
+  ],
+};
+
+/* ===== PINPOINT landmarks with photos (Wikimedia) ===== */
+const WM = f => 'https://commons.wikimedia.org/wiki/Special:FilePath/' + f + '?width=900';
+const PINPOINT_PLACES = [
+  { en:'Eiffel Tower', ar:'برج إيفل', lat:48.858, lon:2.294, img:WM('Tour_Eiffel_Wikimedia_Commons.jpg') },
+  { en:'Petra', ar:'البتراء', lat:30.329, lon:35.444, img:WM('Al_Khazneh_Petra_edit_2.jpg') },
+  { en:'Machu Picchu', ar:'ماتشو بيتشو', lat:-13.163, lon:-72.545, img:WM('Machu_Picchu,_Peru.jpg') },
+  { en:'Pyramids of Giza', ar:'أهرامات الجيزة', lat:29.979, lon:31.134, img:WM('Kheops-Pyramid.jpg') },
+  { en:'Taj Mahal', ar:'تاج محل', lat:27.175, lon:78.042, img:WM('Taj_Mahal_(Edited).jpeg') },
+  { en:'Statue of Liberty', ar:'تمثال الحرية', lat:40.689, lon:-74.045, img:WM('Statue_of_Liberty_7.jpg') },
+  { en:'Colosseum', ar:'الكولوسيوم', lat:41.890, lon:12.492, img:WM('Colosseo_2020.jpg') },
+  { en:'Burj Khalifa', ar:'برج خليفة', lat:25.197, lon:55.274, img:WM('Burj_Khalifa.jpg') },
+  { en:'Great Wall of China', ar:'سور الصين العظيم', lat:40.432, lon:116.570, img:WM('The_Great_Wall_of_China_at_Jinshanling-edit.jpg') },
+  { en:'Sydney Opera House', ar:'دار أوبرا سيدني', lat:-33.857, lon:151.215, img:WM('Sydney_Opera_House_-_Dec_2008.jpg') },
+  { en:'Christ the Redeemer', ar:'تمثال المسيح الفادي', lat:-22.952, lon:-43.210, img:WM('Christ_the_Redeemer_-_Cristo_Redentor.jpg') },
+  { en:'Golden Gate Bridge', ar:'جسر البوابة الذهبية', lat:37.820, lon:-122.478, img:WM('GoldenGateBridge-001.jpg') },
+];

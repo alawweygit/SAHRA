@@ -10,9 +10,9 @@
     {emoji:'🐺',color:'#94a3b8',label:'Wolf'},{emoji:'🐯',color:'#f59e0b',label:'Tiger'},
     {emoji:'🦈',color:'#0ea5e9',label:'Shark'},
   ];
-  const MODE_MIN = {bluff:3,wyr:3,interrogation:3,diss:4,quiz:2,trivia:2,pinpoint:2};
-  const MODE_ICONS = {bluff:'🔍',wyr:'⚖️',interrogation:'🔦',diss:'🎤',quiz:'⚡',trivia:'📚',pinpoint:'📍'};
-  const MODE_COLORS = {bluff:'#f472b6',wyr:'#60a5fa',interrogation:'#a78bfa',diss:'#fb923c',quiz:'#facc15',trivia:'#34d399',pinpoint:'#22d3ee'};
+  const MODE_MIN = {bluff:3,wyr:3,interrogation:3,diss:4,quiz:2,trivia:2,pinpoint:2,emoji:2,year:2};
+  const MODE_ICONS = {bluff:'🔍',wyr:'⚖️',interrogation:'🔦',diss:'🎤',quiz:'⚡',trivia:'📚',pinpoint:'📍',emoji:'🧩',year:'⏳'};
+  const MODE_COLORS = {bluff:'#f472b6',wyr:'#60a5fa',interrogation:'#a78bfa',diss:'#fb923c',quiz:'#facc15',trivia:'#34d399',pinpoint:'#22d3ee',emoji:'#e879f9',year:'#fbbf24'};
   const CAT_INFO = [
     {id:'general',icon:'🎲',name:'General Mix',nameAr:'خلطة عامة'},
     {id:'geography',icon:'🌍',name:'Geography',nameAr:'جغرافيا'},

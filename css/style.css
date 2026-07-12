@@ -929,3 +929,8 @@ html { font-size: 17px; }
 @keyframes rowSlide { from { opacity:0; transform: translateX(-24px); } to { opacity:1; transform:none; } }
 .avatar { transition: transform .2s cubic-bezier(0.2,1.4,0.4,1); }
 .player:hover .avatar { transform: scale(1.15) rotate(6deg); }
+
+/* ===== New games styling ===== */
+.emoji-riddle { font-size: clamp(52px, 11vw, 120px); letter-spacing: .08em; margin: 2vmin 0; animation: promptPop .5s cubic-bezier(0.2,1.4,0.4,1) both; }
+.pp-photo { max-height: 34vh; max-width: min(92%, 720px); border-radius: 18px; margin: 1vmin auto; display: block; object-fit: cover; box-shadow: 0 12px 44px rgba(0,0,0,.5); animation: promptPop .5s cubic-bezier(0.2,1.4,0.4,1) both; }
+.year-reveal { font-size: clamp(44px, 9vw, 100px) !important; color: var(--yellow); }

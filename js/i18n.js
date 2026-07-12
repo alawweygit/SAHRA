@@ -122,6 +122,8 @@ const I18N = {
       quiz: 'SPEED TRIVIA',
       trivia: 'QUESTIONS',
       pinpoint: 'PIN POINT',
+      emoji: 'EMOJI RIDDLE',
+      year: 'TIME MACHINE',
     },
     mode_taglines: {
       bluff: 'Spot the lie. Fool your friends.',
@@ -131,6 +133,8 @@ const I18N = {
       quiz: 'Fastest fingers win.',
       trivia: 'Pick a category. Fastest wins.',
       pinpoint: 'Drop your pin. Closest wins.',
+      emoji: 'Decode the emojis. Beat the clock.',
+      year: 'Guess the year. Closest wins.',
     },
     mode_rules: {
       bluff: 'A weird fact appears with a blank. Everyone writes a fake answer to fill it. Then vote for what you think is real. Fool someone: +500. Find the truth: +1000.',
@@ -139,6 +143,8 @@ const I18N = {
       diss: 'Two players face the same roast prompt. Everyone votes for the best line. +250 per vote, +500 if you sweep.',
       trivia: 'Pick a category, then answer as fast as you can. Right answer = points. Fastest = more points.',
       pinpoint: 'A city appears. Everyone drops a pin on the world map. Closest pin wins the round. 1st +1000, 2nd +700, 3rd +500.',
+      emoji: 'Emojis appear on the big screen. Decode which country, city or place they mean — fastest correct answers score the most. Speed scoring: 1st +1000 down to +400.',
+      year: 'An event appears. Everyone types the year it happened. Closest guess wins: 1st +1000, 2nd +700, 3rd +500. Nail the exact year for a +500 bonus.',
       quiz: 'Speed trivia. Right answer = points. Faster = more points. No mercy.',
     },
     banter_lobby: [
@@ -286,6 +292,8 @@ const I18N = {
       quiz: 'سرعة المعلومات',
       trivia: 'أسئلة',
       pinpoint: 'حدد المكان',
+      emoji: 'فزورة الإيموجي',
+      year: 'آلة الزمن',
     },
     mode_taglines: {
       bluff: 'اكتشف الكذبة. اخدع ربعك.',
@@ -295,6 +303,8 @@ const I18N = {
       quiz: 'أسرع إصبع يفوز.',
       trivia: 'اختر فئة. أسرع واحد يفوز.',
       pinpoint: 'حط دبوسك. الأقرب يفوز.',
+      emoji: 'فك رموز الإيموجي قبل غيرك.',
+      year: 'خمّن السنة. الأقرب يفوز.',
     },
     mode_rules: {
       bluff: 'تظهر معلومة غريبة ناقصها جزء. كل واحد يكتب كذبة تكمّل الفراغ، وبعدها الكل يصوّت. خدعت صديق: +٥٠٠. لقيت الحقيقة: +١٠٠٠.',
@@ -303,6 +313,8 @@ const I18N = {
       diss: 'لاعبين يتواجهون بنفس التحدي. والكل يصوّت على أقوى سطر. +٢٥٠ لكل صوت، و+٥٠٠ إذا كسحت.',
       trivia: 'اختر فئة، وجاوب بأسرع ما تقدر. جواب صح = نقاط. أسرع = أكثر نقاط.',
       pinpoint: 'تظهر مدينة والكل يحط دبوس على خريطة العالم. الأقرب يفوز. الأول +١٠٠٠، الثاني +٧٠٠، الثالث +٥٠٠.',
+      emoji: 'تظهر إيموجيات على الشاشة الكبيرة. خمّن أي دولة أو مدينة أو مكان تعني — أسرع إجابة صحيحة تاخذ أعلى نقاط.',
+      year: 'يظهر حدث، والكل يكتب السنة اللي صار فيها. الأقرب يفوز: الأول +١٠٠٠، الثاني +٧٠٠، الثالث +٥٠٠. السنة بالضبط = +٥٠٠ إضافية.',
       quiz: 'أسئلة سرعة. جواب صح = نقاط. أسرع = أكثر. بسيطة وقاسية.',
     },
     banter_lobby: [
