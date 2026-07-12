@@ -675,85 +675,105 @@ body.ar .eyebrow{letter-spacing:0;}
 .pmm-sub{font-size:clamp(10px,1.5vmin,13px);font-weight:600;color:var(--text3);margin-top:2px;}
 .pmm-btn{align-items:flex-start;}
 
-/* ============ TITLE FINAL ============ */
+/* ============ HERO LANDING ============ */
 #scr-title{
-  padding:2.5vmin;
-  justify-content:center;
+  padding:4vmin 3vmin 3vmin;
+  justify-content:flex-start;
   align-items:center;
-  overflow:hidden;
+  gap:2.2vmin;
+  overflow-y:auto;
 }
-/* Two columns: logo left, games right */
-.title-layout{
-  display:grid;
-  grid-template-columns:240px 1fr;
-  gap:2.5vmin;
-  width:100%;
-  max-width:1200px;
-  align-items:center;
+.hero{
+  display:flex;flex-direction:column;align-items:center;gap:1.6vmin;
+  text-align:center;padding-top:2vmin;
+  animation:heroIn 0.8s var(--ease-out) both;
 }
-@media(max-width:700px){
-  .title-layout{grid-template-columns:1fr;}
-  .title-left{flex-direction:row;align-items:center;flex-wrap:wrap;}
+@keyframes heroIn{from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:none;}}
+.hero-logo .logo-lt{font-size:clamp(44px,8vmin,86px);}
+.hero-headline{
+  font-size:clamp(26px,5vmin,54px);
+  background:linear-gradient(90deg,var(--pink),var(--orange),var(--yellow),var(--green),var(--blue),var(--purple));
+  background-size:300% 100%;
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:gradientShift 6s ease infinite;
+  line-height:1.1;
 }
-.title-left{
-  display:flex;flex-direction:column;gap:1.8vmin;align-items:flex-start;
+@keyframes gradientShift{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
+.hero-sub{
+  font-size:clamp(13px,1.9vmin,17px);font-weight:600;
+  color:var(--text2);max-width:min(88vw,520px);line-height:1.5;
 }
-.title-right{
-  display:flex;flex-direction:column;gap:1.2vmin;
-}
+.hero-ctas{display:flex;gap:1.4vmin;flex-wrap:wrap;justify-content:center;margin-top:0.5vmin;}
+
 .title-games-label{
-  font-size:clamp(9px,1.2vmin,12px);
-  color:var(--text3);letter-spacing:3px;
+  font-size:clamp(10px,1.4vmin,13px);
+  color:var(--text3);letter-spacing:4px;
+  animation:heroIn 0.8s 0.2s var(--ease-out) both;
 }
 [dir="rtl"] .title-games-label{letter-spacing:0;}
 
-/* 3×2 grid, auto rows so cards don't stretch */
 .title-game-grid{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
   grid-auto-rows:auto;
-  gap:clamp(6px,1vmin,12px);
-}
-@media(max-width:500px){
-  .title-game-grid{grid-template-columns:repeat(2,1fr);}
+  gap:clamp(8px,1.2vmin,14px);
+  width:min(94vw,1000px);
+  padding-bottom:2vmin;
 }
 
-/* Cards: compact, content-height only */
 .title-game-card{
-  position:relative;
-  display:flex;flex-direction:column;gap:4px;
+  position:relative;overflow:hidden;
+  display:flex;flex-direction:column;gap:4px;align-items:center;
   background:var(--card);
   border:1.5px solid var(--border);
-  border-top:3px solid var(--mc,var(--pink));
-  border-radius:12px;
-  padding:12px 14px 10px;
+  border-radius:18px;
+  padding:0 0 14px;
   cursor:pointer;color:var(--text);font-family:inherit;
-  text-align:left;
-  box-shadow:0 2px 0 var(--shadow);
-  transition:all 0.15s var(--ease-out);
-  animation:cardDeal 0.4s var(--ease-out) both;
-  /* No min-height, no height:100% — content only */
+  text-align:center;
+  box-shadow:0 4px 0 var(--shadow);
+  transition:all 0.18s var(--ease-out);
+  animation:cardDeal 0.5s var(--ease-out) both;
 }
-[dir="rtl"] .title-game-card{text-align:right;}
 .title-game-card:hover{
-  transform:translateY(-3px);
+  transform:translateY(-6px) scale(1.03) rotate(-1deg);
   border-color:var(--mc,var(--pink));
-  box-shadow:0 8px 20px var(--shadow);
+  box-shadow:0 14px 34px var(--shadow),0 0 30px color-mix(in srgb,var(--mc,var(--pink)) 25%,transparent);
 }
-.tgc-top{
-  display:flex;justify-content:space-between;align-items:flex-start;
-  margin-bottom:2px;
+/* Game art banner */
+.tgc-art{
+  width:100%;height:clamp(54px,8vmin,80px);
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(28px,4.5vmin,44px);
+  background:linear-gradient(135deg,var(--mc,var(--pink)),color-mix(in srgb,var(--mc,var(--pink)) 40%,#000));
+  margin-bottom:6px;
+  position:relative;overflow:hidden;
 }
-.tgc-icon{font-size:clamp(18px,2.5vmin,28px);}
-.tgc-min{font-size:11px;font-weight:700;color:var(--text3);white-space:nowrap;}
+.tgc-art::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 70% 20%,rgba(255,255,255,0.25),transparent 55%);
+}
+.title-game-card:hover .tgc-art{animation:artPulse 0.6s ease;}
+@keyframes artPulse{50%{transform:scale(1.1);}}
 .tgc-name{
   font-family:'Fredoka One','Lalezar',sans-serif;
-  font-size:clamp(12px,1.6vmin,16px);
-  color:var(--mc,var(--pink));line-height:1.1;
+  font-size:clamp(12px,1.7vmin,17px);
+  color:var(--mc,var(--pink));line-height:1.1;padding:0 8px;
 }
 .tgc-tag{
-  font-size:clamp(10px,1.3vmin,13px);font-weight:600;
-  color:var(--text2);line-height:1.3;
+  font-size:clamp(9px,1.2vmin,12px);font-weight:600;
+  color:var(--text2);line-height:1.3;padding:0 10px;
+}
+.tgc-min{font-size:10px;font-weight:700;color:var(--text3);}
+
+/* Mobile */
+@media(max-width:560px){
+  .title-game-grid{grid-template-columns:repeat(2,1fr);}
+  .hero-logo .logo-lt{font-size:40px;}
+  .hero-headline{font-size:24px;}
+  #scr-title{padding:5vmin 3vmin;}
+  .bar-btn{padding:8px 12px;font-size:13px;}
+  .big-btn{font-size:16px;padding:12px 26px;}
 }
 
 /* ============ PREGAME V3 — single page, no scroll ============ */
@@ -803,3 +823,76 @@ body.ar .eyebrow{letter-spacing:0;}
 }
 .join-av:hover{transform:scale(1.1);}
 .join-av.selected{outline:3px solid #fff;transform:scale(1.15);}
+
+/* ---- Controller countdown timer ---- */
+.ctrl-timer{
+  font-size:22px;color:var(--yellow);
+  background:var(--bg2);border:1.5px solid var(--border);
+  border-radius:30px;padding:6px 18px;
+}
+.ctrl-timer.danger{color:var(--pink);animation:dangerPulse 0.5s infinite;}
+
+/* ---- PinPoint map ---- */
+.ctrl-map{width:100%;}
+.pin-map{cursor:crosshair;user-select:none;-webkit-user-select:none;}
+
+/* ---- Mobile optimization (iOS + Android) ---- */
+@media(max-width:480px){
+  .screen{padding:3vmin 2.5vmin;gap:2vmin;}
+  #topbar{padding:8px 10px;}
+  .bar-btn{min-height:38px;min-width:38px;}
+  .big-btn{min-height:46px;}
+  .choice-btn{min-height:50px;font-size:15px;}
+  .ctrl-input{font-size:16px;} /* prevents iOS zoom on focus */
+  .text-input{font-size:16px;}
+  .avatar-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
+  .pg-row{grid-template-columns:1fr;}
+  .cat-grid-small{grid-template-columns:repeat(3,1fr);}
+  .pack-grid{grid-template-columns:repeat(2,1fr);}
+  .hero-ctas{width:100%;}
+  .hero-ctas .big-btn{flex:1;}
+}
+/* iOS safe area */
+@supports(padding:max(0px)){
+  #app{padding-bottom:env(safe-area-inset-bottom);}
+}
+
+/* ============ QUALITY POLISH — smooth press everywhere ============ */
+button{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.bar-btn:active,.menu-item:active,.title-game-card:active,.pack-card:active,
+.pmm-btn:active,.round-btn:active,.content-btn:active,.cat-card-sm:active,
+.avatar-opt:active,.theme-card:active,.lang-card:active,.region-card:active,
+.join-av:active{
+  transform:scale(0.95)!important;
+  transition:transform 0.06s!important;
+}
+.big-btn:active{transform:translateY(3px) scale(0.98)!important;}
+.choice-btn:active{transform:translateY(3px) scale(0.98)!important;}
+
+/* Smoother screen transitions */
+.screen{transition:opacity 0.3s ease, transform 0.35s var(--ease-out);}
+
+/* Focus rings for keyboard nav (accessibility on desktop) */
+button:focus-visible,input:focus-visible{
+  outline:3px solid var(--yellow);outline-offset:2px;
+}
+
+/* Better scrollbars on desktop */
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:8px;}
+::-webkit-scrollbar-thumb:hover{background:var(--text3);}
+
+/* TV mode: bigger text at large sizes for readability from couch */
+@media(min-width:1400px){
+  .prompt-card{font-size:clamp(28px,3.8vmin,44px);}
+  .lobby-title{font-size:clamp(38px,5.5vmin,64px);}
+  .score-row .bar-fill{font-size:clamp(16px,2.2vmin,22px);}
+  .winner-name{font-size:clamp(48px,8vmin,96px);}
+}
+
+/* GPU acceleration hints for smooth animation */
+.logo-lt,.avatar,.title-game-card,.pack-card,.screen{will-change:transform;}

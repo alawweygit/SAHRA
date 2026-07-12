@@ -125,11 +125,22 @@ const Host = (() => {
         <button class="big-btn" id="startModeBtn" style="margin-top:2vmin">START ▶</button>
       </div>`);
     setPill(t('mode_names')[mode]);
-    // Wait for explicit tap OR skip button — no auto-advance
     await new Promise(res => {
       const btn = document.getElementById('startModeBtn');
-      const onStart = () => { window.__hypoxSkip = null; res(); };
-      if (btn) btn.addEventListener('click', onStart, { once: true });
+      let timer = null;
+      const onStart = () => { window.__hypoxSkip = null; if (timer) clearInterval(timer); res(); };
+      if (btn) {
+        btn.addEventListener('click', onStart, { once: true });
+        if (window.HYPOX_STATE?.autoplay) {
+          let left = 8;
+          btn.textContent = `START ▶ (${left})`;
+          timer = setInterval(() => {
+            left--;
+            if (left <= 0) { onStart(); return; }
+            btn.textContent = `START ▶ (${left})`;
+          }, 1000);
+        }
+      }
       window.__hypoxSkip = onStart;
     });
   }
@@ -140,6 +151,11 @@ const Host = (() => {
     setPill(final ? t('final_results') : t('scores'));
     const sorted = players.slice().sort((a, b) => b.score - a.score);
     const max = Math.max(...sorted.map(p => p.score), 1);
+    // Broadcast leaderboard to every phone (not just host screen)
+    pushMirror({
+      pill: final ? t('final_results') : t('scores'),
+      headline: sorted.slice(0, 4).map((p, i) => `${['🥇','🥈','🥉','4.'][i]} ${p.name} ${p.score}`).join('  ·  '),
+    });
     scene(`
       <div class="lobby-title display">${final ? esc(t('final_results')) : esc(t('scores'))}</div>
       <div class="score-list">
@@ -160,14 +176,7 @@ const Host = (() => {
     if (!final) {
       await say(tPick('banter_scores'));
       Audio_.stopMusic();
-      // wait for explicit Next press
-      scene(document.getElementById('hostStage').innerHTML + `<button class="big-btn" id="nextBtn" style="margin-top:2vmin" data-i18n="next_round">${t('next_round')}</button>`);
-      await new Promise(res => {
-        const btn = document.getElementById('nextBtn');
-        const onNext = () => { window.__hypoxSkip = null; res(); };
-        if (btn) btn.addEventListener('click', onNext, { once: true });
-        window.__hypoxSkip = onNext;
-      });
+      await waitNext(7);
     }
   }
 
@@ -594,7 +603,7 @@ const Host = (() => {
       Audio_.sfx.sting();
 
       const answers = await collectWithTimer({
-        type: 'choice', title: t('quiz_pick'), context: Q.q,
+        type: 'choice', title: t('quiz_pick'), context: Q.q, seconds: 15,
         options: Q.options.map((o, j) => ({ id: j, label: `${'ABCD'[j]} · ${o}`, color: colors[j] })),
       }, pids, 15);
 
@@ -610,16 +619,108 @@ const Host = (() => {
         addScore(pid, net.isOffline ? 700 : (SPEED_PTS[rank] || 400));
       });
       const names = right.map(pid => players.find(p => p.pid === pid).name).join(', ');
+      pushMirror({ headline: `✓ ${Q.options[Q.correct]}` + (right.length ? ` — ${names}` : '') });
       await say(right.length
         ? `${names} ${t('got_it_right')}!`
         : (LANG === 'ar' ? 'ولا واحد؟ يا سلام عليكم.' : 'Nobody?! Incredible work, everyone.'));
       hideHost();
+      await waitNext();
     }
     await showScores();
   }
 
   /* ================================================================ */
-  const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz };
+  /* ================= PINPOINT (PinWorld style) ================= */
+  function haversine(a, b) {
+    const R = 6371, d2r = Math.PI / 180;
+    const dLat = (b.lat - a.lat) * d2r, dLon = (b.lon - a.lon) * d2r;
+    const x = Math.sin(dLat/2)**2 + Math.cos(a.lat*d2r) * Math.cos(b.lat*d2r) * Math.sin(dLon/2)**2;
+    return Math.round(R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x)));
+  }
+
+  async function playPinpoint() {
+    await modeTitleCard('pinpoint');
+    const rounds = window.HYPOX_STATE?.rounds || 5;
+    const pool = (typeof PINPOINT_CITIES !== 'undefined' ? PINPOINT_CITIES : []).slice().sort(() => Math.random() - .5).slice(0, rounds);
+    for (let r = 0; r < pool.length; r++) {
+      const city = pool[r];
+      const cityName = LANG === 'ar' ? city.ar : city.en;
+      setPill(`${t('round')} ${r+1} ${t('of')} ${pool.length}`);
+      scene(`
+        <div class="eyebrow">📍 ${esc(t('mode_names').pinpoint || 'PIN POINT')}</div>
+        <div class="prompt-card">${esc(cityName)}</div>
+        <div class="pick-sub">${LANG==='ar'?'وين هالمدينة؟ حط دبوسك على الخريطة!':'Where is this city? Drop your pin on the map!'}</div>`);
+      pushMirror({ headline: cityName, pill: `${r+1}/${pool.length}` });
+      Audio_.sfx.sting();
+
+      const answers = await collectWithTimer({
+        type: 'map', title: cityName,
+        sub: LANG==='ar'?'حط الدبوس أقرب ما تقدر':'Drop your pin as close as you can',
+        seconds: 20,
+      }, players.map(p => p.pid), 20);
+
+      // Score by distance
+      const results = players.map(p => {
+        let guess = null;
+        try { guess = JSON.parse(answers[p.pid] || 'null'); } catch(e) {}
+        const km = guess ? haversine(guess, city) : 99999;
+        return { p, km, guessed: !!guess };
+      }).sort((a,b) => a.km - b.km);
+
+      const AWARD = [1000, 700, 500];
+      results.forEach((r2, i) => {
+        if (!r2.guessed) return;
+        const pts = AWARD[i] !== undefined ? AWARD[i] : 300;
+        addScore(r2.p.pid, pts);
+      });
+
+      Audio_.sfx.reveal();
+      scene(`
+        <div class="eyebrow">${esc(cityName)}</div>
+        <div class="score-list">
+          ${results.map((r2, i) => `
+            <div class="score-row" style="animation-delay:${i*.12}s">
+              <div class="medal">${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
+              <div class="avatar" style="background:${r2.p.color}">${r2.p.emoji}</div>
+              <div class="bar-track"><div class="bar-fill" style="width:${Math.max(15,100-i*20)}%;background:linear-gradient(90deg,var(--blue),var(--green))">
+                ${esc(r2.p.name)} · ${r2.guessed ? r2.km.toLocaleString()+' km' : (LANG==='ar'?'ما جاوب':'no pin')}
+              </div></div>
+            </div>`).join('')}
+        </div>`);
+      pushMirror({ headline: results.slice(0,3).map((r2,i)=>`${i+1}. ${r2.p.name} ${r2.guessed?r2.km+'km':'—'}`).join(' · ') });
+      await waitNext();
+      if (r < pool.length - 1) await showScores();
+    }
+    await showScores(true);
+  }
+
+  /* Wait for Next press, or auto-advance if autoplay is on */
+  function waitNext(autoSeconds = 6) {
+    return new Promise(res => {
+      const stage = document.getElementById('hostStage');
+      const btn = document.createElement('button');
+      btn.className = 'big-btn';
+      btn.style.marginTop = '2vmin';
+      const done = () => { window.__hypoxSkip = null; if (timer) clearInterval(timer); res(); };
+      let timer = null;
+      if (window.HYPOX_STATE?.autoplay) {
+        let left = autoSeconds;
+        btn.textContent = `${t('next_round')} (${left})`;
+        timer = setInterval(() => {
+          left--;
+          if (left <= 0) { done(); return; }
+          btn.textContent = `${t('next_round')} (${left})`;
+        }, 1000);
+      } else {
+        btn.textContent = t('next_round');
+      }
+      btn.addEventListener('click', done, { once: true });
+      stage.appendChild(btn);
+      window.__hypoxSkip = done;
+    });
+  }
+
+  const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz, pinpoint: playPinpoint };
 
   async function run(netInstance, playerList, mode) {
     net = netInstance;

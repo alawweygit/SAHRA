@@ -10,9 +10,9 @@
     {emoji:'🐺',color:'#94a3b8',label:'Wolf'},{emoji:'🐯',color:'#f59e0b',label:'Tiger'},
     {emoji:'🦈',color:'#0ea5e9',label:'Shark'},
   ];
-  const MODE_MIN = {bluff:3,wyr:3,interrogation:3,diss:4,quiz:2,trivia:2};
-  const MODE_ICONS = {bluff:'🔍',wyr:'⚖️',interrogation:'🔦',diss:'🎤',quiz:'⚡',trivia:'📚'};
-  const MODE_COLORS = {bluff:'#f472b6',wyr:'#60a5fa',interrogation:'#a78bfa',diss:'#fb923c',quiz:'#facc15',trivia:'#34d399'};
+  const MODE_MIN = {bluff:3,wyr:3,interrogation:3,diss:4,quiz:2,trivia:2,pinpoint:2};
+  const MODE_ICONS = {bluff:'🔍',wyr:'⚖️',interrogation:'🔦',diss:'🎤',quiz:'⚡',trivia:'📚',pinpoint:'📍'};
+  const MODE_COLORS = {bluff:'#f472b6',wyr:'#60a5fa',interrogation:'#a78bfa',diss:'#fb923c',quiz:'#facc15',trivia:'#34d399',pinpoint:'#22d3ee'};
   const CAT_INFO = [
     {id:'general',icon:'🎲',name:'General Mix',nameAr:'خلطة عامة'},
     {id:'geography',icon:'🌍',name:'Geography',nameAr:'جغرافيا'},
@@ -22,7 +22,7 @@
     {id:'sports',icon:'⚽',name:'Sports',nameAr:'رياضة'},
   ];
 
-  window.HYPOX_STATE = window.HYPOX_STATE || {region:null,rounds:5,category:'general',flavor:'global'};
+  window.HYPOX_STATE = window.HYPOX_STATE || {region:null,rounds:5,category:'general',flavor:'global',autoplay:false};
   let net=null, players=[], myPid=null, isVip=false, hostMode='tv';
   let selectedAvatar=AVATARS_LIST[0];
   let _ppDismiss=null, _avatarCallback=null, _avatarContext=null;
@@ -89,6 +89,7 @@
   document.addEventListener('DOMContentLoaded',()=>{
     if(booted)return;booted=true;
     applyTheme();
+    applyLang();
     FX.init();
     buildTitleScreen();
 
@@ -141,17 +142,20 @@
     const modeTagsObj=t('mode_taglines')||{};
     grid.innerHTML=modes.map((m,i)=>`
       <button class="title-game-card" data-mode="${m}" style="animation-delay:${i*.07}s;--mc:${MODE_COLORS[m]}">
-        <div class="tgc-top">
-          <div class="tgc-icon">${MODE_ICONS[m]}</div>
-          <div class="tgc-min">${T.minPlayers(MODE_MIN[m])}</div>
-        </div>
+        <div class="tgc-art">${MODE_ICONS[m]}</div>
         <div class="tgc-name display">${esc(modeNamesObj[m]||m)}</div>
         <div class="tgc-tag">${esc(modeTagsObj[m]||'')}</div>
+        <div class="tgc-min">👥 ${T.minPlayers(MODE_MIN[m])}</div>
       </button>`).join('');
 
-    // Update static text
+    // Hero text (translated)
+    const hh=$('#heroHeadline'), hs=$('#heroSub');
+    if(hh)hh.textContent=LANG==='ar'?'السهرة تبدأ من هنا':'The Party Starts Here';
+    if(hs)hs.textContent=LANG==='ar'?'ألعاب أصحابك بيتهاوشون عليها. بدون تطبيقات وبدون تحميل — بس جوالات وفوضى.':'Games your friends will actually fight over. No apps, no downloads — just phones and chaos.';
+    const hp=$('#heroPlay');
+    if(hp){hp.textContent=LANG==='ar'?'▶ العب الآن':'PLAY NOW ▶';hp.onclick=()=>{Audio_.sfx.pop();$('#titleGameGrid').scrollIntoView({behavior:'smooth'});};}
     const tapLabel=$('#tapLabel');
-    if(tapLabel)tapLabel.textContent=T.tapGame();
+    if(tapLabel)tapLabel.textContent=LANG==='ar'?'اختر لعبتك':'PICK YOUR GAME';
     const joinBtn=$('#joinBtn');
     if(joinBtn){joinBtn.textContent=T.joinGame();joinBtn.onclick=()=>{Audio_.sfx.blip();show('#scr-join');paintJoin();};}
 
@@ -163,7 +167,7 @@
 
   function paintJoin(){
     $('#backFromJoin').textContent=T.back();
-    $('#joinCode').placeholder='Room code';
+    $('#joinCode').placeholder=LANG==='ar'?'رمز الغرفة':'Room code';
     $('#joinName').placeholder=T.yourName();
     $('#joinGo').textContent=LANG==='ar'?'دخول →':'Join →';
   }
@@ -199,6 +203,13 @@
           <div class="content-btns">
             <button class="content-btn${window.HYPOX_STATE.flavor==='arab'?' selected':''}" data-flavor="arab">${T.arabFlavor()}</button>
             <button class="content-btn${window.HYPOX_STATE.flavor!=='arab'?' selected':''}" data-flavor="global">${T.globalMix()}</button>
+          </div>
+        </div>
+        <div class="pg-block full">
+          <div class="pg-label">${LANG==='ar'?'وتيرة اللعب':'GAME PACING'}</div>
+          <div class="content-btns">
+            <button class="content-btn pace-btn${!window.HYPOX_STATE.autoplay?' selected':''}" data-pace="manual">✋ ${LANG==='ar'?'أنا أتحكم (زر التالي)':'I control (Next button)'}</button>
+            <button class="content-btn pace-btn${window.HYPOX_STATE.autoplay?' selected':''}" data-pace="auto">⏩ ${LANG==='ar'?'تلقائي (يكمل لحاله)':'Autoplay (advances itself)'}</button>
           </div>
         </div>
       </div>
@@ -238,9 +249,13 @@
       $$('.round-btn').forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');window.HYPOX_STATE.rounds=+btn.dataset.r;Audio_.sfx.blip();
     }));
-    $$('.content-btn').forEach(btn=>btn.addEventListener('click',()=>{
-      $$('.content-btn').forEach(b=>b.classList.remove('selected'));
+    $$('.content-btn:not(.pace-btn)').forEach(btn=>btn.addEventListener('click',()=>{
+      $$('.content-btn:not(.pace-btn)').forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');window.HYPOX_STATE.flavor=btn.dataset.flavor;Audio_.sfx.blip();
+    }));
+    $$('.pace-btn').forEach(btn=>btn.addEventListener('click',()=>{
+      $$('.pace-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');window.HYPOX_STATE.autoplay=btn.dataset.pace==='auto';Audio_.sfx.blip();
     }));
     if(isTrivia){
       $$('.cat-card-sm').forEach(btn=>btn.addEventListener('click',()=>{
@@ -268,7 +283,7 @@
     if(net.isOffline)net.promptLocal=passAndPlayPrompt;
     const code=await net.createRoom(LANG);
     currentRoomCode=code;
-    $('#roomCodeText').textContent=net.isOffline?'PASS & PLAY':code;
+    $('#roomCodeText').textContent=net.isOffline?(LANG==='ar'?'مرّر الجوال':'PASS & PLAY'):code;
     $('#topbar').classList.add('show');
     $('#menuBtn').classList.remove('hidden');
     $('#roundPill').textContent=LANG==='ar'?'الصالة':'Lobby';
@@ -333,7 +348,7 @@
 
   async function startDirectGame(gameMode){
     Audio_.stopMusic();await FX.wipe();Host.hideHost();
-    show('#scr-game');gameActive=true;$('#skipBtn').classList.remove('hidden');
+    show('#scr-game');gameActive=true;$('#skipBtn').classList.remove('hidden');$('#menuBtn').classList.remove('hidden');
     $('#skipBtn').textContent=T.skip();
     $('#roundPill').textContent=(t('mode_names')||{})[gameMode]||gameMode;
     net.setState({phase:'wait',msg:T.watchScreen()});

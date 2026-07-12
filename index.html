@@ -53,24 +53,21 @@
     </div>
   </div>
 
-  <!-- SCREEN 1: TITLE -->
+  <!-- SCREEN 1: TITLE — hero landing -->
   <div class="screen active" id="scr-title">
-    <div class="title-layout">
-      <div class="title-left">
-        <div class="marquee-box">
-          <div class="marquee-dots"></div>
-          <div class="logo-letters display">
-            <span class="logo-lt" style="--i:0">H</span><span class="logo-lt" style="--i:1">Y</span><span class="logo-lt" style="--i:2">P</span><span class="logo-lt" style="--i:3">O</span><span class="logo-lt" style="--i:4">X</span>
-          </div>
-          <div class="tagline">PARTY GAMES · العاب السهرة</div>
-        </div>
-        <button class="big-btn alt" id="joinBtn" style="font-size:clamp(13px,2vmin,18px);padding:1.3vmin 4vmin;align-self:flex-start;">JOIN A GAME</button>
+    <div class="hero">
+      <div class="logo-letters display hero-logo">
+        <span class="logo-lt" style="--i:0">H</span><span class="logo-lt" style="--i:1">Y</span><span class="logo-lt" style="--i:2">P</span><span class="logo-lt" style="--i:3">O</span><span class="logo-lt" style="--i:4">X</span>
       </div>
-      <div class="title-right">
-        <div class="title-games-label display" id="tapLabel">TAP A GAME TO START</div>
-        <div class="title-game-grid" id="titleGameGrid"></div>
+      <h1 class="hero-headline display" id="heroHeadline">The Party Starts Here</h1>
+      <p class="hero-sub" id="heroSub">Games your friends will actually fight over. No apps, no downloads — just phones and chaos.</p>
+      <div class="hero-ctas">
+        <button class="big-btn" id="heroPlay">PLAY NOW ▶</button>
+        <button class="big-btn ghost" id="joinBtn">JOIN A GAME</button>
       </div>
     </div>
+    <div class="title-games-label display" id="tapLabel">PICK YOUR GAME</div>
+    <div class="title-game-grid" id="titleGameGrid"></div>
   </div>
 
   <!-- SCREEN 2: PREGAME -->

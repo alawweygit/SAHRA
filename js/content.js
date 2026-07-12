@@ -526,3 +526,31 @@ const TRIVIA_CATS = {
     ],
   },
 };
+
+/* ============ PINPOINT — geography guessing (PinWorld style) ============ */
+const PINPOINT_CITIES = [
+  { en:'Dubai', ar:'دبي', lat:25.2, lon:55.3 },
+  { en:'Paris', ar:'باريس', lat:48.9, lon:2.35 },
+  { en:'Tokyo', ar:'طوكيو', lat:35.7, lon:139.7 },
+  { en:'New York', ar:'نيويورك', lat:40.7, lon:-74.0 },
+  { en:'Cairo', ar:'القاهرة', lat:30.0, lon:31.2 },
+  { en:'London', ar:'لندن', lat:51.5, lon:-0.13 },
+  { en:'Muscat', ar:'مسقط', lat:23.6, lon:58.5 },
+  { en:'Rio de Janeiro', ar:'ريو دي جانيرو', lat:-22.9, lon:-43.2 },
+  { en:'Sydney', ar:'سيدني', lat:-33.9, lon:151.2 },
+  { en:'Moscow', ar:'موسكو', lat:55.8, lon:37.6 },
+  { en:'Cape Town', ar:'كيب تاون', lat:-33.9, lon:18.4 },
+  { en:'Mumbai', ar:'مومباي', lat:19.1, lon:72.9 },
+  { en:'Istanbul', ar:'إسطنبول', lat:41.0, lon:29.0 },
+  { en:'Mexico City', ar:'مكسيكو سيتي', lat:19.4, lon:-99.1 },
+  { en:'Riyadh', ar:'الرياض', lat:24.7, lon:46.7 },
+  { en:'Singapore', ar:'سنغافورة', lat:1.35, lon:103.8 },
+  { en:'Reykjavik', ar:'ريكيافيك', lat:64.1, lon:-21.9 },
+  { en:'Nairobi', ar:'نيروبي', lat:-1.3, lon:36.8 },
+  { en:'Buenos Aires', ar:'بوينس آيرس', lat:-34.6, lon:-58.4 },
+  { en:'Seoul', ar:'سيول', lat:37.6, lon:127.0 },
+  { en:'Doha', ar:'الدوحة', lat:25.3, lon:51.5 },
+  { en:'Los Angeles', ar:'لوس أنجلوس', lat:34.05, lon:-118.2 },
+  { en:'Rome', ar:'روما', lat:41.9, lon:12.5 },
+  { en:'Bangkok', ar:'بانكوك', lat:13.75, lon:100.5 },
+];
