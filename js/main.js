@@ -159,6 +159,10 @@
     if(tapLabel)tapLabel.textContent=LANG==='ar'?'اختر لعبتك':'PICK YOUR GAME';
     const joinBtn=$('#joinBtn');
     if(joinBtn){joinBtn.textContent=T.joinGame();joinBtn.onclick=()=>{Audio_.sfx.blip();show('#scr-join');paintJoin();};}
+    const hs=$('#heroStart');
+    if(hs){hs.textContent=LANG==='ar'?'▶ ابدأ لعبة':'START A GAME ▶';hs.onclick=()=>{Audio_.sfx.pop();show('#scr-games');};}
+    const bfg=$('#backFromGames');
+    if(bfg){bfg.textContent=LANG==='ar'?'→ رجوع':'← Back';bfg.onclick=()=>{Audio_.sfx.blip();show('#scr-title');};}
 
     $$('.title-game-card').forEach(card=>card.addEventListener('click',()=>{
       Audio_.sfx.pop();Audio_.unlock();
@@ -271,7 +275,7 @@
 
     const backBtn=$('#backFromPregame');
     backBtn.textContent=T.back();
-    backBtn.onclick=()=>{Audio_.sfx.blip();show('#scr-title');};
+    backBtn.onclick=()=>{Audio_.sfx.blip();show('#scr-games');};
   }
 
   /* ---- START GAME ---- */
