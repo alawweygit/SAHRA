@@ -896,3 +896,36 @@ button:focus-visible,input:focus-visible{
 
 /* GPU acceleration hints for smooth animation */
 .logo-lt,.avatar,.title-game-card,.pack-card,.screen{will-change:transform;}
+
+/* ===== POLISH PASS v1: bigger text, no dead space, smooth scroll, more motion ===== */
+html { font-size: 17px; }
+.hero-headline { font-size: clamp(34px, 6.5vw, 72px) !important; }
+.hero-sub { font-size: clamp(16px, 2.2vw, 22px) !important; }
+.tgc-name { font-size: clamp(18px, 2.4vw, 26px) !important; }
+.tgc-tag { font-size: clamp(13px, 1.6vw, 16px) !important; }
+.tgc-art { font-size: clamp(40px, 6vw, 64px) !important; }
+.prompt-card { font-size: clamp(22px, 3.4vw, 40px) !important; }
+.big-btn { font-size: clamp(17px, 2.2vw, 22px) !important; }
+.bar-btn { font-size: clamp(14px, 1.8vw, 17px) !important; }
+.pname { font-size: clamp(13px, 1.7vw, 16px) !important; }
+.eyebrow { font-size: clamp(15px, 2vw, 19px) !important; }
+.pick-sub, .ctrl-sub { font-size: clamp(15px, 2vw, 18px) !important; }
+.share-code b { font-size: clamp(30px, 5vw, 52px) !important; letter-spacing: .12em; }
+
+/* every screen scrolls properly instead of clipping */
+.screen { overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
+.screen::-webkit-scrollbar { width: 0; }
+
+/* kill dead-space feel: center content vertically when it fits */
+.screen > .wrap, .hero { min-height: 0 !important; }
+
+/* smoother, springier entrances */
+.title-game-card { animation: cardIn .5s cubic-bezier(0.2,1.4,0.4,1) both; }
+@keyframes cardIn { from { opacity:0; transform: translateY(26px) scale(.92); } to { opacity:1; transform:none; } }
+.title-game-card:hover { transform: translateY(-8px) scale(1.045) rotate(-1deg) !important; transition: transform .18s cubic-bezier(0.2,1.4,0.4,1); }
+.prompt-card { animation: promptPop .45s cubic-bezier(0.2,1.4,0.4,1) both; }
+@keyframes promptPop { from { opacity:0; transform: scale(.9) translateY(14px); } to { opacity:1; transform:none; } }
+.score-row { animation: rowSlide .5s cubic-bezier(0.2,1.4,0.4,1) both; }
+@keyframes rowSlide { from { opacity:0; transform: translateX(-24px); } to { opacity:1; transform:none; } }
+.avatar { transition: transform .2s cubic-bezier(0.2,1.4,0.4,1); }
+.player:hover .avatar { transform: scale(1.15) rotate(6deg); }

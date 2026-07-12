@@ -152,8 +152,7 @@
     const hh=$('#heroHeadline'), hs=$('#heroSub');
     if(hh)hh.textContent=LANG==='ar'?'السهرة تبدأ من هنا':'The Party Starts Here';
     if(hs)hs.textContent=LANG==='ar'?'ألعاب أصحابك بيتهاوشون عليها. بدون تطبيقات وبدون تحميل — بس جوالات وفوضى.':'Games your friends will actually fight over. No apps, no downloads — just phones and chaos.';
-    const hp=$('#heroPlay');
-    if(hp){hp.textContent=LANG==='ar'?'▶ العب الآن':'PLAY NOW ▶';hp.onclick=()=>{Audio_.sfx.pop();$('#titleGameGrid').scrollIntoView({behavior:'smooth'});};}
+
     const tapLabel=$('#tapLabel');
     if(tapLabel)tapLabel.textContent=LANG==='ar'?'اختر لعبتك':'PICK YOUR GAME';
     const joinBtn=$('#joinBtn');
