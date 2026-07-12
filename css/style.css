@@ -951,3 +951,24 @@ html { font-size: 17px; }
 .leaflet-container { background: #a8d3f0 !important; } /* real ocean color at edges */
 #revealMap { height: 44vh !important; max-width: 96vw !important; }
 .prompt-card { max-width: 96vw !important; }
+
+/* ===== Session leaderboard ===== */
+.session-lb { max-width: 560px; margin: 3vmin auto 0; padding: 2vmin 2.5vmin; background: color-mix(in srgb, var(--card) 80%, transparent); border-radius: 20px; }
+.slb-title { font-size: clamp(17px, 2.4vw, 24px); margin-bottom: 1.5vmin; text-align: center; color: var(--yellow); }
+.slb-row { display: flex; align-items: center; gap: 10px; padding: 7px 4px; animation: rowSlide .5s cubic-bezier(0.2,1.4,0.4,1) both; border-bottom: 1px solid rgba(255,255,255,.06); }
+.slb-row:last-child { border-bottom: none; }
+.slb-rank { width: 30px; text-align: center; font-size: 18px; }
+.slb-av { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.slb-name { flex: 1; font-size: clamp(15px, 2vw, 18px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slb-pts { font-size: clamp(16px, 2.2vw, 20px); color: var(--green); }
+
+/* ===== Richer round transitions ===== */
+.eyebrow { animation: eyebrowDrop .45s cubic-bezier(0.2,1.4,0.4,1) both; }
+@keyframes eyebrowDrop { from { opacity:0; transform: translateY(-18px); } to { opacity:1; transform:none; } }
+.quiz-opt { animation: optIn .4s cubic-bezier(0.2,1.4,0.4,1) both; }
+.quiz-opt:nth-child(1){animation-delay:.05s}.quiz-opt:nth-child(2){animation-delay:.12s}
+.quiz-opt:nth-child(3){animation-delay:.19s}.quiz-opt:nth-child(4){animation-delay:.26s}
+@keyframes optIn { from { opacity:0; transform: translateX(-20px) scale(.95); } to { opacity:1; transform:none; } }
+.hotseat { animation: promptPop .5s cubic-bezier(0.2,1.4,0.4,1) both; }
+.medal { animation: medalSpin .6s cubic-bezier(0.2,1.4,0.4,1) both; }
+@keyframes medalSpin { from { opacity:0; transform: rotate(-180deg) scale(.4); } to { opacity:1; transform:none; } }

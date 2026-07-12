@@ -378,6 +378,16 @@
             <div class="pack-min">👥 ${T.minPlayers(MODE_MIN[m])}</div>
           </button>`).join('')}
       </div>
+      <div class="session-lb">
+        <div class="slb-title display">${LANG==='ar'?'🏆 صدارة السهرة':'🏆 TONIGHT\'S LEADERBOARD'}</div>
+        ${players.slice().sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,8).map((pl,i)=>`
+          <div class="slb-row" style="animation-delay:${i*.08}s">
+            <span class="slb-rank">${i===0?'👑':(i+1)}</span>
+            <span class="slb-av" style="background:${pl.color}">${pl.emoji}</span>
+            <span class="slb-name">${esc(pl.name)}</span>
+            <span class="slb-pts display">${(pl.score||0).toLocaleString()}</span>
+          </div>`).join('')}
+      </div>
       <button class="bar-btn" id="backToLobbyBtn" style="margin-top:2vmin">${T.backLobby()}</button>`);
     Audio_.startMusic('lobby');net.setState({phase:'wait',msg:T.watchScreen()});
     $$('.pack-card').forEach(btn=>btn.addEventListener('click',async()=>{
