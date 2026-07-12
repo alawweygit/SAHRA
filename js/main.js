@@ -99,7 +99,9 @@
     $('#langBtn').addEventListener('click',()=>{
       setLang(LANG==='en'?'ar':'en');
       $('#langBtn').textContent=LANG==='en'?'عر':'EN';
-      buildTitleScreen(); // rebuild with new language
+      // If no room/game is active, a reload repaints EVERY screen instantly (lang is saved)
+      if(!currentRoomCode && !gameActive){ location.reload(); return; }
+      buildTitleScreen(); // in-game: rebuild what we safely can
     });
     $('#langBtn').textContent=LANG==='en'?'عر':'EN';
     $('#skipBtn').addEventListener('click',()=>{if(window.__hypoxSkip){window.__hypoxSkip();window.__hypoxSkip=null;}});
