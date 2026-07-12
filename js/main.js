@@ -316,12 +316,18 @@
         <div class="share-btns">
           <button class="bar-btn" id="copyLinkBtn">${T.copyLink()}</button>
           <button class="bar-btn" id="showQrBtn">${T.qrCode()}</button>
+          <button class="bar-btn" id="waShareBtn">💬 WhatsApp</button>
         </div>
         <div id="qrArea" class="hidden"></div>
       </div>`;
       $('#copyLinkBtn').onclick=()=>{
         navigator.clipboard.writeText(joinUrl).then(()=>{$('#copyLinkBtn').textContent=T.copied();setTimeout(()=>$('#copyLinkBtn').textContent=T.copyLink(),2000);});
         Audio_.sfx.submit();
+      };
+      $('#waShareBtn').onclick=()=>{
+        const msg=LANG==='ar'?`تعال نلعب HYPOX! 🎉 ادخل من هنا: ${joinUrl}`:`Come play HYPOX! 🎉 Join here: ${joinUrl}`;
+        window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+        Audio_.sfx.pop();
       };
       $('#showQrBtn').onclick=()=>{
         const qr=$('#qrArea');

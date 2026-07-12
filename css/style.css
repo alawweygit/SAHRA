@@ -972,3 +972,26 @@ html { font-size: 17px; }
 .hotseat { animation: promptPop .5s cubic-bezier(0.2,1.4,0.4,1) both; }
 .medal { animation: medalSpin .6s cubic-bezier(0.2,1.4,0.4,1) both; }
 @keyframes medalSpin { from { opacity:0; transform: rotate(-180deg) scale(.4); } to { opacity:1; transform:none; } }
+
+/* ===== LAYOUT FIX v2: centered, fits all browsers/devices ===== */
+#scr-game .wrap, #hostStage { width: min(96vw, 1200px) !important; max-width: 1200px !important; margin: 0 auto !important; }
+.ctrl-wrap { width: min(94vw, 640px) !important; max-width: 640px !important; margin: 0 auto !important; transform: none !important; }
+#scr-controller { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 3vmin !important; }
+.prompt-card { max-width: min(94vw, 900px) !important; margin-left: auto !important; margin-right: auto !important; }
+.quiz-grid { max-width: min(94vw, 1000px); margin-left: auto; margin-right: auto; }
+#revealMap { max-width: min(94vw, 1000px) !important; }
+.leaf-map { width: 100% !important; }
+
+/* ===== Luxury polish ===== */
+.ctrl-wrap, .prompt-card, .session-lb { box-shadow: 0 20px 60px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.06) inset; }
+.big-btn { box-shadow: 0 10px 34px color-mix(in srgb, var(--pink) 40%, transparent); }
+.big-btn:hover { filter: brightness(1.1); transform: translateY(-2px); transition: all .16s cubic-bezier(0.2,1.4,0.4,1); }
+.bar-btn:hover { filter: brightness(1.15); }
+body { -webkit-font-smoothing: antialiased; }
+
+/* Laith presence: gentle float + glow */
+#pmLaith, .laith, .host-blob { animation: laithFloat 3.2s ease-in-out infinite; }
+@keyframes laithFloat { 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-7px);} }
+
+/* iPhone Safari: respect notch + home bar everywhere */
+.screen { padding-left: max(2vmin, env(safe-area-inset-left)) !important; padding-right: max(2vmin, env(safe-area-inset-right)) !important; padding-bottom: max(2vmin, env(safe-area-inset-bottom)) !important; }

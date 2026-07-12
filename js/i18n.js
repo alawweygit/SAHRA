@@ -359,3 +359,31 @@ function applyTheme() {
   document.body.classList.toggle('theme-light', THEME === 'light');
   document.body.classList.toggle('theme-dark', THEME === 'dark');
 }
+
+
+/* Extra Laith banter variety (appended at runtime) */
+(function(){
+  const add=(lang,key,items)=>{ if(I18N[lang] && Array.isArray(I18N[lang][key])) I18N[lang][key].push(...items); };
+  add('en','banter_lobby',[
+    "Fresh meat has arrived. Excellent.",
+    "Ooh, a challenger approaches!",
+    "Welcome, welcome. Leave your dignity at the door.",
+    "The squad is assembling. I love it.",
+  ]);
+  add('ar','banter_lobby',[
+    "أهلاً بالضحية الجديدة. ممتاز.",
+    "أوه، وصل منافس جديد!",
+    "حياكم. خلوا الخجل برا.",
+    "الشلة تتجمع. أحب هالشي.",
+  ]);
+  add('en','banter_scores',[
+    "Someone's carrying this team. And someone's... not.",
+    "The gap is getting embarrassing.",
+    "Plot twist incoming, I can feel it.",
+  ]);
+  add('ar','banter_scores',[
+    "واحد فيكم شايل الفريق. وواحد... الله يعينه.",
+    "الفرق صار محرج بصراحة.",
+    "أحس في مفاجأة جاية.",
+  ]);
+})();
