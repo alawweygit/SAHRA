@@ -108,19 +108,8 @@ const Controller = (() => {
       const mapWrap = document.createElement('div');
       mapWrap.className = 'ctrl-map';
       mapWrap.innerHTML = `
-        <svg viewBox="0 0 360 180" class="pin-map" style="width:100%;border-radius:12px;background:#0e2a47;touch-action:none;">
-          <!-- rough continents -->
-          <polygon points="18,30 60,22 95,30 88,60 60,78 40,96 30,120 20,90 12,60" fill="#1e4d2b" opacity="0.85"/>
-          <polygon points="95,95 115,90 125,110 118,145 100,160 92,130" fill="#1e4d2b" opacity="0.85"/>
-          <polygon points="150,28 185,22 205,35 200,55 175,60 158,48" fill="#1e4d2b" opacity="0.85"/>
-          <polygon points="165,62 195,58 210,75 205,105 185,125 170,100 160,80" fill="#1e4d2b" opacity="0.85"/>
-          <polygon points="205,25 260,18 300,28 310,55 285,70 250,65 220,50" fill="#1e4d2b" opacity="0.85"/>
-          <polygon points="255,75 285,72 300,88 290,100 265,95" fill="#1e4d2b" opacity="0.85"/>
-          <polygon points="295,115 325,110 338,125 328,140 305,138" fill="#1e4d2b" opacity="0.85"/>
-          <line x1="0" y1="90" x2="360" y2="90" stroke="rgba(255,255,255,0.15)" stroke-dasharray="4 4"/>
-          <circle id="pinDot" r="6" fill="#f472b6" stroke="#fff" stroke-width="2" style="display:none"/>
-        </svg>
-        <div class="ctrl-sub" style="margin-top:6px">${typeof LANG!=='undefined'&&LANG==='ar'?'اضغط على الخريطة لتحط دبوسك':'Tap the map to drop your pin'}</div>`;
+        <div class="leaf-map" style="width:100%;height:52vh;min-height:280px;border-radius:16px;overflow:hidden;background:#0e1626;"></div>
+        <div class="ctrl-sub" style="margin-top:6px">${typeof LANG!=='undefined'&&LANG==='ar'?'حرّك وكبّر الخريطة، واضغط لتحط دبوسك':'Pan & zoom, tap to drop your pin'}</div>`;
       wrap.appendChild(mapWrap);
 
       const btn = document.createElement('button');
@@ -129,19 +118,28 @@ const Controller = (() => {
       btn.disabled = true;
       wrap.appendChild(btn);
 
-      let guess = null;
-      const svg = mapWrap.querySelector('svg');
-      const dot = mapWrap.querySelector('#pinDot');
-      svg.addEventListener('pointerdown', e => {
-        const r = svg.getBoundingClientRect();
-        const x = (e.clientX - r.left) / r.width * 360;
-        const y = (e.clientY - r.top) / r.height * 180;
-        dot.setAttribute('cx', x); dot.setAttribute('cy', y);
-        dot.style.display = 'block';
-        // convert to lat/lon (equirectangular)
-        guess = { lon: (x / 360) * 360 - 180, lat: 90 - (y / 180) * 180 };
-        btn.disabled = false;
-      });
+      let guess = null, marker = null;
+      setTimeout(() => {
+        try {
+          const map = L.map(mapWrap.querySelector('.leaf-map'), {
+            center: [22, 25], zoom: 2, minZoom: 2, maxZoom: 10,
+            worldCopyJump: true, attributionControl: false,
+          });
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd', maxZoom: 10,
+          }).addTo(map);
+          map.on('click', e => {
+            const lat = e.latlng.lat;
+            const lon = ((e.latlng.lng + 180) % 360 + 360) % 360 - 180;
+            if (marker) marker.setLatLng(e.latlng);
+            else marker = L.circleMarker(e.latlng, { radius: 11, color: '#fff', weight: 3, fillColor: '#f472b6', fillOpacity: 1 }).addTo(map);
+            guess = { lat, lon };
+            btn.disabled = false;
+            if (navigator.vibrate) navigator.vibrate(15);
+          });
+        } catch(err) { console.error('map init failed', err); }
+      }, 60);
+
       btn.addEventListener('click', () => {
         if (!guess) return;
         btn.disabled = true;

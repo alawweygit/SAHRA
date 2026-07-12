@@ -656,8 +656,8 @@ const Host = (() => {
       const answers = await collectWithTimer({
         type: 'map', title: cityName,
         sub: LANG==='ar'?'حط الدبوس أقرب ما تقدر':'Drop your pin as close as you can',
-        seconds: 20,
-      }, players.map(p => p.pid), 20);
+        seconds: 35,
+      }, players.map(p => p.pid), 35);
 
       // Score by distance
       const results = players.map(p => {
@@ -667,7 +667,7 @@ const Host = (() => {
           guess = raw ? JSON.parse(raw) : null;
         } catch(e) {}
         const km = guess ? haversine(guess, city) : 99999;
-        return { p, km, guessed: !!guess };
+        return { p, km, guessed: !!guess, guess };
       }).sort((a,b) => a.km - b.km);
 
       const AWARD = [1000, 700, 500];
@@ -680,6 +680,7 @@ const Host = (() => {
       Audio_.sfx.reveal();
       scene(`
         <div class="eyebrow">${esc(cityName)}</div>
+        <div id="revealMap" style="height:36vh;min-height:220px;border-radius:16px;overflow:hidden;margin:1vmin auto 2vmin;max-width:900px;background:#0e1626"></div>
         <div class="score-list">
           ${results.map((r2, i) => `
             <div class="score-row" style="animation-delay:${i*.12}s">
@@ -690,6 +691,24 @@ const Host = (() => {
               </div></div>
             </div>`).join('')}
         </div>`);
+      try {
+        const rm = L.map(document.getElementById('revealMap'), {
+          center: [city.lat, city.lon], zoom: 3, zoomControl: false, attributionControl: false,
+          dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
+        });
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 10 }).addTo(rm);
+        L.circleMarker([city.lat, city.lon], { radius: 13, color: '#fff', weight: 3, fillColor: '#facc15', fillOpacity: 1 })
+          .addTo(rm).bindTooltip('⭐ ' + cityName, { permanent: true, direction: 'top' });
+        const bounds = [[city.lat, city.lon]];
+        results.forEach(r2 => {
+          if (!r2.guess) return;
+          L.circleMarker([r2.guess.lat, r2.guess.lon], { radius: 9, color: '#fff', weight: 2, fillColor: r2.p.color, fillOpacity: 1 })
+            .addTo(rm).bindTooltip(r2.p.name, { direction: 'top' });
+          L.polyline([[city.lat, city.lon], [r2.guess.lat, r2.guess.lon]], { color: r2.p.color, weight: 2, opacity: .55, dashArray: '6 6' }).addTo(rm);
+          bounds.push([r2.guess.lat, r2.guess.lon]);
+        });
+        if (bounds.length > 1) rm.fitBounds(bounds, { padding: [45, 45], maxZoom: 6 });
+      } catch(e) { console.error('reveal map failed', e); }
       pushMirror({ headline: results.slice(0,3).map((r2,i)=>`${i+1}. ${r2.p.name} ${r2.guessed?r2.km+'km':'—'}`).join(' · ') });
       await waitNext();
       if (r < pool.length - 1) await showScores();
