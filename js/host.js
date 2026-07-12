@@ -662,7 +662,10 @@ const Host = (() => {
       // Score by distance
       const results = players.map(p => {
         let guess = null;
-        try { guess = JSON.parse(answers[p.pid] || 'null'); } catch(e) {}
+        try {
+          const raw = answers[p.pid] ? answers[p.pid].value : null;
+          guess = raw ? JSON.parse(raw) : null;
+        } catch(e) {}
         const km = guess ? haversine(guess, city) : 99999;
         return { p, km, guessed: !!guess };
       }).sort((a,b) => a.km - b.km);
