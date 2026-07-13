@@ -33,20 +33,7 @@ const Controller = (() => {
       wrap.appendChild(sub);
     }
 
-    // Optional countdown timer
-    if (spec.seconds) {
-      const tm = document.createElement('div');
-      tm.className = 'ctrl-timer display';
-      let left = spec.seconds;
-      tm.textContent = '⏱ ' + left;
-      wrap.appendChild(tm);
-      const iv = setInterval(() => {
-        left--;
-        if (left <= 0) { clearInterval(iv); tm.textContent = '⏱ 0'; }
-        else tm.textContent = '⏱ ' + left;
-        if (left <= 5) tm.classList.add('danger');
-      }, 1000);
-    }
+
 
     if (spec.type === 'text') {
       const ta = document.createElement('textarea');
@@ -114,8 +101,8 @@ const Controller = (() => {
       const mapWrap = document.createElement('div');
       mapWrap.className = 'ctrl-map';
       mapWrap.innerHTML = `
-        <div class="leaf-map" style="width:100%;height:64vh;min-height:340px;border-radius:16px;overflow:hidden;background:#0e1626;"></div>
-        <div class="ctrl-sub" style="margin-top:6px">${typeof LANG!=='undefined'&&LANG==='ar'?'حرّك وكبّر الخريطة، واضغط لتحط دبوسك':'Pan & zoom, tap to drop your pin'}</div>`;
+        <div class="leaf-map" style="width:100%;height:42vh;min-height:220px;max-height:380px;border-radius:16px;overflow:hidden;background:#a8d3f0;"></div>
+        <div class="ctrl-sub" style="margin-top:6px">${typeof LANG!=='undefined'&&LANG==='ar'?'حرّك وكبّر الخريطة واضغط لتحط دبوسك 📍':'Pan & zoom, then tap to drop your pin 📍'}</div>`;
       wrap.appendChild(mapWrap);
 
       const btn = document.createElement('button');
@@ -129,10 +116,10 @@ const Controller = (() => {
         try {
           const map = L.map(mapWrap.querySelector('.leaf-map'), {
             center: [22, 25], zoom: 2, minZoom: 2, maxZoom: 10,
-            worldCopyJump: true, attributionControl: false,
+            worldCopyJump: true, attributionControl: false, zoomSnap: 0.5,
           });
           L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd', maxZoom: 10,
+            subdomains: 'abcd', maxZoom: 10, keepBuffer: 4, updateWhenIdle: false,
           }).addTo(map);
           map.on('click', e => {
             const lat = e.latlng.lat;

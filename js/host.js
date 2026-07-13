@@ -95,9 +95,9 @@ const Host = (() => {
     // countdown (online only — offline is turn-based, no global clock)
     let timerInt = null;
     const CIRC = 276.5;
-    if (net.isOffline) {
-      $('#ringTimer')?.classList.add('hidden');
-    } else {
+    // Ring timer removed per design decision — speed scoring handles urgency
+    $('#ringTimer')?.classList.add('hidden');
+    if (false && net.isOffline) {
       const num = $('#timerNum'), fill = $('#timerFill');
       if (fill) { fill.style.transition = 'none'; fill.style.strokeDashoffset = 0; await sleep(40); fill.style.transition = 'stroke-dashoffset .95s linear'; }
       timerInt = setInterval(() => {
