@@ -1016,3 +1016,8 @@ html{font-size:17px;}
 }
 .leaflet-container{width:100%!important;max-width:100%!important;}
 .map-fs-btn{margin-top:4px!important;opacity:.85;}
+
+/* Menu button always on top, visible during game */
+#topbar { z-index: 100 !important; }
+#menuOverlay { z-index: 200 !important; }
+#menuBtn.hidden { display: none !important; }
