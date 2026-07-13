@@ -91,6 +91,7 @@
     applyTheme();
     applyLang();
     FX.init();
+    $('#roundPill').style.visibility='hidden';
     buildTitleScreen();
     setTimeout(()=>FX.burst(70),650); // welcome confetti on landing
 
@@ -361,7 +362,7 @@
 
   async function startDirectGame(gameMode){
     Audio_.stopMusic();await FX.wipe();Host.hideHost();
-    show('#scr-game');gameActive=true;$('#skipBtn').classList.remove('hidden');$('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');
+    show('#scr-game');gameActive=true;$('#skipBtn').classList.remove('hidden');$('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');$('#roundPill').style.visibility='visible';
     $('#skipBtn').textContent=T.skip();
     $('#roundPill').textContent=(t('mode_names')||{})[gameMode]||gameMode;
     net.setState({phase:'wait',msg:T.watchScreen()});
@@ -427,7 +428,7 @@
     currentRoomCode=null;net=null;players=[];
     show('#scr-title');
     $('#menuBtn').classList.add('hidden');$('#skipBtn').classList.add('hidden');
-    $('#roomCodeText').textContent='—';$('#roundPill').textContent='HYPOX';
+    $('#roomCodeText').textContent='—';$('#roundPill').style.visibility='hidden';
   }
 
   /* ---- AVATAR ---- */

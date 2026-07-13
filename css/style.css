@@ -944,9 +944,9 @@ html { font-size: 17px; }
 
 /* ===== Full-page games ===== */
 #scr-game, #scr-controller { padding: 0 2vmin !important; }
-/* removed conflicting ctrl-wrap rule */
+
 #hostStage { max-width: none !important; width: 96vw; margin: 0 auto; }
-/* removed conflicting ctrl-wrap rule */
+
 .leaf-map { border-radius: 20px !important; }
 .leaflet-container { background: #a8d3f0 !important; } /* real ocean color at edges */
 #revealMap { height: 44vh !important; max-width: 96vw !important; }
@@ -975,7 +975,7 @@ html { font-size: 17px; }
 
 /* ===== LAYOUT FIX v2: centered, fits all browsers/devices ===== */
 #scr-game .wrap, #hostStage { width: min(96vw, 1200px) !important; max-width: 1200px !important; margin: 0 auto !important; }
-/* removed conflicting ctrl-wrap rule */
+
 #scr-controller { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 3vmin !important; }
 .prompt-card { max-width: min(94vw, 900px) !important; margin-left: auto !important; margin-right: auto !important; }
 .quiz-grid { max-width: min(94vw, 1000px); margin-left: auto; margin-right: auto; }
@@ -998,7 +998,7 @@ body { -webkit-font-smoothing: antialiased; }
 
 /* ===== LAYOUT FIX v2: centered, fits Safari/Chrome/Mac/iPhone ===== */
 #scr-game .wrap, #hostStage { width: min(96vw, 1200px) !important; max-width: 1200px !important; margin: 0 auto !important; }
-/* removed conflicting ctrl-wrap rule */
+
 #scr-controller { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 3vmin !important; }
 .prompt-card { max-width: min(94vw, 900px) !important; margin-left: auto !important; margin-right: auto !important; }
 .quiz-grid { max-width: min(94vw, 1000px); margin-left: auto; margin-right: auto; }
@@ -1127,3 +1127,45 @@ body { -webkit-font-smoothing: antialiased; }
   .ctrl-map .leaf-map { height: 48vh !important; max-height: 480px !important; }
 }
 .leaflet-container { max-width: 100% !important; }
+
+/* ===== DEFINITIVE LAYOUT FIX — one rule, no conflicts ===== */
+/* Center the game card on ALL screen sizes, fill available width */
+#scr-controller {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 2vmin !important;
+}
+.ctrl-wrap {
+  width: min(96vw, 700px) !important;
+  max-width: 700px !important;
+  margin: 0 auto !important;
+  transform: none !important;
+  box-sizing: border-box !important;
+}
+@media (min-width: 1000px) {
+  .ctrl-wrap { width: min(90vw, 960px) !important; max-width: 960px !important; }
+}
+/* Map always fits inside its parent */
+.ctrl-map, .ctrl-map .leaf-map {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+.ctrl-map .leaf-map {
+  height: 44vh !important;
+  min-height: 200px !important;
+  max-height: 440px !important;
+  border-radius: 14px !important;
+}
+
+/* ===== HIDE ROUND PILL on title + games screens ===== */
+#scr-title.active ~ * #roundPill,
+#scr-games.active ~ * #roundPill { display: none; }
+
+/* ===== Fix game grid: always 4 columns on desktop ===== */
+@media (min-width: 800px) {
+  .title-game-grid { grid-template-columns: repeat(4, 1fr) !important; }
+}
