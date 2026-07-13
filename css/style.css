@@ -1119,3 +1119,11 @@ body { -webkit-font-smoothing: antialiased; }
 /* Fullscreen map button style */
 .map-fs-btn { margin-top: 4px !important; opacity: 0.85; }
 .map-fs-btn:hover { opacity: 1; }
+
+/* ===== MAP OVERFLOW FIX: never bleed outside card ===== */
+.ctrl-map { width: 100% !important; overflow: hidden; box-sizing: border-box; }
+.ctrl-map .leaf-map { width: 100% !important; max-width: 100% !important; box-sizing: border-box; height: 40vh !important; min-height: 200px; max-height: 420px !important; }
+@media (min-width: 900px) {
+  .ctrl-map .leaf-map { height: 48vh !important; max-height: 480px !important; }
+}
+.leaflet-container { max-width: 100% !important; }

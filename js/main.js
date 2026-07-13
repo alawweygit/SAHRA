@@ -161,7 +161,7 @@
     const joinBtn=$('#joinBtn');
     if(joinBtn){joinBtn.textContent=T.joinGame();joinBtn.onclick=()=>{Audio_.sfx.blip();show('#scr-join');paintJoin();};}
     const hstart=$('#heroStart');
-    if(hstart){hstart.textContent=LANG==='ar'?'▶ ابدأ لعبة':'START A GAME ▶';hstart.onclick=()=>{Audio_.sfx.pop();show('#scr-games');};}
+    if(hstart){hstart.textContent=LANG==='ar'?'▶ ابدأ لعبة':'START A GAME ▶';hstart.onclick=()=>{Audio_.sfx.pop();$('#roundPill').textContent=LANG==='ar'?'اختر لعبة':'PICK A GAME';show('#scr-games');};}
     const bfg=$('#backFromGames');
     if(bfg){bfg.textContent=LANG==='ar'?'→ رجوع':'← Back';bfg.onclick=()=>{Audio_.sfx.blip();show('#scr-title');};}
 
@@ -302,6 +302,7 @@
       });return;
     }
     show('#scr-lobby');setupLobby(gameMode);
+    $('#menuBtn').classList.remove('hidden');
   }
 
   function setupLobby(gameMode){
