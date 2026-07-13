@@ -311,6 +311,15 @@
     $('#localAdd').classList.toggle('hidden',!net.isOffline);
     $('#addLocalBtn').textContent=T.addPlayer();
     $('#startGameBtn').textContent=T.startGame();
+    // Back button — goes to game picker
+    if(!document.getElementById('lobbyBackBtn')){
+      const bb=document.createElement('button');
+      bb.id='lobbyBackBtn';bb.className='bar-btn';
+      bb.style.cssText='margin-top:1vmin;display:block;margin-left:auto;margin-right:auto;';
+      bb.textContent=LANG==='ar'?'→ رجوع':'← Back';
+      bb.onclick=()=>{Audio_.sfx.blip();leaveGame();show('#scr-games');};
+      document.getElementById('scr-lobby').appendChild(bb);
+    }
     if(!net.isOffline&&currentRoomCode){
       const siteUrl=window.location.origin+window.location.pathname;
       const joinUrl=`${siteUrl}?room=${currentRoomCode}`;
