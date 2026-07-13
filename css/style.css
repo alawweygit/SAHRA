@@ -944,9 +944,9 @@ html { font-size: 17px; }
 
 /* ===== Full-page games ===== */
 #scr-game, #scr-controller { padding: 0 2vmin !important; }
-#scr-game .wrap, #scr-controller .ctrl-wrap { max-width: none !important; width: 100%; }
+/* removed conflicting ctrl-wrap rule */
 #hostStage { max-width: none !important; width: 96vw; margin: 0 auto; }
-.ctrl-wrap { max-width: none !important; width: 96vw; margin: 0 auto; }
+/* removed conflicting ctrl-wrap rule */
 .leaf-map { border-radius: 20px !important; }
 .leaflet-container { background: #a8d3f0 !important; } /* real ocean color at edges */
 #revealMap { height: 44vh !important; max-width: 96vw !important; }
@@ -975,7 +975,7 @@ html { font-size: 17px; }
 
 /* ===== LAYOUT FIX v2: centered, fits all browsers/devices ===== */
 #scr-game .wrap, #hostStage { width: min(96vw, 1200px) !important; max-width: 1200px !important; margin: 0 auto !important; }
-.ctrl-wrap { width: min(94vw, 640px) !important; max-width: 640px !important; margin: 0 auto !important; transform: none !important; }
+/* removed conflicting ctrl-wrap rule */
 #scr-controller { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 3vmin !important; }
 .prompt-card { max-width: min(94vw, 900px) !important; margin-left: auto !important; margin-right: auto !important; }
 .quiz-grid { max-width: min(94vw, 1000px); margin-left: auto; margin-right: auto; }
@@ -998,7 +998,7 @@ body { -webkit-font-smoothing: antialiased; }
 
 /* ===== LAYOUT FIX v2: centered, fits Safari/Chrome/Mac/iPhone ===== */
 #scr-game .wrap, #hostStage { width: min(96vw, 1200px) !important; max-width: 1200px !important; margin: 0 auto !important; }
-.ctrl-wrap { width: min(94vw, 640px) !important; max-width: 640px !important; margin: 0 auto !important; transform: none !important; }
+/* removed conflicting ctrl-wrap rule */
 #scr-controller { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 3vmin !important; }
 .prompt-card { max-width: min(94vw, 900px) !important; margin-left: auto !important; margin-right: auto !important; }
 .quiz-grid { max-width: min(94vw, 1000px); margin-left: auto; margin-right: auto; }
@@ -1094,3 +1094,28 @@ body { -webkit-font-smoothing: antialiased; }
 
 /* Host reveal map: wider, not taller */
 #revealMap { height: 38vh !important; max-width: min(96vw, 1100px) !important; }
+
+/* ===== FINAL LAYOUT: phone=compact, desktop=wide, no conflicts ===== */
+/* Phone: compact card */
+.ctrl-wrap {
+  width: min(96vw, 560px);
+  max-width: 560px;
+  margin: 0 auto;
+  transform: none !important;
+}
+/* Desktop 900px+: expand to fill the beautiful black space */
+@media (min-width: 900px) {
+  .ctrl-wrap { width: min(92vw, 1100px) !important; max-width: 1100px !important; }
+  .ctrl-map .leaf-map { height: 56vh !important; max-height: 520px !important; }
+  #hostStage { width: min(96vw, 1300px) !important; max-width: 1300px !important; }
+  .prompt-card { max-width: min(94vw, 1100px) !important; }
+  .quiz-grid { max-width: min(94vw, 1100px) !important; grid-template-columns: repeat(2, 1fr) !important; }
+  .ctrl-choices { max-width: min(94vw, 1000px) !important; }
+}
+/* TV 1400px+: even wider */
+@media (min-width: 1400px) {
+  .ctrl-wrap { width: min(92vw, 1300px) !important; max-width: 1300px !important; }
+}
+/* Fullscreen map button style */
+.map-fs-btn { margin-top: 4px !important; opacity: 0.85; }
+.map-fs-btn:hover { opacity: 1; }

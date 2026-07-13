@@ -112,26 +112,82 @@ const Controller = (() => {
       wrap.appendChild(btn);
 
       let guess = null, marker = null;
-      setTimeout(() => {
+
+      // Fullscreen overlay map
+      const fsBtn = document.createElement('button');
+      fsBtn.className = 'bar-btn map-fs-btn';
+      fsBtn.textContent = typeof LANG!=='undefined'&&LANG==='ar' ? '⛶ خريطة كاملة' : '⛶ Full Map';
+      fsBtn.style.cssText = 'margin-top:2px;font-size:13px;';
+      mapWrap.appendChild(fsBtn);
+
+      const pinIcon = typeof L !== 'undefined' ? L.divIcon({
+        html: '<div style="font-size:32px;line-height:1;margin-left:-12px;margin-top:-32px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">📍</div>',
+        className: '', iconSize: [0, 0],
+      }) : null;
+
+      function initMap(el) {
         try {
-          const map = L.map(mapWrap.querySelector('.leaf-map'), {
+          const m = L.map(el, {
             center: [22, 25], zoom: 2, minZoom: 2, maxZoom: 10,
             worldCopyJump: true, attributionControl: false, zoomSnap: 0.5,
           });
           L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd', maxZoom: 10, keepBuffer: 4, updateWhenIdle: false,
-          }).addTo(map);
-          map.on('click', e => {
+            subdomains: 'abcd', maxZoom: 10, keepBuffer: 6, updateWhenIdle: false,
+          }).addTo(m);
+          return m;
+        } catch(e) { console.error('map init failed', e); return null; }
+      }
+
+      let mainMap = null;
+      setTimeout(() => {
+        mainMap = initMap(mapWrap.querySelector('.leaf-map'));
+        if (!mainMap) return;
+        mainMap.on('click', e => {
+          const lat = e.latlng.lat;
+          const lon = ((e.latlng.lng+180)%360+360)-180;
+          if (marker) { marker.setLatLng(e.latlng); } 
+          else { marker = L.marker(e.latlng, { icon: pinIcon }).addTo(mainMap); }
+          guess = { lat, lon };
+          btn.disabled = false;
+          if (navigator.vibrate) navigator.vibrate(15);
+        });
+      }, 60);
+
+      // Fullscreen map overlay
+      fsBtn.addEventListener('click', () => {
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;';
+        const closeBar = document.createElement('div');
+        closeBar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(0,0,0,.7);color:#fff;font-family:Fredoka One,sans-serif;font-size:18px;';
+        closeBar.innerHTML = `<span>${spec.title||''}</span>`;
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = typeof LANG!=='undefined'&&LANG==='ar'?'✕ تأكيد':'✕ Confirm';
+        closeBtn.style.cssText = 'background:var(--pink,#f472b6);color:#fff;border:none;border-radius:50px;padding:8px 20px;font-size:15px;cursor:pointer;font-family:Fredoka One,sans-serif;';
+        closeBar.appendChild(closeBtn);
+        ov.appendChild(closeBar);
+        const mapEl = document.createElement('div');
+        mapEl.style.cssText = 'flex:1;';
+        ov.appendChild(mapEl);
+        document.body.appendChild(ov);
+        let fsMarker = null;
+        const fsMap = initMap(mapEl);
+        if (guess && fsMap) fsMap.setView([guess.lat, guess.lon], 4);
+        if (fsMap) {
+          fsMap.on('click', e => {
             const lat = e.latlng.lat;
-            const lon = ((e.latlng.lng + 180) % 360 + 360) % 360 - 180;
-            if (marker) marker.setLatLng(e.latlng);
-            else marker = L.circleMarker(e.latlng, { radius: 11, color: '#fff', weight: 3, fillColor: '#f472b6', fillOpacity: 1 }).addTo(map);
+            const lon = ((e.latlng.lng+180)%360+360)-180;
+            if (fsMarker) { fsMarker.setLatLng(e.latlng); }
+            else { fsMarker = L.marker(e.latlng, { icon: pinIcon }).addTo(fsMap); }
             guess = { lat, lon };
+            // sync to mini map
+            if (marker && mainMap) { marker.setLatLng(e.latlng); }
+            else if (mainMap) { marker = L.marker(e.latlng, { icon: pinIcon }).addTo(mainMap); }
             btn.disabled = false;
             if (navigator.vibrate) navigator.vibrate(15);
           });
-        } catch(err) { console.error('map init failed', err); }
-      }, 60);
+        }
+        closeBtn.addEventListener('click', () => { document.body.removeChild(ov); });
+      });
 
       btn.addEventListener('click', () => {
         if (!guess) return;
