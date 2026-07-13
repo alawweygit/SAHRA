@@ -4,6 +4,29 @@
 
 const Host = (() => {
   let net = null, players = [], phaseCounter = 0, skipResolve = null;
+  let currentHost = null;
+
+  /* Pick a random host persona for this game and repaint the blob */
+  function pickHost() {
+    const roster = (typeof HOSTS !== 'undefined' && HOSTS.length) ? HOSTS : null;
+    currentHost = roster ? roster[Math.floor(Math.random() * roster.length)] : null;
+    const el = $('#host');
+    if (el && currentHost) {
+      el.classList.remove('host-purple', 'host-pink', 'host-orange');
+      el.classList.add(currentHost.color);
+      const nm = el.querySelector('.host-name');
+      if (nm) nm.textContent = `${currentHost.nameEn} · ${currentHost.nameAr}`;
+    }
+  }
+  /* Say a line from the current host's own banter pool (falls back to i18n keys) */
+  function hostSay(kind) {
+    if (currentHost) {
+      const pool = (currentHost.banter[LANG] || currentHost.banter.en || {})[kind];
+      if (pool && pool.length) return say(pool[Math.floor(Math.random() * pool.length)]);
+    }
+    const legacy = { prompt: 'banter_prompt', vote: 'banter_vote', scores: 'banter_scores' }[kind];
+    return legacy ? say(tPick(legacy)) : Promise.resolve();
+  }
 
   /* ---------- tiny host-screen helpers ---------- */
   const stage = () => $('#hostStage');
@@ -117,14 +140,16 @@ const Host = (() => {
     await FX.wipe();
     Audio_.stopMusic();
     Audio_.sfx.versus();
+    const startLabel = LANG === 'ar' ? 'ابدأ ▶' : 'START ▶';
     scene(`
       <div class="mode-card">
         <div class="mode-title display">${esc(t('mode_names')[mode])}</div>
         <div class="mode-tag">${esc(t('mode_taglines')[mode])}</div>
         <div class="mode-rules">${esc(t('mode_rules')[mode])}</div>
-        <button class="big-btn" id="startModeBtn" style="margin-top:2vmin">START ▶</button>
+        <button class="big-btn" id="startModeBtn" style="margin-top:2vmin">${startLabel}</button>
       </div>`);
     setPill(t('mode_names')[mode]);
+    hostSay('gamestart');
     await new Promise(res => {
       const btn = document.getElementById('startModeBtn');
       let timer = null;
@@ -133,11 +158,11 @@ const Host = (() => {
         btn.addEventListener('click', onStart, { once: true });
         if (window.HYPOX_STATE?.autoplay) {
           let left = 8;
-          btn.textContent = `START ▶ (${left})`;
+          btn.textContent = `${startLabel} (${left})`;
           timer = setInterval(() => {
             left--;
             if (left <= 0) { onStart(); return; }
-            btn.textContent = `START ▶ (${left})`;
+            btn.textContent = `${startLabel} (${left})`;
           }, 1000);
         }
       }
@@ -174,7 +199,7 @@ const Host = (() => {
     }, i * 220));
     await sleep(800);
     if (!final) {
-      await say(tPick('banter_scores'));
+      await hostSay('scores');
       Audio_.stopMusic();
       await waitNext(7);
     }
@@ -192,6 +217,7 @@ const Host = (() => {
       <div class="tagline">${esc(t('winner'))}</div>
       <button class="big-btn" id="againBtn" style="margin-top:2vmin">${esc(t('play_again'))}</button>`);
     Audio_.sfx.crown(); Audio_.sfx.fanfare();
+    hostSay('winner');
     FX.shake();
     FX.burst(260, true);
     setTimeout(() => FX.burst(180, true), 900);
@@ -223,7 +249,7 @@ const Host = (() => {
       scene(frameWithTimer(
         `<div class="prompt-card display">${esc(R.fact).replace('___', '<span class="blank">&nbsp;???&nbsp;</span>')}</div>`,
         t('write_lie')));
-      say(tPick('banter_prompt'));
+      hostSay('prompt');
 
       const pids = players.map(p => p.pid);
       const inputs = await collectWithTimer(
@@ -259,7 +285,7 @@ const Host = (() => {
         </div>
         <div id="statusRow" class="status-row"></div>`);
       answers.forEach((a, i) => setTimeout(() => Audio_.sfx.pop(), i * 120));
-      say(tPick('banter_vote'));
+      hostSay('vote');
 
       const votes = await collectWithTimer({
         type: 'choice', title: t('pick_truth'),
@@ -422,7 +448,7 @@ const Host = (() => {
     await FX.wipe();
     setPill(t('mode_names')['interrogation']);
     scene(frameWithTimer(`<div class="prompt-card display">${esc(R.q)}</div>`, t('mode_names')['interrogation']));
-    say(tPick('banter_prompt'));
+    hostSay('prompt');
 
     const inputs = await collectWithTimer(
       { type: 'text', title: R.q, sub: LANG === 'ar' ? 'إجابتك مجهولة… مبدئياً' : 'Your answer is anonymous… for now', maxLen: 70 },
@@ -807,10 +833,11 @@ const Host = (() => {
       pushMirror({ headline: Q.q, pill: `${i+1}/${qs.length}` });
       Audio_.sfx.sting();
       const answers = await collectWithTimer({
-        type: 'text', title: LANG==='ar'?'اكتب السنة':'Type the year', context: Q.q, maxLen: 4, seconds: 20,
+        type: 'text', title: LANG==='ar'?'اكتب السنة':'Type the year', context: Q.q, maxLen: 4, numeric: true, seconds: 20,
       }, players.map(p => p.pid), 20);
       const results = players.map(p => {
-        const raw = answers[p.pid] ? String(answers[p.pid].value || '').trim() : '';
+        let raw = answers[p.pid] ? String(answers[p.pid].value || '').trim() : '';
+        raw = raw.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)); // Arabic-Indic → Latin digits
         const yr = parseInt(raw, 10);
         const ok = !isNaN(yr) && yr > 0;
         return { p, yr: ok ? yr : null, diff: ok ? Math.abs(yr - Q.y) : 99999 };
@@ -848,6 +875,7 @@ const Host = (() => {
   async function run(netInstance, playerList, mode) {
     net = netInstance;
     players = playerList;
+    pickHost();
     $('#skipBtn')?.classList.remove('hidden');
     await MODES[mode]();
     await winnerScene();

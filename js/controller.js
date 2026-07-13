@@ -53,8 +53,14 @@ const Controller = (() => {
       ta.className = 'ctrl-input';
       ta.placeholder = spec.placeholder || '…';
       ta.maxLength = spec.maxLen || 80;
-      ta.rows = 3;
+      ta.rows = spec.numeric ? 1 : 3;
       ta.autocomplete = 'off';
+      if (spec.numeric) {
+        ta.inputMode = 'numeric';
+        ta.classList.add('ctrl-input-year');
+        ta.placeholder = spec.placeholder || (typeof LANG !== 'undefined' && LANG === 'ar' ? 'مثال: ٢٠٠٧' : 'e.g. 2007');
+        ta.addEventListener('input', () => { ta.value = ta.value.replace(/[^0-9٠-٩]/g, ''); });
+      }
       wrap.appendChild(ta);
 
       const count = document.createElement('div');

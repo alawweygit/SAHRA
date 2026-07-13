@@ -1018,3 +1018,67 @@ body { -webkit-font-smoothing: antialiased; }
 
 /* iPhone Safari: respect notch + home bar */
 .screen { padding-left: max(2vmin, env(safe-area-inset-left)) !important; padding-right: max(2vmin, env(safe-area-inset-right)) !important; padding-bottom: max(2vmin, env(safe-area-inset-bottom)) !important; }
+
+/* ============ HOST PERSONA COLORS ============ */
+#host.host-purple .host-body { background: linear-gradient(160deg,#a855f7,#6d28d9); }
+#host.host-pink   .host-body { background: linear-gradient(160deg,#f472b6,#be185d); }
+#host.host-orange .host-body { background: linear-gradient(160deg,#fb923c,#c2410c); }
+#host.host-pink   .bowtie { filter: hue-rotate(140deg); }
+#host.host-orange .bowtie { filter: hue-rotate(240deg); }
+#host .host-body { transition: background .4s; }
+#host.show { animation: hostArrive .6s var(--ease-out) both; }
+@keyframes hostArrive { from { transform: translateY(130%) rotate(-8deg); } to { transform: translateY(0) rotate(0); } }
+
+/* ============ LANDING JUICE (Jackbox energy) ============ */
+.hero-headline {
+  background: linear-gradient(90deg, var(--pink), var(--orange), var(--yellow), var(--green), var(--blue), var(--pink));
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: headlineFlow 7s linear infinite;
+}
+@keyframes headlineFlow { to { background-position: 300% 0; } }
+
+.hero-logo { position: relative; }
+.logo-lt { display: inline-block; animation: logoBounce 2.6s var(--ease-out) infinite; animation-delay: calc(var(--i) * .12s); }
+@keyframes logoBounce { 0%,100% { transform: translateY(0) rotate(0); } 12% { transform: translateY(-14px) rotate(-4deg); } 24% { transform: translateY(0) rotate(0); } }
+.logo-lt:hover { animation: logoSpin .5s var(--ease-out); }
+@keyframes logoSpin { to { transform: rotate(360deg) scale(1.2); } }
+
+.hero-ctas .big-btn { animation: ctaPulse 2.4s ease-in-out infinite; }
+.hero-ctas .big-btn.ghost { animation: none; }
+@keyframes ctaPulse { 0%,100% { box-shadow: 0 10px 34px color-mix(in srgb, var(--pink) 40%, transparent); } 50% { box-shadow: 0 10px 48px color-mix(in srgb, var(--pink) 70%, transparent); transform: scale(1.025); } }
+
+/* Card sheen sweep on hover (game grid + pack picker) */
+.title-game-card, .pack-card { position: relative; overflow: hidden; }
+.title-game-card::before, .pack-card::before {
+  content: ''; position: absolute; top: 0; left: -80%; width: 55%; height: 100%;
+  background: linear-gradient(105deg, transparent, rgba(255,255,255,.16), transparent);
+  transform: skewX(-20deg); transition: left .5s ease; pointer-events: none; z-index: 2;
+}
+.title-game-card:hover::before, .pack-card:hover::before { left: 130%; }
+
+/* Winner rays behind the crown */
+.crown { position: relative; }
+.crown::before {
+  content: ''; position: absolute; inset: -70%; z-index: -1; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg 14deg, rgba(250,204,21,.18) 14deg 26deg,
+    transparent 26deg 40deg, rgba(250,204,21,.18) 40deg 52deg, transparent 52deg 66deg,
+    rgba(250,204,21,.18) 66deg 78deg, transparent 78deg 92deg, rgba(250,204,21,.18) 92deg 104deg,
+    transparent 104deg 118deg, rgba(250,204,21,.18) 118deg 130deg, transparent 130deg 144deg,
+    rgba(250,204,21,.18) 144deg 156deg, transparent 156deg 170deg, rgba(250,204,21,.18) 170deg 182deg,
+    transparent 182deg 360deg);
+  animation: raysSpin 9s linear infinite;
+}
+@keyframes raysSpin { to { transform: rotate(360deg); } }
+
+/* Numeric year input */
+.ctrl-input-year { font-family: 'Fredoka One', sans-serif; font-size: clamp(30px, 7vw, 44px) !important; text-align: center; letter-spacing: .14em; resize: none; }
+
+/* Extra micro-interactions */
+.choice-btn { transition: transform .12s var(--ease-out), filter .12s; }
+.choice-btn:hover { transform: translateY(-3px) scale(1.015); filter: brightness(1.12); }
+.round-btn, .content-btn, .cat-card-sm, .pmm-btn { transition: transform .14s var(--ease-out), border-color .14s, background .14s; }
+.round-btn:hover, .content-btn:hover, .cat-card-sm:hover, .pmm-btn:hover { transform: translateY(-2px) scale(1.02); }
+.player { animation: playerPop .45s var(--ease-out) both; }
+@keyframes playerPop { from { opacity: 0; transform: scale(.5) translateY(14px); } to { opacity: 1; transform: none; } }

@@ -387,3 +387,70 @@ function applyTheme() {
     "أحس في مفاجأة جاية.",
   ]);
 })();
+
+/* ============ HOST ROSTER ============
+   Three hosts with distinct personalities. One is picked per game.
+   Each host has: id, names, blob color class, and its own banter flavor. */
+const HOSTS = [
+  {
+    id: 'laith', color: 'host-purple',
+    nameEn: 'LAITH', nameAr: 'ليث',
+    banter: {
+      en: {
+        gamestart: ["Let the chaos begin!", "I've been waiting all day for this.", "May the least embarrassing player win."],
+        prompt: ["Take your time. But not too much — I get bored.", "Confidence beats honesty here.", "Type like no one's watching. I am, though."],
+        vote: ["Choose carefully. Friendships have ended over less.", "One of these is a lie. Probably yours."],
+        scores: ["Let's see the damage…", "Numbers don't lie. Unlike all of you."],
+        winner: ["Bow to your champion!", "Frame this moment. It won't happen again."],
+      },
+      ar: {
+        gamestart: ["خلّوا الفوضى تبدأ!", "من الصبح وأنا أنتظر هاللحظة.", "الفوز لأقلكم إحراجاً."],
+        prompt: ["خذوا وقتكم. بس لا تطولون — أملّ بسرعة.", "الثقة تغلب الصدق هنا.", "اكتبوا وكأن ما أحد يشوف. أنا أشوف بس."],
+        vote: ["اختاروا بحذر. صداقات انتهت على أقل من كذا.", "وحدة منهم كذبة. غالباً كذبتك."],
+        scores: ["نشوف الخسائر…", "الأرقام ما تكذب. عكسكم كلكم."],
+        winner: ["انحنوا لبطلكم!", "صوّروا اللحظة. ما راح تتكرر."],
+      },
+    },
+  },
+  {
+    id: 'dana', color: 'host-pink',
+    nameEn: 'DANA', nameAr: 'دانة',
+    banter: {
+      en: {
+        gamestart: ["Okay besties, phones UP.", "This is going to be SO messy. I love it.", "Whoever loses is doing the dishes."],
+        prompt: ["Ooh write something spicy.", "I can already tell who's going to panic.", "The clock is ticking, habibi."],
+        vote: ["Trust NO ONE in this room.", "I know who I'd pick. Just saying."],
+        scores: ["The drama! The stakes! The disappointment!", "Somebody call their mom, this is rough."],
+        winner: ["A star is born!", "Everyone else — reflect on your choices."],
+      },
+      ar: {
+        gamestart: ["يلا يا حلوين، الجوالات فوق.", "بتصير فوضى حلوة. أموت عليها.", "اللي يخسر يغسل المواعين."],
+        prompt: ["اكتبوا شي مثير.", "أعرف من الحين منو بيتوتر.", "الوقت يمشي يا حبيبي."],
+        vote: ["لا تثقون بأحد في هالغرفة.", "أنا أعرف منو أختار. بس أقول."],
+        scores: ["الدراما! الحماس! الخيبة!", "أحد يتصل بأمهم، الوضع صعب."],
+        winner: ["نجم وُلد!", "والباقين — راجعوا نفسكم."],
+      },
+    },
+  },
+  {
+    id: 'zayd', color: 'host-orange',
+    nameEn: 'ZAYD', nameAr: 'زايد',
+    banter: {
+      en: {
+        gamestart: ["LET'S GOOO!", "Warm up those thumbs, people!", "Tonight, legends will be made."],
+        prompt: ["Speed! Precision! CHAOS!", "Big brain time. Or not. We'll see.", "GO GO GO!"],
+        vote: ["Feel it in your gut! Then ignore it!", "This vote could change EVERYTHING."],
+        scores: ["THE LEADERBOARD SPEAKS!", "Comebacks are made in moments like this!"],
+        winner: ["ABSOLUTE LEGEND!", "Put them on a poster!"],
+      },
+      ar: {
+        gamestart: ["يلاااا!", "سخّنوا أصابعكم يا جماعة!", "الليلة تنولد الأساطير."],
+        prompt: ["سرعة! دقة! فوضى!", "وقت العباقرة. أو لا. بنشوف.", "بسرعة بسرعة!"],
+        vote: ["حسّوا فيها! بعدين تجاهلوها!", "هالصوت ممكن يغيّر كل شي."],
+        scores: ["الصدارة تتكلم!", "الريمونتادا تبدأ من هنا!"],
+        winner: ["أسطورة بمعنى الكلمة!", "حطوه على بوستر!"],
+      },
+    },
+  },
+];
+if (typeof window !== 'undefined') window.HOSTS = HOSTS;

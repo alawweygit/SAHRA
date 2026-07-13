@@ -92,6 +92,7 @@
     applyLang();
     FX.init();
     buildTitleScreen();
+    setTimeout(()=>FX.burst(70),650); // welcome confetti on landing
 
     $('#soundBtn').addEventListener('click',e=>{const on=Audio_.toggle();e.target.textContent=on?'🔊':'🔇';});
     $('#themeBtn').addEventListener('click',()=>{setTheme(THEME==='dark'?'light':'dark');$('#themeBtn').textContent=THEME==='dark'?'🌙':'☀️';});
@@ -423,8 +424,9 @@
   function leaveGame(){
     gameActive=false;window.__hypoxSkip=null;Audio_.stopMusic();
     currentRoomCode=null;net=null;players=[];
-    show('#scr-title');$('#topbar').classList.remove('show');
+    show('#scr-title');
     $('#menuBtn').classList.add('hidden');$('#skipBtn').classList.add('hidden');
+    $('#roomCodeText').textContent='—';$('#roundPill').textContent='HYPOX';
   }
 
   /* ---- AVATAR ---- */
