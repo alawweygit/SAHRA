@@ -659,3 +659,208 @@ const PINPOINT_PLACES = [
   { en:'Christ the Redeemer', ar:'تمثال المسيح الفادي', lat:-22.952, lon:-43.210, img:WM('Christ_the_Redeemer_-_Cristo_Redentor.jpg') },
   { en:'Golden Gate Bridge', ar:'جسر البوابة الذهبية', lat:37.820, lon:-122.478, img:WM('GoldenGateBridge-001.jpg') },
 ];
+
+/* ===== MOST LIKELY TO ===== */
+PACKS.mostlikely = {
+  en: [
+    { q: 'Who is most likely to become famous?' },
+    { q: 'Who is most likely to survive a zombie apocalypse?' },
+    { q: 'Who is most likely to cry at a movie?' },
+    { q: 'Who is most likely to forget your birthday?' },
+    { q: 'Who is most likely to become a millionaire?' },
+    { q: 'Who is most likely to move abroad?' },
+    { q: 'Who is most likely to eat the last piece of food without asking?' },
+    { q: 'Who is most likely to still be awake at 4am?' },
+    { q: 'Who is most likely to accidentally like an old photo?' },
+    { q: 'Who is most likely to get lost using GPS?' },
+    { q: 'Who is most likely to start a business?' },
+    { q: 'Who is most likely to cancel plans at the last minute?' },
+    { q: 'Who is most likely to talk to strangers in an elevator?' },
+    { q: 'Who is most likely to become the most successful?' },
+  ],
+  ar: [
+    { q: 'من الأرجح يصير مشهور؟' },
+    { q: 'من الأرجح ينجو من غزو الزومبي؟' },
+    { q: 'من الأرجح يبكي في فيلم؟' },
+    { q: 'من الأرجح ينسى عيد ميلادك؟' },
+    { q: 'من الأرجح يصير مليونير؟' },
+    { q: 'من الأرجح يسافر ويعيش في الخارج؟' },
+    { q: 'من الأرجح ياكل آخر قطعة أكل بدون ما يسأل؟' },
+    { q: 'من الأرجح يكون صاحي الساعة 4 الصبح؟' },
+    { q: 'من الأرجح يلايك صورة قديمة بالغلط؟' },
+    { q: 'من الأرجح يضيع وهو يستخدم الخرايط؟' },
+    { q: 'من الأرجح يفتح مشروع تجاري؟' },
+    { q: 'من الأرجح يلغي الخطة اللحظة الأخيرة؟' },
+    { q: 'من الأرجح يكلم ناس ما يعرفهم في المصعد؟' },
+    { q: 'من الأرجح يكون الأنجح بينكم؟' },
+  ],
+};
+
+/* ===== TRUE OR LIE ===== */
+PACKS.trueorlie = {
+  en: [
+    { s: 'Cleopatra lived closer in time to the iPhone than to the pyramids being built', truth: true },
+    { s: 'A group of flamingos is called a flamboyance', truth: true },
+    { s: 'The Eiffel Tower grows taller in summer', truth: true },
+    { s: 'Saudi Arabia imports sand from Australia', truth: true },
+    { s: 'Octopuses have three hearts', truth: true },
+    { s: "Scotland's national animal is the dragon", truth: false },
+    { s: 'Oxford University is older than the Aztec Empire', truth: true },
+    { s: 'A bolt of lightning is hotter than the surface of the Sun', truth: true },
+    { s: 'Honey never expires', truth: true },
+    { s: 'Finland has more saunas than cars', truth: true },
+    { s: 'Napoleon was shorter than the average French man of his time', truth: false },
+    { s: 'Bananas are berries but strawberries are not', truth: true },
+  ],
+  ar: [
+    { s: 'كليوباترا عاشت أقرب زمنياً للآيفون من بناء الأهرامات', truth: true },
+    { s: 'مجموعة طيور الفلامينغو تسمى فلامبويانس', truth: true },
+    { s: 'برج إيفل يطول في الصيف', truth: true },
+    { s: 'السعودية تستورد الرمل من أستراليا', truth: true },
+    { s: 'الأخطبوط عنده ثلاثة قلوب', truth: true },
+    { s: 'الحيوان الوطني لاسكتلندا هو التنين', truth: false },
+    { s: 'جامعة أكسفورد أقدم من الحضارة الأزتيكية', truth: true },
+    { s: 'الصاعقة أسخن من سطح الشمس', truth: true },
+    { s: 'العسل لا يفسد', truth: true },
+    { s: 'في فنلندا حمامات بخار أكثر من السيارات', truth: true },
+    { s: 'نابليون كان أقصر من متوسط طول الفرنسي في زمنه', truth: false },
+    { s: 'الموز نوع من التوت لكن الفراولة ليست كذلك', truth: true },
+  ],
+};
+
+/* ===== FLAG HUNT ===== */
+PACKS.flaghunt = {
+  en: [
+    { flag:'🇯🇵', options:['Japan','China','South Korea','Vietnam'], correct:0 },
+    { flag:'🇧🇷', options:['Argentina','Colombia','Brazil','Mexico'], correct:2 },
+    { flag:'🇩🇪', options:['Austria','Switzerland','Germany','Netherlands'], correct:2 },
+    { flag:'🇸🇦', options:['UAE','Saudi Arabia','Kuwait','Bahrain'], correct:1 },
+    { flag:'🇫🇷', options:['Belgium','France','Italy','Spain'], correct:1 },
+    { flag:'🇦🇺', options:['New Zealand','Canada','Australia','South Africa'], correct:2 },
+    { flag:'🇪🇬', options:['Syria','Jordan','Libya','Egypt'], correct:3 },
+    { flag:'🇹🇷', options:['Greece','Turkey','Iran','Iraq'], correct:1 },
+    { flag:'🇰🇷', options:['North Korea','Japan','South Korea','China'], correct:2 },
+    { flag:'🇮🇳', options:['Pakistan','Bangladesh','India','Sri Lanka'], correct:2 },
+    { flag:'🇴🇲', options:['UAE','Oman','Qatar','Bahrain'], correct:1 },
+    { flag:'🇰🇼', options:['Kuwait','Bahrain','Qatar','Jordan'], correct:0 },
+    { flag:'🇲🇦', options:['Algeria','Tunisia','Morocco','Libya'], correct:2 },
+  ],
+  ar: [
+    { flag:'🇯🇵', options:['اليابان','الصين','كوريا الجنوبية','فيتنام'], correct:0 },
+    { flag:'🇧🇷', options:['الأرجنتين','كولومبيا','البرازيل','المكسيك'], correct:2 },
+    { flag:'🇩🇪', options:['النمسا','سويسرا','ألمانيا','هولندا'], correct:2 },
+    { flag:'🇸🇦', options:['الإمارات','السعودية','الكويت','البحرين'], correct:1 },
+    { flag:'🇫🇷', options:['بلجيكا','فرنسا','إيطاليا','إسبانيا'], correct:1 },
+    { flag:'🇦🇺', options:['نيوزيلندا','كندا','أستراليا','جنوب أفريقيا'], correct:2 },
+    { flag:'🇪🇬', options:['سوريا','الأردن','ليبيا','مصر'], correct:3 },
+    { flag:'🇹🇷', options:['اليونان','تركيا','إيران','العراق'], correct:1 },
+    { flag:'🇴🇲', options:['الإمارات','عُمان','قطر','البحرين'], correct:1 },
+    { flag:'🇰🇼', options:['الكويت','البحرين','قطر','الأردن'], correct:0 },
+    { flag:'🇲🇦', options:['الجزائر','تونس','المغرب','ليبيا'], correct:2 },
+    { flag:'🇰🇷', options:['كوريا الشمالية','اليابان','كوريا الجنوبية','الصين'], correct:2 },
+    { flag:'🇮🇳', options:['باكستان','بنغلاديش','الهند','سريلانكا'], correct:2 },
+  ],
+};
+
+/* ===== HIGHER OR LOWER ===== */
+PACKS.higherlow = {
+  en: [
+    { q: 'How many bones in the adult human body?', n: 206, unit: 'bones' },
+    { q: 'How many hours a day does a koala sleep?', n: 22, unit: 'hours' },
+    { q: 'In what year was the first iPhone released?', n: 2007, unit: '' },
+    { q: 'How many countries are in Africa?', n: 54, unit: 'countries' },
+    { q: 'How many teeth does an adult human have?', n: 32, unit: 'teeth' },
+    { q: 'How tall is the Burj Khalifa in meters?', n: 828, unit: 'meters' },
+    { q: 'How many languages are spoken in the world?', n: 7000, unit: 'languages' },
+    { q: 'How many episodes did Friends have?', n: 236, unit: 'episodes' },
+    { q: 'How many muscles does the human body have?', n: 600, unit: 'muscles' },
+    { q: 'How old is the Earth in billions of years?', n: 4, unit: 'billion years' },
+  ],
+  ar: [
+    { q: 'كم عدد عظام جسم الإنسان البالغ؟', n: 206, unit: 'عظمة' },
+    { q: 'كم ساعة ينام الكوالا في اليوم؟', n: 22, unit: 'ساعة' },
+    { q: 'في أي سنة صدر أول آيفون؟', n: 2007, unit: '' },
+    { q: 'كم دولة في أفريقيا؟', n: 54, unit: 'دولة' },
+    { q: 'كم سناً يملك الإنسان البالغ؟', n: 32, unit: 'سناً' },
+    { q: 'كم ارتفاع برج خليفة بالأمتار؟', n: 828, unit: 'متر' },
+    { q: 'كم لغة تتحدث في العالم؟', n: 7000, unit: 'لغة' },
+    { q: 'كم حلقة كان في مسلسل Friends؟', n: 236, unit: 'حلقة' },
+    { q: 'كم عضلة في جسم الإنسان؟', n: 600, unit: 'عضلة' },
+    { q: 'كم عمر الأرض بالمليار سنة؟', n: 4, unit: 'مليار سنة' },
+  ],
+};
+
+/* ===== 2 TRUTHS 1 LIE ===== */
+PACKS['2t1l'] = { en: [], ar: [] };
+
+/* ===== EMOJI PHRASE ===== */
+PACKS.emojiphrase = {
+  en: [
+    { e:'💰🗣️', options:['Put your money where your mouth is','Time is money','Actions speak louder','Money talks'], correct:0 },
+    { e:'🐦✋', options:['Bird in hand is worth two in the bush','Kill two birds','Early bird','Free as a bird'], correct:0 },
+    { e:'🍰🎂🍕🍟', options:['Cheat day','You cannot have your cake and eat it','Comfort food','Fast food'], correct:1 },
+    { e:'🌊🌊🌊', options:['Making waves','Rough seas','Third time charm','Go with the flow'], correct:0 },
+    { e:'👁️🍵', options:['Eye of the storm','I spy','Seeing clearly','Eye for an eye'], correct:1 },
+    { e:'🐎🏪', options:["Don't look a gift horse in the mouth","Wild West","Horse trading","Get back on horse"], correct:0 },
+  ],
+  ar: [
+    { e:'💰🗣️', options:['حط فلوسك فين كلامك','الوقت من ذهب','الأفعال أبلغ','المال يتكلم'], correct:3 },
+    { e:'🐦✋', options:['عصفور في اليد خير من عشرة على الشجرة','اقتل عصفورين بحجر','الطير الباكر','حر مثل الطير'], correct:0 },
+    { e:'🍰🎂🍕🍟', options:['يوم غش','ما تقدر تاكل الكيكة وتحتفظ بها','أكل مريح','وجبات سريعة'], correct:1 },
+    { e:'🌊🌊🌊', options:['تصنع أمواج','بحر هايج','ثالثة الأثافي','اجري مع التيار'], correct:0 },
+    { e:'👁️🍵', options:['عين العاصفة','أنا أتجسس','شايف بوضوح','العين بالعين'], correct:1 },
+    { e:'🐎🏪', options:['ما تحكم على هدية','الغرب الوحشي','تجارة الخيل','ارجع واركب'], correct:0 },
+  ],
+};
+
+/* ===== EMOJI WORD ===== */
+PACKS.emojiword = {
+  en: [
+    { e:'🌙🔦', options:['Flashlight','Moonlight','Starlight','Midnight'], correct:1 },
+    { e:'🔥🚒', options:['Firefighter','Hot car','Emergency','Fire truck'], correct:0 },
+    { e:'📚🐛', options:['Library','Bookworm','Study bug','Reading list'], correct:1 },
+    { e:'🦁👑', options:['King of jungle','Lion king','Pride leader','Animal kingdom'], correct:1 },
+    { e:'☀️🕶️', options:['Sunglasses','Beach vibes','Summer','Sunshine'], correct:0 },
+    { e:'🐝📖', options:['Bug book','Spelling bee','Honeybee','Nature book'], correct:1 },
+    { e:'🍎👩‍🏫', options:['Fruit teacher','Apple for teacher','School lunch','Biology'], correct:1 },
+    { e:'🌹🔫', options:['Gunslinger','Shotgun','Florist','Guns and roses'], correct:3 },
+  ],
+  ar: [
+    { e:'🌙🔦', options:['مصباح يدوي','ضوء القمر','ضوء النجوم','منتصف الليل'], correct:1 },
+    { e:'🔥🚒', options:['رجل إطفاء','سيارة حارة','طوارئ','سيارة إطفاء'], correct:0 },
+    { e:'📚🐛', options:['مكتبة','دودة كتب','حشرة دراسة','قائمة قراءة'], correct:1 },
+    { e:'🦁👑', options:['ملك الغابة','أسد الملك','قائد الفخر','مملكة الحيوان'], correct:1 },
+    { e:'☀️🕶️', options:['نظارات شمسية','أجواء شاطئ','صيف','ضوء شمس'], correct:0 },
+    { e:'🐝📖', options:['كتاب حشرات','مسابقة تهجئة','نحلة','كتاب طبيعة'], correct:1 },
+    { e:'🍎👩‍🏫', options:['معلمة الفواكه','تفاحة للمعلمة','غداء المدرسة','أحياء'], correct:1 },
+    { e:'🌹🔫', options:['مسلح','بندقية','بائع زهور','غانز آند روزز'], correct:3 },
+  ],
+};
+
+/* ===== EMOJI PLACE ===== */
+PACKS.emojiplace = {
+  en: [
+    { e:'🗼🥐🍷', options:['Paris','Rome','London','Madrid'], correct:0 },
+    { e:'🗽🍔🏙️', options:['Chicago','New York','Los Angeles','Toronto'], correct:1 },
+    { e:'🍣🏯🌸', options:['Seoul','Beijing','Tokyo','Bangkok'], correct:2 },
+    { e:'🐫🔺🏺', options:['Jordan','Egypt','Tunisia','Morocco'], correct:1 },
+    { e:'🦁🌿🏕️', options:['Kenya','India','Brazil','Australia'], correct:0 },
+    { e:'🌮🌶️🎸', options:['Spain','Colombia','Mexico','Peru'], correct:2 },
+    { e:'🍫⌚🏔️', options:['Austria','Norway','Switzerland','Belgium'], correct:2 },
+    { e:'🏙️🛍️🏎️', options:['Qatar','Riyadh','Dubai','Kuwait'], correct:2 },
+    { e:'🐨🌿🦘', options:['New Zealand','Papua New Guinea','Australia','Fiji'], correct:2 },
+    { e:'🕌🌊🏖️', options:['Tunisia','Oman','Indonesia','Maldives'], correct:1 },
+  ],
+  ar: [
+    { e:'🗼🥐🍷', options:['باريس','روما','لندن','مدريد'], correct:0 },
+    { e:'🗽🍔🏙️', options:['شيكاغو','نيويورك','لوس أنجلوس','تورونتو'], correct:1 },
+    { e:'🍣🏯🌸', options:['سيول','بكين','طوكيو','بانكوك'], correct:2 },
+    { e:'🐫🔺🏺', options:['الأردن','مصر','تونس','المغرب'], correct:1 },
+    { e:'🦁🌿🏕️', options:['كينيا','الهند','البرازيل','أستراليا'], correct:0 },
+    { e:'🌮🌶️🎸', options:['إسبانيا','كولومبيا','المكسيك','بيرو'], correct:2 },
+    { e:'🍫⌚🏔️', options:['النمسا','النرويج','سويسرا','بلجيكا'], correct:2 },
+    { e:'🏙️🛍️🏎️', options:['قطر','الرياض','دبي','الكويت'], correct:2 },
+    { e:'🐨🌿🦘', options:['نيوزيلندا','بابوا غينيا','أستراليا','فيجي'], correct:2 },
+    { e:'🕌🌊🏖️', options:['تونس','عُمان','إندونيسيا','جزر المالديف'], correct:1 },
+  ],
+};

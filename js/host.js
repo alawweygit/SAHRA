@@ -870,7 +870,265 @@ const Host = (() => {
     await showScores(true);
   }
 
-  const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz, pinpoint: playPinpoint, emoji: playEmoji, year: playYear };
+
+  async function playMostlikely() {
+    await modeTitleCard('mostlikely');
+    const rounds = window.HYPOX_STATE?.rounds || 5;
+    const prompts = await Content.get('mostlikely', LANG, rounds);
+    for (let i = 0; i < prompts.length; i++) {
+      const Q = prompts[i];
+      await FX.wipe();
+      setPill(`${t('round')} ${i+1} ${t('of')} ${prompts.length}`);
+      scene(`<div class="eyebrow">🏆 ${LANG==='ar'?'الأرجح':'MOST LIKELY TO'}</div><div class="prompt-card display">${esc(Q.q)}</div><div class="pick-sub">${LANG==='ar'?'الكل يصوت — من الأرجح؟':'Everyone votes — who is it?'}</div><div id="statusRow" class="status-row"></div>`);
+      pushMirror({ headline: Q.q });
+      Audio_.sfx.sting(); hostSay('prompt');
+      const pids = players.map(p => p.pid);
+      const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'من الأرجح؟':'Who is most likely?', context:Q.q, options:players.map(p=>({id:p.pid,label:`${p.emoji} ${p.name}`,color:p.color})), seconds:20 }, pids, 20);
+      const tally = {};
+      pids.forEach(pid => { const v = val(votes, pid); if (v) tally[v] = (tally[v]||0)+1; });
+      const maxV = Math.max(0, ...Object.values(tally));
+      const winners = Object.entries(tally).filter(([,c])=>c===maxV).map(([pid])=>pid);
+      winners.forEach(pid => addScore(pid, 500));
+      Audio_.sfx.reveal(); FX.burst(80);
+      scene(`<div class="eyebrow">${esc(Q.q)}</div><div class="score-list">${players.slice().sort((a,b)=>(tally[b.pid]||0)-(tally[a.pid]||0)).map((p,idx)=>`<div class="score-row" style="animation-delay:${idx*.1}s"><div class="medal">${winners.includes(p.pid)?'👑':''}</div><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(10,((tally[p.pid]||0)/pids.length)*100)}%;background:linear-gradient(90deg,var(--pink),var(--purple))">${esc(p.name)} · ${tally[p.pid]||0} ${LANG==='ar'?'أصوات':'votes'}</div></div></div>`).join('')}</div>`);
+      const wNames = winners.map(pid=>players.find(p=>p.pid===pid)?.name).join(' & ');
+      pushMirror({ headline: `👑 ${wNames}` });
+      await say(LANG==='ar'?`${wNames} — الكل يشوف كذا!`:`${wNames} — the crowd has spoken!`);
+      hideHost(); await waitNext();
+      if (i < prompts.length - 1) await showScores();
+    }
+    await showScores(true);
+  }
+
+  async function playTrueorlie() {
+    await modeTitleCard('trueorlie');
+    const rounds = window.HYPOX_STATE?.rounds || 5;
+    const prompts = await Content.get('trueorlie', LANG, rounds);
+    const SPEED_PTS = [1000,850,700,600,500,450,400,400,400,400];
+    for (let i = 0; i < prompts.length; i++) {
+      const Q = prompts[i];
+      await FX.wipe();
+      setPill(`${t('round')} ${i+1} ${t('of')} ${prompts.length}`);
+      const opts = [{id:'true',label:LANG==='ar'?'✅ صح':'✅ TRUE',color:'#34d399'},{id:'false',label:LANG==='ar'?'❌ كذب':'❌ LIE',color:'#f472b6'}];
+      scene(`<div class="eyebrow">✅❌ ${LANG==='ar'?'صح ولا كذب؟':'TRUE OR LIE?'}</div><div class="prompt-card display">${esc(Q.s)}</div><div id="statusRow" class="status-row"></div>`);
+      pushMirror({ headline: Q.s });
+      Audio_.sfx.sting(); hostSay('prompt');
+      const pids = players.map(p => p.pid);
+      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'صح ولا كذب؟':'True or Lie?', context:Q.s, options:opts, seconds:15 }, pids, 15);
+      const correctId = Q.truth ? 'true' : 'false';
+      Audio_.sfx.drum(); await sleep(900);
+      const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
+      right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
+      Audio_.sfx.reveal();
+      const resultLabel = Q.truth?(LANG==='ar'?'✅ صح!':'✅ TRUE!'):(LANG==='ar'?'❌ كذب!':'❌ LIE!');
+      scene(`<div class="eyebrow">${esc(Q.s)}</div><div class="prompt-card display" style="color:${Q.truth?'var(--green)':'var(--pink)'}">${resultLabel}</div><div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'var(--pink)'}">${esc(p.name)} ${got?'✓':'✗'}</div></div></div>`;}).join('')}</div>`);
+      pushMirror({ headline: resultLabel });
+      FX.burst(60);
+      await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?'ولا واحد عرفها!':'Nobody got it!'));
+      hideHost(); await waitNext();
+      if (i < prompts.length - 1) await showScores();
+    }
+    await showScores(true);
+  }
+
+  async function playFlaghunt() {
+    await modeTitleCard('flaghunt');
+    const rounds = window.HYPOX_STATE?.rounds || 5;
+    const qs = await Content.get('flaghunt', LANG, rounds);
+    const SPEED_PTS = [1000,850,700,600,500,450,400,400,400,400];
+    const colors = ['#2de1fc','#ff3d8a','#ffd23f','#7dff6a'];
+    for (let i = 0; i < qs.length; i++) {
+      const Q = qs[i];
+      const idxs = Q.options.map((_,j)=>j).sort(()=>Math.random()-.5);
+      const opts = idxs.map(j=>Q.options[j]);
+      const correct = idxs.indexOf(Q.correct);
+      await FX.wipe();
+      setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
+      scene(`<div class="eyebrow">🚩 ${LANG==='ar'?'عرّف العلم':'FLAG HUNT'}</div><div class="emoji-riddle">${Q.flag}</div><div class="quiz-grid">${opts.map((o,j)=>`<div class="quiz-opt" id="qopt-${j}" style="--qc:${colors[j]}"><span class="q-letter display">${'ABCD'[j]}</span> ${esc(o)}</div>`).join('')}</div>`);
+      pushMirror({ headline: Q.flag });
+      Audio_.sfx.sting();
+      const pids = players.map(p=>p.pid);
+      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'اختار الدولة':'Pick the country!', context:Q.flag, seconds:12, options:opts.map((o,j)=>({id:j,label:`${'ABCD'[j]} · ${o}`,color:colors[j]})) }, pids, 12);
+      Audio_.sfx.drum(); await sleep(900);
+      document.getElementById('qopt-'+correct)?.classList.add('q-correct');
+      opts.forEach((_,j)=>{if(j!==correct)document.getElementById('qopt-'+j)?.classList.add('q-dim');});
+      Audio_.sfx.correct(); FX.burst(80);
+      const right = pids.filter(pid=>val(answers,pid)===correct).sort((a,b)=>answers[a].order-answers[b].order);
+      right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
+      pushMirror({ headline: `${Q.flag} = ${opts[correct]}` });
+      await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`ولا واحد! العلم لـ ${opts[correct]}`:`Nobody! That was ${opts[correct]}.`));
+      hideHost(); await waitNext();
+      if (i < qs.length - 1) await showScores();
+    }
+    await showScores(true);
+  }
+
+  async function playHigherlow() {
+    await modeTitleCard('higherlow');
+    const rounds = window.HYPOX_STATE?.rounds || 5;
+    const qs = await Content.get('higherlow', LANG, rounds);
+    const SPEED_PTS = [1000,850,700,600,500,450,400,400,400,400];
+    for (let i = 0; i < qs.length; i++) {
+      const Q = qs[i];
+      const hint = Math.round(Q.n * (0.6 + Math.random() * 0.6));
+      await FX.wipe();
+      setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
+      const opts = [{id:'higher',label:LANG==='ar'?`⬆️ فوق ${hint.toLocaleString()}`:`⬆️ Higher than ${hint.toLocaleString()}`,color:'#34d399'},{id:'lower',label:LANG==='ar'?`⬇️ تحت ${hint.toLocaleString()}`:`⬇️ Lower than ${hint.toLocaleString()}`,color:'#f472b6'}];
+      scene(`<div class="eyebrow">📊 ${LANG==='ar'?'فوق ولا تحت؟':'HIGHER OR LOWER?'}</div><div class="prompt-card display">${esc(Q.q)}</div><div class="year-reveal" style="font-size:clamp(28px,5vw,52px)">${hint.toLocaleString()} ${esc(Q.unit)}</div><div id="statusRow" class="status-row"></div>`);
+      pushMirror({ headline: Q.q });
+      Audio_.sfx.sting(); hostSay('prompt');
+      const pids = players.map(p=>p.pid);
+      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'فوق ولا تحت؟':'Higher or Lower?', context:Q.q, options:opts, seconds:15 }, pids, 15);
+      const correctId = Q.n > hint ? 'higher' : 'lower';
+      Audio_.sfx.drum(); await sleep(900);
+      const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
+      right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
+      Audio_.sfx.reveal(); FX.burst(60);
+      const ansLabel = correctId==='higher'?(LANG==='ar'?`⬆️ فوق! الجواب: ${Q.n.toLocaleString()} ${Q.unit}`:`⬆️ Higher! Answer: ${Q.n.toLocaleString()} ${Q.unit}`):(LANG==='ar'?`⬇️ تحت! الجواب: ${Q.n.toLocaleString()} ${Q.unit}`:`⬇️ Lower! Answer: ${Q.n.toLocaleString()} ${Q.unit}`);
+      scene(`<div class="eyebrow">${esc(Q.q)}</div><div class="prompt-card display" style="color:var(--yellow)">${ansLabel}</div><div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'var(--pink)'}">${esc(p.name)} ${got?'✓':'✗'}</div></div></div>`;}).join('')}</div>`);
+      pushMirror({ headline: ansLabel });
+      await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?'ولا واحد صاح!':'Nobody got it!'));
+      hideHost(); await waitNext();
+      if (i < qs.length - 1) await showScores();
+    }
+    await showScores(true);
+  }
+
+  async function play2t1l() {
+    await modeTitleCard('2t1l');
+    const count = Math.min(players.length, window.HYPOX_STATE?.rounds||3);
+    const seats = players.slice().sort(()=>Math.random()-.5).slice(0,count);
+    for (let r = 0; r < seats.length; r++) {
+      const target = seats[r];
+      await FX.wipe();
+      setPill(`${t('round')} ${r+1} ${t('of')} ${seats.length}`);
+      scene(`<div class="eyebrow">🤥 ${LANG==='ar'?'اثنين صح وكذبة':'2 TRUTHS 1 LIE'}</div><div class="hotseat">${avatarHTML(target)}<div class="pname">${esc(target.name)}</div></div><div class="pick-sub">${LANG==='ar'?`${target.name} يكتب الثلاث جمل على جواله`:`${target.name} — write your 3 statements on your phone`}</div><div id="statusRow" class="status-row"></div>`);
+      pushMirror({ headline: LANG==='ar'?`دور ${target.name}!`:`${target.name}'s turn!` });
+      Audio_.sfx.sting();
+      const i1 = await collectWithTimer({ type:'text', title:LANG==='ar'?'حقيقة أولى':'Truth #1', context:LANG==='ar'?'اكتب حقيقة عنك':'Write a truth about yourself', maxLen:80, seconds:60 }, [target.pid], 60);
+      const i2 = await collectWithTimer({ type:'text', title:LANG==='ar'?'حقيقة ثانية':'Truth #2', context:LANG==='ar'?'حقيقة ثانية':'Another truth', maxLen:80, seconds:60 }, [target.pid], 60);
+      const i3 = await collectWithTimer({ type:'text', title:LANG==='ar'?'الكذبة':'The Lie', context:LANG==='ar'?'اكتب كذبة مقنعة':'Write a convincing lie', maxLen:80, seconds:60 }, [target.pid], 60);
+      const s1=val(i1,target.pid)||'...', s2=val(i2,target.pid)||'...', s3=val(i3,target.pid)||'...';
+      const stmts = shuffle([{text:s1,truth:true},{text:s2,truth:true},{text:s3,truth:false}]);
+      const lieIdx = stmts.findIndex(s=>!s.truth);
+      const colors = ['#2de1fc','#ff3d8a','#ffd23f'];
+      await FX.wipe();
+      scene(`<div class="eyebrow">${esc(target.name)} — ${LANG==='ar'?'أيها الكذبة؟':'which is the lie?'}</div><div class="quiz-grid" style="grid-template-columns:1fr">${stmts.map((st,j)=>`<div class="quiz-opt" id="stmt-${j}" style="--qc:${colors[j]};font-size:clamp(15px,2vw,18px)"><span class="q-letter display">${'ABC'[j]}</span> ${esc(st.text)}</div>`).join('')}</div>`);
+      const others = players.filter(p=>p.pid!==target.pid).map(p=>p.pid);
+      const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'أيها الكذبة؟':'Which is the lie?', options:stmts.map((st,j)=>({id:j,label:`${'ABC'[j]} · ${st.text}`,color:colors[j]})), seconds:20 }, others, 20);
+      Audio_.sfx.drum(); await sleep(900);
+      document.getElementById('stmt-'+lieIdx)?.classList.add('q-correct');
+      stmts.forEach((_,j)=>{if(j!==lieIdx)document.getElementById('stmt-'+j)?.classList.add('q-dim');});
+      Audio_.sfx.correct(); FX.burst(80);
+      const finders = others.filter(pid=>val(votes,pid)===lieIdx);
+      finders.forEach(pid=>addScore(pid,700));
+      if(finders.length===0) addScore(target.pid,500);
+      const fNames = finders.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ');
+      pushMirror({ headline: LANG==='ar'?`الكذبة: ${stmts[lieIdx].text}`:`The lie: ${stmts[lieIdx].text}` });
+      await say(finders.length===0?(LANG==='ar'?`ولا واحد اكتشف! ${target.name} فاز!`:`Nobody caught ${target.name}! They win!`):(LANG==='ar'?`${fNames} اكتشفوا الكذبة!`:`${fNames} found the lie!`));
+      hideHost(); await waitNext();
+      if (r < seats.length - 1) await showScores();
+    }
+    await showScores(true);
+  }
+
+  async function playEmojiphrase() {
+    await modeTitleCard('emojiphrase');
+    const rounds = window.HYPOX_STATE?.rounds || 5;
+    const qs = await Content.get('emojiphrase', LANG, rounds);
+    const SPEED_PTS = [1000,850,700,600,500,450,400,400,400,400];
+    const colors = ['#2de1fc','#ff3d8a','#ffd23f','#7dff6a'];
+    for (let i = 0; i < qs.length; i++) {
+      const Q = qs[i];
+      const idxs = Q.options.map((_,j)=>j).sort(()=>Math.random()-.5);
+      const opts = idxs.map(j=>Q.options[j]);
+      const correct = idxs.indexOf(Q.correct);
+      await FX.wipe();
+      setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
+      scene(`<div class="eyebrow">💬 ${LANG==='ar'?'فك العبارة':'EMOJI PHRASE'}</div><div class="emoji-riddle">${esc(Q.e)}</div><div class="quiz-grid">${opts.map((o,j)=>`<div class="quiz-opt" id="qopt-${j}" style="--qc:${colors[j]}"><span class="q-letter display">${'ABCD'[j]}</span> ${esc(o)}</div>`).join('')}</div>`);
+      pushMirror({ headline: Q.e });
+      Audio_.sfx.sting();
+      const pids = players.map(p=>p.pid);
+      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'فك العبارة!':'Decode the phrase!', context:Q.e, seconds:15, options:opts.map((o,j)=>({id:j,label:`${'ABCD'[j]} · ${o}`,color:colors[j]})) }, pids, 15);
+      Audio_.sfx.drum(); await sleep(900);
+      document.getElementById('qopt-'+correct)?.classList.add('q-correct');
+      opts.forEach((_,j)=>{if(j!==correct)document.getElementById('qopt-'+j)?.classList.add('q-dim');});
+      Audio_.sfx.correct(); FX.burst(80);
+      const right = pids.filter(pid=>val(answers,pid)===correct).sort((a,b)=>answers[a].order-answers[b].order);
+      right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
+      pushMirror({ headline: `${Q.e} = ${opts[correct]}` });
+      await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`الجواب: ${opts[correct]}`:`Answer: ${opts[correct]}`));
+      hideHost(); await waitNext();
+      if (i < qs.length - 1) await showScores();
+    }
+    await showScores(true);
+  }
+
+  async function playEmojiword() {
+    await modeTitleCard('emojiword');
+    const rounds = window.HYPOX_STATE?.rounds || 5;
+    const qs = await Content.get('emojiword', LANG, rounds);
+    const SPEED_PTS = [1000,850,700,600,500,450,400,400,400,400];
+    const colors = ['#2de1fc','#ff3d8a','#ffd23f','#7dff6a'];
+    for (let i = 0; i < qs.length; i++) {
+      const Q = qs[i];
+      const idxs = Q.options.map((_,j)=>j).sort(()=>Math.random()-.5);
+      const opts = idxs.map(j=>Q.options[j]);
+      const correct = idxs.indexOf(Q.correct);
+      await FX.wipe();
+      setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
+      scene(`<div class="eyebrow">💡 ${LANG==='ar'?'فك الكلمة':'EMOJI WORD'}</div><div class="emoji-riddle">${esc(Q.e)}</div><div class="quiz-grid">${opts.map((o,j)=>`<div class="quiz-opt" id="qopt-${j}" style="--qc:${colors[j]}"><span class="q-letter display">${'ABCD'[j]}</span> ${esc(o)}</div>`).join('')}</div>`);
+      pushMirror({ headline: Q.e });
+      Audio_.sfx.sting();
+      const pids = players.map(p=>p.pid);
+      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'فك الكلمة!':'Decode the word!', context:Q.e, seconds:12, options:opts.map((o,j)=>({id:j,label:`${'ABCD'[j]} · ${o}`,color:colors[j]})) }, pids, 12);
+      Audio_.sfx.drum(); await sleep(900);
+      document.getElementById('qopt-'+correct)?.classList.add('q-correct');
+      opts.forEach((_,j)=>{if(j!==correct)document.getElementById('qopt-'+j)?.classList.add('q-dim');});
+      Audio_.sfx.correct(); FX.burst(80);
+      const right = pids.filter(pid=>val(answers,pid)===correct).sort((a,b)=>answers[a].order-answers[b].order);
+      right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
+      pushMirror({ headline: `${Q.e} = ${opts[correct]}` });
+      await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`الجواب: ${opts[correct]}`:`Answer: ${opts[correct]}`));
+      hideHost(); await waitNext();
+      if (i < qs.length - 1) await showScores();
+    }
+    await showScores(true);
+  }
+
+  async function playEmojiplace() {
+    await modeTitleCard('emojiplace');
+    const rounds = window.HYPOX_STATE?.rounds || 5;
+    const qs = await Content.get('emojiplace', LANG, rounds);
+    const SPEED_PTS = [1000,850,700,600,500,450,400,400,400,400];
+    const colors = ['#2de1fc','#ff3d8a','#ffd23f','#7dff6a'];
+    for (let i = 0; i < qs.length; i++) {
+      const Q = qs[i];
+      const idxs = Q.options.map((_,j)=>j).sort(()=>Math.random()-.5);
+      const opts = idxs.map(j=>Q.options[j]);
+      const correct = idxs.indexOf(Q.correct);
+      await FX.wipe();
+      setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
+      scene(`<div class="eyebrow">🌍 ${LANG==='ar'?'وين المكان؟':'EMOJI PLACE'}</div><div class="emoji-riddle">${esc(Q.e)}</div><div class="quiz-grid">${opts.map((o,j)=>`<div class="quiz-opt" id="qopt-${j}" style="--qc:${colors[j]}"><span class="q-letter display">${'ABCD'[j]}</span> ${esc(o)}</div>`).join('')}</div>`);
+      pushMirror({ headline: Q.e });
+      Audio_.sfx.sting();
+      const pids = players.map(p=>p.pid);
+      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'وين المكان؟':'Where is this?', context:Q.e, seconds:12, options:opts.map((o,j)=>({id:j,label:`${'ABCD'[j]} · ${o}`,color:colors[j]})) }, pids, 12);
+      Audio_.sfx.drum(); await sleep(900);
+      document.getElementById('qopt-'+correct)?.classList.add('q-correct');
+      opts.forEach((_,j)=>{if(j!==correct)document.getElementById('qopt-'+j)?.classList.add('q-dim');});
+      Audio_.sfx.correct(); FX.burst(80);
+      const right = pids.filter(pid=>val(answers,pid)===correct).sort((a,b)=>answers[a].order-answers[b].order);
+      right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
+      pushMirror({ headline: `${Q.e} = ${opts[correct]}` });
+      await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`المكان: ${opts[correct]}`:`It was ${opts[correct]}`));
+      hideHost(); await waitNext();
+      if (i < qs.length - 1) await showScores();
+    }
+    await showScores(true);
+  }
+
+  const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz, pinpoint: playPinpoint, emoji: playEmoji, year: playYear, mostlikely: playMostlikely, trueorlie: playTrueorlie, flaghunt: playFlaghunt, higherlow: playHigherlow, '2t1l': play2t1l, emojiphrase: playEmojiphrase, emojiword: playEmojiword, emojiplace: playEmojiplace };
 
   async function run(netInstance, playerList, mode) {
     net = netInstance;
