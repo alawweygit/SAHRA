@@ -239,6 +239,10 @@
           <button class="content-btn spy-cat${(window.HYPOX_STATE.spyCategory||'location')==='location'?' selected':''}" data-spycat="location">📍 ${LANG==='ar'?'مكان':'Location'}</button>
           <button class="content-btn spy-cat${(window.HYPOX_STATE.spyCategory||'location')==='event'?' selected':''}" data-spycat="event">🎉 ${LANG==='ar'?'حدث':'Event'}</button>
           <button class="content-btn spy-cat${(window.HYPOX_STATE.spyCategory||'location')==='movie'?' selected':''}" data-spycat="movie">🎬 ${LANG==='ar'?'فيلم':'Movie'}</button>
+          <button class="content-btn spy-cat${(window.HYPOX_STATE.spyCategory||'location')==='food'?' selected':''}" data-spycat="food">🍕 ${LANG==='ar'?'أكل':'Food'}</button>
+          <button class="content-btn spy-cat${(window.HYPOX_STATE.spyCategory||'location')==='sport'?' selected':''}" data-spycat="sport">⚽ ${LANG==='ar'?'رياضة':'Sport'}</button>
+          <button class="content-btn spy-cat${(window.HYPOX_STATE.spyCategory||'location')==='animal'?' selected':''}" data-spycat="animal">🦁 ${LANG==='ar'?'حيوان':'Animal'}</button>
+          <button class="content-btn spy-cat${(window.HYPOX_STATE.spyCategory||'location')==='celebrity'?' selected':''}" data-spycat="celebrity">⭐ ${LANG==='ar'?'مشهور':'Celebrity'}</button>
         </div>
       </div>`:''}
       ${isTrivia?`
@@ -311,6 +315,8 @@
   /* ---- START GAME ---- */
   async function startGameWithMode(playMode,gameMode){
     Audio_.sfx.submit();hostMode=playMode;
+    // Ensure clean state
+    window.__hypoxSkip=null;
     if(playMode!=='offline'&&!FirebaseNet.available()){Audio_.sfx.buzzer();alert(T.noFirebase());return;}
     if(net&&currentRoomCode&&!net.isOffline&&playMode!=='offline'){show('#scr-lobby');return;}
     net=createNet(playMode==='offline');
@@ -471,7 +477,7 @@
       show('#scr-title');
       $('#menuBtn').classList.add('hidden');$('#skipBtn').classList.add('hidden');
       $('#roundPill').style.visibility='hidden';
-      $('#topbar').classList.remove('show');
+      // Keep topbar visible - sound/theme/lang always accessible
     },100);
   }
 

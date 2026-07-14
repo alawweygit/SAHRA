@@ -1147,11 +1147,17 @@ const Host = (() => {
     const numSpies = window.HYPOX_STATE?.spyCount || 1;
     const catKey = window.HYPOX_STATE?.spyCategory || 'location';
     const CATS = {
-      location:{en:['Coffee shop','Beach','Airport','Hospital','School','Police station','Restaurant','Hotel','Bank','Library','Cinema','Gym','Museum','Train station','Mosque','Football stadium','Wedding hall','Desert camp','Shopping mall','Rooftop bar'],ar:['مقهى','شاطئ','مطار','مستشفى','مدرسة','مركز شرطة','مطعم','فندق','بنك','مكتبة','سينما','صالة رياضية','متحف','محطة قطار','مسجد','ملعب كرة قدم','قاعة أفراح','مخيم صحراوي','مول تجاري','سطح بار']},
-      event:{en:['Birthday party','Wedding','Job interview','First date','Graduation','Funeral','Press conference','Sports final','Music concert','Surprise party','Business meeting','Baby shower'],ar:['حفلة عيد ميلاد','حفل زفاف','مقابلة عمل','موعد أول','تخرج','جنازة','مؤتمر صحفي','نهائي رياضي','حفل موسيقي','حفلة مفاجأة','اجتماع عمل','بيبي شاور']},
-      movie:{en:['The Lion King','Titanic','Avengers','Harry Potter','Shrek','Frozen','The Godfather','Star Wars','Jurassic Park','Toy Story','Interstellar','The Dark Knight'],ar:['الأسد الملك','تيتانيك','أفنجرز','هاري بوتر','شريك','فروزن','العراب','حرب النجوم','حديقة الديناصورات','قصة لعبة','إنترستيلار','فارس الظلام']},
+      location:{en:['Coffee shop','Beach','Airport','Hospital','School','Police station','Restaurant','Hotel','Bank','Library','Cinema','Gym','Museum','Train station','Mosque','Football stadium','Wedding hall','Desert camp','Shopping mall','Submarine','Zoo','Space station','Casino','Prison','Cruise ship'],ar:['مقهى','شاطئ','مطار','مستشفى','مدرسة','مركز شرطة','مطعم','فندق','بنك','مكتبة','سينما','صالة رياضية','متحف','محطة قطار','مسجد','ملعب كرة قدم','قاعة أفراح','مخيم صحراوي','مول تجاري','سوق شعبي','حديقة حيوان','غواصة','محطة فضاء','سجن','سفينة سياحية']},
+      event:{en:['Birthday party','Wedding','Job interview','First date','Graduation','Funeral','Press conference','Sports final','Music concert','Surprise party','Business meeting','Baby shower','Divorce party','Prom night','Therapy session','Court trial'],ar:['حفلة عيد ميلاد','حفل زفاف','مقابلة عمل','موعد أول','تخرج','جنازة','مؤتمر صحفي','نهائي رياضي','حفل موسيقي','حفلة مفاجأة','اجتماع عمل','بيبي شاور','حفلة طلاق','ليلة السفرة','جلسة علاج نفسي','محاكمة']},
+      movie:{en:['The Lion King','Titanic','Avengers','Harry Potter','Shrek','Frozen','The Godfather','Star Wars','Jurassic Park','Toy Story','Interstellar','The Dark Knight','Forrest Gump','The Matrix','Home Alone','Joker'],ar:['الأسد الملك','تيتانيك','أفنجرز','هاري بوتر','شريك','فروزن','العراب','حرب النجوم','حديقة الديناصورات','قصة لعبة','إنترستيلار','فارس الظلام','فورست غامب','ذا ماتريكس','وحيدًا في المنزل','جوكر']},
+      food:{en:['Pizza','Sushi','Burger','Shawarma','Pasta','Tacos','Biryani','Hummus','Ramen','Steak','Fried chicken','Cheesecake'],ar:['بيتزا','سوشي','برغر','شاورما','باستا','تاكوس','برياني','حمص','رامن','ستيك','دجاج مقلي','تشيزكيك']},
+      sport:{en:['Football','Basketball','Tennis','Swimming','Boxing','Golf','Formula 1','Wrestling','Volleyball','Baseball','Cricket','Table tennis'],ar:['كرة القدم','كرة السلة','تنس','سباحة','ملاكمة','غولف','فورمولا 1','مصارعة','كرة طائرة','بيسبول','كريكيت','تنس طاولة']},
+      animal:{en:['Lion','Elephant','Dolphin','Eagle','Gorilla','Penguin','Giraffe','Shark','Crocodile','Panda','Kangaroo','Octopus'],ar:['أسد','فيل','دولفين','نسر','غوريلا','بطريق','زرافة','قرش','تمساح','باندا','كنغر','أخطبوط']},
+      celebrity:{en:['Cristiano Ronaldo','Elon Musk','Beyonce','Will Smith','Kim Kardashian','Lionel Messi','Taylor Swift','Jeff Bezos','MrBeast','Bad Bunny'],ar:['كريستيانو رونالدو','إيلون ماسك','بيونسيه','ويل سميث','كيم كارداشيان','ليونيل ميسي','تايلور سويفت','جيف بيزوس','مستر بيست','محمد عبده']},
     };
-    const pool=(CATS[catKey]||CATS.location)[LANG]||(CATS[catKey]||CATS.location).en;
+    const flavor = window.HYPOX_STATE?.flavor || 'global';
+    const langKey = flavor==='arab' ? 'ar' : LANG;
+    const pool=(CATS[catKey]||CATS.location)[langKey]||(CATS[catKey]||CATS.location).en;
     const word=pool[Math.floor(Math.random()*pool.length)];
     const pids=players.map(p=>p.pid);
     const spyPids=pids.slice().sort(()=>Math.random()-.5).slice(0,numSpies);
@@ -1159,8 +1165,25 @@ const Host = (() => {
     scene(`<div class="eyebrow">🕵️ ${LANG==='ar'?'لعبة الجاسوس':'SPY GAME'}</div>
       <div class="prompt-card display">${LANG==='ar'?'الكل شاف دوره على جواله':'Everyone check your role on your phone'}</div>
       <div class="pick-sub">${LANG==='ar'?numSpies+' جاسوس بينكم!':numSpies+' spy among you!'}</div>`);
-    net.setState({phase:'spy-roles',roles:Object.fromEntries(pids.map(pid=>[pid,spyPids.includes(pid)?{role:'spy',word:null}:{role:'agent',word}])),word,numSpies});
-    Audio_.sfx.sting(); await sleep(7000);
+    if(net.isOffline){
+      // One device: show each player their role privately one at a time
+      for(const pid of pids){
+        const p=players.find(x=>x.pid===pid);
+        const isSpy=spyPids.includes(pid);
+        await FX.wipe();
+        scene(`<div class="eyebrow">🕵️ ${esc(p.emoji+' '+p.name)}</div>
+          <div class="prompt-card display" style="color:${isSpy?'var(--pink)':'var(--green)'}">${isSpy?(LANG==='ar'?'🕵️ أنت الجاسوس!':'🕵️ YOU ARE THE SPY!'):(LANG==='ar'?'🤵 أنت عميل':'🤵 YOU ARE AN AGENT')}</div>
+          <div class="pick-sub">${isSpy?(LANG==='ar'?'اكتشف الكلمة السرية من الحديث':'Find the secret word from the discussion'):(LANG==='ar'?'الكلمة السرية: <strong style="color:var(--yellow)">'+word+'</strong>':'Secret word: <strong style="color:var(--yellow)">'+word+'</strong>')}</div>
+          <div class="pick-sub" style="opacity:.5;font-size:13px">${LANG==='ar'?'اضغط التالي لما تحفظ دورك':'Press Next when you have memorised your role'}</div>`);
+        await waitNext();
+        await FX.wipe();
+        scene(`<div class="prompt-card display">${LANG==='ar'?'✅ جاهز — مرّر الجهاز للشخص التالي':'✅ Done — pass the device to the next person'}</div>`);
+        await sleep(1500);
+      }
+    } else {
+      net.setState({phase:'spy-roles',roles:Object.fromEntries(pids.map(pid=>[pid,spyPids.includes(pid)?{role:'spy',word:null}:{role:'agent',word}])),word,numSpies});
+      Audio_.sfx.sting(); await sleep(7000);
+    }
     const DISC=Math.max(90,players.length*20);
     await FX.wipe();
     scene(`<div class="eyebrow">🕵️ ${LANG==='ar'?'وقت النقاش':'DISCUSSION TIME'}</div>
@@ -1175,7 +1198,7 @@ const Host = (() => {
     scene(`<div class="eyebrow">🗳️ ${LANG==='ar'?'صوّتوا':'VOTE'}</div>
       <div class="prompt-card display">${LANG==='ar'?'من هو الجاسوس؟':'Who is the spy?'}</div>
       <div id="statusRow" class="status-row"></div>`);
-    const votes=await collectWithTimer({type:'choice',title:LANG==='ar'?'من هو الجاسوس؟':'Who is the spy?',options:players.map(p=>({id:p.pid,label:p.emoji+' '+p.name,color:p.color})),seconds:20},pids,20);
+    const votes=await collectWithTimer({type:'choice',title:LANG==='ar'?'من هو الجاسوس؟':'Who is the spy?',options:players.map(p=>({id:p.pid,label:p.emoji+' '+p.name,color:p.color})),seconds:net.isOffline?999:20},pids,net.isOffline?999:20);
     const tally={};
     pids.forEach(pid=>{const v=val(votes,pid);if(v&&v!==pid)tally[v]=(tally[v]||0)+1;});
     const maxV=Math.max(0,...Object.values(tally));
