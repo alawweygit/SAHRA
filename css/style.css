@@ -1049,3 +1049,24 @@ html{font-size:17px;}
 .proof-text{font-size:clamp(14px,1.8vw,17px);color:var(--text);line-height:1.6;font-style:italic;}
 .proof-author{font-size:clamp(12px,1.4vw,14px);color:var(--text2);font-weight:600;}
 .landing-final{padding:6vmin 4vmin 10vmin;text-align:center;border-top:1px solid rgba(255,255,255,.07);}
+
+/* ===== HINT DISPLAY ===== */
+.hint-display{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:2vmin auto;max-width:700px;}
+.hint-letter{font-family:'Fredoka One',sans-serif;font-size:clamp(22px,3.5vw,36px);width:1.4em;text-align:center;border-bottom:3px solid var(--purple);color:transparent;transition:color .3s,border-color .3s;}
+.hint-letter.revealed{color:var(--yellow);border-color:var(--yellow);}
+.hint-space{width:.8em;}
+.timer-bar{width:80%;max-width:600px;height:6px;background:rgba(255,255,255,.15);border-radius:3px;margin:1.5vmin auto;overflow:hidden;}
+.timer-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--pink));transition:width .2s linear;}
+/* ===== FINAL LEADERBOARD ===== */
+.final-lb{display:flex;flex-direction:column;gap:8px;margin:2vmin auto;max-width:480px;width:100%;}
+.final-lb-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.06);border-radius:14px;padding:10px 16px;}
+.final-medal{font-size:22px;min-width:30px;}
+.final-name{flex:1;font-family:'Fredoka One',sans-serif;font-size:clamp(14px,2vw,18px);}
+.final-pts{font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(14px,2vw,18px);}
+/* ===== GAME GRID smaller ===== */
+.title-game-grid{grid-template-columns:repeat(auto-fill,minmax(min(155px,42vw),1fr))!important;gap:10px!important;}
+.title-game-card{padding:14px 10px!important;}
+.title-game-card .tgc-icon{font-size:clamp(26px,4.5vw,38px)!important;}
+.title-game-card .tgc-name{font-size:clamp(10px,1.5vw,13px)!important;}
+/* ===== GAME SCREEN SCROLL FIX ===== */
+#scr-games{padding-top:2vmin!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;justify-content:flex-start!important;}

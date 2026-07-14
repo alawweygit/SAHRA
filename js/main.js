@@ -10,9 +10,9 @@
     {emoji:'🐺',color:'#94a3b8',label:'Wolf'},{emoji:'🐯',color:'#f59e0b',label:'Tiger'},
     {emoji:'🦈',color:'#0ea5e9',label:'Shark'},
   ];
-  const MODE_MIN = {bluff:3,wyr:3,interrogation:3,diss:4,trivia:2,pinpoint:2,emoji:2,year:2,mostlikely:3,trueorlie:2,flaghunt:2,higherlow:2,'2t1l':3,emojiphrase:2,emojiword:2,emojiplace:2};
-  const MODE_ICONS = {bluff:'🔍',wyr:'⚖️',interrogation:'🔦',diss:'🎤',trivia:'⚡',pinpoint:'📍',emoji:'🧩',year:'⏳',mostlikely:'🏆',trueorlie:'✅',flaghunt:'🚩',higherlow:'📊','2t1l':'🤥',emojiphrase:'💬',emojiword:'💡',emojiplace:'🌍'};
-  const MODE_COLORS = {bluff:'#f472b6',wyr:'#60a5fa',interrogation:'#a78bfa',diss:'#fb923c',trivia:'#facc15',pinpoint:'#22d3ee',emoji:'#e879f9',year:'#fbbf24',mostlikely:'#f43f5e',trueorlie:'#10b981',flaghunt:'#ef4444',higherlow:'#8b5cf6','2t1l':'#f97316',emojiphrase:'#0ea5e9',emojiword:'#84cc16',emojiplace:'#06b6d4'};
+  const MODE_MIN = {bluff:3,wyr:3,interrogation:3,diss:4,trivia:2,pinpoint:2,emoji:2,year:2,mostlikely:3,trueorlie:2,flaghunt:2,higherlow:2,'2t1l':3,emojiplace:2,spy:3};
+  const MODE_ICONS = {bluff:'🔍',wyr:'⚖️',interrogation:'🔦',diss:'🎤',trivia:'⚡',pinpoint:'📍',emoji:'🧩',year:'⏳',mostlikely:'🏆',trueorlie:'✅',flaghunt:'🚩',higherlow:'📊','2t1l':'🤥',emojiplace:'🌍',spy:'🕵️'};
+  const MODE_COLORS = {bluff:'#f472b6',wyr:'#60a5fa',interrogation:'#a78bfa',diss:'#fb923c',trivia:'#facc15',pinpoint:'#22d3ee',emoji:'#e879f9',year:'#fbbf24',mostlikely:'#f43f5e',trueorlie:'#10b981',flaghunt:'#ef4444',higherlow:'#8b5cf6','2t1l':'#f97316',emojiplace:'#06b6d4',spy:'#64748b'};
   const CAT_INFO = [
     {id:'general',icon:'🎲',name:'General Mix',nameAr:'خلطة عامة'},
     {id:'geography',icon:'🌍',name:'Geography',nameAr:'جغرافيا'},
@@ -228,6 +228,19 @@
         </div>
       </div>
 
+      ${mode==='spy'?`
+      <div class="pg-block full">
+        <div class="pg-label">${LANG==='ar'?'عدد الجواسيس':'NUMBER OF SPIES'}</div>
+        <div class="round-btns">${[1,2,3].map(n=>`<button class="round-btn${(window.HYPOX_STATE.spyCount||1)===n?' selected':''}" data-spy="${n}">${n}</button>`).join('')}</div>
+      </div>
+      <div class="pg-block full">
+        <div class="pg-label">${LANG==='ar'?'نوع الكلمة السرية':'SECRET WORD CATEGORY'}</div>
+        <div class="content-btns">
+          <button class="content-btn spy-cat${(window.HYPOX_STATE.spyCategory||'location')==='location'?' selected':''}" data-spycat="location">📍 ${LANG==='ar'?'مكان':'Location'}</button>
+          <button class="content-btn spy-cat${(window.HYPOX_STATE.spyCategory||'location')==='event'?' selected':''}" data-spycat="event">🎉 ${LANG==='ar'?'حدث':'Event'}</button>
+          <button class="content-btn spy-cat${(window.HYPOX_STATE.spyCategory||'location')==='movie'?' selected':''}" data-spycat="movie">🎬 ${LANG==='ar'?'فيلم':'Movie'}</button>
+        </div>
+      </div>`:''}
       ${isTrivia?`
       <div class="pg-block full">
         <div class="pg-label">${T.category()}</div>
@@ -278,6 +291,14 @@
       }));
     }
 
+    document.querySelectorAll('[data-spy]').forEach(btn=>btn.addEventListener('click',()=>{
+      window.HYPOX_STATE.spyCount=+btn.dataset.spy;
+      document.querySelectorAll('[data-spy]').forEach(b=>b.classList.toggle('selected',b===btn));
+    }));
+    document.querySelectorAll('[data-spycat]').forEach(btn=>btn.addEventListener('click',()=>{
+      window.HYPOX_STATE.spyCategory=btn.dataset.spycat;
+      document.querySelectorAll('[data-spycat]').forEach(b=>b.classList.toggle('selected',b===btn));
+    }));
     document.getElementById('pgHostBtn').onclick=()=>startGameWithMode('tv',mode);
     document.getElementById('pgPhonesBtn').onclick=()=>startGameWithMode('phones',mode);
     document.getElementById('pgOfflineBtn').onclick=()=>startGameWithMode('offline',mode);
@@ -440,11 +461,18 @@
   function openMenu(){$('#menuOverlay').classList.remove('hidden');Audio_.sfx.blip();}
   function closeMenu(){$('#menuOverlay').classList.add('hidden');}
   function leaveGame(){
-    gameActive=false;window.__hypoxSkip=null;Audio_.stopMusic();
-    currentRoomCode=null;net=null;players=[];
-    show('#scr-title');
-    $('#menuBtn').classList.add('hidden');$('#skipBtn').classList.add('hidden');
-    $('#roomCodeText').textContent='—';$('#roundPill').style.visibility='hidden';
+    gameActive=false;
+    if(window.__hypoxSkip)window.__hypoxSkip();
+    window.__hypoxSkip=null;
+    if(net)try{net.setState({phase:'wait',msg:''});}catch(e){}
+    setTimeout(()=>{
+      Audio_.stopMusic();
+      currentRoomCode=null;net=null;players=[];
+      show('#scr-title');
+      $('#menuBtn').classList.add('hidden');$('#skipBtn').classList.add('hidden');
+      $('#roundPill').style.visibility='hidden';
+      $('#topbar').classList.remove('show');
+    },100);
   }
 
   /* ---- AVATAR ---- */
@@ -551,6 +579,13 @@
         Controller.render(ctrl,spec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>Controller.waitScreen(ctrl),600);});
       }else if(state.phase==='wait'){
         Controller.waitScreen(ctrl,state.msg||T.watchScreen());
+      }else if(state.phase==='spy-roles'&&state.roles){
+        const myRole=state.roles[myPid];
+        if(myRole){
+          const isSpy=myRole.role==='spy';
+          ctrl.innerHTML='<div class="ctrl-wrap" style="text-align:center;padding:30px 20px"><div style="font-size:64px;margin-bottom:16px">'+(isSpy?'🕵️':'🤵')+'</div><div style="font-family:Fredoka One,sans-serif;font-size:28px;color:'+(isSpy?'var(--pink)':'var(--green)')+'">'+( isSpy?(LANG==='ar'?'أنت الجاسوس!':'YOU ARE THE SPY!'):(LANG==='ar'?'أنت عميل':'YOU ARE AN AGENT'))+'</div><div style="font-size:18px;margin-top:12px;color:var(--text2)">'+(isSpy?(LANG==='ar'?'اكتشف الكلمة من الحديث':'Find the word from discussion'):(LANG==='ar'?'الكلمة: '+myRole.word:'Word: '+myRole.word))+'</div></div>';
+          if(isSpy)Audio_.sfx.buzzer();else Audio_.sfx.sting();
+        }
       }else if(state.phase==='winner'){
         ctrl.innerHTML=`<div class="ctrl-wrap"><div class="crown">👑</div><div class="ctrl-title display">${state.emoji} ${esc(state.name)}</div><div class="ctrl-sub">${T.winner()}</div></div>`;
         Audio_.sfx.fanfare();
