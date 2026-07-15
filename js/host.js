@@ -222,8 +222,8 @@ const Host = (() => {
         if(choice==='change'){
           players.forEach(p=>p.score=0);
           // Go back to game picker
-          if(typeof show==='function') show('#scr-games');
-          else window.__hypoxChangeGame=true;
+          // Navigate to game picker via global bridge
+          if(window.__hypoxShowScreen) window.__hypoxShowScreen('#scr-games');
         }
       });
     }
@@ -1083,7 +1083,7 @@ ${category} — ${totalLetters} letters`,
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
       const opts = [{id:'higher',label:LANG==='ar'?'⬆️ أكثر':'⬆️ Higher',color:'#34d399'},{id:'lower',label:LANG==='ar'?'⬇️ أقل':'⬇️ Lower',color:'#f472b6'}];
-      scene(`<div class="eyebrow">📊 ${LANG==='ar'?'فوق ولا تحت؟':'HIGHER OR LOWER?'}</div><div class="prompt-card display">${esc(Q.q)}</div><div class="year-reveal" style="font-size:clamp(28px,5vw,52px)">${hint.toLocaleString()} ${esc(Q.unit)}</div><div id="statusRow" class="status-row"></div>`);
+      scene(`<div class="eyebrow">📊 ${LANG==='ar'?'فوق ولا تحت؟':'HIGHER OR LOWER?'}</div><div class="prompt-card display">${esc(Q.q)}</div><div id="statusRow" class="status-row"></div>`);
       pushMirror({ headline: Q.q });
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p=>p.pid);
@@ -1346,7 +1346,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
     scene(`<div class="eyebrow">🗳️ ${LANG==='ar'?'صوّتوا':'VOTE'}</div>
       <div class="prompt-card display">${LANG==='ar'?'من هو الجاسوس؟':'Who is the spy?'}</div>
       <div id="statusRow" class="status-row"></div>`);
-    const votes=await collectWithTimer({type:'choice',title:LANG==='ar'?'من هو الجاسوس؟':'Who is the spy?',options:players.map(p=>({id:p.pid,label:p.emoji+' '+p.name,color:p.color})),seconds:net.isOffline?999:20},pids,net.isOffline?999:20);
+    const votes=await collectWithTimer({type:'choice',title:LANG==='ar'?'من هو الجاسوس؟':'Who is the spy?',options:players.map(p=>({id:p.pid,label:p.emoji+' '+p.name,color:p.color})),seconds:30},pids,30);
     const tally={};
     pids.forEach(pid=>{const v=val(votes,pid);if(v&&v!==pid)tally[v]=(tally[v]||0)+1;});
     const maxV=Math.max(0,...Object.values(tally));

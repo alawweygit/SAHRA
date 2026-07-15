@@ -88,6 +88,8 @@
   let booted=false;
   document.addEventListener('DOMContentLoaded',()=>{
     if(booted)return;booted=true;
+    // Expose show() globally for host.js to use
+    window.__hypoxShowScreen = show;
     applyTheme();
     applyLang();
     FX.init();
@@ -332,6 +334,23 @@
     document.getElementById('pgHostBtn').onclick=()=>selectPlayMode('tv');
     document.getElementById('pgPhonesBtn').onclick=()=>selectPlayMode('phones');
     document.getElementById('pgOfflineBtn').onclick=()=>selectPlayMode('offline');
+    // Pre-show start button with no mode selected yet
+    {
+      const startBtn=document.createElement('button');
+      startBtn.id='pgStartBtn';startBtn.className='big-btn';
+      startBtn.style.cssText='margin-top:2vmin;width:100%;max-width:400px;';
+      startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
+      startBtn.onclick=()=>{
+        if(!selectedPlayMode){
+          // Default to phones only if nothing selected
+          selectPlayMode('phones');
+          setTimeout(()=>startGameWithMode('phones',mode),100);
+          return;
+        }
+        startGameWithMode(selectedPlayMode,mode);
+      };
+      document.getElementById('pregameInner').appendChild(startBtn);
+    }
 
     const backBtn=$('#backFromPregame');
     backBtn.textContent=T.back();
@@ -341,8 +360,10 @@
   /* ---- START GAME ---- */
   async function startGameWithMode(playMode,gameMode){
     Audio_.sfx.submit();hostMode=playMode;
-    // Ensure clean state
     window.__hypoxSkip=null;
+    // Show loading state
+    const startBtn=document.getElementById('pgStartBtn');
+    if(startBtn){startBtn.textContent=LANG==='ar'?'⏳ جاري التحميل…':'⏳ Loading…';startBtn.disabled=true;}
     if(playMode!=='offline'&&!FirebaseNet.available()){Audio_.sfx.buzzer();alert(T.noFirebase());return;}
     if(net&&currentRoomCode&&!net.isOffline&&playMode!=='offline'){show('#scr-lobby');return;}
     net=createNet(playMode==='offline');
@@ -372,7 +393,9 @@
     $('#addLocalBtn').textContent=T.addPlayer();
     $('#startGameBtn').textContent=T.startGame();
     // Back button — goes to game picker
-    if(!document.getElementById('lobbyBackBtn')){
+    // Remove old back btn if exists
+    document.getElementById('lobbyBackBtn')?.remove();
+    {
       const bb=document.createElement('button');
       bb.id='lobbyBackBtn';bb.className='bar-btn';
       bb.style.cssText='margin-top:1vmin;display:block;margin-left:auto;margin-right:auto;';

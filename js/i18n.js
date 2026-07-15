@@ -406,8 +406,11 @@ function setLang(l) { LANG = l; localStorage.setItem('hypox_lang', l); applyLang
 function setTheme(th) { THEME = th; localStorage.setItem('hypox_theme', th); applyTheme(); }
 function applyLang() {
   document.documentElement.lang = LANG;
-  document.documentElement.dir = I18N[LANG].dir;
+  // Do NOT set dir on html - it flips logos/codes. Use CSS class instead.
   document.body.classList.toggle('ar', LANG === 'ar');
+  // Only set dir on content wrapper, not on html element
+  const stage = document.getElementById('hostStage');
+  if(stage) stage.dir = LANG === 'ar' ? 'rtl' : 'ltr';
 }
 function applyTheme() {
   document.body.classList.toggle('theme-light', THEME === 'light');

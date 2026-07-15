@@ -1273,3 +1273,62 @@ body.rtl .logo-letters,
 body.rtl .room-code,
 body.rtl #roundPill,
 body.rtl .score-row { direction: ltr; }
+
+/* ===== RTL FIXES - body.ar class ===== */
+body.ar .prompt-card,
+body.ar .pick-sub,
+body.ar .eyebrow,
+body.ar .ctrl-title,
+body.ar .ctrl-context,
+body.ar .pg-label,
+body.ar .mode-tag,
+body.ar .mode-rules,
+body.ar .tutorial-steps { direction: rtl; text-align: right; }
+
+/* HYPOX logo, room code, scores always LTR regardless of language */
+body.ar .logo-letters,
+body.ar .hero-logo,
+body.ar #roundPill,
+body.ar .room-code,
+body.ar .score-row,
+body.ar .bar-fill,
+body.ar .final-lb-row,
+body.ar .rebus-emojis,
+body.ar .hint-display { direction: ltr !important; text-align: center !important; }
+
+/* ===== MOBILE GAME GRID - prevent overflow ==== */
+@media(max-width:600px){
+  .title-game-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    padding: 0 8px;
+  }
+  .title-game-card { padding: 12px 8px !important; min-height: 100px; }
+  .tgc-name { font-size: 10px !important; line-height: 1.2; }
+  .tgc-tag { display: none; }
+  .tgc-min { font-size: 10px !important; }
+}
+
+/* ===== PREGAME MOBILE ===== */
+@media(max-width:600px){
+  .pregame-inner { padding: 12px !important; gap: 10px !important; }
+  .pg-block { padding: 12px !important; }
+  .pg-title { font-size: clamp(18px,5vw,24px) !important; }
+  .pmm-btn { padding: 12px 10px !important; }
+  .spy-cat-grid { grid-template-columns: repeat(auto-fill, minmax(80px,1fr)); gap: 6px; }
+  .spy-cat-btn { padding: 8px 4px; font-size: 11px; }
+}
+
+/* ===== LOADING STATE ===== */
+.big-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ===== GAME SCREEN MOBILE ===== */
+@media(max-width:600px){
+  #scr-game { padding: 12px 8px !important; }
+  .quiz-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+  .quiz-opt { padding: 12px 8px !important; font-size: 13px !important; min-height: 52px; }
+  .score-list { gap: 6px !important; }
+  .score-row { padding: 6px 4px !important; }
+  .year-reveal { font-size: clamp(32px,8vw,52px) !important; }
+  .rebus-emojis { font-size: clamp(42px,10vw,72px) !important; letter-spacing: 4px !important; }
+}
