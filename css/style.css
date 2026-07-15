@@ -1092,3 +1092,41 @@ html{font-size:17px;}
   0%,100% { box-shadow: 0 0 0 0 rgba(244,114,182,.4); }
   50% { box-shadow: 0 0 0 12px rgba(244,114,182,0); }
 }
+
+/* ===== MENU OVERHAUL ===== */
+.menu-divider { height:1px; background:rgba(255,255,255,.1); margin:8px 0; }
+.menu-settings {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+.menu-setting-btn {
+  background: rgba(255,255,255,.08);
+  border: 1.5px solid rgba(255,255,255,.15);
+  border-radius: 50px;
+  padding: 8px 16px;
+  color: var(--text);
+  font-family: 'Fredoka One', sans-serif;
+  font-size: clamp(13px,1.8vw,15px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background .2s;
+}
+.menu-setting-btn:hover { background: rgba(255,255,255,.15); }
+#menuSkip { color: var(--yellow); }
+
+/* ===== MOBILE TOPBAR - push down from status bar ===== */
+@media(max-width:600px){
+  #topbar { top: env(safe-area-inset-top, 0px); padding-top: max(2vmin, 8px); }
+}
+
+/* ===== SPY ROLE REVEAL SCREEN ===== */
+.spy-pass-screen {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 2vmin; padding: 4vmin;
+  text-align: center;
+}

@@ -405,7 +405,7 @@
 
   async function startDirectGame(gameMode){
     Audio_.stopMusic();await FX.wipe();Host.hideHost();
-    show('#scr-game');gameActive=true;$('#skipBtn').classList.remove('hidden');$('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');$('#roundPill').style.visibility='visible';
+    show('#scr-game');gameActive=true;const sk=$('#menuSkip');if(sk)sk.classList.remove('hidden');$('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');$('#roundPill').style.visibility='visible';
     $('#skipBtn').textContent=T.skip();
     $('#roundPill').textContent=(t('mode_names')||{})[gameMode]||gameMode;
     net.setState({phase:'wait',msg:T.watchScreen()});
@@ -415,7 +415,7 @@
 
   async function showPackPicker(){
     Audio_.stopMusic();await FX.wipe();Host.hideHost();
-    show('#scr-game');gameActive=true;$('#skipBtn').classList.add('hidden');
+    show('#scr-game');gameActive=true;const sk2=$('#menuSkip');if(sk2)sk2.classList.add('hidden');
     $('#roundPill').textContent=T.nextGame();
     const modeNamesObj=t('mode_names')||{};
     const modeTagsObj=t('mode_taglines')||{};
@@ -478,7 +478,7 @@
       const hb=$('#hostBubble');if(hb)hb.textContent='';
       const hel=$('#host');if(hel)hel.classList.remove('show');
       show('#scr-title');
-      $('#menuBtn').classList.add('hidden');$('#skipBtn').classList.add('hidden');
+      $('#menuBtn').classList.add('hidden');const skc=$('#menuSkip');if(skc)skc.classList.add('hidden');
       $('#roundPill').style.visibility='hidden';
     },100);
   }

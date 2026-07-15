@@ -39,20 +39,24 @@
     <div class="round-pill display" id="roundPill">HYPOX</div>
     <div style="display:flex;gap:0.8vmin;">
       <button class="bar-btn hidden" id="menuBtn">☰</button>
-      <button class="bar-btn hidden" id="skipBtn">Skip ▸</button>
-      <button class="bar-btn" id="soundBtn">🔊</button>
-      <button class="bar-btn" id="themeBtn">🌙</button>
-      <button class="bar-btn" id="langBtn">عر</button>
     </div>
   </div>
 
   <!-- MENU -->
   <div id="menuOverlay" class="hidden">
     <div class="menu-card">
-      <div class="menu-title display">MENU</div>
-      <button class="menu-item" id="menuResume">▶ Resume Game</button>
-      <button class="menu-item danger" id="menuLeave">✕ Leave Game</button>
-      <button class="bar-btn" id="menuClose" style="margin-top:1vmin">Cancel</button>
+      <div class="menu-title display" id="menuTitle">MENU</div>
+      <button class="menu-item" id="menuResume" id="menuResume">▶ <span id="menuResumeLabel">Resume Game</span></button>
+      <button class="menu-item hidden" id="menuSkip">⏩ <span id="menuSkipLabel">Skip Round</span></button>
+      <div class="menu-divider"></div>
+      <div class="menu-settings">
+        <button class="menu-setting-btn" id="soundBtn">🔊 <span id="soundLabel">Sound</span></button>
+        <button class="menu-setting-btn" id="themeBtn">🌙 <span id="themeLabel">Theme</span></button>
+        <button class="menu-setting-btn" id="langBtn">عر <span id="langLabel">Language</span></button>
+      </div>
+      <div class="menu-divider"></div>
+      <button class="menu-item danger" id="menuLeave">✕ <span id="menuLeaveLabel">Leave Game</span></button>
+      <button class="bar-btn" id="menuClose" style="margin-top:1vmin" id="menuCloseBtn">✕</button>
     </div>
   </div>
 
