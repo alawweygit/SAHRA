@@ -1248,3 +1248,28 @@ html{font-size:17px;}
   margin-left: auto;
   margin-right: auto;
 }
+
+/* ===== PLAY MODE BUTTONS - independent selection ===== */
+.play-mode-btn { border-color: var(--border-hi) !important; color: var(--text) !important; }
+.play-mode-btn.selected { border-color: var(--yellow) !important; color: var(--yellow) !important; background: rgba(251,191,36,.1) !important; }
+.play-mode-btn .pmm-name { color: inherit; }
+
+/* ===== WHATSAPP BUTTON ===== */
+.wa-btn { background: rgba(37,211,102,.15) !important; border-color: #25D366 !important; color: #25D366 !important; }
+
+/* ===== HYPOX LOGO - always LTR ===== */
+.logo-letters, .hero-logo, #roundPill { direction: ltr !important; unicode-bidi: isolate; }
+
+/* ===== RTL body fixes ===== */
+body.rtl .hero-headline { direction: rtl; }
+body.rtl .prompt-card { direction: rtl; }
+body.rtl .pick-sub { direction: rtl; }
+body.rtl .ctrl-title { direction: rtl; }
+body.rtl .ctrl-context { direction: rtl; }
+body.rtl .menu-card { direction: rtl; text-align: right; }
+body.rtl .pg-label { direction: rtl; }
+/* But keep logos/codes LTR */
+body.rtl .logo-letters,
+body.rtl .room-code,
+body.rtl #roundPill,
+body.rtl .score-row { direction: ltr; }
