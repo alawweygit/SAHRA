@@ -1392,11 +1392,22 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
   async function run(netInstance, playerList, mode) {
     net = netInstance;
     players = playerList;
-    pickHost();
-    $('#skipBtn')?.classList.remove('hidden');
-    await MODES[mode]();
-    await winnerScene();
-    $('#skipBtn')?.classList.add('hidden');
+    let playAgain = true;
+    while(playAgain) {
+      playAgain = false;
+      window.__hypoxPlayAgain = false;
+      players.forEach(p=>p.score=0);
+      pickHost();
+      $('#menuSkip')?.classList.remove('hidden');
+      await MODES[mode]();
+      await winnerScene();
+      $('#menuSkip')?.classList.add('hidden');
+      if(window.__hypoxPlayAgain) {
+        playAgain = true;
+      } else if(window.__hypoxShowScreen) {
+        window.__hypoxShowScreen('#scr-games');
+      }
+    }
   }
 
   return { run, say, hideHost, avatarHTML, scene, setPill };

@@ -109,8 +109,8 @@
     });
     $('#langBtn').textContent=LANG==='en'?'عر':'EN';
     $('#skipBtn').addEventListener('click',()=>{if(window.__hypoxSkip){window.__hypoxSkip();window.__hypoxSkip=null;}});
-    $('#menuBtn').classList.remove('hidden'); // always visible
     $('#menuBtn').addEventListener('click',openMenu);
+    $('#menuBtn').classList.remove('hidden'); // always visible from start
     $('#menuClose').addEventListener('click',closeMenu);
     $('#menuResume').addEventListener('click',closeMenu);
     $('#menuLeave').addEventListener('click',()=>{closeMenu();if(gameActive){leaveGame();}else{show('#scr-title');}});
