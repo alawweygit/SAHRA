@@ -127,7 +127,10 @@
     $('#avatarName').addEventListener('keydown',e=>{if(e.key==='Enter')confirmAvatar();});
 
     // Lobby
-    $('#addLocalBtn').addEventListener('click',()=>showAvatarPicker('offline'));
+    $('#addLocalBtn').addEventListener('click',()=>{
+      if(!net||!net.isOffline){console.warn('Not in offline mode');return;}
+      showAvatarPicker('offline');
+    });
 
     // URL auto-join
     const urlParams=new URLSearchParams(window.location.search);
@@ -316,8 +319,17 @@
     let selectedPlayMode = null;
     function selectPlayMode(mode){
       selectedPlayMode=mode;
-      $$('.play-mode-btn').forEach(b=>b.classList.remove('selected'));
-      document.getElementById('pg'+({tv:'Host',phones:'Phones',offline:'Offline'}[mode])+'Btn')?.classList.add('selected');
+      $$('.play-mode-btn').forEach(b=>{
+        b.classList.remove('selected');
+        b.style.borderColor='';b.style.color='';b.style.background='';
+      });
+      const btn=document.getElementById('pg'+({tv:'Host',phones:'Phones',offline:'Offline'}[mode])+'Btn');
+      if(btn){
+        btn.classList.add('selected');
+        btn.style.borderColor='var(--yellow)';
+        btn.style.color='var(--yellow)';
+        btn.style.background='rgba(251,191,36,0.12)';
+      }
       // Show start button
       let startBtn=document.getElementById('pgStartBtn');
       if(!startBtn){
@@ -389,7 +401,9 @@
 
   function setupLobby(gameMode){
     gameActive=false;
-    $('#localAdd').classList.toggle('hidden',!net.isOffline);
+    const isOff = net && net.isOffline;
+    $('#localAdd').classList.toggle('hidden',!isOff);
+    if(isOff) $('#addLocalBtn').onclick=()=>showAvatarPicker('offline');
     $('#addLocalBtn').textContent=T.addPlayer();
     $('#startGameBtn').textContent=T.startGame();
     // Back button — goes to game picker

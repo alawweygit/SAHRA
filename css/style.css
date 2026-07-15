@@ -1332,3 +1332,29 @@ body.ar .hint-display { direction: ltr !important; text-align: center !important
   .year-reveal { font-size: clamp(32px,8vw,52px) !important; }
   .rebus-emojis { font-size: clamp(42px,10vw,72px) !important; letter-spacing: 4px !important; }
 }
+
+/* ===== TUTORIAL BULLETS ===== */
+.tutorial-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 500px;
+  margin: 1.5vmin auto;
+  text-align: left;
+}
+.tutorial-bullet {
+  background: rgba(255,255,255,.06);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: clamp(13px,1.8vw,16px);
+  color: var(--text);
+  line-height: 1.4;
+}
+body.ar .tutorial-bullets { text-align: right; }
+
+/* ===== SCORE BARS - prevent overflow ===== */
+.bar-fill {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

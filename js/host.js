@@ -143,12 +143,16 @@ const Host = (() => {
     const startLabel = LANG === 'ar' ? 'ابدأ ▶' : 'START ▶';
     Content.get(mode, LANG, window.HYPOX_STATE?.rounds||5).catch(()=>{});
     const icon = (typeof MODE_ICONS !== 'undefined' ? MODE_ICONS : {})[mode] || '🎮';
+    // Convert rules text to max 3 bullet points
+    const rulesText = t('mode_rules')[mode] || '';
+    const bulletRules = rulesText.split('.').filter(s=>s.trim().length>5).slice(0,3)
+      .map(s=>`<div class="tutorial-bullet">▸ ${esc(s.trim())}.</div>`).join('');
     scene(`
       <div class="mode-card">
         <div class="tutorial-icon">${icon}</div>
         <div class="mode-title display">${esc(t('mode_names')[mode])}</div>
         <div class="mode-tag">${esc(t('mode_taglines')[mode])}</div>
-        <div class="tutorial-steps">${esc(t('mode_rules')[mode])}</div>
+        <div class="tutorial-bullets">${bulletRules}</div>
         <button class="big-btn pulse-btn" id="startModeBtn" style="margin-top:2vmin">${startLabel}</button>
       </div>`);
     setPill(t('mode_names')[mode]);
@@ -1027,7 +1031,7 @@ ${category} — ${totalLetters} letters`,
       right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
       Audio_.sfx.reveal();
       const resultLabel = Q.truth?(LANG==='ar'?'✅ حقيقة!':'✅ TRUE!'):(LANG==='ar'?'❌ خطأ!':'❌ FALSE!');
-      scene(`<div class="eyebrow">${esc(Q.s)}</div><div class="prompt-card display" style="color:${Q.truth?'var(--green)':'var(--pink)'}">${resultLabel}</div><div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name)} ${got?'✓ +'+( SPEED_PTS[right.indexOf(pid)]||400):'✗ 0'}</div></div></div>`;}).join('')}</div>`);
+      scene(`<div class="eyebrow">${esc(Q.s)}</div><div class="prompt-card display" style="color:${Q.truth?'var(--green)':'var(--pink)'}">${resultLabel}</div><div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+( SPEED_PTS[right.indexOf(pid)]||400):'✗ 0'}</div></div></div>`;}).join('')}</div>`);
       pushMirror({ headline: resultLabel });
       FX.burst(60);
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?'ولا واحد عرفها!':'Nobody got it!'));
@@ -1062,8 +1066,10 @@ ${category} — ${totalLetters} letters`,
       }).sort((a,b)=>answers[a].order-answers[b].order);
       right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
       Audio_.sfx.reveal(); FX.burst(80);
-      scene(`<div class="eyebrow">🚩 ${Q.flag} = <span style="color:var(--yellow)">${esc(answer)}</span></div>
-        <div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=right.includes(pid);const pts=got?SPEED_PTS[right.indexOf(pid)]||400:0;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name)} ${got?'✓ +'+pts:'✗ 0'}</div></div></div>`;}).join('')}</div>`);
+      scene(`<div class="eyebrow">🚩 FLAG HUNT</div>
+        <div style="font-size:clamp(70px,12vw,110px);text-align:center;margin:1vmin 0;line-height:1">${Q.flag}</div>
+        <div class="prompt-card display" style="color:var(--yellow);font-size:clamp(24px,4vw,42px);margin:1vmin 0">${esc(answer)}</div>
+        <div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=right.includes(pid);const pts=got?SPEED_PTS[right.indexOf(pid)]||400:0;const typed=(val(answers,pid)||'').trim()||'—';return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+pts:'✗ '+esc(typed)}</div></div></div>`;}).join('')}</div>`);
       pushMirror({ headline: `${Q.flag} = ${answer}` });
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`ولا واحد! هو ${answer}`:`Nobody! It was ${answer}.`));
       hideHost(); await waitNext();
@@ -1094,7 +1100,7 @@ ${category} — ${totalLetters} letters`,
       right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
       Audio_.sfx.reveal(); FX.burst(60);
       const ansLabel = correctId==='higher'?(LANG==='ar'?`⬆️ أكثر! الجواب: ${Q.n.toLocaleString()} ${Q.unit}`:`⬆️ Higher! Answer: ${Q.n.toLocaleString()} ${Q.unit}`):(LANG==='ar'?`⬇️ أقل! الجواب: ${Q.n.toLocaleString()} ${Q.unit}`:`⬇️ Lower! Answer: ${Q.n.toLocaleString()} ${Q.unit}`);
-      scene(`<div class="eyebrow">${esc(Q.q)}</div><div class="prompt-card display" style="color:var(--yellow)">${ansLabel}</div><div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name)} ${got?'✓ +'+( SPEED_PTS[right.indexOf(pid)]||400):'✗ 0'}</div></div></div>`;}).join('')}</div>`);
+      scene(`<div class="eyebrow">${esc(Q.q)}</div><div class="prompt-card display" style="color:var(--yellow)">${ansLabel}</div><div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+( SPEED_PTS[right.indexOf(pid)]||400):'✗ 0'}</div></div></div>`;}).join('')}</div>`);
       pushMirror({ headline: ansLabel });
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?'ولا واحد صاح!':'Nobody got it!'));
       hideHost(); await waitNext();
@@ -1264,7 +1270,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
       scene(`<div class="eyebrow">🌍 ${esc(Q.e)}</div>
         <div class="rebus-answer display">${esc(answer.toUpperCase())}</div>
         ${exp?`<div class="rebus-explain">${esc(exp)}</div>`:''}
-        <div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=right.includes(pid);const pts=got?Math.max(100,currentMaxPts-right.indexOf(pid)*50):0;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name)} ${got?'✓ +'+pts:'✗ 0'}</div></div></div>`;}).join('')}</div>`);
+        <div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=right.includes(pid);const pts=got?Math.max(100,currentMaxPts-right.indexOf(pid)*50):0;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+pts:'✗ 0'}</div></div></div>`;}).join('')}</div>`);
       pushMirror({headline:`🌍 = ${answer.toUpperCase()}`});
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`المكان: ${answer}`:`It was ${answer}! ${exp}`));
       hideHost(); await waitNext();
@@ -1295,7 +1301,8 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
     const pool=(CATS[catKey]||CATS.location)[poolLang]||(CATS[catKey]||CATS.location).en;
     const word=pool[Math.floor(Math.random()*pool.length)];
     const pids=players.map(p=>p.pid);
-    const spyPids=pids.slice().sort(()=>Math.random()-.5).slice(0,numSpies);
+    const safeSpyCount = Math.min(numSpies, Math.floor(pids.length/2));
+    const spyPids=pids.slice().sort(()=>Math.random()-.5).slice(0,safeSpyCount);
     await FX.wipe(); setPill(LANG==='ar'?'الجاسوس':'SPY');
     scene(`<div class="eyebrow">🕵️ ${LANG==='ar'?'لعبة الجاسوس':'SPY GAME'}</div>
       <div class="prompt-card display">${LANG==='ar'?'الكل شاف دوره على جواله':'Everyone check your role on your phone'}</div>
@@ -1332,7 +1339,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
       net.setState({phase:'spy-roles',roles:Object.fromEntries(pids.map(pid=>[pid,spyPids.includes(pid)?{role:'spy',word:null}:{role:'agent',word}])),word,numSpies});
       Audio_.sfx.sting(); await sleep(7000);
     }
-    const DISC=Math.max(90,players.length*20);
+    const DISC=Math.max(60,players.length*15); // 60s for 3p, 75s for 5p, 90s for 6p+
     await FX.wipe();
     scene(`<div class="eyebrow">🕵️ ${LANG==='ar'?'وقت النقاش':'DISCUSSION TIME'}</div>
       <div class="prompt-card display">${LANG==='ar'?'ناقشوا — من الجاسوس؟':'Discuss — who is the spy?'}</div>
