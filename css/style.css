@@ -1130,3 +1130,75 @@ html{font-size:17px;}
   justify-content: center; gap: 2vmin; padding: 4vmin;
   text-align: center;
 }
+
+/* ===== SPY CATEGORY GRID ===== */
+.spy-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+.spy-cat-btn {
+  background: rgba(255,255,255,.07);
+  border: 2px solid rgba(255,255,255,.15);
+  border-radius: 12px;
+  padding: 10px 8px;
+  color: var(--text);
+  font-family: 'Fredoka One', sans-serif;
+  font-size: clamp(12px,1.6vw,14px);
+  cursor: pointer;
+  text-align: center;
+  transition: all .2s;
+}
+.spy-cat-btn.selected {
+  background: rgba(244,114,182,.2);
+  border-color: var(--pink);
+  color: var(--pink);
+}
+.spy-cat-btn:active { transform: scale(.95); }
+
+/* ===== MOBILE GLOBAL OPTIMIZATIONS ===== */
+@media(max-width:600px){
+  /* Bigger tap targets */
+  .big-btn { min-height: 52px; font-size: clamp(16px,4vw,20px); }
+  .round-btn { min-width: 52px; min-height: 52px; font-size: 18px; }
+  .content-btn { min-height: 48px; font-size: 14px; padding: 10px 14px; }
+  .pmm-btn { padding: 14px 12px; }
+  .pmm-name { font-size: 15px; }
+  .pmm-sub { font-size: 12px; }
+  .choice-btn { min-height: 56px; font-size: 15px; padding: 14px 12px; }
+  /* Bigger text in game */
+  .prompt-card { font-size: clamp(18px,4.5vw,28px) !important; padding: 20px !important; }
+  .prompt-card.small { font-size: clamp(15px,3.5vw,20px) !important; }
+  .eyebrow { font-size: clamp(13px,3vw,16px); }
+  .pick-sub { font-size: clamp(13px,3vw,16px); }
+  /* Scores readable */
+  .score-row { padding: 8px 6px; }
+  .bar-fill { font-size: clamp(12px,3vw,15px); min-height: 36px; padding: 6px 10px; }
+  /* Menu bigger on mobile */
+  .menu-card { padding: 24px 20px; width: min(90vw, 360px); }
+  .menu-item { min-height: 52px; font-size: 17px; }
+  .menu-setting-btn { min-height: 48px; font-size: 15px; }
+  /* Pregame readable */
+  .pg-title { font-size: clamp(20px,5vw,28px) !important; }
+  .pg-label { font-size: 13px; letter-spacing: .06em; }
+  /* Hint display bigger on mobile */
+  .hint-letter { font-size: clamp(26px,6vw,40px); }
+  /* Game cards on mobile */
+  .title-game-card { padding: 12px 8px !important; }
+  /* Final leaderboard */
+  .final-lb-row { padding: 8px 12px; }
+  .final-name { font-size: 15px; }
+  .final-pts { font-size: 15px; }
+  /* Tutorial icon */
+  .tutorial-icon { font-size: 60px; }
+}
+
+/* ===== CTRL WRAP MOBILE - phone input screens ===== */
+@media(max-width:600px){
+  .ctrl-wrap { padding: 20px 16px; gap: 14px; }
+  .ctrl-title { font-size: clamp(18px,5vw,24px); }
+  .ctrl-context { font-size: clamp(20px,5vw,28px); }
+  .ctrl-input { font-size: 16px; min-height: 100px; padding: 12px; }
+  .ctrl-submit { min-height: 52px; font-size: 18px; }
+}

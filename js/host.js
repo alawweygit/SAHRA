@@ -205,6 +205,27 @@ const Host = (() => {
       await hostSay('scores');
       Audio_.stopMusic();
       await waitNext(7);
+    } else {
+      // Final scores - show play again options
+      hostSay('scores');
+      const btnsDiv = document.createElement('div');
+      btnsDiv.style.cssText = 'display:flex;flex-direction:column;gap:12px;margin-top:2vmin;align-items:center;';
+      btnsDiv.innerHTML = `
+        <button class="big-btn" id="playAgainBtn" style="max-width:340px;width:100%">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
+        <button class="big-btn ghost" id="changeGameBtn" style="max-width:340px;width:100%">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>`;
+      const sceneEl = document.getElementById('scr-game');
+      if(sceneEl) sceneEl.appendChild(btnsDiv);
+      await new Promise(res => {
+        document.getElementById('playAgainBtn')?.addEventListener('click',()=>{btnsDiv.remove();res('again');},{once:true});
+        document.getElementById('changeGameBtn')?.addEventListener('click',()=>{btnsDiv.remove();res('change');},{once:true});
+      }).then(choice => {
+        if(choice==='change'){
+          players.forEach(p=>p.score=0);
+          // Go back to game picker
+          if(typeof show==='function') show('#scr-games');
+          else window.__hypoxChangeGame=true;
+        }
+      });
     }
   }
 

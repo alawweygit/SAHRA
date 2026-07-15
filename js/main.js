@@ -206,12 +206,12 @@
       </div>
 
       <div class="pg-row">
-        <div class="pg-block">
+        ${mode!=='spy'?`<div class="pg-block">
           <div class="pg-label">${T.rounds()}</div>
           <div class="round-btns">
             ${[5,10,15].map(n=>`<button class="round-btn${window.HYPOX_STATE.rounds===n?' selected':''}" data-r="${n}">${n}</button>`).join('')}
           </div>
-        </div>
+        </div>`:''}
         <div class="pg-block">
           <div class="pg-label">${T.content()}</div>
           <div class="content-btns">
@@ -275,37 +275,62 @@
         </div>
       </div>`;
 
-    // Round buttons
-    $$('.round-btn').forEach(btn=>btn.addEventListener('click',()=>{
-      $$('.round-btn').forEach(b=>b.classList.remove('selected'));
+    // Round buttons (each group independent)
+    $$('[data-r]').forEach(btn=>btn.addEventListener('click',()=>{
+      $$('[data-r]').forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');window.HYPOX_STATE.rounds=+btn.dataset.r;Audio_.sfx.blip();
     }));
-    $$('.content-btn:not(.pace-btn)').forEach(btn=>btn.addEventListener('click',()=>{
-      $$('.content-btn:not(.pace-btn)').forEach(b=>b.classList.remove('selected'));
+    // Flavor buttons (Arab/Global)
+    $$('[data-flavor]').forEach(btn=>btn.addEventListener('click',()=>{
+      $$('[data-flavor]').forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');window.HYPOX_STATE.flavor=btn.dataset.flavor;Audio_.sfx.blip();
     }));
-    $$('.pace-btn').forEach(btn=>btn.addEventListener('click',()=>{
-      $$('.pace-btn').forEach(b=>b.classList.remove('selected'));
+    // Pace buttons
+    $$('[data-pace]').forEach(btn=>btn.addEventListener('click',()=>{
+      $$('[data-pace]').forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');window.HYPOX_STATE.autoplay=btn.dataset.pace==='auto';Audio_.sfx.blip();
     }));
+    // Trivia category
     if(isTrivia){
       $$('.cat-card-sm').forEach(btn=>btn.addEventListener('click',()=>{
         $$('.cat-card-sm').forEach(b=>b.classList.remove('selected'));
         btn.classList.add('selected');window.HYPOX_STATE.category=btn.dataset.cat;Audio_.sfx.blip();
       }));
     }
-
+    // Spy count
     document.querySelectorAll('[data-spy]').forEach(btn=>btn.addEventListener('click',()=>{
       window.HYPOX_STATE.spyCount=+btn.dataset.spy;
       document.querySelectorAll('[data-spy]').forEach(b=>b.classList.toggle('selected',b===btn));
+      Audio_.sfx.blip();
     }));
+    // Spy category - independent of flavor
     document.querySelectorAll('[data-spycat]').forEach(btn=>btn.addEventListener('click',()=>{
       window.HYPOX_STATE.spyCategory=btn.dataset.spycat;
       document.querySelectorAll('[data-spycat]').forEach(b=>b.classList.toggle('selected',b===btn));
+      Audio_.sfx.blip();
     }));
-    document.getElementById('pgHostBtn').onclick=()=>startGameWithMode('tv',mode);
-    document.getElementById('pgPhonesBtn').onclick=()=>startGameWithMode('phones',mode);
-    document.getElementById('pgOfflineBtn').onclick=()=>startGameWithMode('offline',mode);
+    // Play mode buttons now just SET the mode, show a START button
+    let selectedPlayMode = null;
+    function selectPlayMode(mode){
+      selectedPlayMode=mode;
+      $$('.pmm-btn').forEach(b=>b.classList.remove('selected'));
+      document.getElementById('pg'+({tv:'Host',phones:'Phones',offline:'Offline'}[mode])+'Btn')?.classList.add('selected');
+      // Show start button
+      let startBtn=document.getElementById('pgStartBtn');
+      if(!startBtn){
+        startBtn=document.createElement('button');
+        startBtn.id='pgStartBtn';
+        startBtn.className='big-btn';
+        startBtn.style.cssText='margin-top:2vmin;width:100%;max-width:400px;';
+        document.getElementById('pregameInner').appendChild(startBtn);
+      }
+      startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
+      startBtn.onclick=()=>startGameWithMode(selectedPlayMode,mode);
+      Audio_.sfx.blip();
+    }
+    document.getElementById('pgHostBtn').onclick=()=>selectPlayMode('tv');
+    document.getElementById('pgPhonesBtn').onclick=()=>selectPlayMode('phones');
+    document.getElementById('pgOfflineBtn').onclick=()=>selectPlayMode('offline');
 
     const backBtn=$('#backFromPregame');
     backBtn.textContent=T.back();
@@ -351,7 +376,7 @@
       bb.id='lobbyBackBtn';bb.className='bar-btn';
       bb.style.cssText='margin-top:1vmin;display:block;margin-left:auto;margin-right:auto;';
       bb.textContent=LANG==='ar'?'→ رجوع':'← Back';
-      bb.onclick=()=>{Audio_.sfx.blip();leaveGame();show('#scr-games');};
+      bb.onclick=()=>{Audio_.sfx.blip();if(net)try{net.close?.();}catch(e){}net=null;currentRoomCode=null;players=[];gameActive=false;$('#menuBtn').classList.add('hidden');$('#roundPill').style.visibility='hidden';show('#scr-games');};
       document.getElementById('scr-lobby').appendChild(bb);
     }
     if(!net.isOffline&&currentRoomCode){
