@@ -1202,3 +1202,49 @@ html{font-size:17px;}
   .ctrl-input { font-size: 16px; min-height: 100px; padding: 12px; }
   .ctrl-submit { min-height: 52px; font-size: 18px; }
 }
+
+/* ===== EMOJI REBUS DISPLAY ===== */
+.rebus-emojis {
+  font-size: clamp(52px,10vw,100px);
+  text-align: center;
+  margin: 1.5vmin 0;
+  letter-spacing: 8px;
+  animation: popIn .4s cubic-bezier(0.2,1.4,0.4,1) both;
+}
+.rebus-category {
+  font-family: 'Fredoka One', sans-serif;
+  font-size: clamp(14px,2vw,18px);
+  color: var(--text2);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: 1vmin;
+}
+.rebus-pts {
+  font-family: 'Fredoka One', sans-serif;
+  font-size: clamp(18px,3vw,26px);
+  color: var(--yellow);
+  text-align: center;
+  margin: .5vmin 0;
+  transition: color .3s;
+}
+.rebus-answer {
+  font-size: clamp(28px,5vw,52px);
+  color: var(--yellow);
+  text-align: center;
+  margin: 1vmin 0;
+  letter-spacing: 4px;
+}
+.rebus-explain {
+  font-size: clamp(13px,1.8vw,16px);
+  color: var(--text2);
+  text-align: center;
+  font-style: italic;
+  margin-bottom: 1.5vmin;
+  padding: 8px 16px;
+  background: rgba(255,255,255,.05);
+  border-radius: 10px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}

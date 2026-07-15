@@ -795,48 +795,130 @@ const Host = (() => {
     });
   }
 
-  /* ================= EMOJI RIDDLE ================= */
+  /* ================= EMOJI RIDDLE (Phonetic Rebus) ================= */
   async function playEmoji() {
     await modeTitleCard('emoji');
     const rounds = window.HYPOX_STATE?.rounds || 5;
     const qs = await Content.get('emoji', LANG, rounds);
     const pids = players.map(p=>p.pid);
-    const SP = [1000,850,700,600,500,450,400,400,400,400];
+    const BASE_PTS = 1000;
+    const PTS_PER_REVEAL = 200; // lose 200 per letter revealed
+
     for (let i = 0; i < qs.length; i++) {
       const Q = qs[i];
-      const answer = Q.options ? Q.options[Q.correct] : (Q.answer||'');
-      const ansUp = answer.toUpperCase();
-      let rev = new Set();
-      const lIdxs = answer.split('').map((_,j)=>j).filter(j=>answer[j]!==' ').sort(()=>Math.random()-.5);
-      let rI=0;
-      const hHTML=r=>answer.split('').map((ch,j)=>{if(ch===' ')return '<span class="hint-space"> </span>';return r.has(j)||r.has('all')?`<span class="hint-letter revealed">${esc(ch)}</span>`:'<span class="hint-letter blank">_</span>';}).join('');
-      await FX.wipe(); setPill(`${i+1}/${qs.length}`);
-      scene(`<div class="eyebrow">🧩 ${LANG==='ar'?'فك الرموز':'EMOJI RIDDLE'}</div>
-        <div style="font-size:clamp(50px,10vw,110px);text-align:center;margin:2vmin 0">${esc(Q.e)}</div>
-        <div class="hint-display" id="hD">${hHTML(rev)}</div>
+      const answer = Q.answer || (Q.options ? Q.options[Q.correct] : '');
+      const category = Q.category || 'Word';
+      const ansUp = answer.toUpperCase().replace(/\s/g,'');
+      const ansLetters = answer.toUpperCase().split('');
+      const totalLetters = ansLetters.length;
+
+      // Letter reveal state - randomised order, never same position twice
+      let revealed = new Array(totalLetters).fill(false);
+      const revealOrder = ansLetters.map((_,j)=>j).sort(()=>Math.random()-.5);
+      let revealCount = 0;
+      let currentMaxPts = BASE_PTS;
+
+      function blankDisplay() {
+        return ansLetters.map((ch,j) => {
+          if(ch === ' ') return '<span class="hint-space"> </span>';
+          return revealed[j]
+            ? `<span class="hint-letter revealed">${esc(ch)}</span>`
+            : '<span class="hint-letter blank">_</span>';
+        }).join('');
+      }
+
+      await FX.wipe();
+      setPill(`${i+1}/${qs.length}`);
+
+      // Host screen: show emojis + category + blanks + timer
+      scene(`
+        <div class="eyebrow">🧩 EMOJI RIDDLE</div>
+        <div class="rebus-emojis">${esc(Q.e)}</div>
+        <div class="rebus-category">${esc(category)}</div>
+        <div class="hint-display" id="hD">${blankDisplay()}</div>
+        <div class="rebus-pts" id="rebPts">${currentMaxPts} pts</div>
         <div class="timer-bar"><div class="timer-fill" id="tF" style="width:100%"></div></div>
         <div id="statusRow" class="status-row"></div>`);
-      pushMirror({headline:Q.e,pill:`${i+1}/${qs.length}`}); Audio_.sfx.sting();
-      const t0=Date.now();
-      const tI=setInterval(()=>{
-        const el=document.getElementById('tF');if(el)el.style.width=Math.max(0,100-(Date.now()-t0)/250)+'%';
-        if((Date.now()-t0)>6000*(rI+1)&&rI<Math.floor(lIdxs.length*.6)){rev.add(lIdxs[rI++]);const d=document.getElementById('hD');if(d)d.innerHTML=hHTML(rev);}
-      },200);
-      const answers=await collectWithTimer({type:'text',title:LANG==='ar'?'اكتب الجواب!':'Type the answer!',context:Q.e,maxLen:60,seconds:25},pids,25);
+
+      // Phone screen: show emojis + category + blanks too
+      pushMirror({
+        headline: Q.e,
+        sub: `${category} · ${totalLetters} letters`,
+        pill: `${i+1}/${qs.length}`
+      });
+      Audio_.sfx.sting();
+
+      const TOTAL_SECS = 30;
+      const REVEAL_EVERY = Math.floor(TOTAL_SECS / (Math.floor(totalLetters * 0.6) + 1)) * 1000;
+      const t0 = Date.now();
+
+      const tI = setInterval(() => {
+        const elapsed = Date.now() - t0;
+        const frac = Math.max(0, 1 - elapsed / (TOTAL_SECS * 1000));
+        const fill = document.getElementById('tF');
+        if(fill) fill.style.width = (frac * 100) + '%';
+
+        // Reveal a letter every REVEAL_EVERY ms
+        if(revealCount < Math.floor(totalLetters * 0.6) &&
+           elapsed > REVEAL_EVERY * (revealCount + 1)) {
+          revealed[revealOrder[revealCount]] = true;
+          revealCount++;
+          currentMaxPts = Math.max(200, BASE_PTS - revealCount * PTS_PER_REVEAL);
+          const hD = document.getElementById('hD');
+          if(hD) hD.innerHTML = blankDisplay();
+          const rPts = document.getElementById('rebPts');
+          if(rPts) rPts.textContent = currentMaxPts + ' pts';
+          // Update phone mirror with new blanks
+          net.setState({phase:'mirror', headline: Q.e, sub: `${category} · ${blankDisplay().replace(/<[^>]+>/g,'')}` });
+        }
+      }, 200);
+
+      const answers = await collectWithTimer({
+        type: 'text',
+        title: LANG==='ar' ? 'اكتب الجواب!' : 'Type the answer!',
+        context: `${Q.e}
+${category} — ${totalLetters} letters`,
+        maxLen: 40,
+        seconds: TOTAL_SECS,
+      }, pids, TOTAL_SECS);
       clearInterval(tI);
-      // Score reduces with each hint shown: 1000 → 800 → 600 → 400
-      const hintPenalty = Math.min(rI, 3) * 200;
-      const SP_adj = SP.map(p => Math.max(200, p - hintPenalty));
-      const right=pids.filter(pid=>{const v=(val(answers,pid)||'').trim().toUpperCase();return v===ansUp||v===ansUp.replace(/\s/g,'');}).sort((a,b)=>answers[a].order-answers[b].order);
-      right.forEach((pid,rank)=>addScore(pid,SP_adj[rank]||200));
+
+      // Score = currentMaxPts at time of answer (speed within reveal window)
+      const right = pids.filter(pid => {
+        const v = (val(answers, pid) || '').trim().toUpperCase().replace(/\s/g,'');
+        return v === ansUp;
+      }).sort((a,b) => answers[a].order - answers[b].order);
+
+      // Winner gets currentMaxPts, each subsequent gets -50
+      right.forEach((pid, rank) => addScore(pid, Math.max(100, currentMaxPts - rank * 50)));
+
       Audio_.sfx.reveal(); FX.burst(80);
-      scene(`<div class="eyebrow">🧩 ${esc(Q.e)}</div>
-        <div class="prompt-card display" style="color:var(--yellow)">${esc(answer)}</div>
-        <div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=right.includes(pid);const pts=got?SP[right.indexOf(pid)]||400:0;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name)} ${got?'✓ +'+pts:'✗ 0'}</div></div></div>`;}).join('')}</div>`);
-      pushMirror({headline:`🧩 = ${answer}`});
-      await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`الجواب: ${answer}`:`Answer: ${answer}`));
-      hideHost(); await waitNext();
-      if(i<qs.length-1) await showScores();
+
+      // Show explanation
+      const exp = Q.explanation || '';
+      scene(`
+        <div class="eyebrow">🧩 ${esc(Q.e)}</div>
+        <div class="rebus-answer display">${esc(answer.toUpperCase())}</div>
+        ${exp ? `<div class="rebus-explain">${esc(exp)}</div>` : ''}
+        <div class="score-list">${pids.map((pid,idx) => {
+          const p = players.find(x=>x.pid===pid);
+          const got = right.includes(pid);
+          const pts = got ? Math.max(100, currentMaxPts - right.indexOf(pid) * 50) : 0;
+          return `<div class="score-row" style="animation-delay:${idx*.1}s">
+            <div class="avatar" style="background:${p.color}">${p.emoji}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">
+              ${esc(p.name)} ${got ? '✓ +'+pts : '✗ 0'}
+            </div></div>
+          </div>`;
+        }).join('')}</div>`);
+
+      pushMirror({headline: `🧩 = ${answer.toUpperCase()}`});
+      await say(right.length
+        ? `${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`
+        : (LANG==='ar' ? `الجواب: ${answer}` : `Answer: ${answer}! ${exp}`));
+      hideHost();
+      await waitNext();
+      if(i < qs.length - 1) await showScores();
     }
     await showScores(true);
   }
