@@ -142,12 +142,14 @@ const Host = (() => {
     Audio_.sfx.versus();
     const startLabel = LANG === 'ar' ? 'ابدأ ▶' : 'START ▶';
     Content.get(mode, LANG, window.HYPOX_STATE?.rounds||5).catch(()=>{});
+    const icon = (typeof MODE_ICONS !== 'undefined' ? MODE_ICONS : {})[mode] || '🎮';
     scene(`
       <div class="mode-card">
+        <div class="tutorial-icon">${icon}</div>
         <div class="mode-title display">${esc(t('mode_names')[mode])}</div>
         <div class="mode-tag">${esc(t('mode_taglines')[mode])}</div>
-        <div class="mode-rules">${esc(t('mode_rules')[mode])}</div>
-        <button class="big-btn" id="startModeBtn" style="margin-top:2vmin">${startLabel}</button>
+        <div class="tutorial-steps">${esc(t('mode_rules')[mode])}</div>
+        <button class="big-btn pulse-btn" id="startModeBtn" style="margin-top:2vmin">${startLabel}</button>
       </div>`);
     setPill(t('mode_names')[mode]);
     hostSay('gamestart');
@@ -801,8 +803,11 @@ const Host = (() => {
       },200);
       const answers=await collectWithTimer({type:'text',title:LANG==='ar'?'اكتب الجواب!':'Type the answer!',context:Q.e,maxLen:60,seconds:25},pids,25);
       clearInterval(tI);
+      // Score reduces with each hint shown: 1000 → 800 → 600 → 400
+      const hintPenalty = Math.min(rI, 3) * 200;
+      const SP_adj = SP.map(p => Math.max(200, p - hintPenalty));
       const right=pids.filter(pid=>{const v=(val(answers,pid)||'').trim().toUpperCase();return v===ansUp||v===ansUp.replace(/\s/g,'');}).sort((a,b)=>answers[a].order-answers[b].order);
-      right.forEach((pid,rank)=>addScore(pid,SP[rank]||400));
+      right.forEach((pid,rank)=>addScore(pid,SP_adj[rank]||200));
       Audio_.sfx.reveal(); FX.burst(80);
       scene(`<div class="eyebrow">🧩 ${esc(Q.e)}</div>
         <div class="prompt-card display" style="color:var(--yellow)">${esc(answer)}</div>
@@ -907,7 +912,7 @@ const Host = (() => {
       const Q = prompts[i];
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${prompts.length}`);
-      const opts = [{id:'true',label:LANG==='ar'?'✅ صح':'✅ TRUE',color:'#34d399'},{id:'false',label:LANG==='ar'?'❌ كذب':'❌ LIE',color:'#f472b6'}];
+      const opts = [{id:'true',label:LANG==='ar'?'✅ حقيقة':'✅ TRUE',color:'#34d399'},{id:'false',label:LANG==='ar'?'❌ خطأ':'❌ FALSE',color:'#f472b6'}];
       scene(`<div class="eyebrow">✅❌ ${LANG==='ar'?'صح ولا كذب؟':'TRUE OR LIE?'}</div><div class="prompt-card display">${esc(Q.s)}</div><div id="statusRow" class="status-row"></div>`);
       pushMirror({ headline: Q.s });
       Audio_.sfx.sting(); hostSay('prompt');
@@ -918,7 +923,7 @@ const Host = (() => {
       const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
       right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
       Audio_.sfx.reveal();
-      const resultLabel = Q.truth?(LANG==='ar'?'✅ صح!':'✅ TRUE!'):(LANG==='ar'?'❌ كذب!':'❌ LIE!');
+      const resultLabel = Q.truth?(LANG==='ar'?'✅ حقيقة!':'✅ TRUE!'):(LANG==='ar'?'❌ خطأ!':'❌ FALSE!');
       scene(`<div class="eyebrow">${esc(Q.s)}</div><div class="prompt-card display" style="color:${Q.truth?'var(--green)':'var(--pink)'}">${resultLabel}</div><div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name)} ${got?'✓ +'+( SPEED_PTS[right.indexOf(pid)]||400):'✗ 0'}</div></div></div>`;}).join('')}</div>`);
       pushMirror({ headline: resultLabel });
       FX.burst(60);
@@ -985,7 +990,7 @@ const Host = (() => {
       const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
       right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
       Audio_.sfx.reveal(); FX.burst(60);
-      const ansLabel = correctId==='higher'?(LANG==='ar'?`⬆️ فوق! الجواب: ${Q.n.toLocaleString()} ${Q.unit}`:`⬆️ Higher! Answer: ${Q.n.toLocaleString()} ${Q.unit}`):(LANG==='ar'?`⬇️ تحت! الجواب: ${Q.n.toLocaleString()} ${Q.unit}`:`⬇️ Lower! Answer: ${Q.n.toLocaleString()} ${Q.unit}`);
+      const ansLabel = correctId==='higher'?(LANG==='ar'?`⬆️ أكثر! الجواب: ${Q.n.toLocaleString()} ${Q.unit}`:`⬆️ Higher! Answer: ${Q.n.toLocaleString()} ${Q.unit}`):(LANG==='ar'?`⬇️ أقل! الجواب: ${Q.n.toLocaleString()} ${Q.unit}`:`⬇️ Lower! Answer: ${Q.n.toLocaleString()} ${Q.unit}`);
       scene(`<div class="eyebrow">${esc(Q.q)}</div><div class="prompt-card display" style="color:var(--yellow)">${ansLabel}</div><div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name)} ${got?'✓ +'+( SPEED_PTS[right.indexOf(pid)]||400):'✗ 0'}</div></div></div>`;}).join('')}</div>`);
       pushMirror({ headline: ansLabel });
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?'ولا واحد صاح!':'Nobody got it!'));
@@ -1126,8 +1131,10 @@ const Host = (() => {
       },200);
       const answers=await collectWithTimer({type:'text',title:LANG==='ar'?'اكتب المكان!':'Type the place!',context:Q.e,maxLen:50,seconds:25},pids,25);
       clearInterval(tI);
+      const hintPenalty = Math.min(rI, 3) * 200;
+      const SP_adj = SP.map(p => Math.max(200, p - hintPenalty));
       const right=pids.filter(pid=>{const v=(val(answers,pid)||'').trim().toUpperCase();return v===ansUp||v===ansUp.replace(/\s/g,'');}).sort((a,b)=>answers[a].order-answers[b].order);
-      right.forEach((pid,rank)=>addScore(pid,SP[rank]||400));
+      right.forEach((pid,rank)=>addScore(pid,SP_adj[rank]||200));
       Audio_.sfx.reveal(); FX.burst(80);
       scene(`<div class="eyebrow">🌍 ${esc(Q.e)}</div>
         <div class="prompt-card display" style="color:var(--yellow)">${esc(answer)}</div>

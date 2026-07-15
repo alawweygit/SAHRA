@@ -474,10 +474,12 @@
     setTimeout(()=>{
       Audio_.stopMusic();
       currentRoomCode=null;net=null;players=[];
+      // Clear host avatar bubble
+      const hb=$('#hostBubble');if(hb)hb.textContent='';
+      const hel=$('#host');if(hel)hel.classList.remove('show');
       show('#scr-title');
       $('#menuBtn').classList.add('hidden');$('#skipBtn').classList.add('hidden');
       $('#roundPill').style.visibility='hidden';
-      // Keep topbar visible - sound/theme/lang always accessible
     },100);
   }
 
