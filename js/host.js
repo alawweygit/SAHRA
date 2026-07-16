@@ -238,8 +238,7 @@ const Host = (() => {
     await new Promise(res => {
       document.getElementById('againBtn')?.addEventListener('click', () => { window.__hypoxPlayAgain = true; res(); }, { once: true });
       document.getElementById('changeGameBtn')?.addEventListener('click', () => {
-        players.forEach(p => p.score = 0);
-        res(); // just resolve - startDirectGame will call showPackPicker() which handles navigation
+        res(); // just resolve - startDirectGame will call showPackPicker() then run() resets scores
       }, { once: true });
     });
   }
@@ -561,22 +560,29 @@ const Host = (() => {
         <div class="prompt-card small display">${esc(R.p)}</div>`, t('write_diss')));
       say(LANG === 'ar' ? 'سطر واحد. بدون رحمة. بدون حقد بعدين.' : 'One line. No mercy. No grudges after.');
 
-      // Collect from A and B with personalized opponent context on their phones
-      const phaseId = 'ph' + (++phaseCounter);
-      net.setState({
-        phase: 'input-split', phaseId, deadline: Date.now() + 60000,
-        specs: {
-          [A.pid]: { type: 'text', title: t('write_diss'), context: `${LANG==='ar'?'خصمك':'Your opponent'}: ${B.emoji} ${B.name}\n${R.p}`, maxLen: 90 },
-          [B.pid]: { type: 'text', title: t('write_diss'), context: `${LANG==='ar'?'خصمك':'Your opponent'}: ${A.emoji} ${A.name}\n${R.p}`, maxLen: 90 },
-        },
-      });
-      const statusRow = $('#statusRow');
-      if (statusRow) statusRow.innerHTML = [A, B].map(p => `<div class="mini" id="mini-${p.pid}">${avatarHTML(p)}<div class="check">✓</div></div>`).join('');
-      net.onEachInput(pid => { Audio_.sfx.submit(); $('#mini-' + pid)?.classList.add('done'); });
-      const rawInputs = await net.collect(phaseId, null, [A.pid, B.pid], 60000);
-      net.onEachInput(null);
-      net.setState({ phase: 'wait', msg: t('watch_screen') });
-      const inputs = rawInputs;
+      // Collect from A and B — personalized opponent context on their phones
+      const specA = { type: 'text', title: t('write_diss'), context: `${LANG==='ar'?'خصمك':'Your opponent'}: ${B.emoji} ${B.name}\n${R.p}`, maxLen: 90 };
+      const specB = { type: 'text', title: t('write_diss'), context: `${LANG==='ar'?'خصمك':'Your opponent'}: ${A.emoji} ${A.name}\n${R.p}`, maxLen: 90 };
+      let inputs;
+      if (net.isOffline) {
+        // Pass-and-play: collect sequentially with personalized spec for each fighter
+        const iA = await collectWithTimer(specA, [A.pid], 60);
+        const iB = await collectWithTimer(specB, [B.pid], 60);
+        inputs = { ...iA, ...iB };
+      } else {
+        // Online: split phase so each phone gets its own spec
+        const phaseId = 'ph' + (++phaseCounter);
+        net.setState({
+          phase: 'input-split', phaseId, deadline: Date.now() + 60000,
+          specs: { [A.pid]: specA, [B.pid]: specB },
+        });
+        const statusRow = $('#statusRow');
+        if (statusRow) statusRow.innerHTML = [A, B].map(p => `<div class="mini" id="mini-${p.pid}">${avatarHTML(p)}<div class="check">✓</div></div>`).join('');
+        net.onEachInput(pid => { Audio_.sfx.submit(); $('#mini-' + pid)?.classList.add('done'); });
+        inputs = await net.collect(phaseId, null, [A.pid, B.pid], 60000);
+        net.onEachInput(null);
+        net.setState({ phase: 'wait', msg: t('watch_screen') });
+      }
 
       const lineA = val(inputs, A.pid) || t('no_answer');
       const lineB = val(inputs, B.pid) || t('no_answer');

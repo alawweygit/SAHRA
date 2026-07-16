@@ -69,6 +69,7 @@ const FX = (() => {
   }
 
   function flyPoints(anchorEl, text) {
+    if (!anchorEl) return;
     const r = anchorEl.getBoundingClientRect();
     const el = document.createElement('div');
     el.className = 'pts-fly'; el.textContent = text;

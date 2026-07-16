@@ -90,6 +90,10 @@ const Controller = (() => {
       wrap.appendChild(grid);
     }
 
+    else if (spec.type === 'map') {
+      // Map handled below — skip the wait fallback
+    }
+
     else { /* wait */
       const w = document.createElement('div');
       w.className = 'ctrl-waiting';
