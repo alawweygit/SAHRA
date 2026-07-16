@@ -18,6 +18,7 @@ const SHAPES = {
   emoji:       '[{"answer":"SEOUL","category":"City","e":"🌊🦉","parts":["sea","owl"],"explanation":"Sea + owl = Seoul"}]',
   emojiplace:  '[{"answer":"PARIS","category":"City","e":"🐾🌹","parts":["paw","ris"],"explanation":"Paw + ris = Paris"}]',
   year:        '[{"q":"The first iPhone was released","y":2007}]',
+  spy:         '[{"category":"location","words":["Coffee shop","Airport","Hospital","Casino","Zoo","Library","Prison","Stadium"]}]',
   flaghunt:    '[{"flag":"🇯🇵","options":["Japan","China","South Korea","Vietnam"],"correct":0}]',
   higherlow:   '[{"q":"How many bones are in the human body?","n":206,"unit":"bones"}]',
 };
@@ -34,6 +35,7 @@ const GUIDANCE = {
   emoji:       'Phonetic rebus puzzles: emojis that SOUND OUT a word phonetically. Example: 🌊🦉 = sea+owl = SEOUL. Answer is a country, city, object, animal, or common word. "parts" = phonetic sounds of each emoji. Keep answers 4-10 letters.',
   emojiplace:  'Phonetic rebus puzzles for CITIES AND COUNTRIES only. Emojis SOUND OUT the place name. Example: 🐾🌹 = paw+ris = PARIS. Use cities worldwide, especially MENA cities in Arabic mode.',
   year:        'Historical events with exact year (y as number). Mix world history, tech, pop culture, sports, Arab/Gulf milestones.',
+  spy:         'Secret word pools for the Spy Game. Return ONE object with a "category" (location/event/movie/food/sport/animal/celebrity) and "words" (array of 15-20 specific, recognizable words/phrases for that category). Words should be specific enough to discuss without saying the word directly (e.g. "Starbucks" not just "cafe"). In Arabic mode (ar_en flavor), use Arab-world themed words in English (e.g. Souq, Diwaniya, Iftar, Eid, Ramadan, Hajj, Wasta). In global mode, use internationally recognizable places/things.',
   flaghunt:    'Flag identification. "flag" is the flag emoji. "options" has 4 country names, "correct" is the 0-based index of the right answer. Vary the correct index (0-3). Mix flags from all continents — include Arab/Gulf countries in Arabic mode.',
   higherlow:   'Higher or Lower game. "q" is a quantity question, "n" is the exact numeric answer, "unit" is the unit label (e.g. "km", "years", "calories", "meters"). Use surprising facts about numbers. Mix geography, science, sports, food. In Arabic mode, include Gulf/Arab stats.',
 };

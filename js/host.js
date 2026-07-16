@@ -143,7 +143,8 @@ const Host = (() => {
     Audio_.stopMusic();
     Audio_.sfx.versus();
     const startLabel = LANG === 'ar' ? 'ابدأ ▶' : 'START ▶';
-    Content.get(mode, LANG, window.HYPOX_STATE?.rounds||5).catch(()=>{});
+    // Preload AI content (pinpoint uses static PINPOINT_CITIES, no backend needed for preload)
+    if(mode !== 'pinpoint') Content.get(mode, LANG, window.HYPOX_STATE?.rounds||5).catch(()=>{});
     const icon = (typeof MODE_ICONS !== 'undefined' ? MODE_ICONS : {})[mode] || '🎮';
     const rulesText = t('mode_rules')[mode] || '';
     const bulletRules = rulesText.split('.').filter(s=>s.trim().length>5).slice(0,3)
@@ -1339,10 +1340,20 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
     };
     const flavor = window.HYPOX_STATE?.flavor || 'global';
     // Arab flavor = Arabic-cultural content in English; Global = worldwide content
-    // Word display language follows UI language (LANG), not flavor
     const poolLang = flavor==='arab' ? 'ar_en' : 'en';
-    const pool=(CATS[catKey]||CATS.location)[poolLang]||(CATS[catKey]||CATS.location).en;
-    const word=pool[Math.floor(Math.random()*pool.length)];
+    const staticPool = (CATS[catKey]||CATS.location)[poolLang] || (CATS[catKey]||CATS.location).en;
+    // Try AI backend for fresh words (returns {category, words:[...]})
+    let aiWords = [];
+    try {
+      const aiRaw = await Content.get('spy', LANG, 1);
+      if (aiRaw && aiRaw[0] && Array.isArray(aiRaw[0].words)) aiWords = aiRaw[0].words;
+    } catch(e) {}
+    // Merge: AI words first (fresh), then static (familiar), deduplicated
+    const seen = new Set();
+    const pool = [...aiWords, ...staticPool].filter(w => {
+      const k = w.toUpperCase(); if (seen.has(k)) return false; seen.add(k); return true;
+    });
+    const word = pool[Math.floor(Math.random()*pool.length)];
     const pids=players.map(p=>p.pid);
     const safeSpyCount = Math.min(numSpies, Math.floor(pids.length/2));
     const spyPids=pids.slice().sort(()=>Math.random()-.5).slice(0,safeSpyCount);
