@@ -543,17 +543,18 @@
   function closeMenu(){$('#menuOverlay').classList.add('hidden');}
   function leaveGame(){
     gameActive=false;
+    window.__hypoxAbort = true;  // tells Host.run to stop after current await
     if(window.__hypoxSkip)window.__hypoxSkip();
     window.__hypoxSkip=null;
     if(net)try{net.setState({phase:'wait',msg:''});}catch(e){}
-    setTimeout(()=>{
-      Audio_.stopMusic();
-      currentRoomCode=null;net=null;players=[];
-      const hel=$('#host');if(hel)hel.classList.remove('show');
-      show('#scr-title');
-      const skc=$('#menuSkip');if(skc)skc.classList.add('hidden'); // keep menuBtn visible
-      $('#roundPill').style.visibility='hidden';
-    },100);
+    Audio_.stopMusic();
+    currentRoomCode=null;net=null;players=[];
+    const hel=$('#host');if(hel)hel.classList.remove('show');
+    show('#scr-title');
+    const skc=$('#menuSkip');if(skc)skc.classList.add('hidden');
+    $('#roundPill').style.visibility='hidden';
+    $('#topbar').classList.remove('show');
+    $('#menuBtn').classList.add('hidden');
   }
 
   /* ---- AVATAR ---- */

@@ -1435,8 +1435,9 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
   async function run(netInstance, playerList, mode) {
     net = netInstance;
     players = playerList;
+    window.__hypoxAbort = false;
     let playAgain = true;
-    while(playAgain) {
+    while(playAgain && !window.__hypoxAbort) {
       playAgain = false;
       window.__hypoxPlayAgain = false;
       players.forEach(p=>p.score=0);
@@ -1446,12 +1447,14 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
         if (!MODES[mode]) throw new Error(`Unknown mode: "${mode}" (available: ${Object.keys(MODES).join(', ')})`);
         await MODES[mode]();
       } catch(e) {
+        if (window.__hypoxAbort) return;
         console.error('Game mode error:', e);
         scene(`<div class="eyebrow">⚠️ Something went wrong</div>
           <div class="prompt-card display" style="font-size:clamp(14px,2.5vmin,18px)">${esc(String(e))}</div>
           <button class="big-btn" id="errContinueBtn" style="margin-top:2vmin">Continue</button>`);
         await new Promise(r => document.getElementById('errContinueBtn')?.addEventListener('click', r, {once:true}));
       }
+      if (window.__hypoxAbort) return;
       await winnerScene();
       $('#menuSkip')?.classList.add('hidden');
       if(window.__hypoxPlayAgain) {
