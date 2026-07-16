@@ -854,6 +854,7 @@ const Host = (() => {
     await modeTitleCard('emoji');
     const rounds = window.HYPOX_STATE?.rounds || 5;
     const qs = await Content.get('emoji', LANG, rounds);
+    if (!qs.length) { scene(`<div class="prompt-card display">🧩 ${LANG==='ar'?'تعذّر تحميل الأسئلة':'Could not load questions'}</div>`); await waitNext(5); return; }
     const pids = players.map(p=>p.pid);
     const BASE_PTS = 1000;
     const PTS_PER_REVEAL = 200; // lose 200 per letter revealed
@@ -982,6 +983,7 @@ ${category} — ${totalLetters} letters`,
     await modeTitleCard('year');
     const rounds = window.HYPOX_STATE?.rounds || 5;
     const qs = await Content.get('year', LANG, rounds);
+    if (!qs.length) { scene(`<div class="prompt-card display">⏳ ${LANG==='ar'?'تعذّر تحميل الأسئلة':'Could not load questions'}</div>`); await waitNext(5); return; }
     for (let i = 0; i < qs.length; i++) {
       const Q = qs[i];
       await FX.wipe();
@@ -1035,6 +1037,7 @@ ${category} — ${totalLetters} letters`,
     await modeTitleCard('mostlikely');
     const rounds = window.HYPOX_STATE?.rounds || 5;
     const prompts = await Content.get('mostlikely', LANG, rounds);
+    if (!prompts.length) { scene(`<div class="prompt-card display">🏆 ${LANG==='ar'?'تعذّر تحميل الأسئلة':'Could not load questions'}</div>`); await waitNext(5); return; }
     for (let i = 0; i < prompts.length; i++) {
       const Q = prompts[i];
       await FX.wipe();
@@ -1064,6 +1067,7 @@ ${category} — ${totalLetters} letters`,
     await modeTitleCard('trueorlie');
     const rounds = window.HYPOX_STATE?.rounds || 5;
     const prompts = await Content.get('trueorlie', LANG, rounds);
+    if (!prompts.length) { scene(`<div class="prompt-card display">✅ ${LANG==='ar'?'تعذّر تحميل الأسئلة':'Could not load questions'}</div>`); await waitNext(5); return; }
     const SPEED_PTS = [1000,850,700,600,500,450,400,400,400,400];
     for (let i = 0; i < prompts.length; i++) {
       const Q = prompts[i];
@@ -1095,6 +1099,7 @@ ${category} — ${totalLetters} letters`,
     await modeTitleCard('flaghunt');
     const rounds = window.HYPOX_STATE?.rounds || 5;
     const qs = await Content.get('flaghunt', LANG, rounds);
+    if (!qs.length) { scene(`<div class="prompt-card display">🚩 ${LANG==='ar'?'تعذّر تحميل الأسئلة':'Could not load questions'}</div>`); await waitNext(5); return; }
     const SPEED_PTS = [1000,850,700,600,500,450,400,400,400,400];
     for (let i = 0; i < qs.length; i++) {
       const Q = qs[i];
@@ -1132,6 +1137,7 @@ ${category} — ${totalLetters} letters`,
     await modeTitleCard('higherlow');
     const rounds = window.HYPOX_STATE?.rounds || 5;
     const qs = await Content.get('higherlow', LANG, rounds);
+    if (!qs.length) { scene(`<div class="prompt-card display">📊 ${LANG==='ar'?'تعذّر تحميل الأسئلة':'Could not load questions'}</div>`); await waitNext(5); return; }
     const SPEED_PTS = [1000,850,700,600,500,450,400,400,400,400];
     for (let i = 0; i < qs.length; i++) {
       const Q = qs[i];
@@ -1266,6 +1272,7 @@ ${category} — ${totalLetters} letters`,
     await modeTitleCard('emojiplace');
     const rounds = window.HYPOX_STATE?.rounds || 5;
     const qs = await Content.get('emojiplace', LANG, rounds);
+    if (!qs.length) { scene(`<div class="prompt-card display">🌍 ${LANG==='ar'?'تعذّر تحميل الأسئلة':'Could not load questions'}</div>`); await waitNext(5); return; }
     const pids = players.map(p=>p.pid);
     const BASE_PTS = 1000;
     const PTS_PER_REVEAL = 200;
