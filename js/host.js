@@ -251,7 +251,7 @@ const Host = (() => {
     FX.shake(); FX.burst(260, true);
     setTimeout(() => FX.burst(180, true), 900);
     net.setState({ phase: 'winner', name: w.name, emoji: w.emoji });
-    await new Promise(res => $('#againBtn').addEventListener('click', res, { once: true }));
+    await new Promise(res => $('#againBtn').addEventListener('click', () => { window.__hypoxPlayAgain = true; res(); }, { once: true }));
   }
 
   function addScore(pid, pts) {
@@ -1344,7 +1344,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
     scene(`<div class="eyebrow">🕵️ ${LANG==='ar'?'وقت النقاش':'DISCUSSION TIME'}</div>
       <div class="prompt-card display">${LANG==='ar'?'ناقشوا — من الجاسوس؟':'Discuss — who is the spy?'}</div>
       <div class="year-reveal" id="discT">${DISC}</div>
-      <div class="pick-sub" style="color:var(--yellow)">${LANG==='ar'?'الكلمة السرية: '+word+' (لا تقولوها!)':'Secret word: '+word+' (dont say it!)'}</div>`);
+      <div class="pick-sub">${LANG==='ar'?'اسألوا أسئلة — لا تقولوا الكلمة مباشرة!':'Ask questions — don\'t say the word directly!'}</div>`);
     pushMirror({headline:LANG==='ar'?'ناقشوا!':'Discuss!',sub:LANG==='ar'?'من هو الجاسوس؟':'Who is the spy?'});
     let disc=DISC;
     const dI=setInterval(()=>{disc--;const el=document.getElementById('discT');if(el)el.textContent=disc;if(disc<=0)clearInterval(dI);},1000);
