@@ -77,7 +77,7 @@ const Host = (() => {
 
     pushMirror({ headline: spec.context || spec.title || '', sub: spec.title || '' });
     net.setState({ phase: 'input', phaseId, spec, targets: pids, deadline, mirror: { ...mirror } });
-    Audio_.startMusic('tension');
+    try { Audio_.startMusic('tension'); } catch(e) {}
 
     // status row of mini avatars
     const row = $('#statusRow');
@@ -1442,13 +1442,20 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
       players.forEach(p=>p.score=0);
       pickHost();
       $('#menuSkip')?.classList.remove('hidden');
-      await MODES[mode]();
+      try {
+        await MODES[mode]();
+      } catch(e) {
+        console.error('Game mode error:', e);
+        scene(`<div class="eyebrow">⚠️ Something went wrong</div>
+          <div class="prompt-card display" style="font-size:clamp(14px,2.5vmin,18px)">${esc(String(e))}</div>
+          <button class="big-btn" id="errContinueBtn" style="margin-top:2vmin">Continue</button>`);
+        await new Promise(r => document.getElementById('errContinueBtn')?.addEventListener('click', r, {once:true}));
+      }
       await winnerScene();
       $('#menuSkip')?.classList.add('hidden');
       if(window.__hypoxPlayAgain) {
         playAgain = true;
       }
-      // If __hypoxPlayAgain is false, winnerScene already handled navigation (Change Game)
     }
   }
 
