@@ -585,7 +585,15 @@
     if(!name){$('#avatarName').classList.add('shake');setTimeout(()=>$('#avatarName').classList.remove('shake'),500);return;}
     Audio_.sfx.submit();
     if(_avatarCallback){_avatarCallback(name,selectedAvatar);return;}
-    if(net&&net.isOffline){const p=net.addLocalPlayer(name,selectedAvatar);if(p)show('#scr-lobby');}
+    if(net&&net.isOffline){
+      const p=net.addLocalPlayer(name,selectedAvatar);
+      if(p){
+        Audio_.sfx.pop();
+        show('#scr-lobby');
+        // Force player list refresh
+        if(net._playersCb) net._playersCb(net.players.slice());
+      }
+    }
   }
 
   /* ---- PASS & PLAY ---- */
