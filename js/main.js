@@ -652,6 +652,18 @@
       if(m.pill!==undefined)$('#pmPill').textContent=m.pill||'';
       if(m.headline!==undefined)$('#pmHeadline').textContent=m.headline||'';
       if(m.speech!==undefined){$('#pmSpeech').textContent=m.speech||'';$('#pmLaith').style.display=m.speech?'flex':'none';}
+      // If ctrl is showing a wait screen, update it with new mirror content
+      if(m.headline && ctrl.querySelector('.ctrl-waiting, .ctrl-wrap')){
+        const isInputActive = ctrl.querySelector('textarea,input,.ctrl-choice');
+        if(!isInputActive){
+          ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:20px 16px">
+            ${m.pill?`<div style="font-family:'Fredoka One',sans-serif;font-size:11px;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">${esc(m.pill)}</div>`:''}
+            <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(16px,4.5vw,22px);color:var(--text);line-height:1.35;margin-bottom:16px">${esc(m.headline)}</div>
+            ${m.speech?`<div style="font-size:13px;color:var(--text2);font-style:italic;margin-bottom:12px">"${esc(m.speech)}"</div>`:''}
+            <div style="display:flex;gap:8px;justify-content:center"><div class="pulse-dot"></div><div class="pulse-dot"></div><div class="pulse-dot"></div></div>
+          </div>`;
+        }
+      }
     }
     net.onMirror(renderMirror);
     let lastPhaseId=null;
@@ -667,7 +679,18 @@
         const spec=state.specs[myPid]||state.specs._default;
         Controller.render(ctrl,spec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>Controller.waitScreen(ctrl),600);});
       }else if(state.phase==='wait'){
-        Controller.waitScreen(ctrl,state.msg||T.watchScreen());
+        // Show mirror content prominently if available, otherwise simple wait card
+        const m = state.mirror||{};
+        if(m.headline){
+          ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:20px 16px">
+            ${m.pill?`<div style="font-family:'Fredoka One',sans-serif;font-size:11px;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">${esc(m.pill)}</div>`:''}
+            <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(16px,4.5vw,22px);color:var(--text);line-height:1.35;margin-bottom:16px">${esc(m.headline)}</div>
+            ${m.speech?`<div style="font-size:13px;color:var(--text2);font-style:italic;margin-bottom:12px">"${esc(m.speech)}"</div>`:''}
+            <div style="display:flex;gap:8px;justify-content:center"><div class="pulse-dot"></div><div class="pulse-dot"></div><div class="pulse-dot"></div></div>
+          </div>`;
+        } else {
+          Controller.waitScreen(ctrl,state.msg||T.watchScreen());
+        }
       }else if(state.phase==='spy-roles'&&state.roles){
         const myRole=state.roles[myPid];
         if(myRole){

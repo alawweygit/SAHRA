@@ -321,7 +321,10 @@ const PACKS = {
   },
 };
 
-const Content = {
+const Content = (() => {
+  const _preloadCache = new Map(); // key: mode:lang:count -> Promise<items>
+
+  return {
   /* Async so an AI backend can be swapped in with zero changes elsewhere.
      region: 'mena' | 'weur' | 'asia' | 'africa' | null (null = universal only) */
   async get(mode, lang, count, region) {
@@ -333,11 +336,15 @@ const Content = {
     const cfg = window.HYPOX_CONFIG || {};
     if (cfg.aiEndpoint) {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s max — fail fast to static
         const res = await fetch(cfg.aiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode, lang, count, region }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.prompts) && data.prompts.length) return data.prompts.slice(0, count);
@@ -381,7 +388,8 @@ const Content = {
     }
     return out.length ? out : shuffle(universal).slice(0, count);
   },
-};
+  };
+})();
 
 /* ============ TRIVIA CATEGORIES ============
    Used by the "Speed Trivia" mode when a category is selected.
