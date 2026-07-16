@@ -319,13 +319,13 @@
     }));
     // Play mode buttons now just SET the mode, show a START button
     let selectedPlayMode = null;
-    function selectPlayMode(mode){
-      selectedPlayMode=mode;
+    function selectPlayMode(playMode){
+      selectedPlayMode=playMode;
       $$('.play-mode-btn').forEach(b=>{
         b.classList.remove('selected');
         b.style.borderColor='';b.style.color='';b.style.background='';
       });
-      const btn=document.getElementById('pg'+({tv:'Host',phones:'Phones',offline:'Offline'}[mode])+'Btn');
+      const btn=document.getElementById('pg'+({tv:'Host',phones:'Phones',offline:'Offline'}[playMode])+'Btn');
       if(btn){
         btn.classList.add('selected');
         btn.style.borderColor='var(--yellow)';
