@@ -337,7 +337,7 @@ const Content = (() => {
     if (cfg.aiEndpoint) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s max — fail fast to static
+        const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5s max — fail fast to static
         const res = await fetch(cfg.aiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

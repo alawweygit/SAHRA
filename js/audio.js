@@ -15,7 +15,7 @@ const Audio_ = (() => {
       'https://cdn.pixabay.com/audio/2022/10/25/audio_0b6a3d5e37.mp3',   // fun background
     ],
     tension: [
-      'https://cdn.pixabay.com/audio/2022/11/17/audio_febc508520.mp3',   // suspense/tension
+      'https://cdn.pixabay.com/audio/2022/10/25/audio_0b6a3d5e37.mp3',   // tension background (reuse lobby2)
     ],
     results: [
       'https://cdn.pixabay.com/audio/2023/04/18/audio_c5b6e4b9af.mp3',   // celebration

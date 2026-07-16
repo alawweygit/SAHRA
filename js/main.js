@@ -182,7 +182,10 @@
 
     $$('.title-game-card').forEach(card=>card.addEventListener('click',()=>{
       Audio_.sfx.pop();Audio_.unlock();
-      showPregame(card.dataset.mode);
+      const m=card.dataset.mode;
+      // Kick off content preload immediately so it's ready by the time user hits START
+      if(window.Content) Content.get(m,LANG,window.HYPOX_STATE?.rounds||5).catch(()=>{});
+      showPregame(m);
     }));
   }
 
