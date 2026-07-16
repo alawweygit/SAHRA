@@ -12,7 +12,8 @@ const SHAPES = {
   diss: '[{"p":"A roast battle setup prompt about your opponent"}]',
   quiz: '[{"q":"Trivia question","options":["Correct answer","Wrong answer","Wrong answer","Wrong answer"],"correct":0}]',
   pinpoint: '[{"city":"City name in English","city_ar":"اسم المدينة بالعربي","lat":25.2,"lng":55.3}]',
-  emoji: '[{"e":"🗼🥐🍷","options":["Paris","Rome","London","Madrid"],"correct":0}]',
+  emoji: '[{"answer":"SEOUL","category":"City","e":"🌊🦉","parts":["sea","owl"],"explanation":"Sea + owl = Seoul"}]',
+  emojiplace: '[{"answer":"PARIS","category":"City","e":"🐾🌹","parts":["paw","ris"],"explanation":"Paw + ris = Paris"}]',
   year: '[{"q":"The first iPhone was released","y":2007}]',
 };
 const GUIDANCE = {
@@ -22,7 +23,8 @@ const GUIDANCE = {
   diss: 'Roast battle setup lines — a prompt letting players write a funny insult about their opponent.',
   quiz: 'Multiple choice trivia. Vary the position of the correct answer randomly across questions and set the correct index accordingly. Gulf/Arab trivia when in Arabic.',
   pinpoint: 'Real world cities — mix of famous and surprising. Must include accurate lat/lng coordinates.',
-  emoji: 'Emoji riddles: 3-4 emojis representing a country, city, or famous place, plus 4 answer options. Vary the correct index. Mix global and Arab/Gulf places when in Arabic.',
+  emoji: 'Phonetic rebus puzzles: emojis that SOUND OUT a word phonetically (not just associate with it). Example: 🌊🦉 = sea+owl = SEOUL. The answer is a country, city, object, animal, or common English word. "parts" are the phonetic sound of each emoji. "explanation" shows the sound breakdown. Keep answers 4-10 letters. In Arabic mode, use transliterated Arabic words (like باسكيت from basket).',
+  emojiplace: 'Phonetic rebus puzzles for CITIES AND COUNTRIES only. Emojis must SOUND OUT the place name phonetically. Example: 🐾🌹 = paw+ris = PARIS. "parts" are the sounds, "explanation" shows the breakdown. Use cities from all over the world, especially MENA cities in Arabic mode. Answer must be a real city or country name.',
   year: 'Historical events with their exact year (y as a number). Mix world history, tech, pop culture, sports, and Arab/Gulf milestones.',
 };
 const cache = new Map();
