@@ -143,8 +143,8 @@ const Host = (() => {
     Audio_.stopMusic();
     Audio_.sfx.versus();
     const startLabel = LANG === 'ar' ? 'ابدأ ▶' : 'START ▶';
-    // Preload AI content (pinpoint uses static PINPOINT_CITIES, no backend needed for preload)
-    if(mode !== 'pinpoint') Content.get(mode, LANG, window.HYPOX_STATE?.rounds||5).catch(()=>{});
+    // Preload AI content for all modes
+    Content.get(mode, LANG, window.HYPOX_STATE?.rounds||5).catch(()=>{});
     const icon = (typeof MODE_ICONS !== 'undefined' ? MODE_ICONS : {})[mode] || '🎮';
     const rulesText = t('mode_rules')[mode] || '';
     const bulletRules = rulesText.split('.').filter(s=>s.trim().length>5).slice(0,3)
@@ -734,8 +734,14 @@ const Host = (() => {
     let aiCities = [];
     try {
       const aiRaw = await Content.get('pinpoint', LANG, rounds);
-      // AI returns {en, ar, lat, lon} — same shape as static. Filter valid entries.
-      aiCities = aiRaw.filter(c => c.en && typeof c.lat === 'number' && typeof c.lon === 'number');
+      // AI returns {en, ar, lat, lon} — filter out entries with invalid/missing coordinates
+      aiCities = aiRaw.filter(c =>
+        c.en && c.ar &&
+        typeof c.lat === 'number' && typeof c.lon === 'number' &&
+        c.lat >= -90 && c.lat <= 90 &&
+        c.lon >= -180 && c.lon <= 180 &&
+        !(c.lat === 0 && c.lon === 0) // reject null island
+      );
     } catch(e) {}
     const ALLPP = (typeof PINPOINT_CITIES !== 'undefined' ? PINPOINT_CITIES : []).concat(typeof PINPOINT_PLACES !== 'undefined' ? PINPOINT_PLACES : []);
     // Merge AI cities at front, fill rest from static pool (deduplicated by name)
