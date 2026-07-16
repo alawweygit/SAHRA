@@ -549,8 +549,6 @@
     setTimeout(()=>{
       Audio_.stopMusic();
       currentRoomCode=null;net=null;players=[];
-      // Clear host avatar bubble
-      const hb=$('#hostBubble');if(hb)hb.textContent='';
       const hel=$('#host');if(hel)hel.classList.remove('show');
       show('#scr-title');
       const skc=$('#menuSkip');if(skc)skc.classList.add('hidden'); // keep menuBtn visible

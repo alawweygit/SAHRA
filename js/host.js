@@ -363,7 +363,7 @@ const Host = (() => {
       const finders = votesByCard[ti];
       finders.forEach(pid => addScore(pid, 1000));
       if (finders.length) {
-        const names = finders.map(pid => players.find(x => x.pid === pid).name).join(' & ');
+        const names = finders.map(pid => players.find(x => x.pid === pid)?.name).filter(Boolean).join(' & ');
         FX.flyPoints(tCard, `+1000 ${names}`);
       }
       await sleep(1600);
@@ -687,7 +687,7 @@ const Host = (() => {
       right.forEach((pid, rank) => {
         addScore(pid, net.isOffline ? 700 : (SPEED_PTS[rank] || 400));
       });
-      const names = right.map(pid => players.find(p => p.pid === pid).name).join(', ');
+      const names = right.map(pid => players.find(p => p.pid === pid)?.name).filter(Boolean).join(', ');
       pushMirror({ headline: `✓ ${Q.options[Q.correct]}` + (right.length ? ` — ${names}` : '') });
       await say(right.length
         ? `${names} ${t('got_it_right')}!`
