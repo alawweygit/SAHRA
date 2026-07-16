@@ -1443,6 +1443,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
       pickHost();
       $('#menuSkip')?.classList.remove('hidden');
       try {
+        if (!MODES[mode]) throw new Error(`Unknown mode: "${mode}" (available: ${Object.keys(MODES).join(', ')})`);
         await MODES[mode]();
       } catch(e) {
         console.error('Game mode error:', e);
