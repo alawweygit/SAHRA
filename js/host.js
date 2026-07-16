@@ -205,31 +205,12 @@ const Host = (() => {
       if (b) b.style.width = Math.max(18, (p.score / max) * 100) + '%';
     }, i * 220));
     await sleep(800);
+    await hostSay('scores');
+    Audio_.stopMusic();
     if (!final) {
-      await hostSay('scores');
-      Audio_.stopMusic();
       await waitNext(7);
     } else {
-      // Final scores - show play again options
-      hostSay('scores');
-      const btnsDiv = document.createElement('div');
-      btnsDiv.style.cssText = 'display:flex;flex-direction:column;gap:12px;margin-top:2vmin;align-items:center;';
-      btnsDiv.innerHTML = `
-        <button class="big-btn" id="playAgainBtn" style="max-width:340px;width:100%">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
-        <button class="big-btn ghost" id="changeGameBtn" style="max-width:340px;width:100%">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>`;
-      const sceneEl = document.getElementById('scr-game');
-      if(sceneEl) sceneEl.appendChild(btnsDiv);
-      await new Promise(res => {
-        document.getElementById('playAgainBtn')?.addEventListener('click',()=>{btnsDiv.remove();res('again');},{once:true});
-        document.getElementById('changeGameBtn')?.addEventListener('click',()=>{btnsDiv.remove();res('change');},{once:true});
-      }).then(choice => {
-        if(choice==='change'){
-          players.forEach(p=>p.score=0);
-          // Go back to game picker
-          // Navigate to game picker via global bridge
-          if(window.__hypoxShowScreen) window.__hypoxShowScreen('#scr-games');
-        }
-      });
+      await sleep(1800); // brief pause before winner scene takes over
     }
   }
 
@@ -245,13 +226,22 @@ const Host = (() => {
       <div class="winner-name display">${w.emoji} ${esc(w.name)}</div>
       <div class="tagline">${esc(t('winner'))}</div>
       <div class="final-lb">${sorted.map((p,i)=>`<div class="final-lb-row"><span class="final-medal">${['🥇','🥈','🥉'][i]||((i+1)+'.')}</span>${avatarHTML(p)}<span class="final-name">${esc(p.name)}</span><span class="final-pts">${p.score}</span></div>`).join('')}</div>
-      <button class="big-btn" id="againBtn" style="margin-top:2vmin">${esc(t('play_again'))}</button>`);
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:2vmin;align-items:center;">
+        <button class="big-btn" id="againBtn" style="max-width:340px;width:100%">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
+        <button class="big-btn ghost" id="changeGameBtn" style="max-width:340px;width:100%">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
+      </div>`);
     Audio_.sfx.crown(); Audio_.sfx.fanfare();
     hostSay('winner');
     FX.shake(); FX.burst(260, true);
     setTimeout(() => FX.burst(180, true), 900);
     net.setState({ phase: 'winner', name: w.name, emoji: w.emoji });
-    await new Promise(res => $('#againBtn').addEventListener('click', () => { window.__hypoxPlayAgain = true; res(); }, { once: true }));
+    await new Promise(res => {
+      document.getElementById('againBtn')?.addEventListener('click', () => { window.__hypoxPlayAgain = true; res(); }, { once: true });
+      document.getElementById('changeGameBtn')?.addEventListener('click', () => {
+        players.forEach(p => p.score = 0);
+        res(); // just resolve - startDirectGame will call showPackPicker() which handles navigation
+      }, { once: true });
+    });
   }
 
   function addScore(pid, pts) {
@@ -770,7 +760,7 @@ const Host = (() => {
       await waitNext();
       if (r < pool.length - 1) await showScores();
     }
-    await showScores(true);
+    await showScores();
   }
 
   /* Wait for Next press, or auto-advance if autoplay is on */
@@ -924,7 +914,7 @@ ${category} — ${totalLetters} letters`,
       await waitNext();
       if(i < qs.length - 1) await showScores();
     }
-    await showScores(true);
+    await showScores();
   }
 
   /* ================= TIME MACHINE ================= */
@@ -977,7 +967,7 @@ ${category} — ${totalLetters} letters`,
       await waitNext();
       if (i < qs.length - 1) await showScores();
     }
-    await showScores(true);
+    await showScores();
   }
 
 
@@ -1007,7 +997,7 @@ ${category} — ${totalLetters} letters`,
       hideHost(); await waitNext();
       if (i < prompts.length - 1) await showScores();
     }
-    await showScores(true);
+    await showScores();
   }
 
   async function playTrueorlie() {
@@ -1038,7 +1028,7 @@ ${category} — ${totalLetters} letters`,
       hideHost(); await waitNext();
       if (i < prompts.length - 1) await showScores();
     }
-    await showScores(true);
+    await showScores();
   }
 
   async function playFlaghunt() {
@@ -1075,7 +1065,7 @@ ${category} — ${totalLetters} letters`,
       hideHost(); await waitNext();
       if(i<qs.length-1) await showScores();
     }
-    await showScores(true);
+    await showScores();
   }
 
   async function playHigherlow() {
@@ -1089,11 +1079,11 @@ ${category} — ${totalLetters} letters`,
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
       const opts = [{id:'higher',label:LANG==='ar'?'⬆️ أكثر':'⬆️ Higher',color:'#34d399'},{id:'lower',label:LANG==='ar'?'⬇️ أقل':'⬇️ Lower',color:'#f472b6'}];
-      scene(`<div class="eyebrow">📊 ${LANG==='ar'?'فوق ولا تحت؟':'HIGHER OR LOWER?'}</div><div class="prompt-card display">${esc(Q.q)}</div><div id="statusRow" class="status-row"></div>`);
-      pushMirror({ headline: Q.q });
+      scene(`<div class="eyebrow">📊 ${LANG==='ar'?'فوق ولا تحت؟':'HIGHER OR LOWER?'}</div><div class="prompt-card display">${esc(Q.q)}</div><div class="pick-sub" style="font-size:clamp(28px,5vw,52px);color:var(--yellow);font-family:Fredoka One,sans-serif;margin:1vmin 0">${hint.toLocaleString()} ${Q.unit}</div><div class="pick-sub">${LANG==='ar'?'الرقم الحقيقي فوق ولا تحت؟':'Is the real answer higher or lower?'}</div><div id="statusRow" class="status-row"></div>`);
+      pushMirror({ headline: Q.q, sub: `${LANG==='ar'?'الرقم المرجعي:':'Reference:'} ${hint.toLocaleString()} ${Q.unit}` });
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p=>p.pid);
-      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'فوق ولا تحت؟':'Higher or Lower?', context:Q.q, options:opts, seconds:15 }, pids, 15);
+      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'فوق ولا تحت؟':'Higher or Lower?', context:`${Q.q}\n${LANG==='ar'?'الرقم المرجعي':'Reference'}: ${hint.toLocaleString()} ${Q.unit}`, options:opts, seconds:15 }, pids, 15);
       const correctId = Q.n > hint ? 'higher' : 'lower';
       Audio_.sfx.drum(); await sleep(900);
       const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
@@ -1106,7 +1096,7 @@ ${category} — ${totalLetters} letters`,
       hideHost(); await waitNext();
       if (i < qs.length - 1) await showScores();
     }
-    await showScores(true);
+    await showScores();
   }
 
   async function play2t1l() {
@@ -1145,7 +1135,7 @@ ${category} — ${totalLetters} letters`,
       hideHost(); await waitNext();
       if (r < seats.length - 1) await showScores();
     }
-    await showScores(true);
+    await showScores();
   }
 
   async function playEmojiphrase() {
@@ -1177,7 +1167,7 @@ ${category} — ${totalLetters} letters`,
       hideHost(); await waitNext();
       if (i < qs.length - 1) await showScores();
     }
-    await showScores(true);
+    await showScores();
   }
 
   async function playEmojiword() {
@@ -1209,7 +1199,7 @@ ${category} — ${totalLetters} letters`,
       hideHost(); await waitNext();
       if (i < qs.length - 1) await showScores();
     }
-    await showScores(true);
+    await showScores();
   }
 
   async function playEmojiplace() {
@@ -1276,7 +1266,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
       hideHost(); await waitNext();
       if(i<qs.length-1) await showScores();
     }
-    await showScores(true);
+    await showScores();
   }
 
 
@@ -1384,7 +1374,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
       scene(`<div class="crown">🕵️</div><div class="prompt-card display" style="color:var(--pink)">${LANG==='ar'?'الجاسوس فاز! كان '+spyNames+'!':'Spy wins! It was '+spyNames+'!'}</div><div class="pick-sub">${LANG==='ar'?'الكلمة: '+word:'Word: '+word}</div>`);
     }
     hideHost(); await waitNext();
-    await showScores(true);
+    await showScores();
   }
 
   const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz, pinpoint: playPinpoint, emoji: playEmoji, year: playYear, mostlikely: playMostlikely, trueorlie: playTrueorlie, flaghunt: playFlaghunt, higherlow: playHigherlow, '2t1l': play2t1l, emojiplace: playEmojiplace, spy: playSpy };
@@ -1404,9 +1394,8 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
       $('#menuSkip')?.classList.add('hidden');
       if(window.__hypoxPlayAgain) {
         playAgain = true;
-      } else if(window.__hypoxShowScreen) {
-        window.__hypoxShowScreen('#scr-games');
       }
+      // If __hypoxPlayAgain is false, winnerScene already handled navigation (Change Game)
     }
   }
 
