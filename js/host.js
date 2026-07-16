@@ -77,6 +77,7 @@ const Host = (() => {
 
     pushMirror({ headline: spec.context || spec.title || '', sub: spec.title || '' });
     net.setState({ phase: 'input', phaseId, spec, targets: pids, deadline, mirror: { ...mirror } });
+    Audio_.startMusic('tension');
 
     // status row of mini avatars
     const row = $('#statusRow');
@@ -114,6 +115,7 @@ const Host = (() => {
 
     const inputs = await net.collect(phaseId, spec, pids, net.isOffline ? 9e7 : seconds * 1000);
     if (timerInt) clearInterval(timerInt);
+    Audio_.stopMusic();
     net.setState({ phase: 'wait', msg: t('watch_screen'), mirror: { ...mirror } });
     net.onEachInput(null);
     if (Object.keys(inputs).length === pids.length) Audio_.sfx.sting();
@@ -143,19 +145,23 @@ const Host = (() => {
     const startLabel = LANG === 'ar' ? 'ابدأ ▶' : 'START ▶';
     Content.get(mode, LANG, window.HYPOX_STATE?.rounds||5).catch(()=>{});
     const icon = (typeof MODE_ICONS !== 'undefined' ? MODE_ICONS : {})[mode] || '🎮';
-    // Convert rules text to max 3 bullet points
     const rulesText = t('mode_rules')[mode] || '';
     const bulletRules = rulesText.split('.').filter(s=>s.trim().length>5).slice(0,3)
       .map(s=>`<div class="tutorial-bullet">▸ ${esc(s.trim())}.</div>`).join('');
+    // Broadcast to phones so they see game name + tagline while host reads the card
+    const modeName = t('mode_names')[mode] || mode;
+    const tagline = t('mode_taglines')[mode] || '';
+    const shortRules = rulesText.split('.').filter(s=>s.trim().length>5).slice(0,2).map(s=>s.trim()).join('. ');
+    net.setState({ phase: 'gameinfo', modeName, icon, tagline, rules: shortRules });
     scene(`
       <div class="mode-card">
         <div class="tutorial-icon">${icon}</div>
-        <div class="mode-title display">${esc(t('mode_names')[mode])}</div>
-        <div class="mode-tag">${esc(t('mode_taglines')[mode])}</div>
+        <div class="mode-title display">${esc(modeName)}</div>
+        <div class="mode-tag">${esc(tagline)}</div>
         <div class="tutorial-bullets">${bulletRules}</div>
         <button class="big-btn pulse-btn" id="startModeBtn" style="margin-top:2vmin">${startLabel}</button>
       </div>`);
-    setPill(t('mode_names')[mode]);
+    setPill(modeName);
     hostSay('gamestart');
     await new Promise(res => {
       const btn = document.getElementById('startModeBtn');
@@ -195,14 +201,27 @@ const Host = (() => {
           <div class="score-row" style="animation-delay:${i * .12}s">
             <div class="medal">${['🥇','🥈','🥉'][i] || ''}</div>
             ${avatarHTML(p)}
-            <div class="bar-track"><div class="bar-fill" id="bar-${p.pid}" style="background:${p.color}">${esc(p.name)} · ${p.score}</div></div>
+            <div class="bar-track"><div class="bar-fill" id="bar-${p.pid}" style="background:${p.color};width:0"><span class="bar-name">${esc(p.name)}</span><span class="bar-pts" id="pts-${p.pid}">0</span></div></div>
           </div>`).join('')}
       </div>`);
     await sleep(300);
     sorted.forEach((p, i) => setTimeout(() => {
       Audio_.sfx.submit();
       const b = $('#bar-' + p.pid);
+      const ptsEl = $('#pts-' + p.pid);
       if (b) b.style.width = Math.max(18, (p.score / max) * 100) + '%';
+      // Count up the score number
+      if (ptsEl && p.score > 0) {
+        const dur = 900, steps = 20, step = p.score / steps;
+        let cur = 0, n = 0;
+        const iv = setInterval(() => {
+          n++; cur = n >= steps ? p.score : Math.round(step * n);
+          ptsEl.textContent = cur.toLocaleString();
+          if (n >= steps) clearInterval(iv);
+        }, dur / steps);
+      } else if (ptsEl) {
+        ptsEl.textContent = '0';
+      }
     }, i * 220));
     await sleep(800);
     await hostSay('scores');
@@ -710,8 +729,18 @@ const Host = (() => {
   async function playPinpoint() {
     await modeTitleCard('pinpoint');
     const rounds = window.HYPOX_STATE?.rounds || 5;
+    // Try AI backend first; normalize field names (AI uses en/ar/lat/lon, static same)
+    let aiCities = [];
+    try {
+      const aiRaw = await Content.get('pinpoint', LANG, rounds);
+      // AI returns {en, ar, lat, lon} — same shape as static. Filter valid entries.
+      aiCities = aiRaw.filter(c => c.en && typeof c.lat === 'number' && typeof c.lon === 'number');
+    } catch(e) {}
     const ALLPP = (typeof PINPOINT_CITIES !== 'undefined' ? PINPOINT_CITIES : []).concat(typeof PINPOINT_PLACES !== 'undefined' ? PINPOINT_PLACES : []);
-    const pool = ALLPP.slice().sort(() => Math.random() - .5).slice(0, rounds);
+    // Merge AI cities at front, fill rest from static pool (deduplicated by name)
+    const usedNames = new Set(aiCities.map(c => c.en));
+    const staticFill = ALLPP.filter(c => !usedNames.has(c.en)).sort(() => Math.random() - .5);
+    const pool = [...aiCities, ...staticFill].slice(0, rounds);
     for (let r = 0; r < pool.length; r++) {
       const city = pool[r];
       const cityName = LANG === 'ar' ? city.ar : city.en;
@@ -1306,7 +1335,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
       food:{en:['Pizza','Sushi','Burger','Shawarma','Pasta','Tacos','Biryani','Hummus','Ramen','Steak','Fried chicken','Cheesecake'],ar_en:['Kabsa','Shawarma','Harees','Machboos','Muhallabia','Luqaimat','Balaleet','Saleeg','Manti','Margoog','Jareesh','Thareed','Asida','Shakshouka','Fatteh'],ar:['بيتزا','سوشي','برغر','شاورما','باستا','تاكوس','برياني','حمص','رامن','ستيك','دجاج مقلي','تشيزكيك']},
       sport:{en:['Football','Basketball','Tennis','Swimming','Boxing','Golf','Formula 1','Wrestling','Volleyball','Baseball','Cricket','Table tennis'],ar_en:['Gulf Cup','Camel racing','Falconry','Al Hilal vs Al Ittihad','Saudi Pro League','Padel','Arab Champions League','Equestrian','Desert rally','Fishing tournament'],ar:['كرة القدم','كرة السلة','تنس','سباحة','ملاكمة','غولف','فورمولا 1','مصارعة','كرة طائرة','بيسبول','كريكيت','تنس طاولة']},
       animal:{en:['Lion','Elephant','Dolphin','Eagle','Gorilla','Penguin','Giraffe','Shark','Crocodile','Panda','Kangaroo','Octopus'],ar_en:['Camel','Saluki dog','Falcon','Arabian horse','Oryx','Sand gazelle','Honey badger','Desert fox','Red sea turtle','Dugong'],ar:['أسد','فيل','دولفين','نسر','غوريلا','بطريق','زرافة','قرش','تمساح','باندا','كنغر','أخطبوط']},
-      celebrity:{en:['Cristiano Ronaldo','Elon Musk','Beyonce','Will Smith','Kim Kardashian','Lionel Messi','Taylor Swift','Jeff Bezos','MrBeast','Bad Bunny'],ar_en:['Mohammed bin Salman','Sheikh Mohammed Dubai','Rotana','Maher Zain','Nancy Ajram','Haifa Wehbe','Tareg Fahd','Hamad Al Kuwari','Amr Diab','Abdulfattah Grini'],ar:['كريستيانو رونالدو','إيلون ماسك','بيونسيه','ويل سميث','كيم كارداشيان','ليونيل ميسي','تايلور سويفت','جيف بيزوس','مستر بيست','محمد عبده']},
+      celebrity:{en:['Cristiano Ronaldo','Elon Musk','Beyonce','Will Smith','Kim Kardashian','Lionel Messi','Taylor Swift','Jeff Bezos','MrBeast','Bad Bunny','Dwayne Johnson','Rihanna','LeBron James','Kylie Jenner','Drake'],ar_en:['Mohammed bin Salman','Sheikh Mohammed Dubai','Amr Diab','Nancy Ajram','Haifa Wehbe','Maher Zain','Mohamed Salah','Yusra Mardini','Omar Abdulaziz','Nayef Aggad','Turki Al Sheikh','Ragheb Alama','Majid Al Mohandis','Balqees','Nawal El Zoghbi'],ar:['كريستيانو رونالدو','إيلون ماسك','بيونسيه','ويل سميث','كيم كارداشيان','ليونيل ميسي','تايلور سويفت','جيف بيزوس','مستر بيست','دواين جونسون','ريهانا','محمد صلاح','عمرو دياب','نانسي عجرم','هيفاء وهبي']},
     };
     const flavor = window.HYPOX_STATE?.flavor || 'global';
     // Arab flavor = Arabic-cultural content in English; Global = worldwide content

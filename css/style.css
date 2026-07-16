@@ -424,7 +424,9 @@ body.ar .eyebrow{letter-spacing:0;}
 .score-row .avatar{width:clamp(40px,6.2vmin,62px);height:clamp(40px,6.2vmin,62px);font-size:clamp(19px,3.1vmin,30px);animation:none;flex-shrink:0;}
 .medal{font-size:clamp(16px,2.8vmin,28px);width:clamp(22px,3.3vmin,34px);text-align:center;flex-shrink:0;}
 .bar-track{flex:1;height:clamp(28px,4.5vmin,46px);background:var(--card);border-radius:40px;overflow:hidden;border:1.5px solid var(--border);}
-.bar-fill{height:100%;border-radius:40px;width:0;min-width:fit-content;transition:width 1.1s cubic-bezier(0.2,0.95,0.3,1.05);display:flex;align-items:center;justify-content:flex-end;padding:0 1.4vmin;font-family:'Fredoka One',sans-serif;font-size:clamp(12px,1.9vmin,17px);color:#fff;white-space:nowrap;overflow:hidden;}
+.bar-fill{height:100%;border-radius:40px;width:0;transition:width 1.1s cubic-bezier(0.2,0.95,0.3,1.05);display:flex;align-items:center;justify-content:space-between;padding:0 1.4vmin;font-family:'Fredoka One',sans-serif;font-size:clamp(12px,1.9vmin,17px);color:#fff;white-space:nowrap;overflow:hidden;gap:0.5vmin;}
+.bar-name{flex:1;overflow:hidden;text-overflow:ellipsis;}
+.bar-pts{font-size:clamp(13px,2vmin,18px);opacity:0.92;min-width:2.5em;text-align:right;}
 .crown{font-size:clamp(32px,7vmin,68px);animation:crownDrop 0.9s var(--ease-out) both;}
 @keyframes crownDrop{from{transform:translateY(-140px) rotate(-45deg) scale(0.4);opacity:0;}55%{transform:translateY(8px) rotate(8deg);}to{opacity:1;}}
 .winner-name{font-family:'Fredoka One','Lalezar',sans-serif;font-size:clamp(32px,7.5vmin,80px);color:var(--yellow);animation:winnerZoom 0.75s var(--ease-out) both;}

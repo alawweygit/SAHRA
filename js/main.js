@@ -675,6 +675,14 @@
           ctrl.innerHTML='<div class="ctrl-wrap" style="text-align:center;padding:30px 20px"><div style="font-size:64px;margin-bottom:16px">'+(isSpy?'🕵️':'🤵')+'</div><div style="font-family:Fredoka One,sans-serif;font-size:28px;color:'+(isSpy?'var(--pink)':'var(--green)')+'">'+( isSpy?(LANG==='ar'?'أنت الجاسوس!':'YOU ARE THE SPY!'):(LANG==='ar'?'أنت عميل':'YOU ARE AN AGENT'))+'</div><div style="font-size:18px;margin-top:12px;color:var(--text2)">'+(isSpy?(LANG==='ar'?'اكتشف الكلمة من الحديث':'Find the word from discussion'):(LANG==='ar'?'الكلمة: '+myRole.word:'Word: '+myRole.word))+'</div></div>';
           if(isSpy)Audio_.sfx.buzzer();else Audio_.sfx.sting();
         }
+      }else if(state.phase==='gameinfo'){
+        ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:20px 16px">
+          <div style="font-size:56px;margin-bottom:8px">${esc(state.icon||'🎮')}</div>
+          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(20px,5vw,28px);color:var(--yellow);margin-bottom:6px">${esc(state.modeName||'')}</div>
+          <div style="font-size:clamp(13px,3.5vw,16px);color:var(--text2);margin-bottom:12px">${esc(state.tagline||'')}</div>
+          ${state.rules?`<div style="font-size:clamp(12px,3vw,14px);color:var(--text3);line-height:1.5;background:rgba(255,255,255,0.06);border-radius:12px;padding:10px 14px;text-align:left">${esc(state.rules)}</div>`:''}
+          <div style="margin-top:16px;font-size:13px;color:var(--text3)">${LANG==='ar'?'انتظر المضيف يبدأ…':'Waiting for host to start…'}</div>
+        </div>`;
       }else if(state.phase==='winner'){
         ctrl.innerHTML=`<div class="ctrl-wrap"><div class="crown">👑</div><div class="ctrl-title display">${state.emoji} ${esc(state.name)}</div><div class="ctrl-sub">${T.winner()}</div></div>`;
         Audio_.sfx.fanfare();
