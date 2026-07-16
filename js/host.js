@@ -476,6 +476,11 @@ const Host = (() => {
     const entries = shuffle(pids.filter(pid => val(inputs, pid))
       .map(pid => ({ pid, text: val(inputs, pid) })));
 
+    if (!entries.length) {
+      await say(LANG === 'ar' ? 'ما أحد جاوب! المرة الجاية إن شاء الله.' : 'Nobody answered! Next time, hopefully.');
+      await showScores();
+      return;
+    }
     for (let i = 0; i < entries.length; i++) {
       const E = entries[i];
       const author = players.find(p => p.pid === E.pid);
@@ -556,9 +561,22 @@ const Host = (() => {
         <div class="prompt-card small display">${esc(R.p)}</div>`, t('write_diss')));
       say(LANG === 'ar' ? 'سطر واحد. بدون رحمة. بدون حقد بعدين.' : 'One line. No mercy. No grudges after.');
 
-      const inputs = await collectWithTimer(
-        { type: 'text', title: t('write_diss'), context: R.p, maxLen: 90 },
-        [A.pid, B.pid], 60);
+      // Collect from A and B with personalized opponent context on their phones
+      const phaseId = 'ph' + (++phaseCounter);
+      net.setState({
+        phase: 'input-split', phaseId, deadline: Date.now() + 60000,
+        specs: {
+          [A.pid]: { type: 'text', title: t('write_diss'), context: `${LANG==='ar'?'خصمك':'Your opponent'}: ${B.emoji} ${B.name}\n${R.p}`, maxLen: 90 },
+          [B.pid]: { type: 'text', title: t('write_diss'), context: `${LANG==='ar'?'خصمك':'Your opponent'}: ${A.emoji} ${A.name}\n${R.p}`, maxLen: 90 },
+        },
+      });
+      const statusRow = $('#statusRow');
+      if (statusRow) statusRow.innerHTML = [A, B].map(p => `<div class="mini" id="mini-${p.pid}">${avatarHTML(p)}<div class="check">✓</div></div>`).join('');
+      net.onEachInput(pid => { Audio_.sfx.submit(); $('#mini-' + pid)?.classList.add('done'); });
+      const rawInputs = await net.collect(phaseId, null, [A.pid, B.pid], 60000);
+      net.onEachInput(null);
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
+      const inputs = rawInputs;
 
       const lineA = val(inputs, A.pid) || t('no_answer');
       const lineB = val(inputs, B.pid) || t('no_answer');

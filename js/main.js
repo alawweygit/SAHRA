@@ -108,11 +108,12 @@
       buildTitleScreen(); // in-game: rebuild what we safely can
     });
     $('#langBtn').textContent=LANG==='en'?'عر':'EN';
-    $('#skipBtn').addEventListener('click',()=>{if(window.__hypoxSkip){window.__hypoxSkip();window.__hypoxSkip=null;}});
+    // Skip is handled by #menuSkip inside the menu overlay
     $('#menuBtn').addEventListener('click',openMenu);
     $('#menuBtn').classList.remove('hidden'); // always visible from start
     $('#menuClose').addEventListener('click',closeMenu);
     $('#menuResume').addEventListener('click',closeMenu);
+    $('#menuSkip').addEventListener('click',()=>{closeMenu();if(window.__hypoxSkip){window.__hypoxSkip();window.__hypoxSkip=null;}});
     $('#menuLeave').addEventListener('click',()=>{closeMenu();if(gameActive){leaveGame();}else{show('#scr-title');}});
 
     // Join screen — build mini avatar picker
@@ -187,6 +188,7 @@
 
   function paintJoin(){
     $('#backFromJoin').textContent=T.back();
+    $('#backFromJoin').onclick=()=>{Audio_.sfx.blip();show('#scr-title');};
     $('#joinCode').placeholder=LANG==='ar'?'رمز الغرفة':'Room code';
     $('#joinName').placeholder=T.yourName();
     $('#joinGo').textContent=LANG==='ar'?'دخول →':'Join →';
@@ -469,7 +471,7 @@
   async function startDirectGame(gameMode){
     Audio_.stopMusic();await FX.wipe();Host.hideHost();
     show('#scr-game');gameActive=true;const sk=$('#menuSkip');if(sk)sk.classList.remove('hidden');$('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');$('#roundPill').style.visibility='visible';
-    $('#skipBtn').textContent=T.skip();
+    
     $('#roundPill').textContent=(t('mode_names')||{})[gameMode]||gameMode;
     net.setState({phase:'wait',msg:T.watchScreen()});
     await Host.run(net,players,gameMode);
