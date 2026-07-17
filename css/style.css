@@ -690,7 +690,7 @@ body.ar .eyebrow{letter-spacing:0;}
 /* TITLE V2 removed — see TITLE V4 below */
 
 /* ============ PRE-GAME SCREEN ============ */
-#scr-pregame{justify-content:flex-start;padding-top:3vmin;overflow-y:auto;padding-bottom:0;}
+#scr-pregame{justify-content:flex-start;padding-top:max(14vmin,70px);overflow-y:auto;padding-bottom:0;}
 #pregameContent{overflow-y:auto;max-height:calc(100vh - 14vmin);padding-bottom:1vmin;}
 .pregame-sticky-bottom{
   position:sticky;bottom:0;left:0;right:0;
@@ -745,7 +745,7 @@ body.ar .eyebrow{letter-spacing:0;}
   gap:2.2vmin;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
-  padding-bottom:max(80px, env(safe-area-inset-bottom,0px) + 60px);
+  padding-bottom:max(env(safe-area-inset-bottom,0px) + 20px, 30px);
 }
 .hero{
   display:flex;flex-direction:column;align-items:center;gap:1.6vmin;
@@ -842,7 +842,7 @@ body.ar .eyebrow{letter-spacing:0;}
 
 /* ============ PREGAME V3 — scrollable ============ */
 #scr-pregame{
-  padding:2.5vmin;gap:1.4vmin;
+  padding:2.5vmin;padding-top:max(14vmin,70px);gap:1.4vmin;
   overflow-y:auto;-webkit-overflow-scrolling:touch;
   display:block!important;
 }
@@ -1053,9 +1053,9 @@ html{font-size:17px;}
 #scr-title .hero{min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .hero-ctas{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:3vmin;}
 #scr-games{
-  padding-top:4vmin;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding-top:max(14vmin,70px);overflow-y:auto;-webkit-overflow-scrolling:touch;
   display:block!important; /* flex breaks iOS scroll height calculation */
-  padding-bottom:120px;
+  padding-bottom:2vmin;
 }
 #scr-games .title-games-label{text-align:center;margin:0 auto 2vmin;}
 #scr-games .title-game-grid{margin:0 auto;}
@@ -1099,7 +1099,7 @@ html{font-size:17px;}
 #menuBtn.hidden { display: none !important; }
 
 /* ===== LANDING PAGE ===== */
-#scr-title{justify-content:flex-start!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;padding:0 0 max(120px,env(safe-area-inset-bottom,0px)+100px) 0!important;gap:0!important;}
+#scr-title{justify-content:flex-start!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;padding:0 0 max(env(safe-area-inset-bottom,0px) + 20px, 30px) 0!important;gap:0!important;}
 .hero{min-height:90vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5vmin 4vmin 4vmin;gap:2vmin;}
 .trust-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:2vmin;}
 .trust-pill{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:50px;padding:8px 18px;font-size:clamp(13px,1.8vw,16px);color:var(--text2);}
@@ -1145,7 +1145,7 @@ html{font-size:17px;}
 .title-game-card .tgc-icon{font-size:clamp(26px,4.5vw,38px)!important;}
 .title-game-card .tgc-name{font-size:clamp(10px,1.5vw,13px)!important;}
 /* ===== GAME SCREEN SCROLL FIX ===== */
-#scr-games{padding-top:2vmin!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;justify-content:flex-start!important;display:block!important;padding-bottom:120px!important;}
+#scr-games{padding-top:max(14vmin,70px)!important;padding-bottom:2vmin!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;justify-content:flex-start!important;display:block!important;}
 
 /* ===== TUTORIAL CARD ===== */
 .tutorial-icon { font-size: clamp(48px,9vw,90px); text-align:center; margin-bottom: 1vmin; animation: popIn .4s cubic-bezier(0.2,1.4,0.4,1) both; }
@@ -1439,8 +1439,8 @@ body.ar .tutorial-bullets { text-align: right; }
 .scroll-spacer{
   display:block;
   width:100%;
-  height:200px; /* tall enough to scroll past any browser chrome */
-  min-height:200px;
+  height:max(env(safe-area-inset-bottom, 0px) + 20px, 30px);
+  min-height:30px;
   flex-shrink:0;
   pointer-events:none;
 }
