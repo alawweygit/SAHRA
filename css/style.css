@@ -1194,7 +1194,6 @@ html{font-size:17px;}
   transition: background .2s;
 }
 .menu-setting-btn:hover { background: rgba(255,255,255,.15); }
-#menuSkip { color: var(--yellow); }
 
 /* ===== MOBILE TOPBAR - push down from status bar ===== */
 @media(max-width:600px){

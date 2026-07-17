@@ -109,12 +109,10 @@
       buildTitleScreen(); // in-game: rebuild what we safely can
     });
     $('#langBtn').textContent=LANG==='en'?'عر':'EN';
-    // Skip is handled by #menuSkip inside the menu overlay
     $('#menuBtn').addEventListener('click',openMenu);
     $('#menuBtn').classList.remove('hidden'); // always visible from start
     $('#menuClose').addEventListener('click',closeMenu);
     $('#menuResume').addEventListener('click',closeMenu);
-    $('#menuSkip').addEventListener('click',()=>{closeMenu();if(window.__hypoxSkip){window.__hypoxSkip();window.__hypoxSkip=null;}});
     $('#menuLeave').addEventListener('click',()=>{closeMenu();if(gameActive){leaveGame();}else{show('#scr-title');}});
 
     // Join screen — build mini avatar picker
@@ -493,7 +491,7 @@
 
   async function startDirectGame(gameMode){
     Audio_.stopMusic();await FX.wipe();Host.hideHost();
-    show('#scr-game');gameActive=true;const sk=$('#menuSkip');if(sk)sk.classList.remove('hidden');$('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');$('#roundPill').style.visibility='visible';
+    show('#scr-game');gameActive=true;$('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');$('#roundPill').style.visibility='visible';
     
     $('#roundPill').textContent=(t('mode_names')||{})[gameMode]||gameMode;
     net.setState({phase:'wait',msg:T.watchScreen()});
@@ -503,7 +501,7 @@
 
   async function showPackPicker(){
     Audio_.stopMusic();await FX.wipe();Host.hideHost();
-    show('#scr-game');gameActive=true;const sk2=$('#menuSkip');if(sk2)sk2.classList.add('hidden');
+    show('#scr-game');gameActive=true;
     $('#roundPill').textContent=T.nextGame();
     const modeNamesObj=t('mode_names')||{};
     const modeTagsObj=t('mode_taglines')||{};
@@ -556,10 +554,8 @@
     // Update menu labels based on game state
     const resumeEl=document.getElementById('menuResumeLabel');
     const leaveEl=document.getElementById('menuLeaveLabel');
-    const skipEl=$('#menuSkip');
     if(resumeEl) resumeEl.textContent=gameActive?(LANG==='ar'?'استمر في اللعبة':'Resume Game'):(LANG==='ar'?'العب':'Play');
     if(leaveEl) leaveEl.textContent=gameActive?(LANG==='ar'?'اترك اللعبة':'Leave Game'):(LANG==='ar'?'الرئيسية':'Home');
-    if(skipEl) skipEl.classList.toggle('hidden',!gameActive);
     $('#menuOverlay').classList.remove('hidden');
     Audio_.sfx.blip();
   }
@@ -574,7 +570,6 @@
     currentRoomCode=null;net=null;players=[];
     const hel=$('#host');if(hel)hel.classList.remove('show');
     show('#scr-title');
-    const skc=$('#menuSkip');if(skc)skc.classList.add('hidden');
     $('#roundPill').style.visibility='hidden';
     $('#topbar').classList.remove('show');
     $('#menuBtn').classList.add('hidden');

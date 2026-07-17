@@ -1504,7 +1504,6 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
       window.__hypoxPlayAgain = false;
       players.forEach(p=>p.score=0);
       pickHost();
-      $('#menuSkip')?.classList.remove('hidden');
       try {
         if (!MODES[mode]) throw new Error(`Unknown mode: "${mode}" (available: ${Object.keys(MODES).join(', ')})`);
         await MODES[mode]();
@@ -1518,7 +1517,6 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
       }
       if (window.__hypoxAbort) return;
       await winnerScene();
-      $('#menuSkip')?.classList.add('hidden');
       if(window.__hypoxPlayAgain) {
         playAgain = true;
       }
