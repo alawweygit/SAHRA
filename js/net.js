@@ -26,7 +26,7 @@ const makeCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Mat
 
 /* ---------------- Firebase (online) ---------------- */
 class FirebaseNet {
-  constructor(db) { this.db = db; this.isOffline = false; this.code = null; this.pid = null; this._collectors = {}; }
+  constructor(db) { this.db = db; this.isOffline = false; this.code = null; this.pid = null; this.isRoomOwner = false; this._collectors = {}; }
 
   static available() {
     return typeof firebase !== 'undefined'
@@ -43,6 +43,7 @@ class FirebaseNet {
 
   async createRoom(lang) {
     this.code = makeCode();
+    this.isRoomOwner = true;
     await this.room().set({
       createdAt: Date.now(), lang,
       state: { phase: 'lobby' },
@@ -133,6 +134,26 @@ class FirebaseNet {
   onEachInput(cb) { this._onEach = cb; }
 
   updateScore(pid, score) { return this.room(`players/${pid}/score`).set(score); }
+
+  async close() {
+    if (!this.code) return;
+    const roomRef = this.room();
+    const playerRef = this.pid ? this.room('players/' + this.pid) : null;
+    try { await roomRef.onDisconnect().cancel(); } catch(e) {}
+    if (playerRef) {
+      try { await playerRef.onDisconnect().cancel(); } catch(e) {}
+    }
+    roomRef.off();
+    try {
+      if (this.isRoomOwner) await roomRef.remove();
+      else if (playerRef) await playerRef.remove();
+    } finally {
+      this.code = null;
+      this.pid = null;
+      this.isRoomOwner = false;
+      this._players = [];
+    }
+  }
 }
 
 /* ---------------- Local (pass & play, one device) ---------------- */
@@ -175,6 +196,10 @@ class LocalNet {
   updateScore(pid, score) {
     const p = this.players.find(x => x.pid === pid);
     if (p) p.score = score;
+  }
+  async close() {
+    this.players = [];
+    if (this._playersCb) this._playersCb([]);
   }
 }
 

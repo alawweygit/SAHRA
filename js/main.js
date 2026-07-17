@@ -113,7 +113,7 @@
     $('#menuBtn').classList.remove('hidden'); // always visible from start
     $('#menuClose').addEventListener('click',closeMenu);
     $('#menuResume').addEventListener('click',closeMenu);
-    $('#menuLeave').addEventListener('click',()=>{closeMenu();if(gameActive){leaveGame();}else{show('#scr-title');}});
+    $('#menuLeave').addEventListener('click',()=>{closeMenu();if(gameActive||currentRoomCode){leaveGame();}else{show('#scr-title');}});
 
     // Join screen — build mini avatar picker
     buildJoinAvatarRow();
@@ -560,12 +560,13 @@
     Audio_.sfx.blip();
   }
   function closeMenu(){$('#menuOverlay').classList.add('hidden');}
-  function leaveGame(){
+  async function leaveGame(){
     gameActive=false;
     window.__hypoxAbort = true;  // tells Host.run to stop after current await
     if(window.__hypoxSkip)window.__hypoxSkip();
     window.__hypoxSkip=null;
-    if(net)try{net.setState({phase:'wait',msg:''});}catch(e){}
+    const leavingNet=net;
+    if(leavingNet)try{leavingNet.setState({phase:'wait',msg:''});}catch(e){}
     Audio_.stopMusic();
     currentRoomCode=null;net=null;players=[];
     const hel=$('#host');if(hel)hel.classList.remove('show');
@@ -573,6 +574,7 @@
     $('#roundPill').style.visibility='hidden';
     $('#topbar').classList.remove('show');
     $('#menuBtn').classList.add('hidden');
+    if(leavingNet)try{await leavingNet.close();}catch(e){console.warn('Room cleanup failed',e);}
   }
 
   /* ---- AVATAR ---- */
@@ -658,7 +660,7 @@
     if(!code||!name){Audio_.sfx.buzzer();return;}
     if(!FirebaseNet.available()){$('#joinErr').textContent=T.noFirebase();return;}
     $('#joinErr').textContent=T.connecting();
-    try{net=FirebaseNet.create();const res=await net.joinRoom(code,name,selectedAvatar);myPid=res.pid;isVip=res.isVip;}
+    try{net=FirebaseNet.create();const res=await net.joinRoom(code,name,selectedAvatar);myPid=res.pid;isVip=res.isVip;currentRoomCode=code;}
     catch(e){$('#joinErr').textContent=T.connFail();return;}
     show('#scr-controller');
     $('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');
