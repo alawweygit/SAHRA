@@ -391,13 +391,28 @@
     window.__hypoxSkip=null;
     // Show loading state
     const startBtn=document.getElementById('pgStartBtn');
+    const restoreStart=()=>{
+      if(!startBtn)return;
+      startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
+      startBtn.disabled=false;
+    };
     if(startBtn){startBtn.textContent=LANG==='ar'?'⏳ جاري التحميل…':'⏳ Loading…';startBtn.disabled=true;}
-    if(playMode!=='offline'&&!FirebaseNet.available()){Audio_.sfx.buzzer();alert(T.noFirebase());return;}
+    if(playMode!=='offline'&&!FirebaseNet.available()){Audio_.sfx.buzzer();restoreStart();alert(T.noFirebase());return;}
     if(net&&currentRoomCode&&!net.isOffline&&playMode!=='offline'){show('#scr-lobby');return;}
     net=createNet(playMode==='offline');
     if(playMode==='offline'&&!net.isOffline)net=new LocalNet();
     if(net.isOffline)net.promptLocal=passAndPlayPrompt;
-    const code=await net.createRoom(LANG);
+    let code;
+    try{
+      code=await net.createRoom(LANG);
+    }catch(e){
+      console.error('Could not create room',e);
+      Audio_.sfx.buzzer();
+      restoreStart();
+      net=null;
+      alert(LANG==='ar'?'تعذر إنشاء الغرفة. حاول مرة ثانية.':'Could not create the room. Please try again.');
+      return;
+    }
     currentRoomCode=code;
     $('#roomCodeText').textContent=net.isOffline?(LANG==='ar'?'مرّر الجوال':'PASS & PLAY'):code;
     $('#topbar').classList.add('show');
