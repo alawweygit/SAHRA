@@ -322,34 +322,60 @@ const PACKS = {
 };
 
 const Content = (() => {
-  const _preloadCache = new Map(); // key: mode:lang:count -> Promise<items>
+  const _preloadCache = new Map();
+  const resolveRegion = region => {
+    if (region) return region;
+    const flavor = window.HYPOX_STATE && window.HYPOX_STATE.flavor;
+    return flavor === 'arab' ? 'mena' : null;
+  };
+  const cacheKey = (mode, lang, count, region) =>
+    [mode, lang, count, region || 'global'].join(':');
 
   return {
+  preload(mode, lang, count, region) {
+    const resolvedRegion = resolveRegion(region);
+    const key = cacheKey(mode, lang, count, resolvedRegion);
+    if (!_preloadCache.has(key)) {
+      _preloadCache.set(key, this._load(mode, lang, count, resolvedRegion));
+    }
+    return _preloadCache.get(key);
+  },
+
   /* Async so an AI backend can be swapped in with zero changes elsewhere.
      region: 'mena' | 'weur' | 'asia' | 'africa' | null (null = universal only) */
   async get(mode, lang, count, region) {
-    // Arab Flavor = use MENA regional pack first; Global Mix = no regional preference
-    if (!region) {
-      const flavor = window.HYPOX_STATE && window.HYPOX_STATE.flavor;
-      region = (flavor === 'arab') ? 'mena' : null;
+    const resolvedRegion = resolveRegion(region);
+    const key = cacheKey(mode, lang, count, resolvedRegion);
+    if (_preloadCache.has(key)) {
+      const preloaded = _preloadCache.get(key);
+      _preloadCache.delete(key);
+      return preloaded;
     }
+    return this._load(mode, lang, count, resolvedRegion);
+  },
+
+  async _load(mode, lang, count, region) {
     const cfg = window.HYPOX_CONFIG || {};
     if (cfg.aiEndpoint) {
+      let timeoutId;
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5s max — fail fast to static
+        timeoutId = setTimeout(() => controller.abort(), 30000);
         const res = await fetch(cfg.aiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode, lang, count, region }),
           signal: controller.signal,
         });
-        clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.prompts) && data.prompts.length) return data.prompts.slice(0, count);
         }
-      } catch (e) { /* fall through to local packs */ }
+      } catch (e) {
+        console.warn('AI content unavailable; using emergency static fallback', e);
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+      }
     }
 
     // Guard: nothing to fetch
@@ -360,7 +386,7 @@ const Content = (() => {
     if (poolSize > 0 && count > poolSize) {
       const toast = document.createElement('div');
       toast.style.cssText = 'position:fixed;bottom:4vmin;left:50%;transform:translateX(-50%);background:#374151;color:#facc15;font-family:Fredoka One,sans-serif;font-size:15px;padding:10px 22px;border-radius:50px;z-index:99;opacity:0.92;pointer-events:none';
-      toast.textContent = '🔄 Content repeating — AI backend will fix this';
+      toast.textContent = '🔄 AI unavailable — emergency content may repeat';
       document.body.appendChild(toast);
       setTimeout(() => toast.remove(), 3500);
     }
@@ -386,7 +412,13 @@ const Content = (() => {
       if (seen.has(key)) continue;
       seen.add(key); out.push(item);
     }
-    return out.length ? out : shuffle(universal).slice(0, count);
+    const fallback = out.length ? out : shuffle(universal);
+    if (!fallback.length) return [];
+    const filled = fallback.slice(0, count);
+    while (filled.length < count) {
+      filled.push(...shuffle(fallback).slice(0, count - filled.length));
+    }
+    return filled;
   },
   };
 })();

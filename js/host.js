@@ -143,8 +143,13 @@ const Host = (() => {
     Audio_.stopMusic();
     Audio_.sfx.versus();
     const startLabel = LANG === 'ar' ? 'ابدأ ▶' : 'START ▶';
-    // Preload AI content for all modes
-    Content.get(mode, LANG, window.HYPOX_STATE?.rounds||5).catch(()=>{});
+    // Start the AI request while players read the tutorial, then consume the
+    // exact same promise when the round begins.
+    const contentMode = mode === 'trivia' ? 'quiz' : mode;
+    let preloadCount = window.HYPOX_STATE?.rounds || 5;
+    if (mode === 'interrogation' || mode === 'spy') preloadCount = 1;
+    if (mode === 'diss') preloadCount = Math.min(preloadCount, Math.floor(players.length / 2) + 1);
+    Content.preload(contentMode, LANG, preloadCount).catch(()=>{});
     const icon = (typeof MODE_ICONS !== 'undefined' ? MODE_ICONS : {})[mode] || '🎮';
     const rulesText = t('mode_rules')[mode] || '';
     const bulletRules = rulesText.split('.').filter(s=>s.trim().length>5).slice(0,3)
