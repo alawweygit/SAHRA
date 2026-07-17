@@ -744,6 +744,8 @@ body.ar .eyebrow{letter-spacing:0;}
   align-items:center;
   gap:2.2vmin;
   overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding-bottom:max(80px, env(safe-area-inset-bottom,0px) + 60px);
 }
 .hero{
   display:flex;flex-direction:column;align-items:center;gap:1.6vmin;
@@ -838,11 +840,12 @@ body.ar .eyebrow{letter-spacing:0;}
   .big-btn{font-size:16px;padding:12px 26px;}
 }
 
-/* ============ PREGAME V3 — single page, no scroll ============ */
-#scr-pregame{padding:2.5vmin;justify-content:flex-start;gap:1.4vmin;}
+/* ============ PREGAME V3 — scrollable ============ */
+#scr-pregame{padding:2.5vmin;justify-content:flex-start;gap:1.4vmin;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .pregame-inner{
   display:flex;flex-direction:column;gap:1.3vmin;
   width:min(96vw,760px);
+  padding-bottom:max(100px,env(safe-area-inset-bottom,0px) + 80px); /* room for START button */
 }
 .pg-header{display:flex;align-items:center;gap:1.4vmin;}
 .pg-icon{font-size:clamp(30px,5vmin,48px);}
@@ -957,7 +960,7 @@ button:focus-visible,input:focus-visible{
 }
 
 /* GPU acceleration hints for smooth animation */
-.logo-lt,.avatar,.title-game-card,.pack-card,.screen{will-change:transform;}
+.logo-lt,.avatar,.title-game-card,.pack-card{will-change:transform;}
 
 /* ============ TEXT SIZES ============ */
 html{font-size:17px;}
@@ -1085,7 +1088,7 @@ html{font-size:17px;}
 #menuBtn.hidden { display: none !important; }
 
 /* ===== LANDING PAGE ===== */
-#scr-title{justify-content:flex-start!important;overflow-y:auto!important;padding:0!important;gap:0!important;}
+#scr-title{justify-content:flex-start!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;padding:0 0 max(120px,env(safe-area-inset-bottom,0px)+100px) 0!important;gap:0!important;}
 .hero{min-height:90vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5vmin 4vmin 4vmin;gap:2vmin;}
 .trust-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:2vmin;}
 .trust-pill{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:50px;padding:8px 18px;font-size:clamp(13px,1.8vw,16px);color:var(--text2);}
@@ -1373,7 +1376,7 @@ body.ar .hint-display { direction: ltr !important; text-align: center !important
 
 /* ===== PREGAME MOBILE ===== */
 @media(max-width:600px){
-  .pregame-inner { padding: 12px !important; gap: 10px !important; }
+  .pregame-inner { padding: 12px 12px max(120px,env(safe-area-inset-bottom,0px)+100px) 12px !important; gap: 10px !important; }
   .pg-block { padding: 12px !important; }
   .pg-title { font-size: clamp(18px,5vw,24px) !important; }
   .pmm-btn { padding: 12px 10px !important; }
