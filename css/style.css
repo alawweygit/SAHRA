@@ -844,13 +844,13 @@ body.ar .eyebrow{letter-spacing:0;}
 #scr-pregame{
   padding:2.5vmin;gap:1.4vmin;
   overflow-y:auto;-webkit-overflow-scrolling:touch;
-  display:block!important; /* flex breaks iOS Safari scroll height */
+  display:block!important;
 }
 .pregame-inner{
   display:flex;flex-direction:column;gap:1.3vmin;
   width:min(96vw,760px);
   margin:0 auto;
-  padding-bottom:120px; /* ensures START button always reachable */
+  padding-bottom:20px; /* sticky button handles spacing */
 }
 .pg-header{display:flex;align-items:center;gap:1.4vmin;}
 .pg-icon{font-size:clamp(30px,5vmin,48px);}
@@ -1388,7 +1388,7 @@ body.ar .hint-display { direction: ltr !important; text-align: center !important
 
 /* ===== PREGAME MOBILE ===== */
 @media(max-width:600px){
-  .pregame-inner { padding: 12px 12px 140px 12px !important; gap: 10px !important; }
+  .pregame-inner { padding: 12px 12px 20px 12px !important; gap: 10px !important; }
   .pg-block { padding: 12px !important; }
   .pg-title { font-size: clamp(18px,5vw,24px) !important; }
   .pmm-btn { padding: 12px 10px !important; }
