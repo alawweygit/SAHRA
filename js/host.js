@@ -92,7 +92,7 @@ const Host = (() => {
 
   function setPill(text) { $('#roundPill').textContent = text; pushMirror({ pill: text }); publishSharedScreen(); }
 
-  async function say(text, { speed = 24 } = {}) {
+  async function say(text, { speed = 24, autoHide = 4000 } = {}) {
     const host = $('#host'), out = $('#speechText');
     pushMirror({ speech: text, hostVisible: true, hostName: currentHost ? `${currentHost.nameEn} · ${currentHost.nameAr}` : '', hostColor: currentHost?.color || 'host-purple' });
     host.classList.add('show', 'talking'); out.textContent = '';
@@ -103,6 +103,11 @@ const Host = (() => {
     }
     host.classList.remove('talking');
     await sleep(600);
+    // Auto-dismiss after display time
+    setTimeout(() => {
+      host.classList.remove('show');
+      pushMirror({ speech: '', hostVisible: false });
+    }, autoHide);
   }
   const hideHost = () => { $('#host').classList.remove('show'); pushMirror({ hostVisible: false }); };
 
@@ -183,6 +188,12 @@ const Host = (() => {
   }
 
   async function modeTitleCard(mode) {
+    // Skip tutorial on play again
+    if (window.__hypoxSkipTutorial) {
+      const contentMode = mode === 'trivia' ? 'quiz' : mode;
+      Content.preload(contentMode, LANG, window.HYPOX_STATE?.rounds||5).catch(()=>{});
+      return;
+    }
     await FX.wipe();
     Audio_.stopMusic();
     Audio_.sfx.versus();
@@ -1225,21 +1236,28 @@ const Host = (() => {
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
       const opts = [{id:'higher',label:LANG==='ar'?'⬆️ أكثر':'⬆️ Higher',color:'#34d399'},{id:'lower',label:LANG==='ar'?'⬇️ أقل':'⬇️ Lower',color:'#f472b6'}];
-      scene(`<div class="eyebrow">📊 ${LANG==='ar'?'فوق ولا تحت؟':'HIGHER OR LOWER?'}</div><div class="prompt-card display">${esc(Q.q)}</div><div class="pick-sub" style="font-size:clamp(28px,5vw,52px);color:var(--yellow);font-family:Fredoka One,sans-serif;margin:1vmin 0">${hint.toLocaleString()} ${Q.unit}</div><div class="pick-sub">${LANG==='ar'?'الرقم الحقيقي فوق ولا تحت؟':'Is the real answer higher or lower?'}</div><div id="statusRow" class="status-row"></div>`);
-      pushMirror({ headline: Q.q, sub: `${LANG==='ar'?'الرقم المرجعي:':'Reference:'} ${hint.toLocaleString()} ${Q.unit}` });
+      scene(`<div class="eyebrow">📊 ${LANG==='ar'?'فوق ولا تحت؟':'HIGHER OR LOWER?'}</div>
+        <div class="prompt-card display">${esc(Q.q)}</div>
+        <div class="pick-sub" style="font-size:clamp(28px,5vw,52px);color:var(--yellow);font-family:'Fredoka One',sans-serif;margin:1vmin 0">${hint.toLocaleString()} ${Q.unit}</div>
+        <div class="pick-sub" style="opacity:.7">${LANG==='ar'?'الرقم الحقيقي فوق ولا تحت؟':'Is the real answer higher or lower?'}</div>
+        <div id="statusRow" class="status-row"></div>`);
+      pushMirror({ headline: Q.q, sub: `${LANG==='ar'?'المرجع':'Ref'}: ${hint.toLocaleString()} ${Q.unit}`, options: opts });
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p=>p.pid);
-      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'فوق ولا تحت؟':'Higher or Lower?', context:`${Q.q}\n${LANG==='ar'?'الرقم المرجعي':'Reference'}: ${hint.toLocaleString()} ${Q.unit}`, options:opts, seconds:15 }, pids, 15);
+      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'فوق ولا تحت؟':'Higher or Lower?', context:`${Q.q}\n${LANG==='ar'?'المرجع':'Ref'}: ${hint.toLocaleString()} ${Q.unit}`, options:opts, seconds:15 }, pids, 15);
       const correctId = Q.n > hint ? 'higher' : 'lower';
-      Audio_.sfx.drum(); await sleep(900);
+      Audio_.sfx.drum(); await sleep(500);
       const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
       right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
       Audio_.sfx.reveal(); FX.burst(60);
-      const ansLabel = correctId==='higher'?(LANG==='ar'?`⬆️ أكثر! الجواب: ${Q.n.toLocaleString()} ${Q.unit}`:`⬆️ Higher! Answer: ${Q.n.toLocaleString()} ${Q.unit}`):(LANG==='ar'?`⬇️ أقل! الجواب: ${Q.n.toLocaleString()} ${Q.unit}`:`⬇️ Lower! Answer: ${Q.n.toLocaleString()} ${Q.unit}`);
-      scene(`<div class="eyebrow">${esc(Q.q)}</div><div class="prompt-card display" style="color:var(--yellow)">${ansLabel}</div><div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+( SPEED_PTS[right.indexOf(pid)]||400):'✗ 0'}</div></div></div>`;}).join('')}</div>`);
+      const arrow = correctId==='higher'?'⬆️':'⬇️';
+      const ansLabel = `${arrow} ${LANG==='ar'?'الجواب':'Answer'}: ${Q.n.toLocaleString()} ${Q.unit}`;
+      scene(`<div class="eyebrow">${esc(Q.q)}</div>
+        <div class="prompt-card display" style="color:var(--yellow);font-size:clamp(20px,3.5vmin,36px)">${ansLabel}</div>
+        <div class="score-list" style="margin-top:1.5vmin">${pids.map((pid,idx2)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx2*.1}s">${avatarHTML(p)}<div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}"><span class="bar-name">${esc(p.name)}</span><span class="bar-pts">${got?'✓ +'+(SPEED_PTS[right.indexOf(pid)]||400):'✗ 0'}</span></div></div></div>`;}).join('')}</div>`);
       pushMirror({ headline: ansLabel });
-      await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?'ولا واحد صاح!':'Nobody got it!'));
-      hideHost(); await waitNext();
+      await hostSay('reveal');
+      await waitNext();
       if (i < qs.length - 1) await showScores();
     }
     await showScores();
@@ -1560,9 +1578,12 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     startSharedScreen();
     window.__hypoxAbort = false;
     let playAgain = true;
+    let isFirstRound = true;
     while(playAgain && !window.__hypoxAbort) {
       playAgain = false;
       window.__hypoxPlayAgain = false;
+      window.__hypoxSkipTutorial = !isFirstRound; // skip tutorial on play again
+      isFirstRound = false;
       players.forEach(p=>p.score=0);
       pickHost();
       try {

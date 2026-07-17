@@ -170,7 +170,7 @@ const I18N = {
       emojiword: 'Emojis represent a single word. Decode it and pick fast to score more.',
       emojiplace: 'Emojis hint at a place. Type the answer — letters appear as hints over time.',
       spy: 'Everyone knows the secret word except the spy. Discuss, vote, catch the spy — or the spy wins by guessing the word! Categories: Location, Event, Movie, Food, Sport, Animal, Celebrity.',
-      emoji: 'Emojis appear on the big screen. Decode which country, city or place they mean — fastest correct answers score the most. Speed scoring: 1st +1000 down to +400.',
+      emoji: 'Emojis appear on your phone. Decode what word they sound out phonetically — type the answer fast. Speed scoring: 1st +1000 down to +400.',
       year: 'An event appears. Everyone types the year it happened. Closest guess wins: 1st +1000, 2nd +700, 3rd +500. Nail the exact year for a +500 bonus.',
       quiz: 'Speed trivia. Right answer = points. Faster = more points. No mercy.',
     },

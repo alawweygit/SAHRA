@@ -58,13 +58,14 @@ app.post('/api/prompts', async (req, res) => {
         model: 'claude-sonnet-4-6',
         max_tokens: 3000,
         messages: [{ role: 'user', content:
-          `Generate 30 unique party game prompts for the "${mode}" mode in ${langName}.\n` +
+          `Generate 30 UNIQUE and DIVERSE party game prompts for the "${mode}" mode in ${langName}.\n` +
           `Audience: ${audience}\n` +
           `Guidance: ${GUIDANCE[mode]}\n` +
           `Rules:\n` +
           `- Be creative, funny, and culturally relevant\n` +
+          `- VARIETY IS CRITICAL: no two prompts should feel similar\n` +
+          `- Cover different topics, scenarios, and difficulty levels\n` +
           `- No offensive content (racism, explicit sexual content, religion-mocking)\n` +
-          `- Each prompt must be meaningfully different from the others\n` +
           `- Return ONLY a valid JSON array, no markdown fences, no explanation\n` +
           `- Every item must match exactly this shape: ${SHAPES[mode]}`
         }],
@@ -79,7 +80,9 @@ app.post('/api/prompts', async (req, res) => {
       pool = pool.concat(fresh);
     }
     const out = pool.slice(0, count);
-    cache.set(key, pool.slice(count));
+    // Shuffle remaining pool so next request gets different items
+    const remaining = pool.slice(count).sort(() => Math.random() - 0.5);
+    cache.set(key, remaining);
     res.json({ prompts: out });
   } catch (e) {
     console.error('Backend error:', e.message);
