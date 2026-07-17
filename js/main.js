@@ -347,19 +347,15 @@
         btn.style.color='var(--yellow)';
         btn.style.background='rgba(251,191,36,0.12)';
       }
-      // Show sticky start button bar at screen bottom
-      let stickyBar=document.getElementById('pgStickyBar');
-      if(!stickyBar){
-        stickyBar=document.createElement('div');
-        stickyBar.id='pgStickyBar';
-        stickyBar.style.cssText='position:fixed;bottom:0;left:0;right:0;padding:12px 20px max(12px,env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 70%,transparent);z-index:50;display:flex;flex-direction:column;gap:8px;align-items:center;';
-        const startBtn=document.createElement('button');
-        startBtn.id='pgStartBtn';startBtn.className='big-btn';
-        startBtn.style.cssText='width:100%;max-width:400px;';
-        stickyBar.appendChild(startBtn);
-        document.getElementById('scr-pregame').appendChild(stickyBar);
+      // Show start button in normal page flow
+      let startBtn=document.getElementById('pgStartBtn');
+      if(!startBtn){
+        startBtn=document.createElement('button');
+        startBtn.id='pgStartBtn';
+        startBtn.className='big-btn';
+        startBtn.style.cssText='margin-top:16px;width:100%;max-width:400px;';
+        document.getElementById('pregameInner').appendChild(startBtn);
       }
-      const startBtn=document.getElementById('pgStartBtn');
       startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
       startBtn.onclick=()=>{if(!selectedPlayMode){alert(LANG==='ar'?'اختر طريقة اللعب أولاً':'Please select how you are playing first');return;}startGameWithMode(selectedPlayMode,mode);};
       Audio_.sfx.blip();
@@ -371,16 +367,9 @@
     {
       const startBtn=document.createElement('button');
       startBtn.id='pgStartBtn';startBtn.className='big-btn';
-      startBtn.style.cssText='width:100%;max-width:400px;';
+      startBtn.style.cssText='margin-top:16px;width:100%;max-width:400px;';
       startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
-      // Put in sticky bar
-      let sb2=document.getElementById('pgStickyBar');
-      if(!sb2){
-        sb2=document.createElement('div');sb2.id='pgStickyBar';
-        sb2.style.cssText='position:fixed;bottom:0;left:0;right:0;padding:12px 20px max(12px,env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 70%,transparent);z-index:50;display:flex;flex-direction:column;gap:8px;align-items:center;';
-        sb2.appendChild(startBtn);
-        document.getElementById('scr-pregame').appendChild(sb2);
-      } else { sb2.appendChild(startBtn); }
+      document.getElementById('pregameInner').appendChild(startBtn);
       startBtn.onclick=()=>{
         if(!selectedPlayMode){
           // Default to phones only if nothing selected
