@@ -58,7 +58,7 @@ class FirebaseNet {
     const playersSnap = await this.room('players').get();
     const existing = playersSnap.val() || {};
     const n = Object.keys(existing).length;
-    if (n >= 10) throw new Error('full');
+    if (n >= 20) throw new Error('full');
     if (!av) av = AVATARS[n % AVATARS.length];
     this.pid = 'p' + Date.now() + Math.floor(Math.random() * 999);
     const isVip = n === 0;
@@ -146,7 +146,7 @@ class LocalNet {
   async createRoom() { return this.code; }
   addLocalPlayer(name, av) {
     const n = this.players.length;
-    if (n >= 10) return null;
+    if (n >= 20) return null;
     if (!av) av = AVATARS[n % AVATARS.length];
     const p = { pid: 'local' + n, name: name.slice(0, 14), emoji: av.emoji, color: av.color, score: 0, isVip: n === 0 };
     this.players.push(p);
