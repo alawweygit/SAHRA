@@ -81,7 +81,7 @@ class FirebaseNet {
   }
 
   setState(obj) { return this.room('state').set({ ...obj, ts: Date.now() }); }
-  onState(cb) { this.room('state').on('value', s => { const v = s.val(); if (v) cb(v); }); }
+  onState(cb) { this.room('state').on('value', s => { const v = s.val(); if (v) cb(v); else cb({ phase: 'hostLeft' }); }); }
 
   setPlayMode(mode) { this.playMode = mode; return this.room('playMode').set(mode); }
   async getPlayMode() {

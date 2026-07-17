@@ -544,6 +544,7 @@
           </button>`).join('')}
       </div>
       <button class="bar-btn" id="backToLobbyBtn" style="margin-top:2vmin">${T.backLobby()}</button>`);
+    Audio_.unlock();
     Audio_.startMusic('lobby');net.setState({phase:'wait',msg:T.watchScreen()});
     $$('.pack-card').forEach(btn=>btn.addEventListener('click',async()=>{
       const mode=btn.dataset.mode,minP=MODE_MIN[mode]||2;
@@ -748,6 +749,7 @@
       },2000);
     }
     const mstrip=$('#phoneMirror');
+    let _lastMirrorKey = '';
     function renderMirror(m){
       if(!m)return;
       // Update the small strip
@@ -759,8 +761,10 @@
         sharedHost.className=`phone-shared-host ${esc(m.hostColor||'host-purple')}`;
         sharedHost.innerHTML=`<div class="psh-face"><span class="psh-eye">•</span><span class="psh-eye">•</span><span class="psh-smile">⌣</span><span class="psh-bow">◆</span></div><div class="psh-speech"><div class="psh-name">${esc(m.hostName||'')}</div>${esc(m.speech)}</div>`;
       }else if(phonesOnly&&m.hostVisible===false){sharedHost.classList.add('hidden');}
-      // Full-screen mirror: show game content when not actively inputting
-      if(!isInputActive() && (m.headline||m.scores)){
+      // Full-screen mirror: skip re-render if content unchanged (prevents emoji/score blinking)
+      const mirrorKey = JSON.stringify({h:m.headline,s:m.sub,sc:m.scores?m.scores.length:0});
+      if(!isInputActive() && (m.headline||m.scores) && mirrorKey !== _lastMirrorKey){
+        _lastMirrorKey = mirrorKey;
         ctrl.innerHTML=buildMirrorHTML(m);
       }
     }
@@ -805,6 +809,18 @@
     }
     let lastPhaseId=null;
     net.onState(state=>{
+      if(!state||state.phase==='hostLeft'){
+        // Host left — go back to home
+        ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:30px 20px">
+          <div style="font-size:48px">😢</div>
+          <div style="font-family:'Fredoka One',sans-serif;font-size:20px;color:var(--text2);margin-top:12px">${LANG==='ar'?'المضيف غادر اللعبة':'Host left the game'}</div>
+        </div>`;
+        setTimeout(()=>{
+          currentRoomCode=null;net=null;players=[];gameActive=false;
+          show('#scr-title');
+        },2500);
+        return;
+      }
       if(state.mirror)renderMirror(state.mirror);
       if(state.phase==='input'&&state.phaseId!==lastPhaseId){
         if(!state.targets||state.targets.includes(myPid)){

@@ -1663,8 +1663,18 @@ body.ar .tutorial-bullets { text-align: right; }
 
 /* ===== MOBILE HOST AVATAR - smaller, less intrusive ===== */
 @media(max-width:600px){
-  .host-body{width:clamp(52px,12vw,70px)!important;height:clamp(52px,12vw,70px)!important;}
-  .speech{max-width:min(62vw,260px)!important;font-size:clamp(11px,3.2vw,14px)!important;padding:10px 14px 10px 14px!important;min-height:0!important;}
-  #host{left:2vmin!important;bottom:2vmin!important;gap:8px!important;}
-  .host-name{font-size:9px!important;letter-spacing:1px!important;}
+  .host-body{width:clamp(50px,11vw,68px)!important;height:clamp(50px,11vw,68px)!important;}
+  .speech{
+    max-width:min(65vw,260px)!important;
+    font-size:clamp(12px,3.4vw,15px)!important;
+    padding:18px 12px 10px 12px!important;
+    min-height:0!important;
+    line-height:1.4!important;
+  }
+  .host-name{
+    font-size:9px!important;
+    letter-spacing:0.5px!important;
+    padding:2px 8px!important;
+  }
+  #host{left:2vmin!important;bottom:2vmin!important;gap:6px!important;}
 }
