@@ -177,19 +177,42 @@ const I18N = {
     banter_lobby: [
       "Alright, get your phones out. Yes, you too.",
       "The more players the better. Invite everyone.",
+      "Okay everyone breathe. This is just a game. Probably.",
+      "Leave your dignity at the door. You won't need it.",
+      "Pro tip: lying is encouraged. Encouraged.",
     ],
     banter_prompt: [
       "Take your time. But not too much — I get bored.",
       "Remember: confidence beats honesty here.",
       "Type like no one's watching. I am, though.",
+      "No overthinking. Worst decisions make the best stories.",
+      "The timer's ticking. Just like my patience.",
+      "Think fast. Or don't. Both are entertaining for me.",
     ],
     banter_vote: [
       "Choose carefully. Friendships have ended over less.",
       "One of these is true. The rest? Pure lies.",
+      "Vote with your gut. Or betray someone. Up to you.",
+      "Someone in this room is absolutely going to regret this.",
     ],
     banter_scores: [
       "Let's see the damage…",
       "Numbers don't lie. Unlike all of you.",
+      "Some of you should be ashamed. You know who you are.",
+      "Interesting. Very interesting. For me at least.",
+      "The gap between first and last is… telling.",
+      "Don't worry, it's not about the score. It's about the memories you made betraying each other.",
+    ],
+    banter_reveal: [
+      "And the answer is…",
+      "Drumroll… actually forget the drumroll.",
+      "The truth, finally.",
+      "Some of you knew. Most of you guessed.",
+    ],
+    banter_winner: [
+      "This person played the game perfectly. Or cheated. Hard to tell.",
+      "First place. They earned it. Probably.",
+      "The crowd goes wild. Or at least mildly impressed.",
     ],
   },
   ar: {

@@ -24,7 +24,7 @@ const Host = (() => {
       const pool = (currentHost.banter[LANG] || currentHost.banter.en || {})[kind];
       if (pool && pool.length) return say(pool[Math.floor(Math.random() * pool.length)]);
     }
-    const legacy = { prompt: 'banter_prompt', vote: 'banter_vote', scores: 'banter_scores' }[kind];
+    const legacy = { prompt: 'banter_prompt', vote: 'banter_vote', scores: 'banter_scores', reveal: 'banter_reveal', winner: 'banter_winner' }[kind];
     return legacy ? say(tPick(legacy)) : Promise.resolve();
   }
 
@@ -115,8 +115,8 @@ const Host = (() => {
 
     const inputs = await net.collect(phaseId, spec, pids, net.isOffline ? 9e7 : seconds * 1000);
     if (timerInt) clearInterval(timerInt);
-    Audio_.stopMusic();
-    net.setState({ phase: 'wait', msg: t('watch_screen'), mirror: { ...mirror } });
+    try { Audio_.stopMusic(); } catch(e) {}
+    net.setState({ phase: 'wait', msg: LANG==='ar'?'👆 تابع الشاشة':'👆 Watch the screen', mirror: { ...mirror } });
     net.onEachInput(null);
     if (Object.keys(inputs).length === pids.length) Audio_.sfx.sting();
     else Audio_.sfx.buzzer();
@@ -167,7 +167,13 @@ const Host = (() => {
     await new Promise(res => {
       const btn = document.getElementById('startModeBtn');
       let timer = null;
-      const onStart = () => { window.__hypoxSkip = null; if (timer) clearInterval(timer); res(); };
+      const onStart = () => {
+        window.__hypoxSkip = null;
+        if (timer) clearInterval(timer);
+        // Show loading spinner while content loads
+        if (btn) { btn.textContent = LANG==='ar'?'⏳ تحميل...':'⏳ Loading...'; btn.disabled = true; }
+        res();
+      };
       if (btn) {
         btn.addEventListener('click', onStart, { once: true });
         if (window.HYPOX_STATE?.autoplay) {
@@ -193,7 +199,8 @@ const Host = (() => {
     // Broadcast leaderboard to every phone (not just host screen)
     pushMirror({
       pill: final ? t('final_results') : t('scores'),
-      headline: sorted.slice(0, 4).map((p, i) => `${['🥇','🥈','🥉','4.'][i]} ${p.name} ${p.score}`).join('  ·  '),
+      headline: final ? '🏆 ' + (t('final_results')||'Final Results') : '📊 ' + (t('scores')||'Scores'),
+      scores: sorted.map((p,i) => ({ medal: ['🥇','🥈','🥉'][i]||'', name: p.name, score: p.score })),
     });
     scene(`
       <div class="lobby-title display">${final ? esc(t('final_results')) : esc(t('scores'))}</div>
@@ -228,9 +235,9 @@ const Host = (() => {
     await hostSay('scores');
     Audio_.stopMusic();
     if (!final) {
-      await waitNext(7);
+      await waitNext(10); // 10s autoplay countdown — plenty of time to read
     } else {
-      await sleep(1800); // brief pause before winner scene takes over
+      await sleep(2500); // longer pause on final scores before winner scene
     }
   }
 
@@ -251,14 +258,15 @@ const Host = (() => {
         <button class="big-btn ghost" id="changeGameBtn" style="max-width:340px;width:100%">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
       </div>`);
     Audio_.sfx.crown(); Audio_.sfx.fanfare();
-    hostSay('winner');
+    await say(tPick('banter_winner')||'');
     FX.shake(); FX.burst(260, true);
     setTimeout(() => FX.burst(180, true), 900);
     net.setState({ phase: 'winner', name: w.name, emoji: w.emoji });
     await new Promise(res => {
       document.getElementById('againBtn')?.addEventListener('click', () => { window.__hypoxPlayAgain = true; res(); }, { once: true });
       document.getElementById('changeGameBtn')?.addEventListener('click', () => {
-        res(); // just resolve - startDirectGame will call showPackPicker() then run() resets scores
+        players.forEach(p => p.score = 0); // reset scores for fresh start
+        res();
       }, { once: true });
     });
   }
@@ -374,6 +382,7 @@ const Host = (() => {
       // then truth
       Audio_.sfx.drum();
       await say(LANG === 'ar' ? '…والحقيقة هي' : 'And the truth is…', { speed: 40 });
+      // hostSay after say to avoid overlap
       hideHost();
       const ti = answers.findIndex(a => a.truth);
       const tCard = $('#card-' + ti);
@@ -667,6 +676,11 @@ const Host = (() => {
       const pool = TRIVIA_CATS[cat][LANG] || TRIVIA_CATS[cat].en || [];
       const shuffled = pool.slice().sort(()=>Math.random()-.5);
       qs = shuffled.slice(0, rounds);
+      // Supplement with AI if pool is small
+      if (qs.length < rounds) {
+        const aiExtra = await Content.get('quiz', LANG, rounds - qs.length);
+        qs = [...qs, ...aiExtra].slice(0, rounds);
+      }
     } else if (cat === 'general' && flavor === 'arab' && typeof TRIVIA_CATS !== 'undefined' && TRIVIA_CATS['gulf']) {
       // Arab Flavor + General = mix gulf + standard quiz
       const gulfPool = TRIVIA_CATS['gulf'][LANG] || TRIVIA_CATS['gulf'].en || [];
@@ -698,6 +712,7 @@ const Host = (() => {
 
       // reveal
       Audio_.sfx.drum(); await sleep(900);
+      hostSay('reveal');
       $('#qopt-' + Q.correct)?.classList.add('q-correct');
       Q.options.forEach((_, j) => { if (j !== Q.correct) $('#qopt-' + j)?.classList.add('q-dim'); });
       Audio_.sfx.correct(); FX.burst(80);
@@ -895,10 +910,10 @@ const Host = (() => {
         <div class="timer-bar"><div class="timer-fill" id="tF" style="width:100%"></div></div>
         <div id="statusRow" class="status-row"></div>`);
 
-      // Phone screen: show emojis + category + blanks too
+      // Phone screen: show emojis + category + blanks
       pushMirror({
         headline: Q.e,
-        sub: `${category} · ${totalLetters} letters`,
+        sub: `${category} · ${'_ '.repeat(totalLetters).trim()}`,
         pill: `${i+1}/${qs.length}`
       });
       Audio_.sfx.sting();
@@ -931,10 +946,10 @@ const Host = (() => {
       const answers = await collectWithTimer({
         type: 'text',
         title: LANG==='ar' ? 'اكتب الجواب!' : 'Type the answer!',
-        context: `${Q.e}
-${category} — ${totalLetters} letters`,
+        context: `${Q.e}\n${category} — ${totalLetters} ${LANG==='ar'?'حروف':'letters'}`,
         maxLen: 40,
         seconds: TOTAL_SECS,
+        answerLen: totalLetters, // hint for phone-side validation
       }, pids, TOTAL_SECS);
       clearInterval(tI);
 
@@ -1406,12 +1421,19 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
       net.setState({phase:'spy-roles',roles:Object.fromEntries(pids.map(pid=>[pid,spyPids.includes(pid)?{role:'spy',word:null}:{role:'agent',word}])),word,numSpies});
       Audio_.sfx.sting(); await sleep(7000);
     }
-    const DISC=Math.max(60,players.length*15); // 60s for 3p, 75s for 5p, 90s for 6p+
+    const DISC = window.HYPOX_STATE?.spyDisc || Math.max(60, players.length * 15);
+    // Build discussion order: each player asks the next
+    const discOrder = players.slice().sort(() => Math.random() - .5);
+    const pairLines = discOrder.map((p, i) => {
+      const next = discOrder[(i + 1) % discOrder.length];
+      return `${p.emoji} <b>${esc(p.name)}</b> → ${next.emoji} ${esc(next.name)}`;
+    }).join('<br>');
     await FX.wipe();
     scene(`<div class="eyebrow">🕵️ ${LANG==='ar'?'وقت النقاش':'DISCUSSION TIME'}</div>
       <div class="prompt-card display">${LANG==='ar'?'ناقشوا — من الجاسوس؟':'Discuss — who is the spy?'}</div>
       <div class="year-reveal" id="discT">${DISC}</div>
-      <div class="pick-sub">${LANG==='ar'?'اسألوا أسئلة — لا تقولوا الكلمة مباشرة!':'Ask questions — don\'t say the word directly!'}</div>`);
+      <div class="pick-sub" style="font-size:clamp(12px,1.8vmin,15px);line-height:1.8;margin-top:1vmin">${pairLines}</div>
+      <div class="pick-sub" style="opacity:.7;font-size:clamp(11px,1.5vmin,13px)">${LANG==='ar'?'اسألوا أسئلة — لا تقولوا الكلمة مباشرة!':'Ask questions — don\'t say the word directly!'}</div>`);
     pushMirror({headline:LANG==='ar'?'ناقشوا!':'Discuss!',sub:LANG==='ar'?'من هو الجاسوس؟':'Who is the spy?'});
     let disc=DISC;
     const dI=setInterval(()=>{disc--;const el=document.getElementById('discT');if(el)el.textContent=disc;if(disc<=0)clearInterval(dI);},1000);

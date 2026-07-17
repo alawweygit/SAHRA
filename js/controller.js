@@ -62,6 +62,19 @@ const Controller = (() => {
       btn.addEventListener('click', () => {
         const v = ta.value.trim();
         if (!v) { ta.classList.add('shake'); setTimeout(() => ta.classList.remove('shake'), 500); return; }
+        // If answerLen hint provided (emoji riddle), validate length
+        if (spec.answerLen && v.replace(/\s/g,'').length !== spec.answerLen) {
+          const msg = document.createElement('div');
+          msg.style.cssText = 'color:var(--pink);font-size:13px;text-align:center;animation:shake .3s;margin-top:6px';
+          msg.textContent = LANG==='ar' ? `الجواب ${spec.answerLen} حروف — حاول مرة ثانية!` : `Answer is ${spec.answerLen} letters — try again!`;
+          // Remove previous hint if any
+          wrap.querySelector('.len-hint')?.remove();
+          msg.className = 'len-hint';
+          wrap.appendChild(msg);
+          ta.classList.add('shake');
+          setTimeout(() => { ta.classList.remove('shake'); }, 500);
+          return;
+        }
         Audio_.sfx.submit();
         lock(wrap);
         onSubmit(v);

@@ -27,7 +27,7 @@ const GUIDANCE = {
   bluff:       'Fill-in-the-blank weird true facts. The blank (___) replaces the most surprising element. Truth in CAPS. Mix global and Gulf/Arab facts when in Arabic.',
   wyr:         'Would You Rather dilemmas — both options equally appealing or equally awful. No obvious right answer. Gulf situations and local culture welcome in Arabic.',
   diss:        'Roast battle setup lines — a prompt letting players write a funny one-liner insult about their specific opponent.',
-  quiz:        'Multiple-choice trivia. Vary correct answer position randomly (0-3) and set correct accordingly. Gulf/Arab trivia focus in Arabic. Mix difficulty levels.',
+  quiz:        'Multiple-choice trivia. Vary correct answer position randomly (0-3) and set correct accordingly. Gulf/Arab trivia focus in Arabic. Mix difficulty levels. For football category: World Cup, club football, famous players, Gulf football (Al-Hilal, Al-Ittihad, Saudi Pro League, Gulf Cup, Arab Champions League).',
   mostlikely:  '"Who is most likely to…" questions that spark funny debates in a friend group. Make them specific enough to actually point at someone. Gulf/Arab social situations in Arabic. Examples: "Who is most likely to bring their mom on a first date?" or "Who is most likely to eat alone in a restaurant and pretend they\'re waiting for someone?"',
   trueorlie:   'Absurd-sounding statements that are either genuinely TRUE or FALSE. Should make players doubt themselves. Mix science, history, Gulf/Arab facts, pop culture. "truth" field must be a boolean. Examples of TRUE ones: "Honey never expires" (true), "Saudi Arabia imports sand from Australia" (true). False ones should be believable but wrong.',
   pinpoint:    'Real cities for a geography pin-dropping game. Each entry: "en" = city name in English, "ar" = city name in Arabic script, "lat" = latitude (decimal, -90 to 90), "lon" = longitude (decimal, -180 to 180). ACCURACY IS CRITICAL — wrong coordinates break the game. Use well-known cities you are certain of: capitals, major cities, famous locations. Mix continents. In Arabic mode, include 50% MENA/Arab cities (Riyadh, Dubai, Cairo, Beirut, Amman, Muscat, Kuwait City, Doha, Manama, Tunis, Rabat, Casablanca, Baghdad, Damascus). Never invent coordinates — only use cities you know precisely.',
@@ -48,7 +48,8 @@ app.post('/api/prompts', async (req, res) => {
     if (!SHAPES[mode]) return res.status(400).json({ error: 'Unknown mode: ' + mode });
     const key = mode + ':' + lang;
     let pool = cache.get(key) || [];
-    if (pool.length < count) {
+    // Keep a larger pool (50+ items) to avoid repeating; refill when running low
+    if (pool.length < Math.max(count, 15)) {
       const langName = lang === 'ar' ? 'Gulf Arabic (khaleeji dialect, casual, not formal MSA)' : 'English';
       const audience = lang === 'ar'
         ? 'Arab friend groups in their 20s-30s in the Gulf. Content must feel native, not translated.'
@@ -57,7 +58,7 @@ app.post('/api/prompts', async (req, res) => {
         model: 'claude-sonnet-4-6',
         max_tokens: 3000,
         messages: [{ role: 'user', content:
-          `Generate 20 unique party game prompts for the "${mode}" mode in ${langName}.\n` +
+          `Generate 30 unique party game prompts for the "${mode}" mode in ${langName}.\n` +
           `Audience: ${audience}\n` +
           `Guidance: ${GUIDANCE[mode]}\n` +
           `Rules:\n` +

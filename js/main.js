@@ -20,6 +20,7 @@
     {id:'gulf',icon:'🕌',name:'Gulf & Arab',nameAr:'خليج وعرب'},
     {id:'pop',icon:'🎬',name:'Pop Culture',nameAr:'ثقافة شعبية'},
     {id:'sports',icon:'⚽',name:'Sports',nameAr:'رياضة'},
+    {id:'football',icon:'⚽',name:'Football',nameAr:'كرة القدم'},
   ];
 
   window.HYPOX_STATE = window.HYPOX_STATE || {region:null,rounds:5,category:'general',flavor:'global',autoplay:false};
@@ -245,6 +246,10 @@
         <div class="round-btns">${[1,2,3].map(n=>`<button class="round-btn${(window.HYPOX_STATE.spyCount||1)===n?' selected':''}" data-spy="${n}">${n}</button>`).join('')}</div>
       </div>
       <div class="pg-block full">
+        <div class="pg-label">${LANG==='ar'?'مدة النقاش':'DISCUSSION TIME'}</div>
+        <div class="round-btns">${[[60,'1 min'],[120,'2 min'],[180,'3 min'],[300,'5 min']].map(([s,l])=>`<button class="round-btn${(window.HYPOX_STATE.spyDisc||120)===s?' selected':''}" data-spydisc="${s}">${l}</button>`).join('')}</div>
+      </div>
+      <div class="pg-block full">
         <div class="pg-label">${LANG==='ar'?'نوع الكلمة السرية':'SECRET WORD CATEGORY'}</div>
         <div class="content-btns">
           <button class="content-btn spy-cat${(window.HYPOX_STATE.spyCategory||'location')==='location'?' selected':''}" data-spycat="location">📍 ${LANG==='ar'?'مكان':'Location'}</button>
@@ -312,6 +317,12 @@
     document.querySelectorAll('[data-spy]').forEach(btn=>btn.addEventListener('click',()=>{
       window.HYPOX_STATE.spyCount=+btn.dataset.spy;
       document.querySelectorAll('[data-spy]').forEach(b=>b.classList.toggle('selected',b===btn));
+      Audio_.sfx.blip();
+    }));
+    // Spy discussion timer
+    document.querySelectorAll('[data-spydisc]').forEach(btn=>btn.addEventListener('click',()=>{
+      window.HYPOX_STATE.spyDisc=+btn.dataset.spydisc;
+      document.querySelectorAll('[data-spydisc]').forEach(b=>b.classList.toggle('selected',b===btn));
       Audio_.sfx.blip();
     }));
     // Spy category - independent of flavor
@@ -652,22 +663,32 @@
     Controller.waitScreen(ctrl,isVip?T.youreHost():T.youreIn());
     const mstrip=$('#phoneMirror');
     function renderMirror(m){
-      if(!m)return;mstrip.classList.remove('hidden');
+      if(!m)return;
+      // Update the small strip
+      mstrip.classList.remove('hidden');
       if(m.pill!==undefined)$('#pmPill').textContent=m.pill||'';
       if(m.headline!==undefined)$('#pmHeadline').textContent=m.headline||'';
       if(m.speech!==undefined){$('#pmSpeech').textContent=m.speech||'';$('#pmLaith').style.display=m.speech?'flex':'none';}
-      // If ctrl is showing a wait screen, update it with new mirror content
-      if(m.headline && ctrl.querySelector('.ctrl-waiting, .ctrl-wrap')){
-        const isInputActive = ctrl.querySelector('textarea,input,.ctrl-choice');
-        if(!isInputActive){
-          ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:20px 16px">
-            ${m.pill?`<div style="font-family:'Fredoka One',sans-serif;font-size:11px;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">${esc(m.pill)}</div>`:''}
-            <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(16px,4.5vw,22px);color:var(--text);line-height:1.35;margin-bottom:16px">${esc(m.headline)}</div>
-            ${m.speech?`<div style="font-size:13px;color:var(--text2);font-style:italic;margin-bottom:12px">"${esc(m.speech)}"</div>`:''}
-            <div style="display:flex;gap:8px;justify-content:center"><div class="pulse-dot"></div><div class="pulse-dot"></div><div class="pulse-dot"></div></div>
-          </div>`;
-        }
+      // Full-screen mirror: show game content when not actively inputting
+      if(!isInputActive() && (m.headline||m.scores)){
+        ctrl.innerHTML=buildMirrorHTML(m);
       }
+    }
+    function buildMirrorHTML(m){
+      return `<div class="ctrl-mirror">
+        ${m.pill?`<div class="ctrl-mirror-pill">${esc(m.pill)}</div>`:''}
+        ${m.headline?`<div class="ctrl-mirror-headline">${esc(m.headline)}</div>`:''}
+        ${m.sub?`<div class="ctrl-mirror-sub">${esc(m.sub)}</div>`:''}
+        ${m.speech?`<div class="ctrl-mirror-speech">"${esc(m.speech)}"</div>`:''}
+        ${m.options?`<div class="ctrl-mirror-opts">${m.options.map(o=>`<div class="ctrl-mirror-opt" style="background:${o.color||'var(--card)'}">${esc(o.label)}</div>`).join('')}</div>`:''}
+        ${m.scores?`<div class="ctrl-mirror-scores">${m.scores.map(s=>`<div class="ctrl-mirror-score-row"><span class="ctrl-mirror-score-name">${esc(s.medal||'')} ${esc(s.name)}</span><span class="ctrl-mirror-score-pts">${s.score}</span></div>`).join('')}</div>`:''}
+        ${!m.scores?`<div class="ctrl-mirror-dots"><div class="pulse-dot"></div><div class="pulse-dot"></div><div class="pulse-dot"></div></div>`:''}
+      </div>`;
+    }
+    function isInputActive() {
+      // Active = has enabled (not locked) interactive elements
+      const el = ctrl.querySelector('textarea:not([disabled]),input:not([disabled]),.ctrl-choice:not(.answered),.ctrl-map');
+      return !!el;
     }
     net.onMirror(renderMirror);
     let lastPhaseId=null;
@@ -682,25 +703,37 @@
         lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
         const spec=state.specs[myPid]||state.specs._default;
         Controller.render(ctrl,spec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>Controller.waitScreen(ctrl),600);});
-      }else if(state.phase==='wait'){
-        // Show mirror content prominently if available, otherwise simple wait card
-        const m = state.mirror||{};
+      }else if(state.phase==='wait'||state.phase==='mirror'){
+        // Show full game content on phone using mirror data
+        const m = state.mirror||state;
         if(m.headline){
-          ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:20px 16px">
-            ${m.pill?`<div style="font-family:'Fredoka One',sans-serif;font-size:11px;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">${esc(m.pill)}</div>`:''}
-            <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(16px,4.5vw,22px);color:var(--text);line-height:1.35;margin-bottom:16px">${esc(m.headline)}</div>
-            ${m.speech?`<div style="font-size:13px;color:var(--text2);font-style:italic;margin-bottom:12px">"${esc(m.speech)}"</div>`:''}
-            <div style="display:flex;gap:8px;justify-content:center"><div class="pulse-dot"></div><div class="pulse-dot"></div><div class="pulse-dot"></div></div>
-          </div>`;
+          if(!isInputActive()) ctrl.innerHTML=buildMirrorHTML(m);
         } else {
-          Controller.waitScreen(ctrl,state.msg||T.watchScreen());
+          if(!isInputActive()) Controller.waitScreen(ctrl,state.msg||T.watchScreen());
         }
       }else if(state.phase==='spy-roles'&&state.roles){
         const myRole=state.roles[myPid];
         if(myRole){
           const isSpy=myRole.role==='spy';
-          ctrl.innerHTML='<div class="ctrl-wrap" style="text-align:center;padding:30px 20px"><div style="font-size:64px;margin-bottom:16px">'+(isSpy?'🕵️':'🤵')+'</div><div style="font-family:Fredoka One,sans-serif;font-size:28px;color:'+(isSpy?'var(--pink)':'var(--green)')+'">'+( isSpy?(LANG==='ar'?'أنت الجاسوس!':'YOU ARE THE SPY!'):(LANG==='ar'?'أنت عميل':'YOU ARE AN AGENT'))+'</div><div style="font-size:18px;margin-top:12px;color:var(--text2)">'+(isSpy?(LANG==='ar'?'اكتشف الكلمة من الحديث':'Find the word from discussion'):(LANG==='ar'?'الكلمة: '+myRole.word:'Word: '+myRole.word))+'</div></div>';
+          ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:30px 20px">
+            <div style="font-size:64px;margin-bottom:16px">${isSpy?'🕵️':'🤵'}</div>
+            <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(22px,6vw,30px);color:${isSpy?'var(--pink)':'var(--green)'}">
+              ${isSpy?(LANG==='ar'?'أنت الجاسوس!':'YOU ARE THE SPY!'):(LANG==='ar'?'أنت عميل':'YOU ARE AN AGENT')}
+            </div>
+            <div style="font-size:clamp(15px,4vw,18px);margin-top:12px;color:var(--text2)">
+              ${isSpy?(LANG==='ar'?'اكتشف الكلمة السرية من النقاش':'Find the secret word from discussion'):(LANG==='ar'?'الكلمة السرية: <strong style="color:var(--yellow)">'+myRole.word+'</strong>':'Secret word: <strong style="color:var(--yellow)">'+myRole.word+'</strong>')}
+            </div>
+            <div style="font-size:12px;color:var(--text3);margin-top:8px;opacity:.7">${LANG==='ar'?'احفظ دورك ثم اضغط':'Memorise your role, then tap'}</div>
+            <button class="big-btn" id="spyGotItBtn" style="margin-top:20px;max-width:280px">✓ ${LANG==='ar'?'فهمت':'Got It'}</button>
+          </div>`;
           if(isSpy)Audio_.sfx.buzzer();else Audio_.sfx.sting();
+          // Keep role on screen until player taps Got It
+          document.getElementById('spyGotItBtn')?.addEventListener('click',()=>{
+            ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:30px 20px">
+              <div style="font-size:48px">🎭</div>
+              <div style="font-family:'Fredoka One',sans-serif;font-size:20px;color:var(--text3);margin-top:12px">${LANG==='ar'?'انتظر وتابع النقاش':'Wait and follow the discussion'}</div>
+            </div>`;
+          },{once:true});
         }
       }else if(state.phase==='gameinfo'){
         ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:20px 16px">

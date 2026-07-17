@@ -967,3 +967,37 @@ PACKS.year = {
     { q:'إطلاق آيفون إكس', y:2017 },
   ],
 };
+
+/* ===== FOOTBALL TRIVIA CATEGORY ===== */
+if(typeof TRIVIA_CATS !== 'undefined') {
+TRIVIA_CATS.football = {
+  en: [
+    { q:'Who won the 2022 FIFA World Cup?', options:['France','Brazil','Argentina','Germany'], correct:2 },
+    { q:'Which club has won the most UEFA Champions League titles?', options:['Barcelona','Liverpool','AC Milan','Real Madrid'], correct:3 },
+    { q:'Who is the all-time top scorer in FIFA World Cup history?', options:['Ronaldo','Messi','Miroslav Klose','Pele'], correct:2 },
+    { q:'Which country has won the most FIFA World Cup titles?', options:['Germany','Argentina','Italy','Brazil'], correct:3 },
+    { q:'The Premier League is the top football league of which country?', options:['Spain','England','France','Italy'], correct:1 },
+    { q:'Who won the Ballon d\'Or 2023?', options:['Mbappé','Haaland','Neymar','Messi'], correct:3 },
+    { q:'Which stadium is the home of Real Madrid?', options:['Camp Nou','Bernabeu','Wembley','San Siro'], correct:1 },
+    { q:'Mohamed Salah plays for which Premier League club?', options:['Arsenal','Chelsea','Liverpool','Manchester City'], correct:2 },
+    { q:'The Saudi Pro League team Al-Hilal is based in which city?', options:['Jeddah','Riyadh','Dammam','Mecca'], correct:1 },
+    { q:'Who scored the "Goal of the Century" at Mexico 1986?', options:['Ronaldo','Pele','Diego Maradona','Zidane'], correct:2 },
+    { q:'Which team won the first Gulf Cup?', options:['Saudi Arabia','Kuwait','Iraq','Bahrain'], correct:1 },
+    { q:'At which age can players participate in the Olympics football tournament?', options:['Under 18','Under 21','Under 23','Under 25'], correct:2 },
+  ],
+  ar: [
+    { q:'من فاز بكأس العالم 2022؟', options:['فرنسا','البرازيل','الأرجنتين','ألمانيا'], correct:2 },
+    { q:'أي نادٍ فاز بأكبر عدد من ألقاب دوري أبطال أوروبا؟', options:['برشلونة','ليفربول','ميلان','ريال مدريد'], correct:3 },
+    { q:'من هو أعلى هداف في تاريخ كأس العالم؟', options:['رونالدو','ميسي','كلوزه','بيليه'], correct:2 },
+    { q:'أي منتخب فاز بأكبر عدد من كؤوس العالم؟', options:['ألمانيا','الأرجنتين','إيطاليا','البرازيل'], correct:3 },
+    { q:'الدوري الإنجليزي الممتاز هو دوري أي دولة؟', options:['إسبانيا','إنجلترا','فرنسا','إيطاليا'], correct:1 },
+    { q:'من فاز بجائزة الكرة الذهبية 2023؟', options:['مبابي','هالاند','نيمار','ميسي'], correct:3 },
+    { q:'أي ملعب هو ملعب ريال مدريد؟', options:['كامب نو','برنابيو','ويمبلي','سان سيرو'], correct:1 },
+    { q:'محمد صلاح يلعب لأي نادٍ؟', options:['آرسنال','تشيلسي','ليفربول','مانشستر سيتي'], correct:2 },
+    { q:'نادي الهلال السعودي مقره في أي مدينة؟', options:['جدة','الرياض','الدمام','مكة'], correct:1 },
+    { q:'من سجل "هدف القرن" في المكسيك 1986؟', options:['رونالدو','بيليه','مارادونا','زيدان'], correct:2 },
+    { q:'من فاز بأول كأس خليجي؟', options:['السعودية','الكويت','العراق','البحرين'], correct:1 },
+    { q:'ما هو حد السن للمشاركة في كرة القدم الأولمبية؟', options:['تحت 18','تحت 21','تحت 23','تحت 25'], correct:2 },
+  ],
+};
+}
