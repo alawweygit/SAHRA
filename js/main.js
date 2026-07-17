@@ -479,7 +479,14 @@
 
     const startBtn=document.getElementById('startGameBtn');
     if(startBtn)startBtn.onclick=()=>{
-      if(players.length<2){Audio_.sfx.buzzer();$('#lobbyHint').classList.add('shake');setTimeout(()=>$('#lobbyHint').classList.remove('shake'),500);return;}
+      const minPlayers=MODE_MIN[gameMode]||2;
+      if(players.length<minPlayers){
+        Audio_.sfx.buzzer();
+        $('#lobbyHint').textContent=T.needPlayers();
+        $('#lobbyHint').classList.add('shake');
+        setTimeout(()=>$('#lobbyHint').classList.remove('shake'),500);
+        return;
+      }
       startDirectGame(gameMode);
     };
   }
