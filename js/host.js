@@ -16,6 +16,7 @@ const Host = (() => {
       el.classList.add(currentHost.color);
       const nm = el.querySelector('.host-name');
       if (nm) nm.textContent = `${currentHost.nameEn} · ${currentHost.nameAr}`;
+      pushMirror({ hostName: `${currentHost.nameEn} · ${currentHost.nameAr}`, hostColor: currentHost.color });
     }
   }
   /* Say a line from the current host's own banter pool (falls back to i18n keys) */
@@ -93,7 +94,7 @@ const Host = (() => {
 
   async function say(text, { speed = 24 } = {}) {
     const host = $('#host'), out = $('#speechText');
-    pushMirror({ speech: text });
+    pushMirror({ speech: text, hostVisible: true, hostName: currentHost ? `${currentHost.nameEn} · ${currentHost.nameAr}` : '', hostColor: currentHost?.color || 'host-purple' });
     host.classList.add('show', 'talking'); out.textContent = '';
     for (const ch of text) {
       out.textContent += ch;
@@ -103,7 +104,7 @@ const Host = (() => {
     host.classList.remove('talking');
     await sleep(600);
   }
-  const hideHost = () => $('#host').classList.remove('show');
+  const hideHost = () => { $('#host').classList.remove('show'); pushMirror({ hostVisible: false }); };
 
   function avatarHTML(p, cls = 'avatar') {
     return `<div class="${cls}" style="background:${p.color}">${p.emoji}</div>`;
@@ -257,7 +258,10 @@ const Host = (() => {
           <div class="score-row" style="animation-delay:${i * .12}s">
             <div class="medal">${['🥇','🥈','🥉'][i] || ''}</div>
             ${avatarHTML(p)}
-            <div class="bar-track"><div class="bar-fill" id="bar-${p.pid}" style="background:${p.color};width:0"><span class="bar-name">${esc(p.name)}</span><span class="bar-pts" id="pts-${p.pid}">0</span></div></div>
+            <div class="bar-track${p.score===0?' zero-track':''}">
+              <div class="bar-fill" id="bar-${p.pid}" style="background:${p.color};width:0"><span class="bar-name">${esc(p.name)}</span><span class="bar-pts" id="pts-${p.pid}">${p.score===0?'':'0'}</span></div>
+              ${p.score===0?`<div class="bar-zero"><span>${esc(p.name)}</span><span>0</span></div>`:''}
+            </div>
           </div>`).join('')}
       </div>`);
     await sleep(300);
@@ -265,7 +269,7 @@ const Host = (() => {
       Audio_.sfx.submit();
       const b = $('#bar-' + p.pid);
       const ptsEl = $('#pts-' + p.pid);
-      if (b) b.style.width = Math.max(18, (p.score / max) * 100) + '%';
+      if (b) b.style.width = p.score > 0 ? Math.max(18, (p.score / max) * 100) + '%' : '0';
       // Count up the score number
       if (ptsEl && p.score > 0) {
         const dur = 900, steps = 20, step = p.score / steps;
@@ -928,11 +932,12 @@ const Host = (() => {
       const category = Q.category || 'Word';
       const ansUp = answer.toUpperCase().replace(/\s/g,'');
       const ansLetters = answer.toUpperCase().split('');
-      const totalLetters = ansLetters.length;
+      const letterIndexes = ansLetters.map((ch,j)=>ch===' '?null:j).filter(j=>j!==null);
+      const totalLetters = letterIndexes.length;
 
       // Letter reveal state - randomised order, never same position twice
-      let revealed = new Array(totalLetters).fill(false);
-      const revealOrder = ansLetters.map((_,j)=>j).sort(()=>Math.random()-.5);
+      let revealed = new Array(ansLetters.length).fill(false);
+      const revealOrder = letterIndexes.slice().sort(()=>Math.random()-.5);
       let revealCount = 0;
       let currentMaxPts = BASE_PTS;
 
@@ -949,14 +954,15 @@ const Host = (() => {
       setPill(`${i+1}/${qs.length}`);
 
       // Host screen: show emojis + category + blanks + timer
-      scene(`
+      $('#scr-game').classList.add('rebus-input-active');
+      scene(`<div class="rebus-live">
         <div class="eyebrow">🧩 EMOJI RIDDLE</div>
         <div class="rebus-emojis">${esc(Q.e)}</div>
         <div class="rebus-category">${esc(category)}</div>
         <div class="hint-display" id="hD">${blankDisplay()}</div>
         <div class="rebus-pts" id="rebPts">${currentMaxPts} pts</div>
         <div class="timer-bar"><div class="timer-fill" id="tF" style="width:100%"></div></div>
-        <div id="statusRow" class="status-row"></div>`);
+        <div id="statusRow" class="status-row"></div></div>`);
 
       // Phone screen: show emojis + category + blanks
       pushMirror({
@@ -998,8 +1004,10 @@ const Host = (() => {
         maxLen: 40,
         seconds: TOTAL_SECS,
         answerLen: totalLetters, // hint for phone-side validation
+        compactRebus: true,
       }, pids, TOTAL_SECS);
       clearInterval(tI);
+      $('#scr-game').classList.remove('rebus-input-active');
 
       // Score = currentMaxPts at time of answer (speed within reveal window)
       const right = pids.filter(pid => {
@@ -1032,9 +1040,10 @@ const Host = (() => {
           const pts = got ? earnedPoints.get(pid) : 0;
           return `<div class="score-row" style="animation-delay:${idx*.1}s">
             <div class="avatar" style="background:${p.color}">${p.emoji}</div>
-            <div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">
-              ${esc(p.name)} ${got ? '✓ +'+pts : '✗ 0'}
-            </div></div>
+            <div class="bar-track${got?'':' zero-track'}">${got
+              ? `<div class="bar-fill" style="width:80%;background:var(--green)">${esc(p.name)} ✓ +${pts}</div>`
+              : `<div class="bar-zero"><span>${esc(p.name)} ✗</span><span>0</span></div>`}
+            </div>
           </div>`;
         }).join('')}</div>`);
 
@@ -1353,9 +1362,10 @@ const Host = (() => {
       const category = Q.category || 'Place';
       const ansUp = answer.toUpperCase().replace(/\s/g,'');
       const ansLetters = answer.toUpperCase().split('');
-      const totalLetters = ansLetters.length;
-      let revealed = new Array(totalLetters).fill(false);
-      const revealOrder = ansLetters.map((_,j)=>j).sort(()=>Math.random()-.5);
+      const letterIndexes = ansLetters.map((ch,j)=>ch===' '?null:j).filter(j=>j!==null);
+      const totalLetters = letterIndexes.length;
+      let revealed = new Array(ansLetters.length).fill(false);
+      const revealOrder = letterIndexes.slice().sort(()=>Math.random()-.5);
       let revealCount = 0;
       let currentMaxPts = BASE_PTS;
       function blankDisplay() {
@@ -1365,13 +1375,14 @@ const Host = (() => {
         }).join('');
       }
       await FX.wipe(); setPill(`${i+1}/${qs.length}`);
-      scene(`<div class="eyebrow">🌍 EMOJI PLACE</div>
+      $('#scr-game').classList.add('rebus-input-active');
+      scene(`<div class="rebus-live"><div class="eyebrow">🌍 EMOJI PLACE</div>
         <div class="rebus-emojis">${esc(Q.e)}</div>
         <div class="rebus-category">${esc(category)}</div>
         <div class="hint-display" id="hD">${blankDisplay()}</div>
         <div class="rebus-pts" id="rebPts">${currentMaxPts} pts</div>
         <div class="timer-bar"><div class="timer-fill" id="tF" style="width:100%"></div></div>
-        <div id="statusRow" class="status-row"></div>`);
+        <div id="statusRow" class="status-row"></div></div>`);
       pushMirror({headline:Q.e, sub:`${category} · ${totalLetters} letters`, pill:`${i+1}/${qs.length}`});
       Audio_.sfx.sting();
       const TOTAL_SECS = 30;
@@ -1389,8 +1400,9 @@ const Host = (() => {
         }
       },200);
       const answers=await collectWithTimer({type:'text',title:LANG==='ar'?'اكتب المكان!':'Type the place!',context:`${Q.e}
-${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTAL_SECS);
+${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:totalLetters,compactRebus:true},pids,TOTAL_SECS);
       clearInterval(tI);
+      $('#scr-game').classList.remove('rebus-input-active');
       const right=pids.filter(pid=>{const v=(val(answers,pid)||'').trim().toUpperCase().replace(/\s/g,'');return v===ansUp;}).sort((a,b)=>answers[a].order-answers[b].order);
       const earnedPoints=new Map(right.map(pid=>{
         const submittedAt=answers[pid].receivedAt||answers[pid].t||Date.now();
@@ -1406,7 +1418,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
       scene(`<div class="eyebrow">🌍 ${esc(Q.e)}</div>
         <div class="rebus-answer display">${esc(answer.toUpperCase())}</div>
         ${exp?`<div class="rebus-explain">${esc(exp)}</div>`:''}
-        <div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=right.includes(pid);const pts=got?earnedPoints.get(pid):0;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+pts:'✗ 0'}</div></div></div>`;}).join('')}</div>`);
+        <div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=right.includes(pid);const pts=got?earnedPoints.get(pid):0;const name=esc(p.name.length>12?p.name.slice(0,11)+"…":p.name);return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track${got?'':' zero-track'}">${got?`<div class="bar-fill" style="width:80%;background:var(--green)">${name} ✓ +${pts}</div>`:`<div class="bar-zero"><span>${name} ✗</span><span>0</span></div>`}</div></div>`;}).join('')}</div>`);
       pushMirror({headline:`🌍 = ${answer.toUpperCase()}`});
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`المكان: ${answer}`:`It was ${answer}! ${exp}`));
       hideHost(); await waitNext();

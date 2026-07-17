@@ -14,6 +14,7 @@ const Controller = (() => {
     container.innerHTML = '';
     const wrap = document.createElement('div');
     wrap.className = 'ctrl-wrap';
+    if (spec.compactRebus) wrap.classList.add('rebus-controller');
 
     const title = document.createElement('div');
     title.className = 'ctrl-title display';
@@ -40,7 +41,7 @@ const Controller = (() => {
       ta.className = 'ctrl-input';
       ta.placeholder = spec.placeholder || '…';
       ta.maxLength = spec.maxLen || 80;
-      ta.rows = spec.numeric ? 1 : 3;
+      ta.rows = (spec.numeric || spec.compactRebus) ? 1 : 3;
       ta.autocomplete = 'off';
       if (spec.numeric) {
         ta.inputMode = 'numeric';

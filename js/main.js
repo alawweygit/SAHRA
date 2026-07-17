@@ -681,7 +681,8 @@
       };
       _ppDismiss=()=>done(null);
       window.__hypoxDismissPP=()=>{if(_ppDismiss)_ppDismiss();};
-      Controller.render(dock,spec,done);
+      const hostSpec=spec.compactRebus?{...spec,context:''}:spec;
+      Controller.render(dock,hostSpec,done);
       setTimeout(()=>dock.scrollIntoView({behavior:'smooth',block:'nearest'}),80);
     });
   }
@@ -718,6 +719,7 @@
     updateMenu();
     const ctrl=$('#ctrlArea');
     const shared=$('#phoneSharedStage');
+    const sharedHost=$('#phoneSharedHost');
     const phonesOnly=net.playMode==='phones';
     document.body.classList.toggle('phones-only-player',phonesOnly);
     shared.dataset.gameStarted='';
@@ -734,6 +736,10 @@
       if(m.pill!==undefined)$('#pmPill').textContent=m.pill||'';
       if(m.headline!==undefined)$('#pmHeadline').textContent=m.headline||'';
       if(m.speech!==undefined){$('#pmSpeech').textContent=m.speech||'';$('#pmLaith').style.display=m.speech?'flex':'none';}
+      if(phonesOnly&&m.hostVisible&&m.speech){
+        sharedHost.className=`phone-shared-host ${esc(m.hostColor||'host-purple')}`;
+        sharedHost.innerHTML=`<div class="psh-face"><span class="psh-eye">•</span><span class="psh-eye">•</span><span class="psh-smile">⌣</span><span class="psh-bow">◆</span></div><div class="psh-speech"><div class="psh-name">${esc(m.hostName||'')}</div>${esc(m.speech)}</div>`;
+      }else if(phonesOnly&&m.hostVisible===false){sharedHost.classList.add('hidden');}
       // Full-screen mirror: show game content when not actively inputting
       if(!isInputActive() && (m.headline||m.scores)){
         ctrl.innerHTML=buildMirrorHTML(m);
@@ -785,11 +791,13 @@
         if(!state.targets||state.targets.includes(myPid)){
           lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
           ctrl.classList.remove('hidden');
-          Controller.render(ctrl,state.spec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
+          const phoneSpec=phonesOnly&&state.spec.compactRebus?{...state.spec,context:''}:state.spec;
+          Controller.render(ctrl,phoneSpec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
         }else if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl,T.watchScreen());
       }else if(state.phase==='input-split'&&state.phaseId!==lastPhaseId){
         lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
-        const spec=state.specs[myPid]||state.specs._default;
+        const rawSpec=state.specs[myPid]||state.specs._default;
+        const spec=phonesOnly&&rawSpec.compactRebus?{...rawSpec,context:''}:rawSpec;
         ctrl.classList.remove('hidden');
         Controller.render(ctrl,spec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
       }else if(state.phase==='wait'||state.phase==='mirror'){
