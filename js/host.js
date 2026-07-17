@@ -31,6 +31,48 @@ const Host = (() => {
   /* ---------- tiny host-screen helpers ---------- */
   const stage = () => $('#hostStage');
 
+  /* Phones Only gets the same presentation as the host. A debounced DOM
+     snapshot is published independently of input state, so timers, revealed
+     hints, avatars and score animations stay live without interrupting forms. */
+  let sharedObserver = null, sharedTimer = null, lastSharedHTML = '';
+  function sharedHTML() {
+    const source = stage();
+    if (!source) return '';
+    const clone = source.cloneNode(true);
+    clone.querySelectorAll('script,style,iframe,object,embed,.leaflet-pane,.leaflet-control-container').forEach(el => el.remove());
+    clone.querySelectorAll('*').forEach(el => {
+      el.removeAttribute('id');
+      [...el.attributes].forEach(a => {
+        if (/^on/i.test(a.name) || /javascript:/i.test(a.value)) el.removeAttribute(a.name);
+      });
+      if (/^(BUTTON|INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) {
+        el.setAttribute('disabled', '');
+        el.setAttribute('tabindex', '-1');
+      }
+    });
+    return clone.innerHTML;
+  }
+  function publishSharedScreen(force = false) {
+    if (!net?.phonesOnly || !net.setSharedScreen) return;
+    clearTimeout(sharedTimer);
+    sharedTimer = setTimeout(() => {
+      const html = sharedHTML();
+      if (!force && html === lastSharedHTML) return;
+      lastSharedHTML = html;
+      net.setSharedScreen({ html, pill: $('#roundPill')?.textContent || '' });
+    }, force ? 0 : 120);
+  }
+  function startSharedScreen() {
+    if (!net?.phonesOnly || sharedObserver) return;
+    sharedObserver = new MutationObserver(() => publishSharedScreen());
+    sharedObserver.observe(stage(), { childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:['class','style'] });
+    publishSharedScreen(true);
+  }
+  function stopSharedScreen() {
+    sharedObserver?.disconnect(); sharedObserver = null;
+    clearTimeout(sharedTimer); sharedTimer = null; lastSharedHTML = '';
+  }
+
   /* Mirror: in phones-only mode there is no shared TV, so we broadcast a
      lightweight text mirror of the stage to every player's phone. Harmless
      (just extra state fields) in TV mode. */
@@ -44,9 +86,10 @@ const Host = (() => {
     const s = stage();
     s.innerHTML = html;
     s.classList.remove('scene-in'); void s.offsetWidth; s.classList.add('scene-in');
+    publishSharedScreen(true);
   }
 
-  function setPill(text) { $('#roundPill').textContent = text; pushMirror({ pill: text }); }
+  function setPill(text) { $('#roundPill').textContent = text; pushMirror({ pill: text }); publishSharedScreen(); }
 
   async function say(text, { speed = 24 } = {}) {
     const host = $('#host'), out = $('#speechText');
@@ -1502,6 +1545,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
   async function run(netInstance, playerList, mode) {
     net = netInstance;
     players = playerList;
+    startSharedScreen();
     window.__hypoxAbort = false;
     let playAgain = true;
     while(playAgain && !window.__hypoxAbort) {
@@ -1513,14 +1557,14 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
         if (!MODES[mode]) throw new Error(`Unknown mode: "${mode}" (available: ${Object.keys(MODES).join(', ')})`);
         await MODES[mode]();
       } catch(e) {
-        if (window.__hypoxAbort) return;
+        if (window.__hypoxAbort) { stopSharedScreen(); return; }
         console.error('Game mode error:', e);
         scene(`<div class="eyebrow">⚠️ Something went wrong</div>
           <div class="prompt-card display" style="font-size:clamp(14px,2.5vmin,18px)">${esc(String(e))}</div>
           <button class="big-btn" id="errContinueBtn" style="margin-top:2vmin">Continue</button>`);
         await new Promise(r => document.getElementById('errContinueBtn')?.addEventListener('click', r, {once:true}));
       }
-      if (window.__hypoxAbort) return;
+      if (window.__hypoxAbort) { stopSharedScreen(); return; }
       await winnerScene();
       if(window.__hypoxPlayAgain) {
         playAgain = true;
@@ -1528,5 +1572,5 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTA
     }
   }
 
-  return { run, say, hideHost, avatarHTML, scene, setPill };
+  return { run, say, hideHost, avatarHTML, scene, setPill, stopSharedScreen };
 })();

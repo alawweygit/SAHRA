@@ -422,6 +422,8 @@
       alert(LANG==='ar'?'تعذر إنشاء الغرفة. حاول مرة ثانية.':'Could not create the room. Please try again.');
       return;
     }
+    await net.setPlayMode(playMode);
+    net.phonesOnly=playMode==='phones';
     currentRoomCode=code;
     $('#roomCodeText').textContent=net.isOffline?(LANG==='ar'?'مرّر الجوال':'PASS & PLAY'):code;
     $('#topbar').classList.add('show');
@@ -431,7 +433,7 @@
     if(playMode==='phones'){
       showAvatarPicker('phones',async(name,av)=>{
         const res=await net.joinRoom(code,name,av);
-        myPid=res.pid;isVip=res.isVip;net.hostSelfPid=myPid;net.promptLocal=passAndPlayPrompt;
+        myPid=res.pid;isVip=res.isVip;net.hostSelfPid=myPid;net.promptLocal=phonesHostPrompt;
         show('#scr-lobby');setupLobby(gameMode);
       });return;
     }
@@ -589,12 +591,14 @@
   async function leaveGame(){
     gameActive=false;
     window.__hypoxAbort = true;  // tells Host.run to stop after current await
+    Host.stopSharedScreen?.();
     if(window.__hypoxSkip)window.__hypoxSkip();
     window.__hypoxSkip=null;
     const leavingNet=net;
     if(leavingNet)try{leavingNet.setState({phase:'wait',msg:''});}catch(e){}
     Audio_.stopMusic();
     currentRoomCode=null;net=null;players=[];
+    document.body.classList.remove('phones-only-player');
     const hel=$('#host');if(hel)hel.classList.remove('show');
     show('#scr-title');
     $('#roundPill').style.visibility='hidden';
@@ -664,6 +668,24 @@
     });
   }
 
+  /* The Phones Only host answers below the shared game instead of receiving
+     the pass-the-device privacy overlay used by One Device mode. */
+  function phonesHostPrompt(spec){
+    return new Promise(resolve=>{
+      const dock=$('#hostInputDock');
+      dock.classList.remove('hidden');
+      let settled=false;
+      const done=value=>{
+        if(settled)return;settled=true;_ppDismiss=null;
+        dock.classList.add('hidden');dock.innerHTML='';resolve(value);
+      };
+      _ppDismiss=()=>done(null);
+      window.__hypoxDismissPP=()=>{if(_ppDismiss)_ppDismiss();};
+      Controller.render(dock,spec,done);
+      setTimeout(()=>dock.scrollIntoView({behavior:'smooth',block:'nearest'}),80);
+    });
+  }
+
   /* ---- JOIN ---- */
   function buildJoinAvatarRow(){
     const row=document.getElementById('joinAvatarRow');
@@ -686,18 +708,29 @@
     if(!code||!name){Audio_.sfx.buzzer();return;}
     if(!FirebaseNet.available()){$('#joinErr').textContent=T.noFirebase();return;}
     $('#joinErr').textContent=T.connecting();
-    try{net=FirebaseNet.create();const res=await net.joinRoom(code,name,selectedAvatar);myPid=res.pid;isVip=res.isVip;currentRoomCode=code;}
+    try{net=FirebaseNet.create();const res=await net.joinRoom(code,name,selectedAvatar);myPid=res.pid;isVip=res.isVip;currentRoomCode=code;await net.getPlayMode();}
     catch(e){$('#joinErr').textContent=T.connFail();return;}
     show('#scr-controller');
     $('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');
+    $('#roomCodeText').textContent=code;
+    $('#roundPill').textContent=LANG==='ar'?'الصالة':'Lobby';
+    $('#roundPill').style.visibility='visible';
     updateMenu();
     const ctrl=$('#ctrlArea');
-    Controller.waitScreen(ctrl,isVip?T.youreHost():T.youreIn());
+    const shared=$('#phoneSharedStage');
+    const phonesOnly=net.playMode==='phones';
+    document.body.classList.toggle('phones-only-player',phonesOnly);
+    shared.dataset.gameStarted='';
+    shared.classList.toggle('hidden',!phonesOnly);
+    if(phonesOnly){
+      shared.classList.remove('hidden');
+      ctrl.classList.add('hidden');
+    }else Controller.waitScreen(ctrl,isVip?T.youreHost():T.youreIn());
     const mstrip=$('#phoneMirror');
     function renderMirror(m){
       if(!m)return;
       // Update the small strip
-      mstrip.classList.remove('hidden');
+      if(!phonesOnly)mstrip.classList.remove('hidden');
       if(m.pill!==undefined)$('#pmPill').textContent=m.pill||'';
       if(m.headline!==undefined)$('#pmHeadline').textContent=m.headline||'';
       if(m.speech!==undefined){$('#pmSpeech').textContent=m.speech||'';$('#pmLaith').style.display=m.speech?'flex':'none';}
@@ -705,6 +738,24 @@
       if(!isInputActive() && (m.headline||m.scores)){
         ctrl.innerHTML=buildMirrorHTML(m);
       }
+    }
+    function safeSharedHTML(html){
+      const box=document.createElement('template');box.innerHTML=html||'';
+      box.content.querySelectorAll('script,style,iframe,object,embed').forEach(el=>el.remove());
+      box.content.querySelectorAll('*').forEach(el=>{
+        [...el.attributes].forEach(a=>{if(/^on/i.test(a.name)||/javascript:/i.test(a.value))el.removeAttribute(a.name);});
+        if(/^(BUTTON|INPUT|TEXTAREA|SELECT)$/.test(el.tagName)){el.disabled=true;el.tabIndex=-1;}
+      });
+      return box.innerHTML;
+    }
+    function renderShared(view){
+      if(!phonesOnly||!view?.html)return;
+      shared.innerHTML=safeSharedHTML(view.html);
+      if(view.pill!==undefined)$('#roundPill').textContent=view.pill||'';
+    }
+    function renderSharedLobby(list){
+      if(!phonesOnly||shared.dataset.gameStarted==='1')return;
+      shared.innerHTML=`<div class="shared-lobby"><div class="lobby-title display">${LANG==='ar'?'اللاعبون':'PLAYERS'}</div><div class="shared-player-row">${list.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('')}</div><div class="shared-lobby-count">${list.length}/20</div></div>`;
     }
     function buildMirrorHTML(m){
       return `<div class="ctrl-mirror">
@@ -723,20 +774,27 @@
       return !!el;
     }
     net.onMirror(renderMirror);
+    if(phonesOnly){
+      net.onPlayers(renderSharedLobby);
+      net.onSharedScreen(view=>{shared.dataset.gameStarted='1';renderShared(view);});
+    }
     let lastPhaseId=null;
     net.onState(state=>{
       if(state.mirror)renderMirror(state.mirror);
       if(state.phase==='input'&&state.phaseId!==lastPhaseId){
         if(!state.targets||state.targets.includes(myPid)){
           lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
-          Controller.render(ctrl,state.spec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>Controller.waitScreen(ctrl),600);});
-        }else Controller.waitScreen(ctrl,T.watchScreen());
+          ctrl.classList.remove('hidden');
+          Controller.render(ctrl,state.spec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
+        }else if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl,T.watchScreen());
       }else if(state.phase==='input-split'&&state.phaseId!==lastPhaseId){
         lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
         const spec=state.specs[myPid]||state.specs._default;
-        Controller.render(ctrl,spec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>Controller.waitScreen(ctrl),600);});
+        ctrl.classList.remove('hidden');
+        Controller.render(ctrl,spec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
       }else if(state.phase==='wait'||state.phase==='mirror'){
         // Show full game content on phone using mirror data
+        if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';return;}
         const m = state.mirror||state;
         if(m.headline){
           if(!isInputActive()) ctrl.innerHTML=buildMirrorHTML(m);
@@ -746,6 +804,7 @@
       }else if(state.phase==='spy-roles'&&state.roles){
         const myRole=state.roles[myPid];
         if(myRole){
+          ctrl.classList.remove('hidden');
           const isSpy=myRole.role==='spy';
           ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:30px 20px">
             <div style="font-size:64px;margin-bottom:16px">${isSpy?'🕵️':'🤵'}</div>

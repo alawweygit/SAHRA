@@ -83,6 +83,13 @@ class FirebaseNet {
   setState(obj) { return this.room('state').set({ ...obj, ts: Date.now() }); }
   onState(cb) { this.room('state').on('value', s => { const v = s.val(); if (v) cb(v); }); }
 
+  setPlayMode(mode) { this.playMode = mode; return this.room('playMode').set(mode); }
+  async getPlayMode() {
+    const s = await this.room('playMode').get();
+    this.playMode = s.val() || 'tv';
+    return this.playMode;
+  }
+
   /* Stub — online rooms use joinRoom() not addLocalPlayer() */
   addLocalPlayer() { return null; }
 
@@ -90,6 +97,11 @@ class FirebaseNet {
      players, published between input phases without disturbing the main state. */
   setMirror(m) { return this.room('mirror').set({ ...m, ts: Date.now() }); }
   onMirror(cb) { this.room('mirror').on('value', s => { const v = s.val(); if (v) cb(v); }); }
+
+  /* Full shared presentation used by Phones Only. Kept separate from state so
+     visual updates never restart or replace a player's active input phase. */
+  setSharedScreen(view) { return this.room('sharedScreen').set({ ...view, ts: Date.now() }); }
+  onSharedScreen(cb) { this.room('sharedScreen').on('value', s => { const v = s.val(); if (v) cb(v); }); }
 
   submitInput(phaseId, value) {
     return this.room(`inputs/${phaseId}/${this.pid}`).set({ v: value, t: Date.now() });
@@ -179,6 +191,10 @@ class LocalNet {
   onState() { }
   setMirror() { /* pass & play has no remote phones */ }
   onMirror() { }
+  setPlayMode(mode) { this.playMode = mode; }
+  async getPlayMode() { return this.playMode || 'offline'; }
+  setSharedScreen() { }
+  onSharedScreen() { }
   onEachInput(cb) { this._onEach = cb; }
   async collect(phaseId, spec, pids, ms) {
     const out = {}; let order = 0;
