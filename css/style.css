@@ -1444,3 +1444,92 @@ body.ar .tutorial-bullets { text-align: right; }
   flex-shrink:0;
   pointer-events:none;
 }
+
+/* ===== MOBILE BROWSER SCROLL + SAFE HEADER =====
+   Safari only offers pull-to-refresh when the document is the scroll container.
+   Desktop keeps the fixed app shell; phones use one document-flow screen at a time. */
+@media(max-width:600px){
+  html{
+    height:auto;
+    min-height:100%;
+    background:var(--bg);
+  }
+  body{
+    height:auto;
+    min-height:100dvh;
+    overflow-x:hidden;
+    overflow-y:auto;
+    overscroll-behavior-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  #app{
+    width:100%;
+    height:auto;
+    min-height:100dvh;
+    overflow:visible;
+  }
+  #bg-deco{position:fixed;}
+
+  .screen:not(.active){display:none!important;}
+  .screen.active{
+    position:relative;
+    inset:auto;
+    width:100%;
+    min-height:100dvh;
+    overflow:visible!important;
+  }
+  #scr-games.active,#scr-pregame.active{display:block!important;}
+
+  #topbar{
+    position:fixed!important;
+    top:0!important;
+    min-height:calc(env(safe-area-inset-top, 0px) + 68px);
+    padding:calc(env(safe-area-inset-top, 0px) + 8px) 14px 8px!important;
+    background:color-mix(in srgb,var(--bg) 94%,transparent);
+    border-bottom:1px solid var(--border);
+    box-shadow:0 5px 18px rgba(0,0,0,.16);
+    -webkit-backdrop-filter:blur(18px);
+    backdrop-filter:blur(18px);
+  }
+
+  #scr-title .hero{
+    padding-top:calc(env(safe-area-inset-top, 0px) + 82px)!important;
+  }
+  #scr-games,#scr-pregame{
+    padding-top:calc(env(safe-area-inset-top, 0px) + 84px)!important;
+  }
+  .screen.active:not(#scr-title):not(#scr-games):not(#scr-pregame){
+    padding-top:calc(env(safe-area-inset-top, 0px) + 82px)!important;
+    padding-bottom:max(env(safe-area-inset-bottom, 0px) + 20px,30px)!important;
+  }
+  #hostStage{
+    height:auto;
+    min-height:calc(100dvh - env(safe-area-inset-top, 0px) - 112px);
+  }
+
+  /* Keep each game's promise visible below its name on phone cards. */
+  .title-game-card{
+    padding:0 0 12px!important;
+    min-height:142px;
+  }
+  .title-game-card .tgc-art{
+    width:100%;
+    margin-bottom:5px;
+  }
+  .title-game-card .tgc-name{
+    font-size:clamp(11px,3vw,14px)!important;
+    padding:0 7px;
+  }
+  .title-game-card .tgc-tag{
+    display:-webkit-box!important;
+    min-height:2.5em;
+    padding:0 8px;
+    overflow:hidden;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    font-size:clamp(10px,2.6vw,12px)!important;
+    line-height:1.25;
+    color:var(--text2);
+  }
+  .title-game-card .tgc-min{margin-top:auto;}
+}

@@ -29,7 +29,15 @@
   let _ppDismiss=null, _avatarCallback=null, _avatarContext=null;
   let gameActive=false, currentRoomCode=null;
 
-  const show=id=>{$$('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');};
+  const show=id=>{
+    $$('.screen').forEach(s=>s.classList.remove('active'));
+    $(id).classList.add('active');
+    // Mobile screens use the document scroller so Safari pull-to-refresh works.
+    // Always reset that scroller when navigating between screens.
+    if(window.matchMedia('(max-width: 600px)').matches){
+      requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}));
+    }
+  };
   const $=s=>document.querySelector(s);
   const $$=s=>Array.from(document.querySelectorAll(s));
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
