@@ -959,8 +959,16 @@ const Host = (() => {
         return v === ansUp;
       }).sort((a,b) => answers[a].order - answers[b].order);
 
-      // Winner gets currentMaxPts, each subsequent gets -50
-      right.forEach((pid, rank) => addScore(pid, Math.max(100, currentMaxPts - rank * 50)));
+      // Lock each player's value at their own submission time.
+      const earnedPoints = new Map(right.map(pid => {
+        const submittedAt = answers[pid].receivedAt || answers[pid].t || Date.now();
+        const revealsAtSubmit = Math.min(
+          Math.floor(totalLetters * 0.6),
+          Math.floor(Math.max(0, submittedAt - t0) / REVEAL_EVERY)
+        );
+        return [pid, Math.max(200, BASE_PTS - revealsAtSubmit * PTS_PER_REVEAL)];
+      }));
+      right.forEach(pid => addScore(pid, earnedPoints.get(pid)));
 
       Audio_.sfx.reveal(); FX.burst(80);
 
@@ -973,7 +981,7 @@ const Host = (() => {
         <div class="score-list">${pids.map((pid,idx) => {
           const p = players.find(x=>x.pid===pid);
           const got = right.includes(pid);
-          const pts = got ? Math.max(100, currentMaxPts - right.indexOf(pid) * 50) : 0;
+          const pts = got ? earnedPoints.get(pid) : 0;
           return `<div class="score-row" style="animation-delay:${idx*.1}s">
             <div class="avatar" style="background:${p.color}">${p.emoji}</div>
             <div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">
@@ -1336,13 +1344,21 @@ const Host = (() => {
 ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS},pids,TOTAL_SECS);
       clearInterval(tI);
       const right=pids.filter(pid=>{const v=(val(answers,pid)||'').trim().toUpperCase().replace(/\s/g,'');return v===ansUp;}).sort((a,b)=>answers[a].order-answers[b].order);
-      right.forEach((pid,rank)=>addScore(pid,Math.max(100,currentMaxPts-rank*50)));
+      const earnedPoints=new Map(right.map(pid=>{
+        const submittedAt=answers[pid].receivedAt||answers[pid].t||Date.now();
+        const revealsAtSubmit=Math.min(
+          Math.floor(totalLetters*.6),
+          Math.floor(Math.max(0,submittedAt-t0)/REVEAL_EVERY)
+        );
+        return [pid,Math.max(200,BASE_PTS-revealsAtSubmit*PTS_PER_REVEAL)];
+      }));
+      right.forEach(pid=>addScore(pid,earnedPoints.get(pid)));
       Audio_.sfx.reveal(); FX.burst(80);
       const exp=Q.explanation||'';
       scene(`<div class="eyebrow">🌍 ${esc(Q.e)}</div>
         <div class="rebus-answer display">${esc(answer.toUpperCase())}</div>
         ${exp?`<div class="rebus-explain">${esc(exp)}</div>`:''}
-        <div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=right.includes(pid);const pts=got?Math.max(100,currentMaxPts-right.indexOf(pid)*50):0;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+pts:'✗ 0'}</div></div></div>`;}).join('')}</div>`);
+        <div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=right.includes(pid);const pts=got?earnedPoints.get(pid):0;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+pts:'✗ 0'}</div></div></div>`;}).join('')}</div>`);
       pushMirror({headline:`🌍 = ${answer.toUpperCase()}`});
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`المكان: ${answer}`:`It was ${answer}! ${exp}`));
       hideHost(); await waitNext();

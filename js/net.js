@@ -122,7 +122,7 @@ class FirebaseNet {
         const v = s.val() || {};
         for (const [pid, entry] of Object.entries(v)) {
           if (!(pid in out) && pids.includes(pid)) {
-            out[pid] = { value: entry.v, order: order++, t: entry.t };
+            out[pid] = { value: entry.v, order: order++, t: entry.t, receivedAt: Date.now() };
             if (this._onEach) this._onEach(pid);
           }
         }
@@ -165,7 +165,8 @@ class LocalNet {
       const player = this.players.find(p => p.pid === pid);
       const value = await this.promptLocal(spec, player); // sequential pass-the-phone
       if (value !== null && value !== undefined) {
-        out[pid] = { value, order: order++, t: Date.now() };
+        const submittedAt = Date.now();
+        out[pid] = { value, order: order++, t: submittedAt, receivedAt: submittedAt };
         if (this._onEach) this._onEach(pid);
       }
     }
