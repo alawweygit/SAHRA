@@ -354,6 +354,11 @@
         startBtn.className='big-btn';
         startBtn.style.cssText='margin-top:2vmin;width:100%;max-width:400px;';
         document.getElementById('pregameInner').appendChild(startBtn);
+        // Spacer so Safari scroll sees content past the button
+        if(!document.getElementById('pgSpacer')){
+          const sp=document.createElement('div');sp.id='pgSpacer';sp.style.cssText='height:80px;min-height:80px;flex-shrink:0;';
+          document.getElementById('pregameInner').appendChild(sp);
+        }
       }
       startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
       startBtn.onclick=()=>{if(!selectedPlayMode){alert(LANG==='ar'?'اختر طريقة اللعب أولاً':'Please select how you are playing first');return;}startGameWithMode(selectedPlayMode,mode);};
@@ -368,6 +373,9 @@
       startBtn.id='pgStartBtn';startBtn.className='big-btn';
       startBtn.style.cssText='margin-top:2vmin;width:100%;max-width:400px;';
       startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
+      // Spacer so Safari scroll sees real content
+      const sp2=document.createElement('div');sp2.style.cssText='height:80px;min-height:80px;flex-shrink:0;';
+      document.getElementById('pregameInner').appendChild(sp2);
       startBtn.onclick=()=>{
         if(!selectedPlayMode){
           // Default to phones only if nothing selected
