@@ -64,7 +64,10 @@ const FX = (() => {
     const w = document.getElementById('wipe');
     if (!w) return;
     Audio_.sfx.whoosh();
-    w.classList.remove('go'); void w.offsetWidth; w.classList.add('go');
+    w.classList.remove('go');
+    void w.offsetWidth;
+    w.addEventListener('animationend', () => w.classList.remove('go'), { once:true });
+    w.classList.add('go');
     await sleep(380);
   }
 

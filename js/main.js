@@ -28,6 +28,7 @@
   let selectedAvatar=AVATARS_LIST[0];
   let _ppDismiss=null, _avatarCallback=null, _avatarContext=null;
   let gameActive=false, currentRoomCode=null;
+  let _menuScrollY=0;
 
   const show=id=>{
     $$('.screen').forEach(s=>s.classList.remove('active'));
@@ -569,10 +570,22 @@
     const leaveEl=document.getElementById('menuLeaveLabel');
     if(resumeEl) resumeEl.textContent=gameActive?(LANG==='ar'?'استمر في اللعبة':'Resume Game'):(LANG==='ar'?'العب':'Play');
     if(leaveEl) leaveEl.textContent=gameActive?(LANG==='ar'?'اترك اللعبة':'Leave Game'):(LANG==='ar'?'الرئيسية':'Home');
+    if(window.matchMedia('(max-width: 600px)').matches&&!document.body.classList.contains('menu-open')){
+      _menuScrollY=window.scrollY;
+      document.body.style.top=`-${_menuScrollY}px`;
+      document.body.classList.add('menu-open');
+    }
     $('#menuOverlay').classList.remove('hidden');
     Audio_.sfx.blip();
   }
-  function closeMenu(){$('#menuOverlay').classList.add('hidden');}
+  function closeMenu(){
+    $('#menuOverlay').classList.add('hidden');
+    if(document.body.classList.contains('menu-open')){
+      document.body.classList.remove('menu-open');
+      document.body.style.top='';
+      window.scrollTo({top:_menuScrollY,left:0,behavior:'auto'});
+    }
+  }
   async function leaveGame(){
     gameActive=false;
     window.__hypoxAbort = true;  // tells Host.run to stop after current await

@@ -1470,6 +1470,47 @@ body.ar .tutorial-bullets { text-align: right; }
   }
   #bg-deco{position:fixed;}
 
+  /* These layers must follow the phone viewport, not the long page height. */
+  #wipe{
+    position:fixed;
+    inset:0;
+    width:100vw;
+    height:100dvh;
+    transform:translateX(-130%) skewX(-4deg) scaleX(1.06);
+  }
+  #wipe.go{animation-name:wipeAcrossMobile;}
+  @keyframes wipeAcrossMobile{
+    0%{transform:translateX(-130%) skewX(-4deg) scaleX(1.06);}
+    45%,55%{transform:translateX(0) skewX(-4deg) scaleX(1.06);}
+    100%{transform:translateX(130%) skewX(-4deg) scaleX(1.06);}
+  }
+  #menuOverlay,#confetti{
+    position:fixed;
+    inset:0;
+    width:100vw;
+    height:100dvh;
+  }
+  #menuOverlay{
+    overscroll-behavior:contain;
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+  }
+  .menu-card{
+    max-height:calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 28px);
+    overflow-y:auto;
+  }
+  body.menu-open{
+    position:fixed;
+    left:0;
+    right:0;
+    width:100%;
+    overflow:hidden;
+  }
+
+  /* Avoid continuous blurred-layer repaints while a game is running. */
+  .deco-blob{animation:none;filter:blur(60px);}
+  .deco-float{animation:none;opacity:.16;}
+
   .screen:not(.active){display:none!important;}
   .screen.active{
     position:relative;
