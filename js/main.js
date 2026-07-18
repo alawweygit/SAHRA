@@ -433,33 +433,34 @@
   async function startGameWithMode(playMode,gameMode){
     Audio_.sfx.submit();hostMode=playMode;
     window.__hypoxSkip=null;
-    // Brief visual feedback
+    // Show loading on button immediately so user knows tap worked
     const startBtn=document.getElementById('pgStartBtn');
-    if(startBtn){startBtn.style.opacity='0.6';setTimeout(()=>{if(startBtn)startBtn.style.opacity='';},300);}
-    if(playMode!=='offline'&&!FirebaseNet.available()){Audio_.sfx.buzzer();alert(T.noFirebase());return;}
-    if(net&&currentRoomCode&&!net.isOffline&&playMode!=='offline'){show('#scr-lobby');return;}
+    if(startBtn){startBtn.textContent=LANG==='ar'?'⏳ جاري...':'⏳ Starting...';startBtn.disabled=true;}
+    const restoreBtn=()=>{if(startBtn){startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';startBtn.disabled=false;}};
+    if(playMode!=='offline'&&!FirebaseNet.available()){Audio_.sfx.buzzer();restoreBtn();alert(T.noFirebase());return;}
+    // Reset any existing session
+    if(net)try{net.close?.();}catch(e){}
+    net=null;currentRoomCode=null;players=[];
     net=createNet(playMode==='offline');
     if(playMode==='offline'&&!net.isOffline)net=new LocalNet();
     if(net.isOffline)net.promptLocal=passAndPlayPrompt;
     let code;
     try{
-      const roomPromise = net.createRoom(LANG);
-      const timeoutPromise = new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 8000));
-      code = await Promise.race([roomPromise, timeoutPromise]);
+      const roomPromise=net.createRoom(LANG);
+      code=await Promise.race([roomPromise,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000))]);
     }catch(e){
-      Audio_.sfx.buzzer();
-      net=null;
+      Audio_.sfx.buzzer();restoreBtn();net=null;
       alert(LANG==='ar'?'تعذر الاتصال. تحقق من الإنترنت وحاول مرة ثانية.':'Connection failed. Check your internet and try again.');
       return;
     }
-    await Promise.race([net.setPlayMode(playMode), new Promise(r=>setTimeout(r,3000))]).catch(()=>{});
+    await Promise.race([net.setPlayMode(playMode),new Promise(r=>setTimeout(r,3000))]).catch(()=>{});
     net.phonesOnly=playMode==='phones';
     currentRoomCode=code;
-    $('#roomCodeText').textContent=net.isOffline?(LANG==='ar'?'مرّر الجوال':'PASS & PLAY'):code;
     $('#topbar').classList.add('show');
     $('#menuBtn').classList.remove('hidden');
     $('#roundPill').textContent=LANG==='ar'?'الصالة':'Lobby';
     updateMenu();
+    restoreBtn();
     if(playMode==='phones'){
       showAvatarPicker('phones',async(name,av)=>{
         const res=await net.joinRoom(code,name,av);
