@@ -255,6 +255,17 @@
   /* ---- PREGAME: single page, no scroll ---- */
   function showPregame(mode){
     document.getElementById('pgStickyBar')?.remove(); // clean up from previous
+    // Wire topbar back button for pregame
+    $('#topbar').classList.add('show');
+    const pregameBack=document.getElementById('topbarBack');
+    if(pregameBack){
+      pregameBack.style.setProperty('visibility','visible');
+      pregameBack.onclick=()=>{
+        Audio_.sfx.blip();
+        pregameBack.style.setProperty('visibility','hidden');
+        show('#scr-games');
+      };
+    }
     show('#scr-pregame');
     const isTrivia=mode==='trivia'||mode==='quiz';
     const modeNamesObj=t('mode_names')||{};
@@ -509,16 +520,12 @@
     if(isOff) $('#addLocalBtn').onclick=()=>showAvatarPicker('offline');
     $('#addLocalBtn').textContent=T.addPlayer();
     $('#startGameBtn').textContent=T.startGame();
-    // Back button — goes to game picker
-    // Remove old back btn if exists
+    // Back button via topbarBack (top-left) — not bottom
     document.getElementById('lobbyBackBtn')?.remove();
-    {
-      const bb=document.createElement('button');
-      bb.id='lobbyBackBtn';bb.className='bar-btn';
-      bb.style.cssText='margin-top:1vmin;display:block;margin-left:auto;margin-right:auto;';
-      bb.textContent=LANG==='ar'?'→ رجوع':'← Back';
-      bb.onclick=()=>{Audio_.sfx.blip();if(net)try{net.close?.();}catch(e){}net=null;currentRoomCode=null;players=[];gameActive=false;$('#roundPill').style.visibility='hidden';show('#scr-games');};
-      document.getElementById('scr-lobby').appendChild(bb);
+    const lobbyBackEl=document.getElementById('topbarBack');
+    if(lobbyBackEl){
+      lobbyBackEl.style.setProperty('visibility','visible');
+      lobbyBackEl.onclick=()=>{Audio_.sfx.blip();if(net)try{net.close?.();}catch(e){}net=null;currentRoomCode=null;players=[];gameActive=false;$('#roundPill').style.visibility='hidden';show('#scr-games');};
     }
     if(!net.isOffline&&currentRoomCode){
       const siteUrl=window.location.origin+window.location.pathname;
@@ -693,16 +700,16 @@
     $('#avatarTitle').textContent=T.pickAvatar();
     $('#avatarDone').textContent=T.letsGo();
     const backBtn=$('#backFromAvatar');
-    backBtn.style.display='none'; // hide bottom back button, use topbar instead
-    // Show topbar back on avatar screen
     $('#topbar').classList.add('show');
-    document.getElementById('topbarBack').style.setProperty('visibility','visible');
-    document.getElementById('topbarBack').onclick=()=>{
-      Audio_.sfx.blip();
-      $('#topbar').classList.remove('show');
-      document.getElementById('topbarBack').style.setProperty('visibility','hidden');
-      if(_avatarContext==='offline')show('#scr-lobby');else show('#scr-title');
-    };
+    const avatarBack=document.getElementById('topbarBack');
+    if(avatarBack){
+      avatarBack.style.setProperty('visibility','visible');
+      avatarBack.onclick=()=>{
+        Audio_.sfx.blip();
+        avatarBack.style.setProperty('visibility','hidden');
+        if(_avatarContext==='offline')show('#scr-lobby');else show('#scr-title');
+      };
+    }
     show('#scr-avatar');
   }
   function confirmAvatar(){
