@@ -128,6 +128,33 @@ const Host = (() => {
     net.setState({ phase: 'input', phaseId, spec, targets: pids, deadline, mirror: { ...mirror } });
     try { Audio_.startMusic('tension'); } catch(e) {}
 
+    // Auto-submit answers for bot players
+    const botPids = net.getBotPids ? net.getBotPids() : [];
+    const botPidsInRound = pids.filter(p => botPids.includes(p));
+    if (botPidsInRound.length > 0 && net.room) {
+      botPidsInRound.forEach(botPid => {
+        const delay = 1500 + Math.random() * 2500; // 1.5-4s thinking time
+        setTimeout(async () => {
+          try {
+            let botVal;
+            if (spec.type === 'choice' || spec.type === 'higherlow') {
+              const opts = spec.options || [];
+              botVal = opts.length ? opts[Math.floor(Math.random() * opts.length)].id : 0;
+            } else if (spec.type === 'text') {
+              const fakes = LANG==='ar'
+                ? ['ربما','لا أعرف','يمكن','أكيد','ممكن','شايف','معقول']
+                : ['Maybe','Idk','Could be','Probably','Nope','Sure','Hmm'];
+              botVal = fakes[Math.floor(Math.random() * fakes.length)];
+            } else if (spec.type === 'number') {
+              botVal = String(Math.floor(Math.random() * 9000) + 1000);
+            } else {
+              botVal = 'bot';
+            }
+            await net.room(`inputs/${phaseId}/${botPid}`).set({ v: botVal, t: Date.now() });
+          } catch(e) {}
+        }, delay);
+      });
+    }
     // status row of mini avatars
     const row = $('#statusRow');
     if (row) {

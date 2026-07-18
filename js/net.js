@@ -146,6 +146,17 @@ class FirebaseNet {
   }
   onEachInput(cb) { this._onEach = cb; }
 
+  async addBot(botPid, name, av) {
+    if (!this._botPids) this._botPids = [];
+    this._botPids.push(botPid);
+    await this.room('players/' + botPid).set({
+      pid: botPid, name, emoji: av.emoji||'🤖', color: av.color||'#b78bff',
+      score: 0, isVip: false, joinedAt: Date.now(), isBot: true
+    });
+    return botPid;
+  }
+  getBotPids() { return this._botPids || []; }
+
   updateScore(pid, score) { return this.room(`players/${pid}/score`).set(score); }
 
   async close() {

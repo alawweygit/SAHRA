@@ -530,6 +530,25 @@
     if(isOff) $('#addLocalBtn').onclick=()=>showAvatarPicker('offline');
     $('#addLocalBtn').textContent=T.addPlayer();
     $('#startGameBtn').textContent=T.startGame();
+    // Add Bot button for testing
+    let addBotBtn=document.getElementById('addBotBtn');
+    if(!addBotBtn&&!isOff&&net.addBot){
+      addBotBtn=document.createElement('button');
+      addBotBtn.id='addBotBtn';
+      addBotBtn.className='bar-btn';
+      addBotBtn.style.cssText='margin-top:8px;display:block;margin-left:auto;margin-right:auto;opacity:0.7;font-size:13px;';
+      addBotBtn.textContent='🤖 Add Bot (testing)';
+      addBotBtn.onclick=async()=>{
+        const botNames=['HAL','R2D2','JARVIS','ARIS','NOVA','ZARA','MAX'];
+        const botAvatars=[{emoji:'🤖',color:'#b78bff'},{emoji:'👾',color:'#2de1fc'},{emoji:'🦾',color:'#7dff6a'}];
+        const av=botAvatars[Math.floor(Math.random()*botAvatars.length)];
+        const name=botNames[Math.floor(Math.random()*botNames.length)];
+        const botPid='bot_'+Date.now();
+        Audio_.sfx.pop();
+        await net.addBot(botPid,name,av);
+      };
+      document.getElementById('scr-lobby').appendChild(addBotBtn);
+    }
     // Back button via topbarBack (top-left) — not bottom
     document.getElementById('lobbyBackBtn')?.remove();
     const lobbyBackEl=document.getElementById('topbarBack');
