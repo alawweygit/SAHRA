@@ -175,8 +175,9 @@
   <!-- SCREEN 7: GAME -->
   <div class="screen" id="scr-game">
     <div id="hostStage"></div>
-    <div id="hostInputDock" class="host-input-dock hidden"></div>
   </div>
+  <!-- Host input dock lives outside any screen so position:fixed works correctly -->
+  <div id="hostInputDock" class="host-input-dock hidden"></div>
 
   <!-- HOST -->
   <div id="host">
