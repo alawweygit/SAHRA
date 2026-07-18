@@ -155,8 +155,8 @@ const I18N = {
       spy: 'One spy. One secret word. Find them.',
     },
     mode_rules: {
-      bluff: 'A weird fact appears with a blank. Everyone writes a fake answer to fill it. Then vote for what you think is real. Fool someone: +500. Find the truth: +1000.',
-      wyr: 'One player secretly picks A or B. Everyone else predicts their choice. Match it: +500.',
+      bluff: 'A weird fact appears with a blank. Everyone writes a fake answer to fill it. Then vote for what you think is real. Fool them: +1000. Find the truth: +1000.',
+      wyr: 'One player secretly picks A or B. Everyone else predicts their choice. Match it: +1000.',
       interrogation: 'Everyone anonymously answers a spicy question. Then vote on who wrote each answer. Catch someone: +400. Stay hidden: +300 per person you fooled.',
       diss: 'Two players get the same funny challenge. Write the funniest response. Everyone votes — most votes wins.',
       trivia: 'Pick a category, then answer as fast as you can. Right answer = points. Fastest = more points.',

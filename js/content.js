@@ -362,7 +362,7 @@ const Content = (() => {
       let timeoutId;
       try {
         const controller = new AbortController();
-        timeoutId = setTimeout(() => controller.abort(), 15000); // 15s — Railway cold start can take 10-15s
+        timeoutId = setTimeout(() => controller.abort(), 5000); // 5s then fall to static (50 questions now)
         const res = await fetch(cfg.aiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

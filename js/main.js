@@ -782,19 +782,22 @@
      the pass-the-device privacy overlay used by One Device mode. */
   function phonesHostPrompt(spec){
     return new Promise(resolve=>{
-      const dock=$('#hostInputDock');
-      dock.classList.remove('hidden');
+      // Use a body-level modal overlay — avoids all overflow/stacking context issues
+      const overlay=document.createElement('div');
+      overlay.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none;';
+      const panel=document.createElement('div');
+      panel.style.cssText='pointer-events:auto;background:var(--bg);border-top:2px solid var(--border-hi);padding:16px 16px max(20px,env(safe-area-inset-bottom));width:100%;max-height:60vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.6);';
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
       let settled=false;
       const done=value=>{
         if(settled)return;settled=true;_ppDismiss=null;
-        dock.classList.add('hidden');dock.innerHTML='';resolve(value);
+        overlay.remove();resolve(value);
       };
       _ppDismiss=()=>done(null);
       window.__hypoxDismissPP=()=>{if(_ppDismiss)_ppDismiss();};
-      // Strip question/context - host sees it in the scene already
-      // For choice: show compact inline buttons so the scene stays readable
-      const hostSpec={...spec,controlsOnly:true,title:LANG==='ar'?'👆 صوّتك':'👆 Your vote',context:'',sub:''};
-      Controller.render(dock,hostSpec,done);
+      const hostSpec={...spec,controlsOnly:true,title:LANG==='ar'?'👆 اختيارك':'👆 Your pick',context:'',sub:''};
+      Controller.render(panel,hostSpec,done);
     });
   }
 
