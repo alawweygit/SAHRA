@@ -478,7 +478,7 @@
     $('#menuBtn').classList.remove('hidden');
     $('#roundPill').textContent=LANG==='ar'?'الصالة':'Lobby';
     $('#roundPill').style.visibility='visible';
-    document.getElementById('topbarBack')?.classList.add('hidden'); // no back in lobby topbar
+    document.getElementById('topbarBack')?.style.setProperty('visibility','hidden'); // no back in lobby topbar
     updateMenu();
     const isOff = net && net.isOffline;
     $('#localAdd').classList.toggle('hidden',!isOff);
@@ -556,7 +556,7 @@
 
   async function startDirectGame(gameMode){
     Audio_.stopMusic();await FX.wipe();Host.hideHost();
-    show('#scr-game');gameActive=true;document.getElementById('topbarBack')?.classList.remove('hidden');$('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');$('#roundPill').style.visibility='visible';
+    show('#scr-game');gameActive=true;document.getElementById('topbarBack')?.style.setProperty('visibility','visible');$('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');$('#roundPill').style.visibility='visible';
     
     $('#roundPill').textContent=(t('mode_names')||{})[gameMode]||gameMode;
     net.setState({phase:'wait',msg:T.watchScreen()});
@@ -566,7 +566,7 @@
 
   async function showPackPicker(){
     Audio_.stopMusic();await FX.wipe();Host.hideHost();
-    show('#scr-game');gameActive=true;document.getElementById('topbarBack')?.classList.remove('hidden');
+    show('#scr-game');gameActive=true;document.getElementById('topbarBack')?.style.setProperty('visibility','visible');
     $('#roundPill').textContent=T.nextGame();
     const modeNamesObj=t('mode_names')||{};
     const modeTagsObj=t('mode_taglines')||{};
@@ -641,7 +641,7 @@
     currentRoomCode=null;net=null;players=[];
     document.body.classList.remove('phones-only-player');
     const hel=$('#host');if(hel)hel.classList.remove('show');
-    document.getElementById('topbarBack')?.classList.add('hidden');
+    document.getElementById('topbarBack')?.style.setProperty('visibility','hidden');
     show('#scr-title');
     $('#roundPill').style.visibility='hidden';
     $('#topbar').classList.remove('show');

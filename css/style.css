@@ -102,9 +102,9 @@ body.theme-light .deco-blob{opacity:0.14;}
   padding:2vmin 2vmin;opacity:0;transition:opacity 0.4s;pointer-events:none;gap:1vmin;
 }
 #topbar.show{opacity:1;pointer-events:auto;}
-#topbarBack{justify-self:start;font-size:20px;}
-#menuBtn{justify-self:end;}
-.topbar-back.hidden{visibility:hidden;pointer-events:none;} /* hide but keep space */
+#topbarBack{justify-self:start;font-size:20px;} /* always takes col1 space (visibility:hidden when not needed) */
+#roundPill{justify-self:center;} /* always col2 center */
+#menuBtn{justify-self:end;} /* always col3 right */
 .room-pill{
   display:flex;align-items:center;gap:1.2vmin;
   background:var(--btn-secondary-bg);border:1.5px solid var(--border-hi);
