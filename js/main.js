@@ -983,6 +983,9 @@
           },{once:true});
         }
       }else if(state.phase==='gameinfo'){
+        // Phones Only already shows the full shared tutorial above.
+        // Keep the controller hidden here so the tutorial is not duplicated.
+        if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';return;}
         ctrl.classList.remove('hidden');
         ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:20px 16px">
           <div style="font-size:56px;margin-bottom:8px">${esc(state.icon||'🎮')}</div>
