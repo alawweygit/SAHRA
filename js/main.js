@@ -106,6 +106,9 @@
     $('#roundPill').style.visibility='hidden';
     buildTitleScreen();
     setTimeout(()=>FX.burst(70),650);
+    // Warm up Railway backend immediately so it's ready when game starts
+    const _cfg = window.HYPOX_CONFIG||{};
+    if(_cfg.aiEndpoint) fetch(_cfg.aiEndpoint.replace('/api/prompts','/health'),{method:'GET'}).catch(()=>{});
     // Pre-fill join form if session was saved (phone unlocked/reloaded)
     try{
       const saved=sessionStorage.getItem('hypox_session');
