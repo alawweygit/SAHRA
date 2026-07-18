@@ -201,9 +201,8 @@ const Host = (() => {
     // Start the AI request while players read the tutorial, then consume the
     // exact same promise when the round begins.
     const contentMode = mode === 'trivia' ? 'quiz' : mode;
-    let preloadCount = window.HYPOX_STATE?.rounds || 5;
-    if (mode === 'interrogation' || mode === 'spy') preloadCount = 1;
-    if (mode === 'diss') preloadCount = Math.min(preloadCount, Math.floor(players.length / 2) + 1);
+    // Use same count as game will request — ensures cache hit on START
+    const preloadCount = window.HYPOX_STATE?.rounds || 5;
     Content.preload(contentMode, LANG, preloadCount).catch(()=>{});
     const icon = (typeof MODE_ICONS !== 'undefined' ? MODE_ICONS : {})[mode] || '🎮';
     const rulesText = t('mode_rules')[mode] || '';
@@ -230,8 +229,6 @@ const Host = (() => {
       const onStart = () => {
         window.__hypoxSkip = null;
         if (timer) clearInterval(timer);
-        // Show loading spinner while content loads
-        if (btn) { btn.textContent = LANG==='ar'?'⏳ تحميل...':'⏳ Loading...'; btn.disabled = true; }
         res();
       };
       if (btn) {

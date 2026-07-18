@@ -360,19 +360,20 @@ const Content = (() => {
       let timeoutId;
       try {
         const controller = new AbortController();
-        timeoutId = setTimeout(() => controller.abort(), 30000);
+        timeoutId = setTimeout(() => controller.abort(), 3000); // 3s max — fail fast to static
         const res = await fetch(cfg.aiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode, lang, count, region }),
           signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.prompts) && data.prompts.length) return data.prompts.slice(0, count);
         }
       } catch (e) {
-        console.warn('AI content unavailable; using emergency static fallback', e);
+        // AI unavailable — fall through to static
       } finally {
         if (timeoutId) clearTimeout(timeoutId);
       }
