@@ -541,41 +541,23 @@ const Host = (() => {
         row.innerHTML = players.map(p => `<div class="mini" id="mini-${p.pid}">${avatarHTML(p)}<div class="check">✓</div></div>`).join('');
         net.onEachInput(pid => { Audio_.sfx.submit(); $('#mini-' + pid)?.classList.add('done'); });
 
-        // If host is the target, add A/B buttons directly in scene so they can answer
+        // A/B buttons for host to answer (target picks or guesses)
         const botPids = net.getBotPids ? net.getBotPids() : [];
-        if (net.hostSelfPid === target.pid) {
-          const btnRow = document.createElement('div');
-          btnRow.style.cssText = 'display:flex;gap:12px;justify-content:center;margin-top:16px;width:100%;max-width:700px;';
-          btnRow.innerHTML = `
-            <button class="big-btn" id="wyrPickA" style="flex:1;background:#2de1fc;color:#000;font-size:clamp(14px,2vmin,18px)">${esc(R.a)}</button>
-            <button class="big-btn" id="wyrPickB" style="flex:1;background:#ff3d8a;color:#fff;font-size:clamp(14px,2vmin,18px)">${esc(R.b)}</button>`;
-          const stage = document.getElementById('hostStage');
-          if (stage) stage.appendChild(btnRow);
-          const submitHostPick = async (pick) => {
-            btnRow.remove();
-            await net.room(`inputs/${phaseId}/${net.hostSelfPid}`).set({ v: pick, t: Date.now() });
+        const hostNeedsAnswer = net.hostSelfPid && !botPids.includes(net.hostSelfPid);
+        if (hostNeedsAnswer) {
+          const isTarget = net.hostSelfPid === target.pid;
+          const makeWyrBtns = (idA, idB, cb) => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;gap:8px;align-items:stretch;justify-content:center;margin-top:14px;width:100%;max-width:680px;padding:0 12px;box-sizing:border-box;';
+            const btnStyle = (bg,fg) => `flex:1;max-width:300px;min-height:52px;padding:10px 8px;border-radius:14px;background:${bg};color:${fg};font-family:'Fredoka One',sans-serif;font-size:clamp(12px,1.6vmin,15px);border:none;cursor:pointer;line-height:1.3;overflow:hidden;word-break:break-word;`;
+            row.innerHTML = `<button id="${idA}" style="${btnStyle('#2de1fc','#000')}">${esc(R.a)}</button><div style="font-family:'Fredoka One',sans-serif;font-size:18px;color:var(--text3);display:flex;align-items:center;padding:0 4px;flex-shrink:0">VS</div><button id="${idB}" style="${btnStyle('#ff3d8a','#fff')}">${esc(R.b)}</button>`;
+            const stage = document.getElementById('hostStage');
+            if (stage) stage.appendChild(row);
+            const pick = async (v) => { row.remove(); const ref=net.room('inputs/'+phaseId+'/'+net.hostSelfPid); await ref.set({ v, t: Date.now() }); };
+            document.getElementById(idA)?.addEventListener('click', () => { Audio_.sfx.submit(); pick('a'); }, { once: true });
+            document.getElementById(idB)?.addEventListener('click', () => { Audio_.sfx.submit(); pick('b'); }, { once: true });
           };
-          document.getElementById('wyrPickA')?.addEventListener('click', () => { Audio_.sfx.submit(); submitHostPick('a'); }, { once: true });
-          document.getElementById('wyrPickB')?.addEventListener('click', () => { Audio_.sfx.submit(); submitHostPick('b'); }, { once: true });
-        }
-
-        // If host is NOT the target (they need to guess), add buttons in scene
-        if (net.hostSelfPid !== target.pid && !botPids.includes(net.hostSelfPid)) {
-          const guessRow = document.createElement('div');
-          guessRow.id = 'wyrGuessRow';
-          guessRow.style.cssText = 'display:flex;gap:12px;justify-content:center;margin-top:16px;width:100%;max-width:700px;';
-          guessRow.innerHTML = `
-            <div style="font-size:13px;color:var(--text3);text-align:center;width:100%;margin-bottom:4px">👆 ${LANG==='ar'?'توقّع اختياره:':'Predict their pick:'}</div>
-            <button class="big-btn" id="wyrGuessA" style="flex:1;background:#2de1fc;color:#000;font-size:clamp(13px,1.8vmin,16px)">${esc(R.a)}</button>
-            <button class="big-btn" id="wyrGuessB" style="flex:1;background:#ff3d8a;color:#fff;font-size:clamp(13px,1.8vmin,16px)">${esc(R.b)}</button>`;
-          const stage = document.getElementById('hostStage');
-          if (stage) stage.appendChild(guessRow);
-          const submitHostGuess = async (pick) => {
-            guessRow.remove();
-            await net.room(`inputs/${phaseId}/${net.hostSelfPid}`).set({ v: pick, t: Date.now() });
-          };
-          document.getElementById('wyrGuessA')?.addEventListener('click', () => { Audio_.sfx.submit(); submitHostGuess('a'); }, { once: true });
-          document.getElementById('wyrGuessB')?.addEventListener('click', () => { Audio_.sfx.submit(); submitHostGuess('b'); }, { once: true });
+          makeWyrBtns('wyrPickA', 'wyrPickB');
         }
 
         const all = await net.collect(phaseId, null, players.map(p => p.pid), 30000);
