@@ -583,7 +583,7 @@
 
     const startBtn=document.getElementById('startGameBtn');
     if(startBtn)startBtn.onclick=()=>{
-      const minPlayers=MODE_MIN[gameMode]||2;
+      const minPlayers = 2; // testing: allow 2 players for any game (real min shown on cards)
       if(players.length<minPlayers){
         Audio_.sfx.buzzer();
         $('#lobbyHint').textContent=T.needPlayers();
