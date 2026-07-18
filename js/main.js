@@ -212,16 +212,16 @@
     const joinBtn=$('#joinBtn');
     if(joinBtn){joinBtn.textContent=T.joinGame();joinBtn.onclick=()=>{Audio_.sfx.blip();show('#scr-join');paintJoin();};}
     const hstart=$('#heroStart');
-    if(hstart){hstart.textContent=LANG==='ar'?'▶ ابدأ لعبة':'START A GAME ▶';hstart.onclick=()=>{Audio_.sfx.pop();$('#roundPill').textContent=LANG==='ar'?'اختر لعبة':'PICK A GAME';show('#scr-games');};}
+    if(hstart){hstart.textContent=LANG==='ar'?'▶ ابدأ لعبة':'START A GAME ▶';hstart.onclick=()=>{Audio_.sfx.pop();$('#roundPill').textContent=LANG==='ar'?'اختر لعبة':'PICK A GAME';$('#topbar').classList.add('show');document.getElementById('topbarBack')?.style.setProperty('visibility','hidden');show('#scr-games');};}
     const hstart2=$('#heroStart2');
-    if(hstart2){hstart2.textContent=LANG==='ar'?'▶ ابدأ لعبة':'START A GAME ▶';hstart2.onclick=()=>{Audio_.sfx.pop();$('#roundPill').textContent=LANG==='ar'?'اختر لعبة':'PICK A GAME';show('#scr-games');};}
+    if(hstart2){hstart2.textContent=LANG==='ar'?'▶ ابدأ لعبة':'START A GAME ▶';hstart2.onclick=()=>{Audio_.sfx.pop();$('#roundPill').textContent=LANG==='ar'?'اختر لعبة':'PICK A GAME';$('#topbar').classList.add('show');document.getElementById('topbarBack')?.style.setProperty('visibility','hidden');show('#scr-games');};}
     const LS={howTitle:['HOW IT WORKS','كيف تلعب؟'],how1:['📺 TV + Phones','📺 شاشة + جوالات'],how1d:['Host opens on laptop or TV, shares screen. Everyone joins by QR or link. Phones = controllers, TV = the show.','افتح على اللابتوب أو التلفاز وشارك الشاشة. الكل يدخل عن طريق QR أو رابط. الجوالات للإجابة، التلفاز للعرض.'],how2:['📱 Phones Only','📱 جوالات فقط'],how2d:['No TV? No problem. Everyone plays on their own phone. Share the room code and you are in.','ما في تلفاز؟ لا مشكلة. الكل يلعب من جواله. شارك الكود وابدأ.'],how3:['🤝 One Device','🤝 جهاز واحد'],how3d:['Pass one phone around the table. No internet needed. Perfect for road trips or anywhere.','مرّر جوال واحد على الجميع. بدون إنترنت. مثالية في الرحلات وأي مكان.'],previewTitle:['THE GAMES. INFINITE CHAOS.','الألعاب. فوضى لا تنتهي.'],prev1:['LIE DETECTOR','كاشف الكذب'],prev1d:['Spot the lie. Fool your friends.','اكتشف الكذبة. اخدع ربعك.'],prev2:['WOULD YOU RATHER','يا هذا يا هذا'],prev2d:['How well do you know them?','شكثر تعرفهم صح؟'],prev3:['ROAST BATTLE','حرب القصايد'],prev3d:['One-liner battle. Crowd decides.','مواجهة بسطر واحد. الجمهور يحكم.'],prev4:['PIN POINT','حدد المكان'],prev4d:['Drop your pin. Closest wins.','حط دبوسك. الأقرب يفوز.'],prev5:['EMOJI RIDDLE','فزورة الإيموجي'],prev5d:['Decode the emojis. Beat the clock.','فك رموز الإيموجي قبل غيرك.'],prev6:['TIME MACHINE','آلة الزمن'],prev6d:['Guess the year. Closest wins.','خمّن السنة. الأقرب يفوز.'],proofTitle:['WHAT PEOPLE SAY','شو يقولون عنا؟'],proof1:['"We played for 3 hours straight. Nobody wanted to stop."','"لعبنا ٣ ساعات متواصلة. ما أحد أبى يوقف."'],proof2:['"Finally a party game that actually works in Arabic. The Gulf humor is spot on."','"أخيراً لعبة سهرة تشتغل بالعربي. الروح الخليجية موجودة."'],proof3:['"No app, no login, no drama. Just scan and play."','"بدون تطبيق، بدون تسجيل. بس امسح والعب."'],finalTitle:['READY TO START?','جاهز تبدأ؟']};
     Object.entries(LS).forEach(([id,[en,ar]])=>{const el=document.getElementById(id);if(el)el.textContent=LANG==='ar'?ar:en;});
     const tp=document.querySelectorAll('.trust-pill');
     const tpArr=LANG==='ar'?['📱 بدون تحميل','⚡ ابدأ في ثواني','👥 ٢-٢٠ لاعب','🌍 عربي وإنجليزي']:['📱 No downloads','⚡ Start in seconds','👥 2-20 players','🌍 Arabic & English'];
     tp.forEach((el,i)=>{if(tpArr[i])el.textContent=tpArr[i];});
     const bfg=$('#backFromGames');
-    if(bfg){bfg.textContent=LANG==='ar'?'→ رجوع':'← Back';bfg.onclick=()=>{Audio_.sfx.blip();show('#scr-title');};}
+    if(bfg){bfg.textContent=LANG==='ar'?'→ رجوع':'← Back';bfg.onclick=()=>{Audio_.sfx.blip();$('#topbar').classList.remove('show');show('#scr-title');};}
 
     $$('.title-game-card').forEach(card=>card.addEventListener('click',()=>{
       Audio_.sfx.pop();Audio_.unlock();
@@ -234,7 +234,7 @@
 
   function paintJoin(){
     $('#backFromJoin').textContent=T.back();
-    $('#backFromJoin').onclick=()=>{Audio_.sfx.blip();show('#scr-title');};
+    $('#backFromJoin').onclick=()=>{Audio_.sfx.blip();$('#topbar').classList.remove('show');show('#scr-title');};
     $('#joinCode').placeholder=LANG==='ar'?'رمز الغرفة':'Room code';
     $('#joinName').placeholder=T.yourName();
     $('#joinGo').textContent=LANG==='ar'?'دخول →':'Join →';

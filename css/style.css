@@ -97,13 +97,14 @@ body.theme-light .deco-blob{opacity:0.14;}
 
 /* ============ TOP BAR ============ */
 #topbar{
-  position:absolute;top:0;left:0;right:0;z-index:30;
+  position:fixed;top:0;left:0;right:0;z-index:30;
   display:flex;align-items:center;gap:8px;
-  padding:max(14px,env(safe-area-inset-top,0px)+8px) 64px 8px 12px; /* right padding for fixed menuBtn */
+  padding:max(14px,env(safe-area-inset-top,0px)+8px) 64px max(14px,env(safe-area-inset-top,0px)+8px) 12px;
+  background:transparent;
   opacity:0;transition:opacity 0.4s;pointer-events:none;
 }
 #topbar.show{opacity:1;pointer-events:auto;}
-#topbarBack{font-size:20px;flex-shrink:0;}
+#topbarBack{font-size:20px;flex-shrink:0;min-width:48px;min-height:48px;display:flex;align-items:center;justify-content:center;}
 #roundPill{flex:1;text-align:center;}
 #menuBtn{/* fixed position set inline in HTML */}
 .room-pill{
@@ -132,7 +133,7 @@ body.ar .room-code{letter-spacing:1px;}
 #menuBtn{
   font-size:22px;min-width:48px;min-height:48px;
   padding:0;display:flex;align-items:center;justify-content:center;
-  z-index:200;position:relative; /* always on top */
+  z-index:500;
 }
 .bar-btn:hover{background:var(--border);border-color:var(--border-hi);}
 .hidden{display:none!important;}
