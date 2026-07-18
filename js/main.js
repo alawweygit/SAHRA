@@ -764,7 +764,7 @@
       };
       _ppDismiss=()=>done(null);
       window.__hypoxDismissPP=()=>{if(_ppDismiss)_ppDismiss();};
-      const hostSpec=spec.compactRebus?{...spec,context:''}:spec;
+      const hostSpec={...spec,controlsOnly:true,title:'',context:'',sub:''};
       Controller.render(dock,hostSpec,done);
       setTimeout(()=>dock.scrollIntoView({behavior:'smooth',block:'nearest'}),80);
     });
@@ -933,7 +933,7 @@
         if(!state.targets||state.targets.includes(myPid)){
           lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
           ctrl.classList.remove('hidden');
-          const phoneSpec=phonesOnly&&state.spec?.compactRebus?{...state.spec,context:''}:state.spec;
+          const phoneSpec=state.spec?(phonesOnly?{...state.spec,controlsOnly:true,title:'',context:'',sub:''}:state.spec):null;
           if(!phoneSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
           Controller.render(ctrl,phoneSpec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
         }else if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl,T.watchScreen());
@@ -941,7 +941,7 @@
         lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
         const rawSpec=state.specs?.[myPid]||state.specs?._default;
         if(!rawSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
-        const spec=phonesOnly&&rawSpec.compactRebus?{...rawSpec,context:''}:rawSpec;
+        const spec=phonesOnly?{...rawSpec,controlsOnly:true,title:'',context:'',sub:''}:rawSpec;
         ctrl.classList.remove('hidden');
         Controller.render(ctrl,spec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
       }else if(state.phase==='wait'||state.phase==='mirror'){
