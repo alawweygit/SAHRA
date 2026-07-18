@@ -66,7 +66,8 @@ class FirebaseNet {
     await this.room('players/' + this.pid).set({
       name: name.slice(0, 14), emoji: av.emoji, color: av.color, score: 0, isVip, joinedAt: Date.now(),
     });
-    this.room('players/' + this.pid).onDisconnect().remove();
+    // Player NOT removed on disconnect (iOS backgrounds tab = disconnect)
+    // Player persists until explicit close() call
     return { pid: this.pid, isVip };
   }
 

@@ -10,7 +10,7 @@
     {emoji:'🐺',color:'#94a3b8',label:'Wolf'},{emoji:'🐯',color:'#f59e0b',label:'Tiger'},
     {emoji:'🦈',color:'#0ea5e9',label:'Shark'},
   ];
-  const MODE_MIN = {bluff:2,wyr:2,interrogation:2,diss:2,trivia:2,pinpoint:2,emoji:2,year:2,mostlikely:2,trueorlie:2,flaghunt:2,higherlow:2,'2t1l':2,emojiplace:2,spy:2};
+  const MODE_MIN = {bluff:3,wyr:3,interrogation:3,diss:4,trivia:2,pinpoint:2,emoji:2,year:2,mostlikely:3,trueorlie:2,flaghunt:2,higherlow:2,'2t1l':3,emojiplace:2,spy:3};
   const MODE_ICONS = {bluff:'🔍',wyr:'⚖️',interrogation:'🔦',diss:'🎤',trivia:'⚡',pinpoint:'📍',emoji:'🧩',year:'⏳',mostlikely:'🏆',trueorlie:'✅',flaghunt:'🚩',higherlow:'📊','2t1l':'🤥',emojiplace:'🌍',spy:'🕵️'};
   const MODE_COLORS = {bluff:'#f472b6',wyr:'#60a5fa',interrogation:'#a78bfa',diss:'#fb923c',trivia:'#facc15',pinpoint:'#22d3ee',emoji:'#e879f9',year:'#fbbf24',mostlikely:'#f43f5e',trueorlie:'#10b981',flaghunt:'#ef4444',higherlow:'#8b5cf6','2t1l':'#f97316',emojiplace:'#06b6d4',spy:'#64748b'};
   const CAT_INFO = [
@@ -24,6 +24,13 @@
   ];
 
   window.HYPOX_STATE = window.HYPOX_STATE || {region:null,rounds:5,category:'general',flavor:'global',autoplay:false};
+
+  function showHypoxHeader(){
+    $('#topbar').classList.add('show');
+    $('#roundPill').innerHTML='<span class="logo-letters display" style="justify-content:center;gap:3px;font-size:clamp(16px,3.5vw,22px)"><span class="logo-lt" style="--i:0">H</span><span class="logo-lt" style="--i:1">Y</span><span class="logo-lt" style="--i:2">P</span><span class="logo-lt" style="--i:3">O</span><span class="logo-lt" style="--i:4">X</span></span>';
+    $('#roundPill').style.cssText='visibility:visible;background:none;border:none;box-shadow:none;';
+    document.getElementById('topbarBack')?.style.setProperty('visibility','hidden');
+  }
   let net=null, players=[], myPid=null, isVip=false, hostMode='tv';
   let selectedAvatar=AVATARS_LIST[0];
   let _ppDismiss=null, _avatarCallback=null, _avatarContext=null;
@@ -31,8 +38,9 @@
   let _menuScrollY=0;
 
   const show=id=>{
-    $$('.screen').forEach(s=>s.classList.remove('active'));
-    $(id).classList.add('active');
+    $$('.screen').forEach(s=>{s.classList.remove('active');s.scrollTop=0;});
+    const _sel=$(id);if(_sel){_sel.classList.add('active');_sel.scrollTop=0;}
+    requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'auto'}));
     // Mobile screens use the document scroller so Safari pull-to-refresh works.
     // Always reset that scroller when navigating between screens.
     if(window.matchMedia('(max-width: 600px)').matches){
@@ -179,7 +187,7 @@
     // URL auto-join
     const urlParams=new URLSearchParams(window.location.search);
     const urlCode=urlParams.get('room');
-    if(urlCode){$('#joinCode').value=urlCode.toUpperCase();show('#scr-join');}
+    if(urlCode){$('#joinCode').value=urlCode.toUpperCase();showHypoxHeader();show('#scr-join');}
   });
 
   function applyTheme(){
@@ -214,7 +222,7 @@
     const tapLabel=$('#tapLabel');
     if(tapLabel)tapLabel.textContent=LANG==='ar'?'اختر لعبتك':'PICK YOUR GAME';
     const joinBtn=$('#joinBtn');
-    if(joinBtn){joinBtn.textContent=T.joinGame();joinBtn.onclick=()=>{Audio_.sfx.blip();show('#scr-join');paintJoin();};}
+    if(joinBtn){joinBtn.textContent=T.joinGame();joinBtn.onclick=()=>{Audio_.sfx.blip();showHypoxHeader();show('#scr-join');paintJoin();};}
     const hstart=$('#heroStart');
     if(hstart){hstart.textContent=LANG==='ar'?'▶ ابدأ لعبة':'START A GAME ▶';hstart.onclick=()=>{Audio_.sfx.pop();$('#roundPill').innerHTML='<span class="logo-letters display" style="justify-content:center;gap:3px;font-size:clamp(18px,4vw,26px)"><span class="logo-lt" style="--i:0">H</span><span class="logo-lt" style="--i:1">Y</span><span class="logo-lt" style="--i:2">P</span><span class="logo-lt" style="--i:3">O</span><span class="logo-lt" style="--i:4">X</span></span>';$('#roundPill').style.visibility='visible';$('#roundPill').style.background='none';$('#roundPill').style.border='none';$('#roundPill').style.boxShadow='none';$('#topbar').classList.add('show');const tb=document.getElementById('topbarBack');
       if(tb){
@@ -797,7 +805,7 @@
     // Save session so reconnect works after phone lock
     try{sessionStorage.setItem('hypox_session',JSON.stringify({code,name,emoji:selectedAvatar.emoji,color:selectedAvatar.color}));}catch(e){}
     show('#scr-controller');
-    $('#topbar').classList.add('show');
+    showHypoxHeader();
     const roomCodeEl=$('#roomCodeText');
     if(roomCodeEl)roomCodeEl.textContent=code;
     const roundPillEl=$('#roundPill');
@@ -904,7 +912,7 @@
     }
     function isInputActive() {
       // Active = has enabled (not locked) interactive elements
-      const el = ctrl.querySelector('textarea:not([disabled]),input:not([disabled]),.ctrl-choice:not(.answered),.ctrl-map');
+      const el = ctrl.querySelector('textarea:not([disabled]),input:not([disabled]),.ctrl-map,.choice-btn:not(.picked),.ctrl-choices');
       return !!el;
     }
     net.onMirror(renderMirror);
@@ -930,6 +938,7 @@
       }
       if(state.mirror)renderMirror(state.mirror);
       if(state.phase==='input'&&state.phaseId!==lastPhaseId){
+        _lastMirrorKey=''; // clear mirror when input starts
         if(!state.targets||state.targets.includes(myPid)){
           lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
           ctrl.classList.remove('hidden');
