@@ -1130,6 +1130,10 @@ html{font-size:17px;}
   border-radius:22px!important;box-shadow:0 20px 60px rgba(0,0,0,.45)!important;
   box-sizing:border-box!important;
 }
+.ctrl-wrap.ctrl-controls-only{
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  padding:8px!important;gap:8px!important;
+}
 .rebus-controller{padding:16px 18px!important;gap:9px!important;}
 .rebus-controller .ctrl-title{font-size:clamp(17px,3vw,24px);}
 .rebus-controller .ctrl-input{min-height:52px!important;height:52px!important;resize:none!important;}
