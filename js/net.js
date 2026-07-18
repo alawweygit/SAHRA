@@ -101,7 +101,7 @@ class FirebaseNet {
   /* Full shared presentation used by Phones Only. Kept separate from state so
      visual updates never restart or replace a player's active input phase. */
   setSharedScreen(view) { return this.room('sharedScreen').set({ ...view, ts: Date.now() }); }
-  onSharedScreen(cb) { this.room('sharedScreen').on('value', s => { const v = s.val(); if (v) cb(v); }); }
+  onSharedScreen(cb) { this.room('sharedScreen').on('value', s => cb(s.val() || null)); }
 
   submitInput(phaseId, value) {
     return this.room(`inputs/${phaseId}/${this.pid}`).set({ v: value, t: Date.now() });
