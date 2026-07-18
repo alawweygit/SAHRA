@@ -363,10 +363,38 @@ const Host = (() => {
         pids, 60);
 
       // Build answer set: unique lies + truth
-      const seen = new Set([R.truth.toUpperCase()]);
-      const lies = [];
+      // Check for duplicates — re-prompt any player whose answer clashes
+      const truthUp = R.truth.toUpperCase();
+      const seenAnswers = new Map(); // text -> first pid who used it
+      const dupPids = [];
       for (const pid of pids) {
         const v = (val(inputs, pid) || '').trim().toUpperCase().slice(0, 60);
+        if (!v) continue;
+        if (v === truthUp) { dupPids.push(pid); continue; } // matches truth!
+        if (seenAnswers.has(v)) { dupPids.push(pid); continue; } // duplicate
+        seenAnswers.set(v, pid);
+      }
+      // Re-prompt duplicate players (up to 2 retries)
+      let finalInputs = { ...inputs };
+      if (dupPids.length > 0) {
+        const usedTexts = [...seenAnswers.keys(), truthUp];
+        const rePrompt = await collectWithTimer({
+          type: 'text',
+          title: LANG === 'ar' ? '⚠️ هذه الإجابة موجودة — جرب إجابة مختلفة!' : '⚠️ That answer is taken! Try a different one.',
+          context: R.fact.replace('___', '____'),
+          maxLen: 60,
+          avoid: usedTexts, // hint for display
+        }, dupPids, 40);
+        for (const pid of dupPids) {
+          const v2 = (val(rePrompt, pid) || '').trim().toUpperCase().slice(0, 60);
+          if (v2) finalInputs[pid] = rePrompt[pid];
+        }
+      }
+
+      const seen = new Set([truthUp]);
+      const lies = [];
+      for (const pid of pids) {
+        const v = (val(finalInputs, pid) || '').trim().toUpperCase().slice(0, 60);
         if (v && !seen.has(v)) { seen.add(v); lies.push({ text: v, by: pid }); }
       }
       const answers = shuffle([{ text: R.truth.toUpperCase(), truth: true }, ...lies]);

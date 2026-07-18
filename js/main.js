@@ -772,7 +772,9 @@
       };
       _ppDismiss=()=>done(null);
       window.__hypoxDismissPP=()=>{if(_ppDismiss)_ppDismiss();};
-      const hostSpec={...spec,controlsOnly:true,title:'',context:'',sub:''};
+      // Strip question/context - host sees it in the scene already
+      // For choice: show compact inline buttons so the scene stays readable
+      const hostSpec={...spec,controlsOnly:true,title:LANG==='ar'?'👆 صوّتك':'👆 Your vote',context:'',sub:''};
       Controller.render(dock,hostSpec,done);
       setTimeout(()=>dock.scrollIntoView({behavior:'smooth',block:'nearest'}),80);
     });
