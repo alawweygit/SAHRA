@@ -15,19 +15,22 @@ const Controller = (() => {
     const wrap = document.createElement('div');
     wrap.className = 'ctrl-wrap';
     if (spec.compactRebus) wrap.classList.add('rebus-controller');
+    if (spec.controlsOnly) wrap.classList.add('ctrl-controls-only');
 
-    const title = document.createElement('div');
-    title.className = 'ctrl-title display';
-    title.textContent = spec.title || '';
-    wrap.appendChild(title);
+    if (!spec.controlsOnly) {
+      const title = document.createElement('div');
+      title.className = 'ctrl-title display';
+      title.textContent = spec.title || '';
+      wrap.appendChild(title);
+    }
 
-    if (spec.context) {
+    if (!spec.controlsOnly && spec.context) {
       const ctx = document.createElement('div');
       ctx.className = 'ctrl-context';
       ctx.textContent = spec.context;
       wrap.appendChild(ctx);
     }
-    if (spec.sub) {
+    if (!spec.controlsOnly && spec.sub) {
       const sub = document.createElement('div');
       sub.className = 'ctrl-sub';
       sub.textContent = spec.sub;
@@ -88,15 +91,17 @@ const Controller = (() => {
       // Question bold on top, reference number big yellow, then Higher/Lower buttons
       // Clear the generic title/context already added
       wrap.innerHTML = '';
-      const q = document.createElement('div');
-      q.className = 'ctrl-title display';
-      q.style.cssText = 'font-size:clamp(16px,4vw,22px);margin-bottom:8px';
-      q.textContent = spec.question || '';
-      wrap.appendChild(q);
-      const refBlock = document.createElement('div');
-      refBlock.style.cssText = 'text-align:center;margin:8px 0 4px';
-      refBlock.innerHTML = `<div style="font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${spec.refLabel||'Reference'}</div><div style="font-family:'Fredoka One',sans-serif;font-size:clamp(32px,10vw,52px);color:var(--yellow);line-height:1">${spec.ref||''}</div>`;
-      wrap.appendChild(refBlock);
+      if (!spec.controlsOnly) {
+        const q = document.createElement('div');
+        q.className = 'ctrl-title display';
+        q.style.cssText = 'font-size:clamp(16px,4vw,22px);margin-bottom:8px';
+        q.textContent = spec.question || '';
+        wrap.appendChild(q);
+        const refBlock = document.createElement('div');
+        refBlock.style.cssText = 'text-align:center;margin:8px 0 4px';
+        refBlock.innerHTML = `<div style="font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${spec.refLabel||'Reference'}</div><div style="font-family:'Fredoka One',sans-serif;font-size:clamp(32px,10vw,52px);color:var(--yellow);line-height:1">${spec.ref||''}</div>`;
+        wrap.appendChild(refBlock);
+      }
       const grid = document.createElement('div');
       grid.className = 'ctrl-choices';
       grid.style.cssText = 'margin-top:16px';
