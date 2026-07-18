@@ -329,7 +329,9 @@ const Content = (() => {
     return flavor === 'arab' ? 'mena' : null;
   };
   const cacheKey = (mode, lang, count, region) =>
-    [mode, lang, count, region || 'global'].join(':');
+    [mode, lang, count, region || 'global', window._hypoxSession || '0'].join(':');
+  // Clear preload cache on game start (called from host.js via window._clearContentCache)
+  window._clearContentCache = () => _preloadCache.clear();
 
   return {
   preload(mode, lang, count, region) {
@@ -364,7 +366,7 @@ const Content = (() => {
         const res = await fetch(cfg.aiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode, lang, count, region, session: window._hypoxSession }),
+          body: JSON.stringify({ mode, lang, count, region, session: window._hypoxSession||'0' }),
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
