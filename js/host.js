@@ -529,7 +529,7 @@ const Host = (() => {
       if (matchers.length) {
         for (const pid of matchers) {
           const p = players.find(x => x.pid === pid);
-          addScore(pid, 500);
+          addScore(pid, 1000);
           mr.insertAdjacentHTML('beforeend', `<div class="player" style="animation-delay:0s">${avatarHTML(p)}<div class="pname">+500</div></div>`);
           Audio_.sfx.correct();
           await sleep(300);
@@ -612,10 +612,10 @@ const Host = (() => {
 
       let caught = 0;
       for (const pid of guessers) {
-        if (val(votes, pid) === E.pid) { addScore(pid, 400); caught++; }
+        if (val(votes, pid) === E.pid) { addScore(pid, 1000); caught++; }
       }
       const hidden = guessers.length - caught;
-      if (hidden > 0) addScore(E.pid, hidden * 300);
+      if (hidden > 0) addScore(E.pid, 1000);
       if (susEl) FX.flyPoints(susEl, caught ? `${caught} ✓` : `+${hidden * 300} ${author.name}`);
       await sleep(1500);
     }
@@ -704,9 +704,9 @@ const Host = (() => {
       await sleep(500);
 
       const winner = vA === vB ? null : (vA > vB ? A : B);
-      addScore(A.pid, vA * 250); addScore(B.pid, vB * 250);
+      if(vA > vB) addScore(A.pid, 1000); else if(vB > vA) addScore(B.pid, 1000); else { addScore(A.pid, 500); addScore(B.pid, 500); }
       if (winner && ((winner === A && vB === 0) || (winner === B && vA === 0)) && crowd.length > 1) {
-        addScore(winner.pid, 500); // sweep bonus
+        // sweep bonus removed
       }
       Audio_.sfx.drum(); await sleep(700);
       if (winner) {
@@ -1139,7 +1139,7 @@ const Host = (() => {
       pids.forEach(pid => { const v = val(votes, pid); if (v) tally[v] = (tally[v]||0)+1; });
       const maxV = Math.max(0, ...Object.values(tally));
       const winners = Object.entries(tally).filter(([,c])=>c===maxV).map(([pid])=>pid);
-      winners.forEach(pid => addScore(pid, 500));
+      winners.forEach(pid => addScore(pid, 1000));
       Audio_.sfx.reveal(); FX.burst(80);
       scene(`<div class="eyebrow">${esc(Q.q)}</div><div class="score-list">${players.slice().sort((a,b)=>(tally[b.pid]||0)-(tally[a.pid]||0)).map((p,idx)=>`<div class="score-row" style="animation-delay:${idx*.1}s"><div class="medal">${winners.includes(p.pid)?'👑':''}</div><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(10,((tally[p.pid]||0)/pids.length)*100)}%;background:linear-gradient(90deg,var(--pink),var(--purple))">${esc(p.name)} · ${tally[p.pid]||0} ${LANG==='ar'?'أصوات':'votes'}</div></div></div>`).join('')}</div>`);
       const wNames = winners.map(pid=>players.find(p=>p.pid===pid)?.name).join(' & ');
@@ -1297,8 +1297,8 @@ const Host = (() => {
       stmts.forEach((_,j)=>{if(j!==lieIdx)document.getElementById('stmt-'+j)?.classList.add('q-dim');});
       Audio_.sfx.correct(); FX.burst(80);
       const finders = others.filter(pid=>val(votes,pid)===lieIdx);
-      finders.forEach(pid=>addScore(pid,700));
-      if(finders.length===0) addScore(target.pid,500);
+      finders.forEach(pid=>addScore(pid,1000));
+      if(finders.length===0) addScore(target.pid,1000);
       const fNames = finders.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ');
       pushMirror({ headline: LANG==='ar'?`الكذبة: ${stmts[lieIdx].text}`:`The lie: ${stmts[lieIdx].text}` });
       await say(finders.length===0?(LANG==='ar'?`ولا واحد اكتشف! ${target.name} فاز!`:`Nobody caught ${target.name}! They win!`):(LANG==='ar'?`${fNames} اكتشفوا الكذبة!`:`${fNames} found the lie!`));
@@ -1562,12 +1562,12 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         spyPids.forEach(pid=>addScore(pid,1000));
         scene(`<div class="crown">🕵️</div><div class="prompt-card display" style="color:var(--pink)">${LANG==='ar'?spyPs.map(p=>p.name).join(' & ')+' فاز! خمّن الكلمة!':spyPs.map(p=>p.name).join(' & ')+' wins! Guessed it!'}</div><div class="pick-sub">${LANG==='ar'?'الكلمة: '+word:'Word: '+word}</div>`);
       } else {
-        pids.filter(pid=>!spyPids.includes(pid)).forEach(pid=>addScore(pid,700));
+        pids.filter(pid=>!spyPids.includes(pid)).forEach(pid=>addScore(pid,1000));
         scene(`<div class="crown">🎉</div><div class="prompt-card display" style="color:var(--green)">${LANG==='ar'?'العملاء فازوا! الجاسوس ما عرف!':'Agents win! Spy failed!'}</div><div class="pick-sub">${LANG==='ar'?'الكلمة: '+word:'Word: '+word}</div>`);
       }
     } else {
       spyPids.forEach(pid=>addScore(pid,1000));
-      pids.filter(pid=>!spyPids.includes(pid)).forEach(pid=>addScore(pid,200));
+      // non-spies get 0 when spy wins
       const spyNames=spyPids.map(pid=>players.find(p=>p.pid===pid)?.name).join(' & ');
       Audio_.sfx.buzzer();
       scene(`<div class="crown">🕵️</div><div class="prompt-card display" style="color:var(--pink)">${LANG==='ar'?'الجاسوس فاز! كان '+spyNames+'!':'Spy wins! It was '+spyNames+'!'}</div><div class="pick-sub">${LANG==='ar'?'الكلمة: '+word:'Word: '+word}</div>`);
