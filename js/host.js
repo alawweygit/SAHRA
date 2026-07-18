@@ -751,7 +751,7 @@ const Host = (() => {
       qs = await Content.get('quiz', LANG, rounds);
     }
     const pids = players.map(p => p.pid);
-    const SPEED_PTS = [1000, 850, 700, 600, 500, 450, 400, 400, 400, 400];
+    const CORRECT_PTS = 1000; // flat: everyone who answers correctly gets same score
 
     for (let i = 0; i < qs.length; i++) {
       const Q = qs[i];
@@ -780,7 +780,7 @@ const Host = (() => {
       const right = pids.filter(pid => val(answers, pid) === Q.correct)
         .sort((a, b) => answers[a].order - answers[b].order);
       right.forEach((pid, rank) => {
-        addScore(pid, net.isOffline ? 700 : (SPEED_PTS[rank] || 400));
+        addScore(pid, CORRECT_PTS);
       });
       const names = right.map(pid => players.find(p => p.pid === pid)?.name).filter(Boolean).join(', ');
       pushMirror({ headline: `✓ ${Q.options[Q.correct]}` + (right.length ? ` — ${names}` : '') });
@@ -1156,7 +1156,7 @@ const Host = (() => {
     const rounds = window.HYPOX_STATE?.rounds || 5;
     const prompts = await Content.get('trueorlie', LANG, rounds);
     if (!prompts.length) { scene(`<div class="prompt-card display">✅ ${LANG==='ar'?'تعذّر تحميل الأسئلة':'Could not load questions'}</div>`); await waitNext(5); return; }
-    const SPEED_PTS = [1000,850,700,600,500,450,400,400,400,400];
+    const CORRECT_PTS = 1000;
     for (let i = 0; i < prompts.length; i++) {
       const Q = prompts[i];
       await FX.wipe();
@@ -1170,10 +1170,10 @@ const Host = (() => {
       const correctId = Q.truth ? 'true' : 'false';
       Audio_.sfx.drum(); await sleep(900);
       const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
-      right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
+      right.forEach(pid=>addScore(pid,CORRECT_PTS));
       Audio_.sfx.reveal();
       const resultLabel = Q.truth?(LANG==='ar'?'✅ حقيقة!':'✅ TRUE!'):(LANG==='ar'?'❌ خطأ!':'❌ FALSE!');
-      scene(`<div class="eyebrow">${esc(Q.s)}</div><div class="prompt-card display" style="color:${Q.truth?'var(--green)':'var(--pink)'}">${resultLabel}</div><div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+( SPEED_PTS[right.indexOf(pid)]||400):'✗ 0'}</div></div></div>`;}).join('')}</div>`);
+      scene(`<div class="eyebrow">${esc(Q.s)}</div><div class="prompt-card display" style="color:${Q.truth?'var(--green)':'var(--pink)'}">${resultLabel}</div><div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+( CORRECT_PTS):'✗ 0'}</div></div></div>`;}).join('')}</div>`);
       pushMirror({ headline: resultLabel });
       FX.burst(60);
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?'ولا واحد عرفها!':'Nobody got it!'));
@@ -1188,7 +1188,7 @@ const Host = (() => {
     const rounds = window.HYPOX_STATE?.rounds || 5;
     const qs = await Content.get('flaghunt', LANG, rounds);
     if (!qs.length) { scene(`<div class="prompt-card display">🚩 ${LANG==='ar'?'تعذّر تحميل الأسئلة':'Could not load questions'}</div>`); await waitNext(5); return; }
-    const SPEED_PTS = [1000,850,700,600,500,450,400,400,400,400];
+    const CORRECT_PTS = 1000;
     for (let i = 0; i < qs.length; i++) {
       const Q = qs[i];
       const answer = Q.options[Q.correct];
@@ -1207,12 +1207,12 @@ const Host = (() => {
         const v=(val(answers,pid)||'').trim().toUpperCase();
         return v===ansUp||(ansUp.includes(v)&&v.length>2);
       }).sort((a,b)=>answers[a].order-answers[b].order);
-      right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
+      right.forEach(pid=>addScore(pid,CORRECT_PTS));
       Audio_.sfx.reveal(); FX.burst(80);
       scene(`<div class="eyebrow">🚩 FLAG HUNT</div>
         <div style="font-size:clamp(70px,12vw,110px);text-align:center;margin:1vmin 0;line-height:1">${Q.flag}</div>
         <div class="prompt-card display" style="color:var(--yellow);font-size:clamp(24px,4vw,42px);margin:1vmin 0">${esc(answer)}</div>
-        <div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=right.includes(pid);const pts=got?SPEED_PTS[right.indexOf(pid)]||400:0;const typed=(val(answers,pid)||'').trim()||'—';return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+pts:'✗ '+esc(typed)}</div></div></div>`;}).join('')}</div>`);
+        <div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);const got=right.includes(pid);const pts=got?CORRECT_PTS:0;const typed=(val(answers,pid)||'').trim()||'—';return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+pts:'✗ '+esc(typed)}</div></div></div>`;}).join('')}</div>`);
       pushMirror({ headline: `${Q.flag} = ${answer}` });
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`ولا واحد! هو ${answer}`:`Nobody! It was ${answer}.`));
       hideHost(); await waitNext();
@@ -1226,7 +1226,7 @@ const Host = (() => {
     const rounds = window.HYPOX_STATE?.rounds || 5;
     const qs = await Content.get('higherlow', LANG, rounds);
     if (!qs.length) { scene(`<div class="prompt-card display">📊 ${LANG==='ar'?'تعذّر تحميل الأسئلة':'Could not load questions'}</div>`); await waitNext(5); return; }
-    const SPEED_PTS = [1000,850,700,600,500,450,400,400,400,400];
+    const CORRECT_PTS = 1000;
     for (let i = 0; i < qs.length; i++) {
       const Q = qs[i];
       const hint = Math.round(Q.n * (0.6 + Math.random() * 0.6));
@@ -1254,13 +1254,13 @@ const Host = (() => {
       const correctId = Q.n > hint ? 'higher' : 'lower';
       Audio_.sfx.drum(); await sleep(500);
       const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
-      right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
+      right.forEach(pid=>addScore(pid,CORRECT_PTS));
       Audio_.sfx.reveal(); FX.burst(60);
       const arrow = correctId==='higher'?'⬆️':'⬇️';
       const ansLabel = `${arrow} ${LANG==='ar'?'الجواب':'Answer'}: ${Q.n.toLocaleString()} ${Q.unit}`;
       scene(`<div class="eyebrow">${esc(Q.q)}</div>
         <div class="prompt-card display" style="color:var(--yellow);font-size:clamp(20px,3.5vmin,36px)">${ansLabel}</div>
-        <div class="score-list" style="margin-top:1.5vmin">${pids.map((pid,idx2)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx2*.1}s">${avatarHTML(p)}<div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}"><span class="bar-name">${esc(p.name)}</span><span class="bar-pts">${got?'✓ +'+(SPEED_PTS[right.indexOf(pid)]||400):'✗ 0'}</span></div></div></div>`;}).join('')}</div>`);
+        <div class="score-list" style="margin-top:1.5vmin">${pids.map((pid,idx2)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx2*.1}s">${avatarHTML(p)}<div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}"><span class="bar-name">${esc(p.name)}</span><span class="bar-pts">${got?'✓ +'+(CORRECT_PTS):'✗ 0'}</span></div></div></div>`;}).join('')}</div>`);
       pushMirror({ headline: ansLabel });
       await hostSay('reveal');
       await waitNext();
@@ -1312,7 +1312,7 @@ const Host = (() => {
     await modeTitleCard('emojiphrase');
     const rounds = window.HYPOX_STATE?.rounds || 5;
     const qs = await Content.get('emojiphrase', LANG, rounds);
-    const SPEED_PTS = [1000,850,700,600,500,450,400,400,400,400];
+    const CORRECT_PTS = 1000;
     const colors = ['#2de1fc','#ff3d8a','#ffd23f','#7dff6a'];
     for (let i = 0; i < qs.length; i++) {
       const Q = qs[i];
@@ -1331,7 +1331,7 @@ const Host = (() => {
       opts.forEach((_,j)=>{if(j!==correct)document.getElementById('qopt-'+j)?.classList.add('q-dim');});
       Audio_.sfx.correct(); FX.burst(80);
       const right = pids.filter(pid=>val(answers,pid)===correct).sort((a,b)=>answers[a].order-answers[b].order);
-      right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
+      right.forEach(pid=>addScore(pid,CORRECT_PTS));
       pushMirror({ headline: `${Q.e} = ${opts[correct]}` });
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`الجواب: ${opts[correct]}`:`Answer: ${opts[correct]}`));
       hideHost(); await waitNext();
@@ -1344,7 +1344,7 @@ const Host = (() => {
     await modeTitleCard('emojiword');
     const rounds = window.HYPOX_STATE?.rounds || 5;
     const qs = await Content.get('emojiword', LANG, rounds);
-    const SPEED_PTS = [1000,850,700,600,500,450,400,400,400,400];
+    const CORRECT_PTS = 1000;
     const colors = ['#2de1fc','#ff3d8a','#ffd23f','#7dff6a'];
     for (let i = 0; i < qs.length; i++) {
       const Q = qs[i];
@@ -1363,7 +1363,7 @@ const Host = (() => {
       opts.forEach((_,j)=>{if(j!==correct)document.getElementById('qopt-'+j)?.classList.add('q-dim');});
       Audio_.sfx.correct(); FX.burst(80);
       const right = pids.filter(pid=>val(answers,pid)===correct).sort((a,b)=>answers[a].order-answers[b].order);
-      right.forEach((pid,rank)=>addScore(pid,SPEED_PTS[rank]||400));
+      right.forEach(pid=>addScore(pid,CORRECT_PTS));
       pushMirror({ headline: `${Q.e} = ${opts[correct]}` });
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`الجواب: ${opts[correct]}`:`Answer: ${opts[correct]}`));
       hideHost(); await waitNext();
