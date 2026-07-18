@@ -35,7 +35,7 @@ const GUIDANCE = {
   emoji:        'Phonetic rebus: emojis SOUND OUT a word. Example: 🌊🦉 = sea+owl = SEOUL. "parts" = phonetic sounds.',
   emojiplace:   'Phonetic rebus for CITIES only. Emojis sound out place name. MENA cities in Arabic.',
   year:         'Historical events with exact year (number). Mix world history, tech, sports, Gulf milestones. NEVER repeat the same event.',
-  higherlow:    '"n" is the EXACT real answer (a NUMBER). "unit" is the measurement unit. "q" is a quantity question. RULES: NEVER use year questions (no "in what year", no dates). ONLY use measurable quantities: heights, weights, speeds, distances, counts, temperatures, ages, populations, lengths, volumes, calories, prices. The reference hint will be a random offset from the real answer — so questions must be about quantities where numbers make intuitive sense. Good: "How many episodes did Breaking Bad have?" n:62 unit:"episodes". Bad: "What year was X invented?" (years don\'t work as higher/lower).',
+  higherlow:    'Mix freely: counts (episodes, floors), distances (km), heights (m), weights (kg), speeds (km/h), populations, temperatures, AND historical years (n=the year, unit="year"). Year questions are great! Examples: {q:"What year did man land on the moon?",n:1969,unit:"year"} or {q:"How many floors does Burj Khalifa have?",n:163,unit:"floors"}. ALL n values must be accurate real facts. Never invent numbers.',
   flaghunt:     'Flag emoji + 4 country options. "correct" is 0-based index. Vary correct position. Mix all continents.',
   spy:          'Secret word pool for Spy Game. ONE object with "category" and "words" array (15-20 specific recognizable items). Arab-world items in Arabic.',
 };

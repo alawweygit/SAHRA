@@ -1229,7 +1229,12 @@ const Host = (() => {
     const CORRECT_PTS = 1000;
     for (let i = 0; i < qs.length; i++) {
       const Q = qs[i];
-      const hint = Math.round(Q.n * (0.6 + Math.random() * 0.6));
+      // Smart hint: for year questions (n looks like a year), stay within ±30 years
+      // For other quantities, use proportional offset (60-120% of real value)
+      const isYear = Q.n > 1800 && Q.n <= new Date().getFullYear() + 1 && (!Q.unit || Q.unit.toLowerCase().includes('year') || Q.unit === '');
+      const hint = isYear
+        ? Q.n + Math.round((Math.random() > 0.5 ? 1 : -1) * (5 + Math.random() * 25))
+        : Math.round(Q.n * (0.6 + Math.random() * 0.6));
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
       const opts = [{id:'higher',label:LANG==='ar'?'⬆️ أكثر':'⬆️ Higher',color:'#34d399'},{id:'lower',label:LANG==='ar'?'⬇️ أقل':'⬇️ Lower',color:'#f472b6'}];
