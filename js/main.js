@@ -806,8 +806,10 @@
     const shared=$('#phoneSharedStage');
     const sharedHost=$('#phoneSharedHost');
     const phonesOnly=net.playMode==='phones';
+    net.phonesOnly=phonesOnly;
     document.body.classList.toggle('phones-only-player',phonesOnly);
     shared.dataset.gameStarted='';
+    shared.dataset.sharedReady='';
     shared.classList.toggle('hidden',!phonesOnly);
     if(phonesOnly){
       shared.classList.remove('hidden');
@@ -870,13 +872,22 @@
       });
       return box.innerHTML;
     }
+    function renderSharedStatus(title,sub=''){
+      if(!phonesOnly)return;
+      shared.innerHTML=`<div class="shared-status ctrl-wrap"><div class="ctrl-title display">${esc(title)}</div>${sub?`<div class="ctrl-sub">${esc(sub)}</div>`:''}<div class="ctrl-mirror-dots"><div class="pulse-dot"></div><div class="pulse-dot"></div><div class="pulse-dot"></div></div></div>`;
+    }
     function renderShared(view){
-      if(!phonesOnly||!view?.html)return;
-      shared.innerHTML=safeSharedHTML(view.html);
+      if(!phonesOnly||!view?.html||!String(view.html).trim())return false;
+      const html=safeSharedHTML(view.html);
+      if(!html.trim())return false;
+      shared.innerHTML=html;
+      shared.dataset.sharedReady='1';
+      shared.dataset.gameStarted='1';
       if(view.pill!==undefined)$('#roundPill').textContent=view.pill||'';
+      return true;
     }
     function renderSharedLobby(list){
-      if(!phonesOnly||shared.dataset.gameStarted==='1')return;
+      if(!phonesOnly||shared.dataset.sharedReady==='1')return;
       shared.innerHTML=`<div class="shared-lobby"><div class="lobby-title display">${LANG==='ar'?'اللاعبون':'PLAYERS'}</div><div class="shared-player-row">${list.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('')}</div><div class="shared-lobby-count">${list.length}/20</div></div>`;
     }
     function buildMirrorHTML(m){
@@ -897,8 +908,10 @@
     }
     net.onMirror(renderMirror);
     if(phonesOnly){
+      // Always show a useful state while Firebase delivers the lobby/game.
+      renderSharedStatus(LANG==='ar'?'تم الاتصال!':'YOU\'RE IN!',LANG==='ar'?'جاري تحميل الصالة…':'Loading the lobby…');
       net.onPlayers(renderSharedLobby);
-      net.onSharedScreen(view=>{shared.dataset.gameStarted='1';renderShared(view);});
+      net.onSharedScreen(view=>renderShared(view));
     }
     let lastPhaseId=null;
     net.onState(state=>{
@@ -919,18 +932,24 @@
         if(!state.targets||state.targets.includes(myPid)){
           lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
           ctrl.classList.remove('hidden');
-          const phoneSpec=phonesOnly&&state.spec.compactRebus?{...state.spec,context:''}:state.spec;
+          const phoneSpec=phonesOnly&&state.spec?.compactRebus?{...state.spec,context:''}:state.spec;
+          if(!phoneSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
           Controller.render(ctrl,phoneSpec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
         }else if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl,T.watchScreen());
       }else if(state.phase==='input-split'&&state.phaseId!==lastPhaseId){
         lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
-        const rawSpec=state.specs[myPid]||state.specs._default;
+        const rawSpec=state.specs?.[myPid]||state.specs?._default;
+        if(!rawSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
         const spec=phonesOnly&&rawSpec.compactRebus?{...rawSpec,context:''}:rawSpec;
         ctrl.classList.remove('hidden');
         Controller.render(ctrl,spec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
       }else if(state.phase==='wait'||state.phase==='mirror'){
         // Show full game content on phone using mirror data
-        if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';return;}
+        if(phonesOnly){
+          ctrl.classList.add('hidden');ctrl.innerHTML='';
+          if(shared.dataset.sharedReady!=='1')renderSharedStatus(state.msg||T.watchScreen(),LANG==='ar'?'اللعبة تبدأ الآن…':'The game is starting…');
+          return;
+        }
         const m = state.mirror||state;
         if(m.headline){
           if(!isInputActive()) ctrl.innerHTML=buildMirrorHTML(m);
@@ -963,6 +982,7 @@
           },{once:true});
         }
       }else if(state.phase==='gameinfo'){
+        ctrl.classList.remove('hidden');
         ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:20px 16px">
           <div style="font-size:56px;margin-bottom:8px">${esc(state.icon||'🎮')}</div>
           <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(20px,5vw,28px);color:var(--yellow);margin-bottom:6px">${esc(state.modeName||'')}</div>
@@ -971,6 +991,7 @@
           <div style="margin-top:16px;font-size:13px;color:var(--text3)">${LANG==='ar'?'انتظر المضيف يبدأ…':'Waiting for host to start…'}</div>
         </div>`;
       }else if(state.phase==='winner'){
+        ctrl.classList.remove('hidden');
         ctrl.innerHTML=`<div class="ctrl-wrap"><div class="crown">👑</div><div class="ctrl-title display">${state.emoji} ${esc(state.name)}</div><div class="ctrl-sub">${T.winner()}</div></div>`;
         Audio_.sfx.fanfare();
       }
