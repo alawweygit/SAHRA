@@ -37,8 +37,9 @@
   <div id="topbar">
     <button class="bar-btn topbar-back" id="topbarBack" style="visibility:hidden">←</button>
     <div class="round-pill display" id="roundPill">HYPOX</div>
-    <button class="bar-btn" id="menuBtn">☰</button>
   </div>
+  <!-- Menu always fixed top-right, independent of topbar -->
+  <button class="bar-btn" id="menuBtn" style="position:fixed;top:max(12px,env(safe-area-inset-top,0px)+8px);right:12px;z-index:500;min-width:48px;min-height:48px;font-size:22px;display:flex;align-items:center;justify-content:center;">☰</button>
   <!-- MENU -->
   <div id="menuOverlay" class="hidden">
     <div class="menu-card">

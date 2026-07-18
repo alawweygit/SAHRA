@@ -669,8 +669,16 @@
     $('#avatarTitle').textContent=T.pickAvatar();
     $('#avatarDone').textContent=T.letsGo();
     const backBtn=$('#backFromAvatar');
-    backBtn.textContent=T.back();
-    backBtn.onclick=()=>{Audio_.sfx.blip();if(_avatarContext==='offline')show('#scr-lobby');else show('#scr-title');};
+    backBtn.style.display='none'; // hide bottom back button, use topbar instead
+    // Show topbar back on avatar screen
+    $('#topbar').classList.add('show');
+    document.getElementById('topbarBack').style.setProperty('visibility','visible');
+    document.getElementById('topbarBack').onclick=()=>{
+      Audio_.sfx.blip();
+      $('#topbar').classList.remove('show');
+      document.getElementById('topbarBack').style.setProperty('visibility','hidden');
+      if(_avatarContext==='offline')show('#scr-lobby');else show('#scr-title');
+    };
     show('#scr-avatar');
   }
   function confirmAvatar(){
