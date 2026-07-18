@@ -143,7 +143,7 @@
     });
     $('#langBtn').textContent=LANG==='en'?'عر':'EN';
     $('#menuBtn').addEventListener('click',openMenu);
-    $('#menuBtn').classList.remove('hidden'); // always visible from start
+
     $('#menuClose').addEventListener('click',closeMenu);
     $('#menuResume').addEventListener('click',closeMenu);
     $('#menuLeave').addEventListener('click',()=>{closeMenu();if(gameActive||currentRoomCode){leaveGame();}else{show('#scr-title');}});
@@ -457,7 +457,7 @@
     net.phonesOnly=playMode==='phones';
     currentRoomCode=code;
     $('#topbar').classList.add('show');
-    $('#menuBtn').classList.remove('hidden');
+    // menuBtn always visible (fixed position)
     $('#roundPill').textContent=LANG==='ar'?'الصالة':'Lobby';
     updateMenu();
     restoreBtn();
@@ -475,7 +475,7 @@
     gameActive=false;
     // Ensure topbar is correct
     $('#topbar').classList.add('show');
-    $('#menuBtn').classList.remove('hidden');
+    // menuBtn always visible (fixed position)
     $('#roundPill').textContent=LANG==='ar'?'الصالة':'Lobby';
     $('#roundPill').style.visibility='visible';
     document.getElementById('topbarBack')?.style.setProperty('visibility','hidden'); // no back in lobby topbar
@@ -493,7 +493,7 @@
       bb.id='lobbyBackBtn';bb.className='bar-btn';
       bb.style.cssText='margin-top:1vmin;display:block;margin-left:auto;margin-right:auto;';
       bb.textContent=LANG==='ar'?'→ رجوع':'← Back';
-      bb.onclick=()=>{Audio_.sfx.blip();if(net)try{net.close?.();}catch(e){}net=null;currentRoomCode=null;players=[];gameActive=false;$('#menuBtn').classList.add('hidden');$('#roundPill').style.visibility='hidden';show('#scr-games');};
+      bb.onclick=()=>{Audio_.sfx.blip();if(net)try{net.close?.();}catch(e){}net=null;currentRoomCode=null;players=[];gameActive=false;$('#roundPill').style.visibility='hidden';show('#scr-games');};
       document.getElementById('scr-lobby').appendChild(bb);
     }
     if(!net.isOffline&&currentRoomCode){
@@ -556,7 +556,7 @@
 
   async function startDirectGame(gameMode){
     Audio_.stopMusic();await FX.wipe();Host.hideHost();
-    show('#scr-game');gameActive=true;document.getElementById('topbarBack')?.style.setProperty('visibility','visible');$('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');$('#roundPill').style.visibility='visible';
+    show('#scr-game');gameActive=true;document.getElementById('topbarBack')?.style.setProperty('visibility','visible');$('#topbar').classList.add('show');$('#roundPill').style.visibility='visible';
     
     $('#roundPill').textContent=(t('mode_names')||{})[gameMode]||gameMode;
     net.setState({phase:'wait',msg:T.watchScreen()});
@@ -645,7 +645,7 @@
     show('#scr-title');
     $('#roundPill').style.visibility='hidden';
     $('#topbar').classList.remove('show');
-    $('#menuBtn').classList.add('hidden');
+    // menuBtn always visible (fixed position)
     if(leavingNet)try{await leavingNet.close();}catch(e){console.warn('Room cleanup failed',e);}
   }
 
@@ -756,7 +756,7 @@
     // Save session so reconnect works after phone lock
     try{sessionStorage.setItem('hypox_session',JSON.stringify({code,name,emoji:selectedAvatar.emoji,color:selectedAvatar.color}));}catch(e){}
     show('#scr-controller');
-    $('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');
+    $('#topbar').classList.add('show');
     $('#roomCodeText').textContent=code;
     $('#roundPill').textContent=LANG==='ar'?'الصالة':'Lobby';
     $('#roundPill').style.visibility='visible';
