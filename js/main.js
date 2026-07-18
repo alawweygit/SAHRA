@@ -433,6 +433,9 @@
   async function startGameWithMode(playMode,gameMode){
     Audio_.sfx.submit();hostMode=playMode;
     window.__hypoxSkip=null;
+    // Brief visual feedback
+    const startBtn=document.getElementById('pgStartBtn');
+    if(startBtn){startBtn.style.opacity='0.6';setTimeout(()=>{if(startBtn)startBtn.style.opacity='';},300);}
     if(playMode!=='offline'&&!FirebaseNet.available()){Audio_.sfx.buzzer();alert(T.noFirebase());return;}
     if(net&&currentRoomCode&&!net.isOffline&&playMode!=='offline'){show('#scr-lobby');return;}
     net=createNet(playMode==='offline');
@@ -469,6 +472,13 @@
 
   function setupLobby(gameMode){
     gameActive=false;
+    // Ensure topbar is correct
+    $('#topbar').classList.add('show');
+    $('#menuBtn').classList.remove('hidden');
+    $('#roundPill').textContent=LANG==='ar'?'الصالة':'Lobby';
+    $('#roundPill').style.visibility='visible';
+    document.getElementById('topbarBack')?.classList.add('hidden'); // no back in lobby topbar
+    updateMenu();
     const isOff = net && net.isOffline;
     $('#localAdd').classList.toggle('hidden',!isOff);
     if(isOff) $('#addLocalBtn').onclick=()=>showAvatarPicker('offline');
