@@ -798,9 +798,10 @@
     try{sessionStorage.setItem('hypox_session',JSON.stringify({code,name,emoji:selectedAvatar.emoji,color:selectedAvatar.color}));}catch(e){}
     show('#scr-controller');
     $('#topbar').classList.add('show');
-    $('#roomCodeText').textContent=code;
-    $('#roundPill').textContent='';$('#roundPill').style.visibility='hidden';
-    $('#roundPill').style.visibility='visible';
+    const roomCodeEl=$('#roomCodeText');
+    if(roomCodeEl)roomCodeEl.textContent=code;
+    const roundPillEl=$('#roundPill');
+    if(roundPillEl){roundPillEl.textContent='';roundPillEl.style.visibility='visible';}
     updateMenu();
     const ctrl=$('#ctrlArea');
     const shared=$('#phoneSharedStage');
