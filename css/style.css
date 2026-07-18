@@ -465,6 +465,7 @@ body.ar .eyebrow{letter-spacing:0;}
 .shared-lobby{width:100%;background:var(--card);border:1.5px solid var(--border-hi);border-radius:24px;padding:24px 16px;text-align:center;}
 .shared-player-row{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;margin:20px 0;}
 .shared-lobby-count{font-family:'Fredoka One',sans-serif;color:var(--text3);}
+.shared-status{min-height:190px;justify-content:center!important;margin:auto;}
 .host-input-dock{width:min(94vw,780px);margin:0 auto max(24px,env(safe-area-inset-bottom));position:relative;z-index:12;}
 .phone-shared-host{width:min(94vw,720px);display:flex;align-items:flex-end;justify-content:center;gap:12px;margin:2px auto max(18px,env(safe-area-inset-bottom));}
 .phone-shared-host.hidden{display:none!important;}
