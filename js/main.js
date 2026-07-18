@@ -109,30 +109,31 @@
     // Warm up Railway backend immediately so it's ready when game starts
     const _cfg = window.HYPOX_CONFIG||{};
     if(_cfg.aiEndpoint) fetch(_cfg.aiEndpoint.replace('/api/prompts','/health'),{method:'GET'}).catch(()=>{});
-    // Pre-fill join form if session was saved (phone unlocked/reloaded)
-    try{
-      const saved=sessionStorage.getItem('hypox_session');
-      if(saved){
-        const s=JSON.parse(saved);
-        if(s.code&&s.name&&FirebaseNet.available()){
-          $('#joinCode').value=s.code;$('#joinName').value=s.name;
-          if(s.emoji){
-            selectedAvatar={emoji:s.emoji,color:s.color||'#ff3d8a'};
-            // Highlight saved avatar in picker
-            $$('.join-av').forEach(b=>{if(b.textContent.trim()===s.emoji)b.classList.add('selected');});
+    // Pre-fill join form if session was saved (run after buildJoinAvatarRow)
+    setTimeout(()=>{
+      try{
+        const saved=sessionStorage.getItem('hypox_session');
+        if(saved){
+          const s=JSON.parse(saved);
+          if(s.code&&s.name&&FirebaseNet.available()){
+            const jc=$('#joinCode'),jn=$('#joinName');
+            if(jc)jc.value=s.code;
+            if(jn)jn.value=s.name;
+            if(s.emoji){
+              selectedAvatar={emoji:s.emoji,color:s.color||'#ff3d8a'};
+              $$('.join-av').forEach(b=>{if(b.textContent.trim()===s.emoji)b.classList.add('selected');});
+            }
+            const banner=document.createElement('div');
+            banner.id='reconnectBanner';
+            banner.style.cssText='position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:999;background:var(--card);border:1.5px solid var(--yellow);border-radius:40px;padding:8px 20px;font-family:"Fredoka One",sans-serif;font-size:14px;color:var(--yellow);cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.4)';
+            banner.textContent=`↩ Rejoin ${s.code}`;
+            banner.onclick=()=>{banner.remove();show('#scr-join');};
+            document.body.appendChild(banner);
+            setTimeout(()=>banner?.remove(),8000);
           }
-          // Show reconnect banner instead of going straight to join screen
-          // to avoid jarring automatic navigation
-          const banner=document.createElement('div');
-          banner.id='reconnectBanner';
-          banner.style.cssText='position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:999;background:var(--card);border:1.5px solid var(--yellow);border-radius:40px;padding:8px 20px;font-family:"Fredoka One",sans-serif;font-size:14px;color:var(--yellow);cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.4)';
-          banner.textContent=`↩ Rejoin ${s.code}`;
-          banner.onclick=()=>{banner.remove();show('#scr-join');};
-          document.body.appendChild(banner);
-          setTimeout(()=>banner?.remove(),8000);
         }
-      }
-    }catch(e){} // welcome confetti on landing
+      }catch(e){}
+    },100); // welcome confetti on landing
 
     $('#soundBtn').addEventListener('click',e=>{const on=Audio_.toggle();e.target.textContent=on?'🔊':'🔇';});
     $('#themeBtn').addEventListener('click',()=>{setTheme(THEME==='dark'?'light':'dark');$('#themeBtn').textContent=THEME==='dark'?'🌙':'☀️';});

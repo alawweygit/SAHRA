@@ -815,7 +815,7 @@ PACKS.higherlow = {
     { q: 'How many km is it from Dubai to London?', n: 5500, unit: 'km' },
     { q: 'How many steps does the Empire State Building have?', n: 1576, unit: 'steps' },
     { q: 'What year was Netflix founded?', n: 1997, unit: 'year' },
-    { q: 'How many square km is Vatican City?', n: 0, unit: '0.44 km²' },
+    { q: 'How many square km is Vatican City? (it is less than 1)', n: 1, unit: 'km²' },
     { q: 'How many minutes long is the average Bollywood film?', n: 150, unit: 'minutes' },
     { q: 'What year did Saudi Arabia allow women to drive?', n: 2018, unit: 'year' },
     { q: 'How many moons does Jupiter have?', n: 95, unit: 'moons' },
