@@ -137,7 +137,7 @@ class FirebaseNet {
         for (const [pid, entry] of Object.entries(v)) {
           if (!(pid in out) && pids.includes(pid)) {
             out[pid] = { value: entry.v, order: order++, t: entry.t, receivedAt: Date.now() };
-            if (this._onEach) this._onEach(pid);
+            if (this._onEach) this._onEach(pid, entry.v);
           }
         }
         if (pids.every(p => p in out)) finish();

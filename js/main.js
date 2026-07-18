@@ -938,6 +938,8 @@
         },2500);
         return;
       }
+      if(state.takenAnswers) window._hypoxTakenAnswers=state.takenAnswers;
+      else if(state.phase==='input') window._hypoxTakenAnswers=[];
       if(state.mirror)renderMirror(state.mirror);
       if(state.phase==='input'&&state.phaseId!==lastPhaseId){
         _lastMirrorKey=''; // clear mirror when input starts

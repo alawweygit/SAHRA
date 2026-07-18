@@ -66,6 +66,18 @@ const Controller = (() => {
       btn.addEventListener('click', () => {
         const v = ta.value.trim();
         if (!v) { ta.classList.add('shake'); setTimeout(() => ta.classList.remove('shake'), 500); return; }
+        // Real-time duplicate check for enforceUnique specs (bluff game)
+        if (spec.enforceUnique) {
+          const taken = window._hypoxTakenAnswers || [];
+          if (taken.some(t => t.toUpperCase() === v.toUpperCase())) {
+            // Show error — answer already taken
+            let hint = wrap.querySelector('.dup-hint');
+            if (!hint) { hint = document.createElement('div'); hint.className='dup-hint'; hint.style.cssText='color:var(--pink);font-size:13px;text-align:center;animation:shake .3s;margin-top:6px'; wrap.appendChild(hint); }
+            hint.textContent = LANG==='ar' ? '⚠️ هذه الإجابة موجودة — جرب إجابة ثانية!' : '⚠️ That answer is taken! Try another one.';
+            ta.classList.add('shake'); setTimeout(() => ta.classList.remove('shake'), 500);
+            return;
+          }
+        }
         // If answerLen hint provided (emoji riddle), validate length
         if (spec.answerLen && v.replace(/\s/g,'').length !== spec.answerLen) {
           const msg = document.createElement('div');

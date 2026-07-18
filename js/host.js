@@ -260,8 +260,9 @@ const Host = (() => {
       scores: sorted.map((p,i) => ({ medal: ['🥇','🥈','🥉'][i]||'', name: p.name, score: p.score })),
     });
     scene(`
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;gap:2vmin;padding:2vmin">
       <div class="lobby-title display">${final ? esc(t('final_results')) : esc(t('scores'))}</div>
-      <div class="score-list">
+      <div class="score-list" style="width:100%;max-width:700px">
         ${sorted.map((p, i) => `
           <div class="score-row" style="animation-delay:${i * .12}s">
             <div class="medal">${['🥇','🥈','🥉'][i] || ''}</div>
@@ -271,6 +272,7 @@ const Host = (() => {
               ${p.score===0?`<div class="bar-zero"><span>${esc(p.name)}</span><span>0</span></div>`:''}
             </div>
           </div>`).join('')}
+      </div>
       </div>`);
     await sleep(300);
     sorted.forEach((p, i) => setTimeout(() => {
@@ -358,43 +360,23 @@ const Host = (() => {
       hostSay('prompt');
 
       const pids = players.map(p => p.pid);
+      // Track taken answers in real-time so controllers can check before submitting
+      const takenAnswers = new Set();
+      net.onEachInput((pid, value) => {
+        if (value) takenAnswers.add(value.trim().toUpperCase());
+        net.setState({ takenAnswers: [...takenAnswers], phase: 'input', phaseId: inputs && inputs._phaseId });
+      });
       const inputs = await collectWithTimer(
-        { type: 'text', title: t('write_lie'), context: R.fact.replace('___', '____'), maxLen: 60 },
+        { type: 'text', title: t('write_lie'), context: R.fact.replace('___', '____'), maxLen: 60, enforceUnique: true },
         pids, 60);
+      net.onEachInput(null);
 
       // Build answer set: unique lies + truth
-      // Check for duplicates — re-prompt any player whose answer clashes
       const truthUp = R.truth.toUpperCase();
-      const seenAnswers = new Map(); // text -> first pid who used it
-      const dupPids = [];
-      for (const pid of pids) {
-        const v = (val(inputs, pid) || '').trim().toUpperCase().slice(0, 60);
-        if (!v) continue;
-        if (v === truthUp) { dupPids.push(pid); continue; } // matches truth!
-        if (seenAnswers.has(v)) { dupPids.push(pid); continue; } // duplicate
-        seenAnswers.set(v, pid);
-      }
-      // Re-prompt duplicate players (up to 2 retries)
-      let finalInputs = { ...inputs };
-      if (dupPids.length > 0) {
-        const usedTexts = [...seenAnswers.keys(), truthUp];
-        const rePrompt = await collectWithTimer({
-          type: 'text',
-          title: LANG === 'ar' ? '⚠️ هذه الإجابة موجودة — جرب إجابة مختلفة!' : '⚠️ That answer is taken! Try a different one.',
-          context: R.fact.replace('___', '____'),
-          maxLen: 60,
-          avoid: usedTexts, // hint for display
-        }, dupPids, 40);
-        for (const pid of dupPids) {
-          const v2 = (val(rePrompt, pid) || '').trim().toUpperCase().slice(0, 60);
-          if (v2) finalInputs[pid] = rePrompt[pid];
-        }
-      }
-
       const seen = new Set([truthUp]);
       const lies = [];
       for (const pid of pids) {
-        const v = (val(finalInputs, pid) || '').trim().toUpperCase().slice(0, 60);
+        const v = (val(inputs, pid) || '').trim().toUpperCase().slice(0, 60);
         if (v && !seen.has(v)) { seen.add(v); lies.push({ text: v, by: pid }); }
       }
       const answers = shuffle([{ text: R.truth.toUpperCase(), truth: true }, ...lies]);
