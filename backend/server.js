@@ -44,9 +44,10 @@ const cache = new Map();
 
 app.post('/api/prompts', async (req, res) => {
   try {
-    const { mode, lang = 'en', count = 10 } = req.body || {};
+    const { mode, lang = 'en', count = 10, session = '' } = req.body || {};
     if (!SHAPES[mode]) return res.status(400).json({ error: 'Unknown mode: ' + mode });
-    const key = mode + ':' + lang;
+    // Include session in key so each game play gets a fresh set
+    const key = mode + ':' + lang + (session ? ':' + session : '');
     let pool = cache.get(key) || [];
     // Keep a larger pool (50+ items) to avoid repeating; refill when running low
     if (pool.length < Math.max(count, 15)) {

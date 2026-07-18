@@ -1238,10 +1238,19 @@ const Host = (() => {
         <div class="pick-sub" style="font-size:clamp(28px,5vw,52px);color:var(--yellow);font-family:'Fredoka One',sans-serif;margin:1vmin 0">${hint.toLocaleString()} ${Q.unit}</div>
         <div class="pick-sub" style="opacity:.7">${LANG==='ar'?'الرقم الحقيقي فوق ولا تحت؟':'Is the real answer higher or lower?'}</div>
         <div id="statusRow" class="status-row"></div>`);
-      pushMirror({ headline: Q.q, sub: `${LANG==='ar'?'المرجع':'Ref'}: ${hint.toLocaleString()} ${Q.unit}`, options: opts });
+      // Send to phone as separate fields so controller renders cleanly
+      const hlSpec = {
+        type: 'higherlow', // custom type for clean rendering
+        question: Q.q,
+        ref: `${hint.toLocaleString()} ${Q.unit}`,
+        refLabel: LANG==='ar'?'الرقم المرجعي':'Reference number',
+        options: opts,
+        seconds: 15
+      };
+      pushMirror({ headline: Q.q, sub: `${hint.toLocaleString()} ${Q.unit}` });
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p=>p.pid);
-      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'فوق ولا تحت؟':'Higher or Lower?', context:`${Q.q}\n${LANG==='ar'?'المرجع':'Ref'}: ${hint.toLocaleString()} ${Q.unit}`, options:opts, seconds:15 }, pids, 15);
+      const answers = await collectWithTimer(hlSpec, pids, 15);
       const correctId = Q.n > hint ? 'higher' : 'lower';
       Audio_.sfx.drum(); await sleep(500);
       const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
@@ -1574,6 +1583,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     players = playerList;
     startSharedScreen();
     window.__hypoxAbort = false;
+    window._hypoxSession = Date.now().toString(36); // fresh session = fresh AI questions
     let playAgain = true;
     let isFirstRound = true;
     while(playAgain && !window.__hypoxAbort) {

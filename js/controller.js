@@ -84,6 +84,39 @@ const Controller = (() => {
       setTimeout(() => ta.focus(), 250);
     }
 
+    else if (spec.type === 'higherlow') {
+      // Question bold on top, reference number big yellow, then Higher/Lower buttons
+      // Clear the generic title/context already added
+      wrap.innerHTML = '';
+      const q = document.createElement('div');
+      q.className = 'ctrl-title display';
+      q.style.cssText = 'font-size:clamp(16px,4vw,22px);margin-bottom:8px';
+      q.textContent = spec.question || '';
+      wrap.appendChild(q);
+      const refBlock = document.createElement('div');
+      refBlock.style.cssText = 'text-align:center;margin:8px 0 4px';
+      refBlock.innerHTML = `<div style="font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${spec.refLabel||'Reference'}</div><div style="font-family:'Fredoka One',sans-serif;font-size:clamp(32px,10vw,52px);color:var(--yellow);line-height:1">${spec.ref||''}</div>`;
+      wrap.appendChild(refBlock);
+      const grid = document.createElement('div');
+      grid.className = 'ctrl-choices';
+      grid.style.cssText = 'margin-top:16px';
+      spec.options.forEach((o, i) => {
+        const b = document.createElement('button');
+        b.className = 'choice-btn';
+        b.textContent = o.label;
+        if (o.color) b.style.setProperty('--cb', o.color);
+        b.style.animationDelay = (i * .07) + 's';
+        b.addEventListener('click', () => {
+          Audio_.sfx.vote();
+          b.classList.add('picked');
+          lock(wrap);
+          onSubmit(o.id);
+        });
+        grid.appendChild(b);
+      });
+      wrap.appendChild(grid);
+    }
+
     else if (spec.type === 'choice') {
       const grid = document.createElement('div');
       grid.className = 'ctrl-choices';

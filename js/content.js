@@ -364,7 +364,7 @@ const Content = (() => {
         const res = await fetch(cfg.aiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode, lang, count, region }),
+          body: JSON.stringify({ mode, lang, count, region, session: window._hypoxSession }),
           signal: controller.signal,
         });
         clearTimeout(timeoutId);

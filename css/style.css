@@ -96,27 +96,17 @@ body.theme-light .deco-blob{opacity:0.14;}
 @keyframes sceneIn{from{opacity:0;transform:scale(0.94) translateY(12px);}to{opacity:1;transform:none;}}
 
 /* ============ TOP BAR ============ */
-/* Both buttons fixed at identical positions - left vs right mirror */
-#topbarBack{
-  position:fixed;
-  top:max(14px,env(safe-area-inset-top,0px)+8px);
-  left:12px;
-  z-index:500;
-  font-size:20px;
-  min-width:48px;min-height:48px;
-  display:flex;align-items:center;justify-content:center;
-}
-#menuBtn{ /* matching fixed position set inline, same top/size as topbarBack */ }
-/* Topbar: just the center pill, both side buttons are fixed positioned */
+/* Topbar: center pill only, no opacity animation (would break fixed children) */
 #topbar{
   position:fixed;top:0;left:0;right:0;z-index:29;
   display:flex;align-items:center;justify-content:center;
   padding:max(14px,env(safe-area-inset-top,0px)+8px) 64px;
   background:transparent;pointer-events:none;
-  opacity:0;transition:opacity 0.4s;
 }
-#topbar.show{opacity:1;}
-#roundPill{text-align:center;pointer-events:auto;}
+#topbar.show{pointer-events:auto;}
+#topbarBack,#menuBtn{/* both fixed via inline styles in HTML */}
+#roundPill{text-align:center;pointer-events:auto;opacity:0;transition:opacity 0.3s;}
+#topbar.show #roundPill{opacity:1;}
 .room-pill{
   display:flex;align-items:center;gap:1.2vmin;
   background:var(--btn-secondary-bg);border:1.5px solid var(--border-hi);
