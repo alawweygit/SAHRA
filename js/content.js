@@ -349,7 +349,7 @@ const Content = (() => {
     if (_preloadCache.has(key)) {
       const preloaded = _preloadCache.get(key);
       _preloadCache.delete(key);
-      return preloaded;
+      return await preloaded; // must await — preloaded is a Promise
     }
     return this._load(mode, lang, count, resolvedRegion);
   },
