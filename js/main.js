@@ -466,14 +466,15 @@
     $('#roundPill').textContent=LANG==='ar'?'الصالة':'Lobby';
     updateMenu();
     if(playMode==='phones'){
+      restoreStart(); // clear loading state before showing avatar picker
       showAvatarPicker('phones',async(name,av)=>{
         const res=await net.joinRoom(code,name,av);
         myPid=res.pid;isVip=res.isVip;net.hostSelfPid=myPid;net.promptLocal=phonesHostPrompt;
         show('#scr-lobby');setupLobby(gameMode);
       });return;
     }
+    restoreStart(); // clear loading state
     show('#scr-lobby');setupLobby(gameMode);
-    $('#menuBtn').classList.remove('hidden');
   }
 
   function setupLobby(gameMode){
