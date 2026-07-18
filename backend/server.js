@@ -35,7 +35,7 @@ const GUIDANCE = {
   emoji:        'Phonetic rebus: emojis SOUND OUT a word. Example: 🌊🦉 = sea+owl = SEOUL. "parts" = phonetic sounds.',
   emojiplace:   'Phonetic rebus for CITIES only. Emojis sound out place name. MENA cities in Arabic.',
   year:         'Historical events with exact year (number). Mix world history, tech, sports, Gulf milestones. NEVER repeat the same event.',
-  higherlow:    '"n" is the EXACT real answer (number). "unit" is the unit. "q" asks about the quantity. Use SURPRISING and VARIED facts — distances, populations, speeds, ages, counts, records. NEVER repeat the same category of question twice in a row. Examples: speed of sound, height of buildings, age of countries, number of species, length of rivers.',
+  higherlow:    '"n" is the EXACT real answer (a NUMBER). "unit" is the measurement unit. "q" is a quantity question. RULES: NEVER use year questions (no "in what year", no dates). ONLY use measurable quantities: heights, weights, speeds, distances, counts, temperatures, ages, populations, lengths, volumes, calories, prices. The reference hint will be a random offset from the real answer — so questions must be about quantities where numbers make intuitive sense. Good: "How many episodes did Breaking Bad have?" n:62 unit:"episodes". Bad: "What year was X invented?" (years don\'t work as higher/lower).',
   flaghunt:     'Flag emoji + 4 country options. "correct" is 0-based index. Vary correct position. Mix all continents.',
   spy:          'Secret word pool for Spy Game. ONE object with "category" and "words" array (15-20 specific recognizable items). Arab-world items in Arabic.',
 };
@@ -51,29 +51,55 @@ function fingerprint(item) {
   return f;
 }
 
+// Topic domains to rotate through for variety
+const DOMAINS = {
+  higherlow: [
+    'human body facts (bones, organs, senses)',
+    'world records (tallest, fastest, heaviest, oldest)',
+    'animal kingdom (speeds, sizes, lifespans)',
+    'geography (distances, altitudes, populations)',
+    'food and drink (calories, production volumes)',
+    'sports statistics (records, distances)',
+    'space and science (temperatures, distances, sizes)',
+    'technology (storage, speeds, counts)',
+    'money and economics (prices, GDPs)',
+    'history and culture (durations, counts)',
+    'Gulf and Arab world facts',
+    'entertainment (episodes, box office, plays)',
+  ],
+};
+
 async function generateBatch(mode, lang, existingFingerprints) {
   const langName = lang === 'ar' ? 'Gulf Arabic (khaleeji dialect, casual)' : 'English';
   const audience = lang === 'ar'
     ? 'Arab friend groups in their 20s-30s in the Gulf.'
     : 'Mixed international friend groups in their 20s-30s.';
 
+  // Pick a random domain to force variety
+  const domains = DOMAINS[mode] || [];
+  const randomDomain = domains.length
+    ? domains[Math.floor(Math.random() * domains.length)]
+    : '';
+  const domainHint = randomDomain
+    ? `\n- THIS BATCH FOCUS: Generate questions specifically about "${randomDomain}". Stay in this domain for variety across sessions.`
+    : '';
+
   const avoidHint = existingFingerprints && existingFingerprints.size > 0
-    ? `\n- IMPORTANT: Generate COMPLETELY NEW content. Already used topics: [${[...existingFingerprints].slice(-10).join(' | ')}] — do NOT repeat these or similar ones.`
+    ? `\n- ALREADY USED (do NOT repeat these topics): ${[...existingFingerprints].slice(-15).join(' | ')}`
     : '';
 
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 3000,
+    max_tokens: 4000,
     messages: [{ role: 'user', content:
-      `Generate 30 UNIQUE and DIVERSE party game prompts for "${mode}" in ${langName}.\n` +
+      `Generate 40 UNIQUE party game prompts for "${mode}" in ${langName}.\n` +
       `Audience: ${audience}\n` +
       `Guidance: ${GUIDANCE[mode]}\n` +
       `Rules:\n` +
-      `- Maximum variety — cover DIFFERENT topics, scenarios, difficulty levels\n` +
-      `- No two prompts should feel similar to each other${avoidHint}\n` +
+      `- Every question must be clearly different from all others${domainHint}${avoidHint}\n` +
       `- No offensive content\n` +
       `- Return ONLY valid JSON array, no markdown\n` +
-      `- Every item: ${SHAPES[mode]}`
+      `- Every item must match: ${SHAPES[mode]}`
     }],
   });
 

@@ -362,7 +362,7 @@ const Content = (() => {
       let timeoutId;
       try {
         const controller = new AbortController();
-        timeoutId = setTimeout(() => controller.abort(), 3000); // 3s max — fail fast to static
+        timeoutId = setTimeout(() => controller.abort(), 8000); // 8s — Railway needs time on cold start
         const res = await fetch(cfg.aiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
