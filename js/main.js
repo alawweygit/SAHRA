@@ -458,7 +458,7 @@
     currentRoomCode=code;
     $('#topbar').classList.add('show');
     // menuBtn always visible (fixed position)
-    $('#roundPill').textContent=LANG==='ar'?'الصالة':'Lobby';
+    $('#roundPill').textContent='';$('#roundPill').style.visibility='hidden';
     updateMenu();
     restoreBtn();
     if(playMode==='phones'){
@@ -476,9 +476,21 @@
     // Ensure topbar is correct
     $('#topbar').classList.add('show');
     // menuBtn always visible (fixed position)
-    $('#roundPill').textContent=LANG==='ar'?'الصالة':'Lobby';
+    $('#roundPill').textContent='';$('#roundPill').style.visibility='hidden';
     $('#roundPill').style.visibility='visible';
-    document.getElementById('topbarBack')?.style.setProperty('visibility','hidden'); // no back in lobby topbar
+    // Show back button in lobby topbar
+    const topBarBackBtn = document.getElementById('topbarBack');
+    if(topBarBackBtn){
+      topBarBackBtn.style.setProperty('visibility','visible');
+      topBarBackBtn.onclick=()=>{
+        Audio_.sfx.blip();
+        if(net)try{net.close?.();}catch(e){}
+        net=null;currentRoomCode=null;players=[];gameActive=false;
+        $('#roundPill').style.visibility='hidden';
+        $('#topbar').classList.remove('show');
+        show('#scr-games');
+      };
+    }
     updateMenu();
     const isOff = net && net.isOffline;
     $('#localAdd').classList.toggle('hidden',!isOff);
@@ -766,7 +778,7 @@
     show('#scr-controller');
     $('#topbar').classList.add('show');
     $('#roomCodeText').textContent=code;
-    $('#roundPill').textContent=LANG==='ar'?'الصالة':'Lobby';
+    $('#roundPill').textContent='';$('#roundPill').style.visibility='hidden';
     $('#roundPill').style.visibility='visible';
     updateMenu();
     const ctrl=$('#ctrlArea');
