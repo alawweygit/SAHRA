@@ -18,7 +18,7 @@ const SHAPES = {
   emoji:        '[{"answer":"SEOUL","category":"City","e":"🌊🦉","parts":["sea","owl"],"explanation":"Sea + owl = Seoul"}]',
   emojiplace:   '[{"answer":"PARIS","category":"City","e":"🐾🌹","parts":["paw","ris"],"explanation":"Paw + ris = Paris"}]',
   year:         '[{"q":"The first iPhone was released","y":2007}]',
-  higherlow:    '[{"q":"How many bones are in the human body?","n":206,"unit":"bones"}]',
+  higherlow:    '[{"q":"How many floors does the Burj Khalifa have?","n":163,"unit":"floors"}]',
   flaghunt:     '[{"flag":"🇯🇵","options":["Japan","China","South Korea","Vietnam"],"correct":0}]',
   spy:          '[{"category":"location","words":["Coffee shop","Airport","Hospital","Casino","Zoo","Library","Prison","Stadium"]}]',
 };
@@ -28,77 +28,114 @@ const GUIDANCE = {
   wyr:          'Would You Rather dilemmas — both options equally appealing or awful. No obvious right answer. Gulf situations welcome in Arabic.',
   interrogation:'Deep personal questions that reveal personality differences. Spicy but fun. Gulf/khaleeji situations in Arabic.',
   diss:         'Roast battle setup lines — prompt to write a funny one-liner insult about the opponent.',
-  quiz:         'Multiple-choice trivia. Vary correct position (0-3). Gulf/Arab focus in Arabic. Mix difficulty. For football category: clubs, players, World Cup, Gulf football.',
+  quiz:         'Multiple-choice trivia. Vary correct position (0-3). Gulf/Arab focus in Arabic. Mix difficulty.',
   mostlikely:   '"Who is most likely to…" questions sparking funny debates. Gulf social situations in Arabic.',
-  trueorlie:    'Absurd-sounding statements, genuinely TRUE or FALSE. "truth" must be boolean. Mix science, history, Gulf facts, pop culture.',
+  trueorlie:    'Absurd-sounding statements, genuinely TRUE or FALSE. "truth" must be boolean. Mix science, history, Gulf facts.',
   pinpoint:     'Real cities worldwide. Accurate lat/lon. "ar" = real Arabic name. MENA cities in Arabic mode.',
-  emoji:        'Phonetic rebus: emojis SOUND OUT a word. Example: 🌊🦉 = sea+owl = SEOUL. "parts" = phonetic sounds.',
-  emojiplace:   'Phonetic rebus for CITIES only. Emojis sound out place name. MENA cities in Arabic.',
-  year:         'Historical events with exact year (number). Mix world history, tech, sports, Gulf milestones. NEVER repeat the same event.',
-  higherlow:    'Mix freely: counts (episodes, floors), distances (km), heights (m), weights (kg), speeds (km/h), populations, temperatures, AND historical years (n=the year, unit="year"). Year questions are great! Examples: {q:"What year did man land on the moon?",n:1969,unit:"year"} or {q:"How many floors does Burj Khalifa have?",n:163,unit:"floors"}. ALL n values must be accurate real facts. Never invent numbers.',
-  flaghunt:     'Flag emoji + 4 country options. "correct" is 0-based index. Vary correct position. Mix all continents.',
-  spy:          'Secret word pool for Spy Game. ONE object with "category" and "words" array (15-20 specific recognizable items). Arab-world items in Arabic.',
+  emoji:        'Phonetic rebus: emojis SOUND OUT a word. "parts" = phonetic sounds.',
+  emojiplace:   'Phonetic rebus for CITIES only. MENA cities in Arabic.',
+  year:         'Historical events with exact year. Mix world history, tech, sports, Gulf milestones.',
+  higherlow:    '"n" = exact real number. "unit" = label. Mix: counts (floors, episodes, goals, medals), distances (km), heights (m), weights (kg), speeds (km/h), populations, temperatures (°C), historical years (unit="year"), ages, prices. ALL values must be accurate.',
+  flaghunt:     'Flag emoji + 4 country options. "correct" is 0-based index. Vary position. Mix all continents.',
+  spy:          'Secret word pool. ONE object with "category" and "words" array (15-20 specific items). Arab-world items in Arabic.',
 };
 
-// Pool: stores unused questions per key
-// Used: tracks ALL questions ever sent per base key (mode:lang) to prevent repeats
-const pool = new Map();
-const usedFingerprints = new Map(); // mode:lang -> Set of JSON fingerprints
+// Pre-seeded banned questions — things Claude defaults to that we NEVER want
+const ALWAYS_BANNED = {
+  'higherlow:en': new Set([
+    'teeth', 'bones', 'human teeth', 'adult teeth', 'adult human',
+    'episodes did friends', 'friends have', 'iPhone released', 'first iphone',
+    'bones in the human body', 'teeth does an adult',
+  ]),
+  'higherlow:ar': new Set(['أسنان', 'عظام', 'عظام الإنسان']),
+  'bluff:en': new Set(['platypus', 'honey never expires', 'cleopatra']),
+};
 
-function fingerprint(item) {
-  // Key field that identifies uniqueness per mode
-  const f = item.q || item.fact || item.s || item.p || item.a || item.answer || item.flag || JSON.stringify(item).slice(0,60);
-  return f;
-}
-
-// Topic domains to rotate through for variety
+// Topic domains to rotate — forces different categories each call
 const DOMAINS = {
   higherlow: [
-    'human body facts (bones, organs, senses)',
-    'world records (tallest, fastest, heaviest, oldest)',
-    'animal kingdom (speeds, sizes, lifespans)',
-    'geography (distances, altitudes, populations)',
-    'food and drink (calories, production volumes)',
-    'sports statistics (records, distances)',
-    'space and science (temperatures, distances, sizes)',
-    'technology (storage, speeds, counts)',
-    'money and economics (prices, GDPs)',
-    'history and culture (durations, counts)',
-    'Gulf and Arab world facts',
-    'entertainment (episodes, box office, plays)',
+    'architecture and buildings (floors, heights of famous structures worldwide)',
+    'animals (speeds, weights, lifespans, number of species)',
+    'sports records (goals scored, medals won, distances, game durations)',
+    'geography (river lengths, mountain heights, country populations, lake depths)',
+    'food and drink (calories, production volumes, price per kg)',
+    'space and astronomy (planet sizes, distances, temperatures)',
+    'technology (storage sizes, processing speeds, user counts)',
+    'historical years (famous events, inventions, discoveries — unit="year")',
+    'Gulf and Arab world facts (heights, populations, oil production)',
+    'movies and TV (box office in millions, runtime in minutes, number of seasons)',
+    'human body (NOT teeth or bones — use: blood vessels km, heartbeats/day, neurons)',
+    'transportation (top speeds, passenger capacity, range in km)',
+  ],
+  bluff: [
+    'Gulf and Arab world unusual laws and customs',
+    'animals with surprising abilities or behaviors',
+    'historical events with shocking true details',
+    'food and cooking with weird scientific facts',
+    'technology inventions with surprising origins',
+    'sports with bizarre true records',
   ],
 };
 
-async function generateBatch(mode, lang, existingFingerprints) {
-  const langName = lang === 'ar' ? 'Gulf Arabic (khaleeji dialect, casual)' : 'English';
-  const audience = lang === 'ar'
-    ? 'Arab friend groups in their 20s-30s in the Gulf.'
-    : 'Mixed international friend groups in their 20s-30s.';
+// Per-key pool and fingerprint tracking (resets on restart, but pre-seeds keep quality high)
+const pool = new Map();
+const usedFingerprints = new Map();
 
-  // Pick a random domain to force variety
-  const domains = DOMAINS[mode] || [];
-  const randomDomain = domains.length
-    ? domains[Math.floor(Math.random() * domains.length)]
-    : '';
-  const domainHint = randomDomain
-    ? `\n- THIS BATCH FOCUS: Generate questions specifically about "${randomDomain}". Stay in this domain for variety across sessions.`
+function getFingerprint(item) {
+  const key = item.q || item.fact || item.s || item.p || item.a || item.answer || '';
+  return key.toLowerCase().slice(0, 60);
+}
+
+function isBanned(item, baseKey) {
+  const fp = getFingerprint(item);
+  const banned = ALWAYS_BANNED[baseKey];
+  if (!banned) return false;
+  return [...banned].some(b => fp.includes(b.toLowerCase()));
+}
+
+// Pick a random domain, weighted to avoid recently used ones
+const lastDomain = new Map();
+function pickDomain(mode) {
+  const domains = DOMAINS[mode];
+  if (!domains || !domains.length) return '';
+  const last = lastDomain.get(mode) || '';
+  // Filter out last used domain for variety
+  const available = domains.filter(d => d !== last);
+  const chosen = available[Math.floor(Math.random() * available.length)];
+  lastDomain.set(mode, chosen);
+  return chosen;
+}
+
+async function generateBatch(mode, lang, used, baseKey) {
+  const langName = lang === 'ar' ? 'Gulf Arabic (khaleeji dialect)' : 'English';
+  const audience = lang === 'ar' ? 'Arab friend groups in the Gulf.' : 'Mixed international friend groups.';
+  const domain = pickDomain(mode);
+
+  // Build a strong avoidance list from recent fingerprints + always-banned
+  const recentUsed = used ? [...used].slice(-20) : [];
+  const alwaysBanned = ALWAYS_BANNED[baseKey] ? [...ALWAYS_BANNED[baseKey]] : [];
+  const avoidList = [...new Set([...alwaysBanned, ...recentUsed])];
+
+  const avoidSection = avoidList.length
+    ? `\nSTRICTLY AVOID these topics/phrases: "${avoidList.join('", "')}"` 
     : '';
 
-  const avoidHint = existingFingerprints && existingFingerprints.size > 0
-    ? `\n- ALREADY USED (do NOT repeat these topics): ${[...existingFingerprints].slice(-15).join(' | ')}`
+  const domainSection = domain
+    ? `\nTHIS BATCH MUST be about: "${domain}" — stay focused on this specific category.`
     : '';
 
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 4000,
     messages: [{ role: 'user', content:
-      `Generate 40 UNIQUE party game prompts for "${mode}" in ${langName}.\n` +
+      `Generate 40 party game prompts for "${mode}" in ${langName}.\n` +
       `Audience: ${audience}\n` +
-      `Guidance: ${GUIDANCE[mode]}\n` +
-      `Rules:\n` +
-      `- Every question must be clearly different from all others${domainHint}${avoidHint}\n` +
-      `- No offensive content\n` +
-      `- Return ONLY valid JSON array, no markdown\n` +
+      `Format: ${GUIDANCE[mode]}\n` +
+      `RULES:${domainSection}${avoidSection}\n` +
+      `- Every item must be GENUINELY DIFFERENT from all others\n` +
+      `- Be specific and surprising — avoid generic/obvious examples\n` +
+      `- All facts must be 100% accurate\n` +
+      `- Return ONLY a valid JSON array, no markdown or explanation\n` +
       `- Every item must match: ${SHAPES[mode]}`
     }],
   });
@@ -118,33 +155,31 @@ app.post('/api/prompts', async (req, res) => {
     if (!usedFingerprints.has(baseKey)) usedFingerprints.set(baseKey, new Set());
     const used = usedFingerprints.get(baseKey);
 
-    // Refill pool if running low
     if (currentPool.length < count + 5) {
       try {
-        const fresh = await generateBatch(mode, lang, used);
-        // Filter out already-used items
-        const novel = fresh.filter(item => !used.has(fingerprint(item)));
-        currentPool = currentPool.concat(novel);
-        // Shuffle for variety
-        currentPool.sort(() => Math.random() - 0.5);
+        const fresh = await generateBatch(mode, lang, used, baseKey);
+        // Filter out used AND always-banned items
+        const novel = fresh.filter(item => {
+          const fp = getFingerprint(item);
+          return !used.has(fp) && !isBanned(item, baseKey);
+        });
+        currentPool = [...currentPool, ...novel].sort(() => Math.random() - 0.5);
       } catch(e) {
         console.error('Generation error:', e.message);
-        if (!currentPool.length) return res.status(500).json({ error: 'generation failed' });
+        if (!currentPool.length) return res.status(500).json({ error: 'generation failed: ' + e.message });
       }
     }
 
-    // Serve requested count
     const out = currentPool.slice(0, count);
-    // Mark as used
-    out.forEach(item => used.add(fingerprint(item)));
-    // Keep used fingerprints bounded (last 200)
-    if (used.size > 200) {
-      const arr = [...used];
-      usedFingerprints.set(baseKey, new Set(arr.slice(-150)));
-    }
-    // Store remaining pool
-    pool.set(baseKey, currentPool.slice(count));
+    out.forEach(item => used.add(getFingerprint(item)));
 
+    // Keep used set bounded
+    if (used.size > 300) {
+      const arr = [...used];
+      usedFingerprints.set(baseKey, new Set(arr.slice(-200)));
+    }
+
+    pool.set(baseKey, currentPool.slice(count));
     res.json({ prompts: out });
   } catch (e) {
     console.error('Backend error:', e.message);
@@ -152,6 +187,6 @@ app.post('/api/prompts', async (req, res) => {
   }
 });
 
-app.get('/health', (_, res) => res.json({ ok: true, modes: Object.keys(SHAPES) }));
+app.get('/health', (_, res) => res.json({ ok: true, modes: Object.keys(SHAPES), timestamp: new Date().toISOString() }));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('HYPOX backend port ' + PORT));
