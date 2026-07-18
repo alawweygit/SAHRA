@@ -287,9 +287,8 @@ const Host = (() => {
       scores: sorted.map((p,i) => ({ medal: ['🥇','🥈','🥉'][i]||'', name: p.name, score: p.score })),
     });
     scene(`
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;gap:2vmin;padding:2vmin">
       <div class="lobby-title display">${final ? esc(t('final_results')) : esc(t('scores'))}</div>
-      <div class="score-list" style="width:100%;max-width:700px">
+      <div class="score-list">
         ${sorted.map((p, i) => `
           <div class="score-row" style="animation-delay:${i * .12}s">
             <div class="medal">${['🥇','🥈','🥉'][i] || ''}</div>
@@ -299,7 +298,6 @@ const Host = (() => {
               ${p.score===0?`<div class="bar-zero"><span>${esc(p.name)}</span><span>0</span></div>`:''}
             </div>
           </div>`).join('')}
-      </div>
       </div>`);
     await sleep(300);
     sorted.forEach((p, i) => setTimeout(() => {

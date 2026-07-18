@@ -795,7 +795,6 @@
       // For choice: show compact inline buttons so the scene stays readable
       const hostSpec={...spec,controlsOnly:true,title:LANG==='ar'?'👆 صوّتك':'👆 Your vote',context:'',sub:''};
       Controller.render(dock,hostSpec,done);
-      setTimeout(()=>dock.scrollIntoView({behavior:'smooth',block:'nearest'}),80);
     });
   }
 

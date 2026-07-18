@@ -91,7 +91,8 @@ body.theme-light .deco-blob{opacity:0.14;}
   transition:opacity 0.35s ease, transform 0.4s var(--ease-out);
 }
 .screen.active{opacity:1;pointer-events:auto;transform:scale(1) translateY(0);}
-#hostStage{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.4vmin;width:100%;height:100%;}
+#hostStage{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.4vmin;width:100%;height:100%;padding-bottom:0;}
+#scr-game:has(.host-input-dock:not(.hidden)) #hostStage{padding-bottom:200px;} /* make room for fixed dock */
 #hostStage.scene-in{animation:sceneIn 0.45s var(--ease-out) both;}
 @keyframes sceneIn{from{opacity:0;transform:scale(0.94) translateY(12px);}to{opacity:1;transform:none;}}
 
@@ -466,7 +467,15 @@ body.ar .eyebrow{letter-spacing:0;}
 .shared-player-row{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;margin:20px 0;}
 .shared-lobby-count{font-family:'Fredoka One',sans-serif;color:var(--text3);}
 .shared-status{min-height:190px;justify-content:center!important;margin:auto;}
-.host-input-dock{width:min(94vw,780px);margin:0 auto max(24px,env(safe-area-inset-bottom));position:relative;z-index:12;}
+.host-input-dock{
+  position:fixed;
+  bottom:0;left:0;right:0;
+  z-index:400;
+  padding:12px 16px max(16px,env(safe-area-inset-bottom));
+  background:linear-gradient(to top,var(--bg) 70%,transparent);
+  width:100%;
+}
+.host-input-dock .ctrl-wrap{max-width:700px;margin:0 auto;}
 .phone-shared-host{width:min(94vw,720px);display:flex;align-items:flex-end;justify-content:center;gap:12px;margin:2px auto max(18px,env(safe-area-inset-bottom));}
 .phone-shared-host.hidden{display:none!important;}
 .psh-face{position:relative;width:76px;height:72px;flex:0 0 76px;border-radius:46% 46% 42% 42%;background:linear-gradient(160deg,#a855f7,#6d28d9);box-shadow:0 10px 28px rgba(0,0,0,.3);display:flex;justify-content:center;gap:17px;padding-top:20px;font-size:18px;color:#111;}
