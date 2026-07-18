@@ -40,12 +40,12 @@
   const show=id=>{
     $$('.screen').forEach(s=>{s.classList.remove('active');s.scrollTop=0;});
     const _sel=$(id);if(_sel){_sel.classList.add('active');_sel.scrollTop=0;}
-    requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'auto'}));
-    // Mobile screens use the document scroller so Safari pull-to-refresh works.
-    // Always reset that scroller when navigating between screens.
-    if(window.matchMedia('(max-width: 600px)').matches){
-      requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}));
-    }
+    // Reset scroll at multiple points to catch late-rendering content
+    const resetScroll=()=>{ window.scrollTo({top:0,left:0,behavior:'auto'}); };
+    resetScroll();
+    requestAnimationFrame(resetScroll);
+    setTimeout(resetScroll, 100);
+    setTimeout(resetScroll, 300);
   };
   const $=s=>document.querySelector(s);
   const $$=s=>Array.from(document.querySelectorAll(s));
@@ -854,6 +854,7 @@
         <div class="pet-msg" id="petMsg">${banterLines[0]}</div>
         <div class="pet-dots"><span>.</span><span>.</span><span>.</span></div>
       </div>`;
+      setTimeout(()=>window.scrollTo({top:0,behavior:'auto'}),50);
       const pets=['🐶','🐱','🐼','🦊','🐸','🐯','🦁','🐨'];
       let pi=0;
       const petEl=ctrl.querySelector('.pet-emoji');
@@ -918,6 +919,8 @@
     function renderSharedLobby(list){
       if(!phonesOnly||shared.dataset.sharedReady==='1')return;
       shared.innerHTML=`<div class="shared-lobby"><div class="lobby-title display">${LANG==='ar'?'اللاعبون':'PLAYERS'}</div><div class="shared-player-row">${list.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('')}</div><div class="shared-lobby-count">${list.length}/20</div></div>`;
+      // Reset scroll after content renders
+      requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'auto'}));
     }
     function buildMirrorHTML(m){
       return `<div class="ctrl-mirror">
