@@ -1678,3 +1678,13 @@ body.ar .tutorial-bullets { text-align: right; }
   }
   #host{left:2vmin!important;bottom:2vmin!important;gap:6px!important;}
 }
+
+/* ===== COMING SOON GAME CARDS ===== */
+.tgc-soon{opacity:0.45;filter:grayscale(0.6);cursor:not-allowed!important;pointer-events:none;}
+.tgc-soon-badge{
+  position:absolute;top:8px;right:8px;
+  background:var(--pink);color:#fff;
+  font-family:'Fredoka One',sans-serif;font-size:9px;letter-spacing:1px;
+  padding:2px 8px;border-radius:20px;
+}
+.title-game-card{position:relative;}

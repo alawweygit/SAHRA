@@ -105,7 +105,31 @@
     FX.init();
     $('#roundPill').style.visibility='hidden';
     buildTitleScreen();
-    setTimeout(()=>FX.burst(70),650); // welcome confetti on landing
+    setTimeout(()=>FX.burst(70),650);
+    // Pre-fill join form if session was saved (phone unlocked/reloaded)
+    try{
+      const saved=sessionStorage.getItem('hypox_session');
+      if(saved){
+        const s=JSON.parse(saved);
+        if(s.code&&s.name&&FirebaseNet.available()){
+          $('#joinCode').value=s.code;$('#joinName').value=s.name;
+          if(s.emoji){
+            selectedAvatar={emoji:s.emoji,color:s.color||'#ff3d8a'};
+            // Highlight saved avatar in picker
+            $$('.join-av').forEach(b=>{if(b.textContent.trim()===s.emoji)b.classList.add('selected');});
+          }
+          // Show reconnect banner instead of going straight to join screen
+          // to avoid jarring automatic navigation
+          const banner=document.createElement('div');
+          banner.id='reconnectBanner';
+          banner.style.cssText='position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:999;background:var(--card);border:1.5px solid var(--yellow);border-radius:40px;padding:8px 20px;font-family:"Fredoka One",sans-serif;font-size:14px;color:var(--yellow);cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.4)';
+          banner.textContent=`↩ Rejoin ${s.code}`;
+          banner.onclick=()=>{banner.remove();show('#scr-join');};
+          document.body.appendChild(banner);
+          setTimeout(()=>banner?.remove(),8000);
+        }
+      }
+    }catch(e){} // welcome confetti on landing
 
     $('#soundBtn').addEventListener('click',e=>{const on=Audio_.toggle();e.target.textContent=on?'🔊':'🔇';});
     $('#themeBtn').addEventListener('click',()=>{setTheme(THEME==='dark'?'light':'dark');$('#themeBtn').textContent=THEME==='dark'?'🌙':'☀️';});
@@ -166,13 +190,17 @@
     const modes=Object.keys(MODE_ICONS);
     const modeNamesObj=t('mode_names')||{};
     const modeTagsObj=t('mode_taglines')||{};
-    grid.innerHTML=modes.map((m,i)=>`
-      <button class="title-game-card" data-mode="${m}" style="animation-delay:${i*.07}s;--mc:${MODE_COLORS[m]}">
+    const COMING_SOON = new Set(['emoji']); // emoji riddle needs redesign
+    grid.innerHTML=modes.map((m,i)=>{
+      const soon = COMING_SOON.has(m);
+      return `<button class="title-game-card${soon?' tgc-soon':''}" data-mode="${m}" style="animation-delay:${i*.07}s;--mc:${MODE_COLORS[m]}" ${soon?'disabled':''}>
         <div class="tgc-art">${MODE_ICONS[m]}</div>
         <div class="tgc-name display">${esc(modeNamesObj[m]||m)}</div>
-        <div class="tgc-tag">${esc(modeTagsObj[m]||'')}</div>
+        <div class="tgc-tag">${soon?'🔧 Coming Soon':esc(modeTagsObj[m]||'')}</div>
         <div class="tgc-min">👥 ${T.minPlayers(MODE_MIN[m])}</div>
-      </button>`).join('');
+        ${soon?'<div class="tgc-soon-badge">COMING SOON</div>':''}
+      </button>`;
+    }).join('');
 
     // Hero text (translated)
     const hh=$('#heroHeadline'), hs=$('#heroSub');
@@ -493,8 +521,16 @@
       const prev=players.length;players=list;
       if(list.length>prev){
         Audio_.sfx.pop();
+        const newPlayer=list[list.length-1];
+        // Toast notification for host
+        const toast=document.createElement('div');
+        toast.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:999;background:var(--card);border:1.5px solid var(--green);border-radius:40px;padding:8px 20px;font-family:"Fredoka One",sans-serif;font-size:14px;color:var(--green);animation:fadeInDown .3s ease;pointer-events:none';
+        toast.textContent=`${newPlayer.emoji} ${newPlayer.name} ${LANG==='ar'?'انضم!':'joined!'}`;
+        document.body.appendChild(toast);
+        setTimeout(()=>toast.remove(),2500);
         // Laith greets on first player joining
         if(prev===0&&list.length===1) Host.say(tPick('banter_lobby'));
+        else if(list.length>1) Host.say(LANG==='ar'?`${newPlayer.name} انضم! أهلاً!`:`${newPlayer.name} just joined!`);
       }
       $('#playerRow').innerHTML=list.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('');
       const canStart=list.length>=2;
@@ -591,6 +627,7 @@
     }
   }
   async function leaveGame(){
+    try{sessionStorage.removeItem('hypox_session');}catch(e){}
     gameActive=false;
     window.__hypoxAbort = true;  // tells Host.run to stop after current await
     Host.stopSharedScreen?.();
@@ -714,6 +751,8 @@
     $('#joinErr').innerHTML='<div class="join-spinner"><div class="spinner-ring"></div><span>'+(LANG==='ar'?'جاري الاتصال...':'Joining...')+'</span></div>';
     try{net=FirebaseNet.create();const res=await net.joinRoom(code,name,selectedAvatar);myPid=res.pid;isVip=res.isVip;currentRoomCode=code;await net.getPlayMode();}
     catch(e){$('#joinErr').textContent=T.connFail();return;}
+    // Save session so reconnect works after phone lock
+    try{sessionStorage.setItem('hypox_session',JSON.stringify({code,name,emoji:selectedAvatar.emoji,color:selectedAvatar.color}));}catch(e){}
     show('#scr-controller');
     $('#menuBtn').classList.remove('hidden');$('#topbar').classList.add('show');
     $('#roomCodeText').textContent=code;
@@ -731,22 +770,33 @@
       shared.classList.remove('hidden');
       ctrl.classList.add('hidden');
     }else{
-      // Fun animated waiting screen
+      // Fun animated waiting screen with rotating banter
+      const banterLines = LANG==='ar'
+        ? ['أهلاً! انتظر المضيف يبدأ…','تجمعوا وجهزوا أنفسكم!','راح تكون سهرة ما تُنسى!','خليك مستعد، اللعبة قريبة!','استرح… لكن ما راح يطول!']
+        : ['You\'re in! Waiting for host…','Get ready — it\'s about to get fun!','Gather round, game starting soon!','Stay sharp, the host is loading up!','Almost time… don\'t get too comfortable!'];
+      let banterIdx = 0;
       ctrl.innerHTML=`<div class="ctrl-wait-pet">
         <div class="pet-emoji">🐶</div>
-        <div class="pet-msg">${LANG==='ar'?'أهلاً! انتظر المضيف يبدأ…':'You\'re in! Waiting for host…'}</div>
+        <div class="pet-msg" id="petMsg">${banterLines[0]}</div>
         <div class="pet-dots"><span>.</span><span>.</span><span>.</span></div>
       </div>`;
-      // Rotate pet animals
       const pets=['🐶','🐱','🐼','🦊','🐸','🐯','🦁','🐨'];
       let pi=0;
       const petEl=ctrl.querySelector('.pet-emoji');
+      const msgEl=ctrl.querySelector('#petMsg');
       const petInterval=setInterval(()=>{
         if(!petEl||!ctrl.contains(petEl)){clearInterval(petInterval);return;}
         pi=(pi+1)%pets.length;
+        banterIdx=(banterIdx+1)%banterLines.length;
         petEl.style.transform='scale(1.3) rotate(10deg)';
-        setTimeout(()=>{if(petEl&&ctrl.contains(petEl)){petEl.textContent=pets[pi];petEl.style.transform='';}},150);
-      },2000);
+        setTimeout(()=>{
+          if(petEl&&ctrl.contains(petEl)){
+            petEl.textContent=pets[pi];
+            petEl.style.transform='';
+          }
+          if(msgEl&&ctrl.contains(msgEl)) msgEl.textContent=banterLines[banterIdx];
+        },150);
+      },3000);
     }
     const mstrip=$('#phoneMirror');
     let _lastMirrorKey = '';
