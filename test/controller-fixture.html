@@ -6,9 +6,18 @@
   <link rel="stylesheet" href="../css/style.css">
   <title>Controller fixture</title>
 </head>
-<body class="theme-dark">
+<body class="theme-dark phones-only-player phones-player-answering">
   <div id="app">
     <div class="screen active" id="scr-controller">
+      <div id="phoneSharedStage" class="phone-shared-stage">
+        <div class="prompt-card display">Which answer gets your vote?</div>
+        <div class="quiz-grid" data-testid="stage-answer-copy">
+          <div class="quiz-opt">The first answer</div>
+          <div class="quiz-opt">The second answer</div>
+          <div class="quiz-opt">The third answer</div>
+          <div class="quiz-opt">The fourth answer</div>
+        </div>
+      </div>
       <div id="ctrlArea"></div>
     </div>
   </div>

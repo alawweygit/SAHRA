@@ -691,6 +691,7 @@
   async function leaveGame(){
     try{sessionStorage.removeItem('hypox_session');}catch(e){}
     gameActive=false;
+    document.body.classList.remove('phones-host-answering','phones-player-answering');
     window.__hypoxAbort = true;  // tells Host.run to stop after current await
     Host.stopSharedScreen?.();
     if(window.__hypoxSkip)window.__hypoxSkip();
@@ -782,6 +783,8 @@
      the pass-the-device privacy overlay used by One Device mode. */
   function phonesHostPrompt(spec){
     return new Promise(resolve=>{
+      const hidesStageAnswers=spec?.type==='choice'||spec?.type==='higherlow';
+      if(hidesStageAnswers)document.body.classList.add('phones-host-answering');
       // Use a body-level modal overlay — avoids all overflow/stacking context issues
       const overlay=document.createElement('div');
       overlay.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none;';
@@ -792,7 +795,9 @@
       let settled=false;
       const done=value=>{
         if(settled)return;settled=true;_ppDismiss=null;
-        overlay.remove();resolve(value);
+        overlay.remove();
+        if(hidesStageAnswers)document.body.classList.remove('phones-host-answering');
+        resolve(value);
       };
       _ppDismiss=()=>done(null);
       window.__hypoxDismissPP=()=>{if(_ppDismiss)_ppDismiss();};
@@ -947,6 +952,7 @@
     let lastPhaseId=null;
     net.onState(state=>{
       if(!state||state.phase==='hostLeft'){
+        document.body.classList.remove('phones-player-answering');
         // Host left — go back to home
         ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:30px 20px">
           <div style="font-size:48px">😢</div>
@@ -968,18 +974,21 @@
           ctrl.classList.remove('hidden');
           const phoneSpec=state.spec?(phonesOnly?{...state.spec,controlsOnly:true,title:'',context:'',sub:''}:state.spec):null;
           if(!phoneSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
-          Controller.render(ctrl,phoneSpec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
-        }else if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl,T.watchScreen());
+          document.body.classList.toggle('phones-player-answering',phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow'));
+          Controller.render(ctrl,phoneSpec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
+        }else if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl,T.watchScreen());
       }else if(state.phase==='input-split'&&state.phaseId!==lastPhaseId){
         lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
         const rawSpec=state.specs?.[myPid]||state.specs?._default;
         if(!rawSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
         const spec=phonesOnly?{...rawSpec,controlsOnly:true,title:'',context:'',sub:''}:rawSpec;
         ctrl.classList.remove('hidden');
-        Controller.render(ctrl,spec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
+        document.body.classList.toggle('phones-player-answering',phonesOnly&&(spec.type==='choice'||spec.type==='higherlow'));
+        Controller.render(ctrl,spec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
       }else if(state.phase==='wait'||state.phase==='mirror'){
         // Show full game content on phone using mirror data
         if(phonesOnly){
+          document.body.classList.remove('phones-player-answering');
           ctrl.classList.add('hidden');ctrl.innerHTML='';
           if(shared.dataset.sharedReady!=='1')renderSharedStatus(state.msg||T.watchScreen(),LANG==='ar'?'اللعبة تبدأ الآن…':'The game is starting…');
           return;

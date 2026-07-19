@@ -476,6 +476,11 @@ body.ar .eyebrow{letter-spacing:0;}
   width:100%;
 }
 .host-input-dock .ctrl-wrap{max-width:700px;margin:0 auto;}
+/* Choice controls are the only interactive answer set. While a Phones Only
+   player is answering, suppress the stage's display-only copy of those same
+   cards; restore it immediately for the reveal animation. */
+.phones-host-answering #hostStage :is(.answer-grid,.quiz-grid),
+.phones-player-answering #phoneSharedStage :is(.answer-grid,.quiz-grid){display:none!important;}
 .phone-shared-host{width:min(94vw,720px);display:flex;align-items:flex-end;justify-content:center;gap:12px;margin:2px auto max(18px,env(safe-area-inset-bottom));}
 .phone-shared-host.hidden{display:none!important;}
 .psh-face{position:relative;width:76px;height:72px;flex:0 0 76px;border-radius:46% 46% 42% 42%;background:linear-gradient(160deg,#a855f7,#6d28d9);box-shadow:0 10px 28px rgba(0,0,0,.3);display:flex;justify-content:center;gap:17px;padding-top:20px;font-size:18px;color:#111;}

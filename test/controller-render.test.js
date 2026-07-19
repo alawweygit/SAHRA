@@ -2,7 +2,10 @@ const { JSDOM } = require('jsdom');
 const fs = require('fs');
 const path = require('path');
 
-const dom = new JSDOM('<div id="controller"></div>', { runScripts: 'dangerously' });
+const css = fs.readFileSync(path.join(__dirname, '..', 'css', 'style.css'), 'utf8');
+const dedupRule = '.phones-player-answering #phoneSharedStage :is(.answer-grid,.quiz-grid){display:none!important;}';
+if (!css.includes(dedupRule)) throw new Error('phones-only stage deduplication rule is missing');
+const dom = new JSDOM(`<style>${dedupRule}</style><body class="phones-only-player phones-player-answering"><div id="phoneSharedStage"><div class="quiz-grid" id="stage-copy">Stage answer copy</div></div><div id="controller"></div></body>`, { runScripts: 'dangerously' });
 const { window } = dom;
 window.t = key => key;
 window.Audio_ = { sfx: { vote() {}, submit() {} } };
@@ -27,6 +30,7 @@ window.__Controller.render(container, spec, value => submitted.push(value));
 if (container.querySelectorAll('.ctrl-wrap').length !== 1) throw new Error('duplicate controller cards rendered');
 if (container.querySelectorAll('.ctrl-choices').length !== 1) throw new Error('duplicate answer sets rendered');
 if (container.querySelectorAll('.choice-btn').length !== 2) throw new Error('duplicate option ids were not removed');
+if (window.getComputedStyle(window.document.getElementById('stage-copy')).display !== 'none') throw new Error('stage answer copy remained visible beside controller choices');
 
 container.querySelector('[class="choice-btn"]').click();
 if (submitted.length !== 1 || submitted[0] !== 'a') throw new Error('answer button did not submit once');
