@@ -35,7 +35,7 @@ const Host = (() => {
   /* Phones Only gets the same presentation as the host. A debounced DOM
      snapshot is published independently of input state, so timers, revealed
      hints, avatars and score animations stay live without interrupting forms. */
-  let sharedObserver = null, sharedTimer = null, lastSharedHTML = '';
+  let sharedObserver = null, sharedTimer = null, lastSharedHTML = '', sharedSceneId = 0;
   function sharedHTML() {
     const source = stage();
     if (!source) return '';
@@ -60,7 +60,7 @@ const Host = (() => {
       const html = sharedHTML();
       if (!force && html === lastSharedHTML) return;
       lastSharedHTML = html;
-      net.setSharedScreen({ html, pill: $('#roundPill')?.textContent || '' });
+      net.setSharedScreen({ html, pill: $('#roundPill')?.textContent || '', sceneId: sharedSceneId });
     }, force ? 0 : 120);
   }
   function startSharedScreen() {
@@ -85,9 +85,11 @@ const Host = (() => {
 
   function scene(html) {
     const s = stage();
+    sharedSceneId++;
     s.innerHTML = html;
     s.classList.remove('scene-in'); void s.offsetWidth; s.classList.add('scene-in');
     publishSharedScreen(true);
+    window.__hypoxResetScroll?.();
   }
 
   function setPill(text) { $('#roundPill').textContent = text; pushMirror({ pill: text }); publishSharedScreen(); }

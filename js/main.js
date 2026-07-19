@@ -40,7 +40,10 @@
 
   function resetScrollPosition(){
     const scrollingElement=document.scrollingElement;
-    const targets=[scrollingElement,document.documentElement,document.body,...$$('.screen')];
+    const targets=[
+      scrollingElement,document.documentElement,document.body,
+      ...$$('.screen,#hostStage,#scr-controller,#phoneSharedStage,#ctrlArea,#ppOverlay,.host-input-dock,.menu-card')
+    ];
     targets.forEach(el=>{
       if(!el)return;
       el.scrollTop=0;
@@ -58,6 +61,10 @@
     setTimeout(resetScrollPosition,80);
     setTimeout(resetScrollPosition,240);
   }
+  // Host scenes live in a separate module, so expose one shared reset hook.
+  // Every logical screen change uses this instead of relying on Safari's
+  // remembered position for whichever element currently owns scrolling.
+  window.__hypoxResetScroll=resetScrollPositionAfterLayout;
 
   const show=id=>{
     $$('.screen').forEach(s=>{s.classList.remove('active');s.scrollTop=0;});
@@ -865,6 +872,7 @@
     resetScrollPositionAfterLayout();
     shared.dataset.gameStarted='';
     shared.dataset.sharedReady='';
+    shared.dataset.sceneId='';
     shared.classList.toggle('hidden',!phonesOnly);
     if(phonesOnly){
       shared.classList.remove('hidden');
@@ -917,6 +925,7 @@
       if(!isInputActive() && (m.headline||m.scores) && mirrorKey !== _lastMirrorKey){
         _lastMirrorKey = mirrorKey;
         ctrl.innerHTML=buildMirrorHTML(m);
+        resetScrollPositionAfterLayout();
       }
     }
     function safeSharedHTML(html){
@@ -931,15 +940,22 @@
     function renderSharedStatus(title,sub=''){
       if(!phonesOnly)return;
       shared.innerHTML=`<div class="shared-status ctrl-wrap"><div class="ctrl-title display">${esc(title)}</div>${sub?`<div class="ctrl-sub">${esc(sub)}</div>`:''}<div class="ctrl-mirror-dots"><div class="pulse-dot"></div><div class="pulse-dot"></div><div class="pulse-dot"></div></div></div>`;
+      resetScrollPositionAfterLayout();
     }
     function renderShared(view){
       if(!phonesOnly||!view?.html||!String(view.html).trim())return false;
       const html=safeSharedHTML(view.html);
       if(!html.trim())return false;
+      const nextSceneId=String(view.sceneId??'');
+      const sceneChanged=nextSceneId!==''&&shared.dataset.sceneId!==nextSceneId;
       shared.innerHTML=html;
       shared.dataset.sharedReady='1';
       shared.dataset.gameStarted='1';
+      if(nextSceneId!=='')shared.dataset.sceneId=nextSceneId;
       if(view.pill!==undefined)$('#roundPill').textContent=view.pill||'';
+      // Mutation updates inside one scene (avatars, scores, timers) must not
+      // yank a player who is choosing below. Only a new game scene goes top.
+      if(sceneChanged)resetScrollPositionAfterLayout();
       return true;
     }
     function renderSharedLobby(list){
@@ -981,6 +997,7 @@
           <div style="font-size:48px">😢</div>
           <div style="font-family:'Fredoka One',sans-serif;font-size:20px;color:var(--text2);margin-top:12px">${LANG==='ar'?'المضيف غادر اللعبة':'Host left the game'}</div>
         </div>`;
+        resetScrollPositionAfterLayout();
         setTimeout(()=>{
           currentRoomCode=null;net=null;players=[];gameActive=false;
           show('#scr-title');
@@ -1004,7 +1021,8 @@
             setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
             return result;
           });
-        }else if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl,T.watchScreen());
+          resetScrollPositionAfterLayout();
+        }else if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else{Controller.waitScreen(ctrl,T.watchScreen());resetScrollPositionAfterLayout();}
       }else if(state.phase==='input-split'&&state.phaseId!==lastPhaseId){
         lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
         const rawSpec=state.specs?.[myPid]||state.specs?._default;
@@ -1018,6 +1036,7 @@
           setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
           return result;
         });
+        resetScrollPositionAfterLayout();
       }else if(state.phase==='wait'||state.phase==='mirror'){
         // Show full game content on phone using mirror data
         if(phonesOnly){
@@ -1028,9 +1047,9 @@
         }
         const m = state.mirror||state;
         if(m.headline){
-          if(!isInputActive()) ctrl.innerHTML=buildMirrorHTML(m);
+          if(!isInputActive()){ctrl.innerHTML=buildMirrorHTML(m);resetScrollPositionAfterLayout();}
         } else {
-          if(!isInputActive()) Controller.waitScreen(ctrl,state.msg||T.watchScreen());
+          if(!isInputActive()){Controller.waitScreen(ctrl,state.msg||T.watchScreen());resetScrollPositionAfterLayout();}
         }
       }else if(state.phase==='spy-roles'&&state.roles){
         const myRole=state.roles[myPid];
@@ -1055,7 +1074,9 @@
               <div style="font-size:48px">🎭</div>
               <div style="font-family:'Fredoka One',sans-serif;font-size:20px;color:var(--text3);margin-top:12px">${LANG==='ar'?'انتظر وتابع النقاش':'Wait and follow the discussion'}</div>
             </div>`;
+            resetScrollPositionAfterLayout();
           },{once:true});
+          resetScrollPositionAfterLayout();
         }
       }else if(state.phase==='gameinfo'){
         // Phones Only already shows the full shared tutorial above.
@@ -1069,9 +1090,11 @@
           ${state.rules?`<div style="font-size:clamp(12px,3vw,14px);color:var(--text3);line-height:1.5;background:rgba(255,255,255,0.06);border-radius:12px;padding:10px 14px;text-align:left">${esc(state.rules)}</div>`:''}
           <div style="margin-top:16px;font-size:13px;color:var(--text3)">${LANG==='ar'?'انتظر المضيف يبدأ…':'Waiting for host to start…'}</div>
         </div>`;
+        resetScrollPositionAfterLayout();
       }else if(state.phase==='winner'){
         ctrl.classList.remove('hidden');
         ctrl.innerHTML=`<div class="ctrl-wrap"><div class="crown">👑</div><div class="ctrl-title display">${state.emoji} ${esc(state.name)}</div><div class="ctrl-sub">${T.winner()}</div></div>`;
+        resetScrollPositionAfterLayout();
         Audio_.sfx.fanfare();
       }
     });
