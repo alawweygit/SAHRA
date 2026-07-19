@@ -405,7 +405,7 @@ const Host = (() => {
         const v = (val(inputs, pid) || '').trim().toUpperCase().slice(0, 60);
         if (v && !seen.has(v)) { seen.add(v); lies.push({ text: v, by: pid }); }
       }
-      const answers = shuffle([{ text: R.truth.toUpperCase(), truth: true }, ...lies]);
+      const answers = shuffle([{ text: R.truth.charAt(0).toUpperCase() + R.truth.slice(1).toLowerCase(), truth: true }, ...lies]);
 
       // VOTE — each player picks (can't pick own lie)
       await FX.wipe();
