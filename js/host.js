@@ -758,104 +758,174 @@ const Host = (() => {
   }
   async function playDiss() {
     await modeTitleCard('diss');
-    const nBattles = Math.min(window.HYPOX_STATE?.rounds||3, Math.floor(players.length / 2) + 1);
-    const prompts = await Content.get('diss', LANG, nBattles);
-    const order = shuffle(players);
+    const allPids = players.map(p => p.pid);
+    const nBattles = Math.min(window.HYPOX_STATE?.rounds||3, Math.floor(players.length/2));
+    const prompts = await Content.get('diss', LANG, nBattles * 2);
+    if (!prompts.length) { scene(`<div class="prompt-card display">🎤 No prompts loaded</div>`); await waitNext(5); return; }
 
-    for (let b = 0; b < prompts.length; b++) {
-      const R = prompts[b];
-      const A = order[(b * 2) % players.length];
-      let B = order[(b * 2 + 1) % players.length];
-      if (B.pid === A.pid) B = order[(b * 2 + 2) % players.length];
+    const shuffled = shuffle(players.slice());
+    const botPids = net.getBotPids ? net.getBotPids() : [];
 
+    for (let b = 0; b < nBattles; b++) {
+      const A = shuffled[b * 2 % shuffled.length];
+      const B = shuffled[(b * 2 + 1) % shuffled.length];
+      if (!A || !B || A.pid === B.pid) continue;
+      const duelerPids = [A.pid, B.pid];
+      const audiencePids = allPids.filter(p => !duelerPids.includes(p));
+      const prompt = prompts[b % prompts.length];
+      const promptText = typeof prompt === 'string' ? prompt : (prompt.p || prompt.prompt || JSON.stringify(prompt));
+
+      // Phase 1: Both duelers write (secretly — they don't know each other)
       await FX.wipe();
-      Audio_.sfx.versus();
-      setPill(`${t('round')} ${b + 1} ${t('of')} ${prompts.length}`);
-      scene(frameWithTimer(`
-        <div class="versus-row">
-          <div class="fighter">${avatarHTML(A)}<div class="pname">${esc(A.name)}</div></div>
-          <div class="vs-badge display">${esc(t('vs'))}</div>
-          <div class="fighter">${avatarHTML(B)}<div class="pname">${esc(B.name)}</div></div>
+      setPill(`${LANG==='ar'?'معركة':'Battle'} ${b+1}/${nBattles}`);
+      scene(`<div class="eyebrow">🎤 ${LANG==='ar'?'معركة الروست':'ROAST BATTLE'}</div>
+        <div class="prompt-card display">${esc(promptText)}</div>
+        <div class="pick-sub" style="opacity:.6">${LANG==='ar'?'مقاتلان سريان يكتبان الآن...':'Two fighters writing in secret...'}</div>
+        <div id="statusRow" class="status-row"></div>`);
+      pushMirror({ headline: promptText, sub: LANG==='ar'?'✍️ اكتب خطك!':'✍️ Write your line!' });
+      Audio_.sfx.sting();
+
+      const sRow = $('#statusRow');
+      sRow.innerHTML = duelerPids.map(pid=>`<div class="mini" id="mini-${pid}">${avatarHTML(players.find(p=>p.pid===pid))}<div class="check">✓</div></div>`).join('');
+      net.onEachInput(pid => { Audio_.sfx.submit(); $('#mini-'+pid)?.classList.add('done'); });
+
+      // Auto-submit bots
+      duelerPids.filter(p=>botPids.includes(p)).forEach(botPid => {
+        setTimeout(async()=>{
+          try {
+            const lines=['Walked so you could crawl','Peak character, no development','My autocorrect rejected your name','Nature\'s way of saying try again','Even your horoscope gave up'];
+            await net.room('inputs/'+('ph'+(phaseCounter+1))+'/'+botPid).set({v:lines[Math.floor(Math.random()*lines.length)],t:Date.now()});
+          }catch(e){}
+        }, 1500+Math.random()*2000);
+      });
+
+      const lines = await collectWithTimer({
+        type:'text',
+        title: LANG==='ar'?'🎤 اكتب خطك الأقوى!':'🎤 Write your most savage line!',
+        context: promptText, maxLen:100
+      }, duelerPids, 35);
+
+      const lineA = (val(lines,A.pid)||'').trim() || (LANG==='ar'?'لا يوجد خط':'(no line submitted)');
+      const lineB = (val(lines,B.pid)||'').trim() || (LANG==='ar'?'لا يوجد خط':'(no line submitted)');
+
+      // Phase 2: Boxing intro + vote — audience + duelers all vote
+      const votePhaseId = 'ph'+(++phaseCounter);
+      const voteDeadline = Date.now()+20000;
+      await FX.wipe();
+      scene(`<div class="eyebrow" style="font-size:clamp(18px,3vmin,28px)">🥊 ${LANG==='ar'?'التصويت!':'WHO WINS?'}</div>
+        <div class="duel-cards">
+          <div class="duel-card" style="border-color:var(--pink)">
+            <div class="duel-letter" style="color:var(--pink)">A</div>
+            <div class="duel-line">${esc(lineA)}</div>
+          </div>
+          <div class="duel-vs">VS</div>
+          <div class="duel-card" style="border-color:var(--blue)">
+            <div class="duel-letter" style="color:var(--blue)">B</div>
+            <div class="duel-line">${esc(lineB)}</div>
+          </div>
         </div>
-        <div class="prompt-card small display">${esc(R.p)}</div>`, t('write_diss')));
-      say(LANG === 'ar' ? 'سطر واحد. بدون رحمة. بدون حقد بعدين.' : 'One line. No mercy. No grudges after.');
+        <div id="statusRow" class="status-row" style="margin-top:1vmin"></div>`);
+      Audio_.sfx.sting();
 
-      // Collect from A and B — personalized opponent context on their phones
-      const specA = { type: 'text', title: t('write_diss'), context: `${LANG==='ar'?'خصمك':'Your opponent'}: ${B.emoji} ${B.name}\n${R.p}`, maxLen: 90 };
-      const specB = { type: 'text', title: t('write_diss'), context: `${LANG==='ar'?'خصمك':'Your opponent'}: ${A.emoji} ${A.name}\n${R.p}`, maxLen: 90 };
-      let inputs;
-      if (net.isOffline) {
-        // Pass-and-play: collect sequentially with personalized spec for each fighter
-        const iA = await collectWithTimer(specA, [A.pid], 60);
-        const iB = await collectWithTimer(specB, [B.pid], 60);
-        inputs = { ...iA, ...iB };
-      } else {
-        // Online: split phase so each phone gets its own spec
-        const phaseId = 'ph' + (++phaseCounter);
-        net.setState({
-          phase: 'input-split', phaseId, deadline: Date.now() + 60000,
-          specs: { [A.pid]: specA, [B.pid]: specB },
-        });
-        const statusRow = $('#statusRow');
-        if (statusRow) statusRow.innerHTML = [A, B].map(p => `<div class="mini" id="mini-${p.pid}">${avatarHTML(p)}<div class="check">✓</div></div>`).join('');
-        net.onEachInput(pid => { Audio_.sfx.submit(); $('#mini-' + pid)?.classList.add('done'); });
-        inputs = await net.collect(phaseId, null, [A.pid, B.pid], 60000);
-        net.onEachInput(null);
-        net.setState({ phase: 'wait', msg: t('watch_screen') });
+      const vRow = $('#statusRow');
+      vRow.innerHTML = allPids.map(pid=>`<div class="mini" id="vmini-${pid}">${avatarHTML(players.find(p=>p.pid===pid))}<div class="check">✓</div></div>`).join('');
+      net.onEachInput(pid=>{Audio_.sfx.submit();$('#vmini-'+pid)?.classList.add('done');});
+
+      const voteOpts = [
+        {id:'a',label:`A — ${lineA.slice(0,40)}${lineA.length>40?'…':''}`,color:'#f472b6'},
+        {id:'b',label:`B — ${lineB.slice(0,40)}${lineB.length>40?'…':''}`,color:'#60a5fa'}
+      ];
+
+      // Per-player spec (duelers can vote for opponent)
+      const voteSpecs = {};
+      for (const pid of allPids) {
+        // A votes for B or against, B votes for A or against — everyone votes
+        const myOpt = pid===A.pid?'a':pid===B.pid?'b':null;
+        // Duelers can vote but obviously not for themselves
+        const opts = myOpt ? voteOpts.filter(o=>o.id!==myOpt) : voteOpts;
+        if (opts.length) voteSpecs[pid] = {type:'choice',title:LANG==='ar'?'🥊 من يفوز؟':'🥊 Who wins?',options:opts};
+      }
+      net.setState({phase:'input-split',phaseId:votePhaseId,deadline:voteDeadline,specs:voteSpecs,mirror:{...mirror}});
+
+      // Bot auto-vote
+      allPids.filter(p=>botPids.includes(p)).forEach(botPid=>{
+        setTimeout(async()=>{
+          try{
+            const myOpt=botPid===A.pid?'a':botPid===B.pid?'b':null;
+            const opts=myOpt?['a','b'].filter(o=>o!==myOpt):['a','b'];
+            await net.room('inputs/'+votePhaseId+'/'+botPid).set({v:opts[Math.floor(Math.random()*opts.length)],t:Date.now()});
+          }catch(e){}
+        },800+Math.random()*2000);
+      });
+
+      // Host vote if phones-only
+      if (net.hostSelfPid) {
+        const myOpt=net.hostSelfPid===A.pid?'a':net.hostSelfPid===B.pid?'b':null;
+        const votableOpts=myOpt?voteOpts.filter(o=>o.id!==myOpt):voteOpts;
+        if (votableOpts.length) {
+          const btnRow=document.createElement('div');
+          btnRow.style.cssText='display:flex;gap:12px;justify-content:center;margin-top:14px;width:100%;max-width:700px;align-items:stretch;';
+          btnRow.innerHTML=votableOpts.map(o=>`<button id="diss_${o.id}" style="flex:1;max-width:320px;padding:14px;border-radius:14px;background:${o.color}22;border:2px solid ${o.color}60;color:var(--text);font-family:'Fredoka One',sans-serif;font-size:clamp(13px,1.8vmin,16px);cursor:pointer;line-height:1.4;text-align:left">${esc(o.id==='a'?lineA:lineB)}</button>`).join('<div style="font-family:Fredoka One;font-size:18px;color:var(--text3);display:flex;align-items:center">VS</div>');
+          document.getElementById('hostStage')?.appendChild(btnRow);
+          votableOpts.forEach(o=>{
+            document.getElementById('diss_'+o.id)?.addEventListener('click',async()=>{
+              Audio_.sfx.submit();btnRow.remove();
+              await net.room('inputs/'+votePhaseId+'/'+net.hostSelfPid).set({v:o.id,t:Date.now()});
+            },{once:true});
+          });
+        }
       }
 
-      const lineA = val(inputs, A.pid) || t('no_answer');
-      const lineB = val(inputs, B.pid) || t('no_answer');
+      const votes = await net.collect(votePhaseId, null, allPids, 20000);
+      net.onEachInput(null);
 
-      // crowd votes
-      await FX.wipe();
-      setPill(t('vote_title'));
-      scene(frameWithTimer(`
-        <div class="diss-grid">
-          <div class="ans-card diss" id="dissA"><div class="ans-face ans-front"><div class="diss-line">“${esc(lineA)}”</div><div class="voter-strip" id="dvA"></div></div></div>
-          <div class="ans-card diss" id="dissB"><div class="ans-face ans-front"><div class="diss-line">“${esc(lineB)}”</div><div class="voter-strip" id="dvB"></div></div></div>
-        </div>`, t('vote_title')));
-      Audio_.sfx.pop();
-
-      const crowd = players.filter(p => p.pid !== A.pid && p.pid !== B.pid).map(p => p.pid);
-      const votes = await collectWithTimer({
-        type: 'choice', title: t('vote_title'), context: R.p,
-        options: [{ id: 'A', label: `“${lineA}”` }, { id: 'B', label: `“${lineB}”` }],
-      }, crowd, 25);
-
-      let vA = 0, vB = 0;
-      for (const pid of crowd) {
-        const v = val(votes, pid);
-        const voter = players.find(x => x.pid === pid);
-        if (v === 'A') { vA++; $('#dvA')?.insertAdjacentHTML('beforeend', `<div class="voter" style="background:${voter.color}">${voter.emoji}</div>`); }
-        else if (v === 'B') { vB++; $('#dvB')?.insertAdjacentHTML('beforeend', `<div class="voter" style="background:${voter.color}">${voter.emoji}</div>`); }
-        Audio_.sfx.vote();
-        await sleep(350);
+      // Count votes
+      let votesA=0, votesB=0;
+      const voterReveal=[];
+      for (const pid of allPids) {
+        const v = val(votes,pid);
+        if (v==='a') { votesA++; voterReveal.push({pid,pick:'a'}); }
+        else if (v==='b') { votesB++; voterReveal.push({pid,pick:'b'}); }
       }
-      await sleep(500);
+      const winnerPid = votesA > votesB ? A.pid : votesA < votesB ? B.pid : null;
+      if (winnerPid) addScore(winnerPid, CORRECT_PTS);
+      // Bonus for correct voters
+      for (const {pid,pick} of voterReveal) {
+        if ((pick==='a'&&winnerPid===A.pid)||(pick==='b'&&winnerPid===B.pid)) addScore(pid,300);
+      }
 
-      const winner = vA === vB ? null : (vA > vB ? A : B);
-      if(vA > vB) addScore(A.pid, 1000); else if(vB > vA) addScore(B.pid, 1000); else { addScore(A.pid, 500); addScore(B.pid, 500); }
-      if (winner && ((winner === A && vB === 0) || (winner === B && vA === 0)) && crowd.length > 1) {
-        // sweep bonus removed
-      }
-      Audio_.sfx.drum(); await sleep(700);
-      if (winner) {
-        const el = winner === A ? $('#dissA') : $('#dissB');
-        el?.classList.add('diss-winner');
-        Audio_.sfx.fanfare(); FX.shake(); FX.burst(130); FX.burstAt(el, 36);
-        await say(LANG === 'ar' ? `${winner.name} ياخذ الجولة!` : `${winner.name} takes the round!`);
-      } else {
-        Audio_.sfx.wrong();
-        await say(LANG === 'ar' ? 'تعادل! الجمهور جبان.' : 'A tie! The crowd is a coward.');
-      }
+      // Dramatic reveal scene
+      Audio_.sfx.reveal(); FX.burst(80);
+      const winnerPlayer = winnerPid ? players.find(p=>p.pid===winnerPid) : null;
+      scene(`<div class="eyebrow" style="font-size:clamp(20px,3.5vmin,32px)">
+          ${winnerPlayer ? `🏆 ${esc(winnerPlayer.name)} ${LANG==='ar'?'يفوز!':'WINS!'}` : `🤝 ${LANG==='ar'?'تعادل!':'TIE!'}`}
+        </div>
+        <div class="duel-reveal">
+          <div class="duel-card${winnerPid===A.pid?' duel-card-win':''}" style="border-color:var(--pink)">
+            <div class="duel-letter" style="color:var(--pink)">A</div>
+            <div class="duel-line">${esc(lineA)}</div>
+            <div class="duel-author">${avatarHTML(A)} ${esc(A.name)}${winnerPid===A.pid?' 🏆 +1000':''}</div>
+            <div class="duel-votes" style="color:var(--pink)">${votesA} ${LANG==='ar'?'صوت':'vote'}${votesA!==1?'s':''}</div>
+          </div>
+          <div class="duel-vs">VS</div>
+          <div class="duel-card${winnerPid===B.pid?' duel-card-win':''}" style="border-color:var(--blue)">
+            <div class="duel-letter" style="color:var(--blue)">B</div>
+            <div class="duel-line">${esc(lineB)}</div>
+            <div class="duel-author">${avatarHTML(B)} ${esc(B.name)}${winnerPid===B.pid?' 🏆 +1000':''}</div>
+            <div class="duel-votes" style="color:var(--blue)">${votesB} ${LANG==='ar'?'صوت':'vote'}${votesB!==1?'s':''}</div>
+          </div>
+        </div>
+        <div class="voter-reveal">${voterReveal.map(({pid,pick})=>{
+          const p=players.find(x=>x.pid===pid);
+          const correct=(pick==='a'&&winnerPid===A.pid)||(pick==='b'&&winnerPid===B.pid);
+          return `<div class="voter-chip ${correct?'voter-correct':'voter-wrong'}">${avatarHTML(p)}<span>${esc(p?.name||'')}</span><span style="font-size:11px;opacity:.7">→ ${pick.toUpperCase()}</span>${correct?'<span>+300</span>':''}`;
+        }).join('')}</div>`);
+      await hostSay('reveal');
+      await waitNext();
+      if (b < nBattles-1) await showScores();
     }
     await showScores();
   }
-
-  /* ================================================================
-     MODE 5 — MAJLIS QUIZ  (speed trivia)
-  ================================================================ */
   async function playQuiz() {
     await modeTitleCard('quiz');
     const cat = window.HYPOX_STATE?.category || 'general';
@@ -1036,9 +1106,10 @@ const Host = (() => {
       const btn = document.createElement('button');
       btn.className = 'big-btn';
       btn.style.marginTop = '2vmin';
-      const done = () => { window.__hypoxSkip = null; if (timer) clearInterval(timer); res(); };
+      const done = () => { window.__hypoxSkip = null; if (timer) clearInterval(timer); btn.remove?.(); res(); };
       let timer = null;
-      if (window.HYPOX_STATE?.autoplay) {
+      const isAutoplay = window.HYPOX_STATE?.autoplay === true; // explicit check
+      if (isAutoplay) {
         let left = autoSeconds;
         btn.textContent = `${t('next_round')} (${left})`;
         timer = setInterval(() => {
@@ -1047,10 +1118,10 @@ const Host = (() => {
           btn.textContent = `${t('next_round')} (${left})`;
         }, 1000);
       } else {
-        btn.textContent = t('next_round');
+        btn.textContent = t('next_round'); // manual: no timer ever
       }
       btn.addEventListener('click', done, { once: true });
-      stage.appendChild(btn);
+      stage?.appendChild(btn);
       window.__hypoxSkip = done;
     });
   }

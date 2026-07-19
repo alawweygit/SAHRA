@@ -138,7 +138,7 @@ const I18N = {
       bluff: 'Spot the lie. Fool your friends.',
       wyr: 'How well do you know them?',
       interrogation: 'Write it. Vote it. Own it.',
-      diss: 'One-liner battle. Crowd decides.',
+      diss: 'Secret duels. Anonymous lines. Savage votes.',
       quiz: 'Fastest fingers win.',
       trivia: 'Pick a category. Fastest wins.',
       pinpoint: 'Drop your pin. Closest wins.',
