@@ -828,11 +828,7 @@
     // Save session so reconnect works after phone lock
     try{sessionStorage.setItem('hypox_session',JSON.stringify({code,name,emoji:selectedAvatar.emoji,color:selectedAvatar.color}));}catch(e){}
     show('#scr-controller');
-    showHypoxHeader();
-    const roomCodeEl=$('#roomCodeText');
-    if(roomCodeEl)roomCodeEl.textContent=code;
-    const roundPillEl=$('#roundPill');
-    if(roundPillEl){roundPillEl.textContent='';roundPillEl.style.visibility='visible';}
+    showHypoxHeader(); // shows HYPOX logo in center, topbar visible
     updateMenu();
     const ctrl=$('#ctrlArea');
     const shared=$('#phoneSharedStage');

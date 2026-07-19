@@ -1107,7 +1107,7 @@ html{font-size:17px;}
   position:absolute!important;inset:0!important;
   display:flex!important;flex-direction:column!important;
   align-items:center!important;justify-content:center!important;
-  padding:3vmin max(3vmin,env(safe-area-inset-right)) max(3vmin,env(safe-area-inset-bottom)) max(3vmin,env(safe-area-inset-left))!important;
+  padding:max(80px,env(safe-area-inset-top,0px)+68px) max(3vmin,env(safe-area-inset-right)) max(3vmin,env(safe-area-inset-bottom)) max(3vmin,env(safe-area-inset-left))!important;
   background:var(--bg)!important;overflow-y:auto!important;
 }
 .phones-only-player #scr-controller{
