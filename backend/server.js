@@ -24,7 +24,7 @@ const SHAPES = {
 };
 
 const GUIDANCE = {
-  bluff:        'Fill-in-the-blank weird true facts. ___ replaces the most surprising element. Truth in CAPS. Mix global and Gulf/Arab facts in Arabic.',
+  bluff:        'Fill-in-the-blank weird true facts. ___ replaces the most surprising element. RULES: truth must be ONE SINGLE WORD only (e.g. BANANAS, TALLER, FIRE). Never use phrases. Make the blank genuinely tricky — the real answer should be surprising and not obvious. Wrong guesses should seem just as plausible. Mix global and Gulf/Arab facts in Arabic.',
   wyr:          'Would You Rather dilemmas — both options equally appealing or awful. No obvious right answer. Gulf situations welcome in Arabic.',
   interrogation:'Funny, spicy or thought-provoking prompts where everyone writes a creative honest answer. Examples: "What would you do if you were invisible for a day?", "What habit would your 15-year-old self hate about you?", "What\'s the most embarrassing thing in your search history?". Gulf/Arab situations in Arabic. Fun, relatable, makes people laugh.',
   diss:         'Roast battle setup lines — prompt to write a funny one-liner insult about the opponent.',
