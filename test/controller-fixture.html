@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
+  <title>Controller fixture</title>
+</head>
+<body class="theme-dark">
+  <div id="app">
+    <div class="screen active" id="scr-controller">
+      <div id="ctrlArea"></div>
+    </div>
+  </div>
+  <script>window.t = key => key; window.Audio_ = { sfx: { vote() {}, submit() {} } };</script>
+  <script src="../js/controller.js"></script>
+  <script>
+    const spec = {
+      type: 'choice',
+      title: 'Which answer gets your vote?',
+      context: 'Choose the best answer below',
+      options: [
+        { id: 'a', label: 'The first answer', color: '#f472b6' },
+        { id: 'b', label: 'The second answer', color: '#60a5fa' },
+        { id: 'c', label: 'The third answer', color: '#34d399' },
+        { id: 'd', label: 'The fourth answer', color: '#facc15' },
+        { id: 'd', label: 'Duplicate fourth answer', color: '#facc15' }
+      ]
+    };
+    Controller.render(document.getElementById('ctrlArea'), spec, value => {
+      document.body.dataset.submitted = value;
+    });
+    Controller.render(document.getElementById('ctrlArea'), spec, value => {
+      document.body.dataset.submitted = value;
+    });
+  </script>
+</body>
+</html>

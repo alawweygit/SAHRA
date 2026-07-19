@@ -565,7 +565,7 @@ body.ar .eyebrow{letter-spacing:0;}
 
 
 /* ============ PASS & PLAY ============ */
-#ppOverlay{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:4vmin;background:rgba(0,0,0,0.88);backdrop-filter:blur(10px);}
+#ppOverlay{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:4vmin;background:rgba(0,0,0,0.96);backdrop-filter:blur(10px);overflow-y:auto;overscroll-behavior:contain;}
 #ppOverlay.show{display:flex;}
 .pp-card{display:flex;flex-direction:column;gap:2.4vmin;align-items:center;width:min(94vw,420px);animation:promptIn 0.4s both;}
 .pp-player{display:flex;flex-direction:column;align-items:center;gap:1vmin;}
@@ -1345,11 +1345,17 @@ html{font-size:17px;}
 
 /* ===== CTRL WRAP MOBILE - phone input screens ===== */
 @media(max-width:600px){
-  .ctrl-wrap { padding: 20px 16px; gap: 14px; }
-  .ctrl-title { font-size: clamp(18px,5vw,24px); }
-  .ctrl-context { font-size: clamp(20px,5vw,28px); }
+  #scr-controller { justify-content: flex-start !important; padding-top: max(70px,calc(env(safe-area-inset-top) + 62px)) !important; }
+  #ctrlArea { position: relative; top: 8px; }
+  .phone-mirror { margin-bottom: 6px; padding: 10px 14px; gap: 5px; }
+  .ctrl-wrap { padding: 16px 14px; gap: 10px; border-radius: 19px; }
+  .ctrl-title { font-size: clamp(17px,4.5vw,22px) !important; }
+  .ctrl-context { font-size: clamp(15px,4.1vw,20px); padding: 8px 11px; }
   .ctrl-input { font-size: 16px; min-height: 100px; padding: 12px; }
-  .ctrl-submit { min-height: 52px; font-size: 18px; }
+  .ctrl-choices { gap: 7px; }
+  .choice-btn { min-height: 48px; font-size: 14px; padding: 11px 10px; border-radius: 14px; }
+  .ctrl-submit { min-height: 48px; font-size: 17px; }
+  #ppOverlay { align-items: flex-start; padding: max(70px,calc(env(safe-area-inset-top) + 62px)) 12px max(16px,env(safe-area-inset-bottom)); }
 }
 
 /* ===== EMOJI REBUS DISPLAY ===== */

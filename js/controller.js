@@ -11,7 +11,7 @@
 const Controller = (() => {
 
   function render(container, spec, onSubmit) {
-    container.innerHTML = '';
+    if (!container) return;
     const wrap = document.createElement('div');
     wrap.className = 'ctrl-wrap';
     if (spec.compactRebus) wrap.classList.add('rebus-controller');
@@ -137,7 +137,17 @@ const Controller = (() => {
     else if (spec.type === 'choice') {
       const grid = document.createElement('div');
       grid.className = 'ctrl-choices';
-      spec.options.forEach((o, i) => {
+      // A realtime state may be replayed and some game modes build their choices
+      // dynamically. Keep one button per option id so a malformed/repeated list
+      // can never turn into a second visible answer set.
+      const seenOptionIds = new Set();
+      const options = (Array.isArray(spec.options) ? spec.options : []).filter(o => {
+        const key = String(o.id);
+        if (seenOptionIds.has(key)) return false;
+        seenOptionIds.add(key);
+        return true;
+      });
+      options.forEach((o, i) => {
         const b = document.createElement('button');
         b.className = 'choice-btn';
         b.textContent = o.label;
@@ -264,7 +274,10 @@ const Controller = (() => {
       });
     }
 
-    container.appendChild(wrap);
+    // Swap the complete controller atomically. This guarantees that repeated
+    // Firebase snapshots replace the old question instead of appending another
+    // copy while buttons remain wired to the current phase callback.
+    container.replaceChildren(wrap);
   }
 
   function lock(wrap) {
