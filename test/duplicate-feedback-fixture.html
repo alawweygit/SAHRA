@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
+  <title>Duplicate answer feedback fixture</title>
+</head>
+<body class="theme-dark phones-only-player">
+  <div id="app">
+    <div class="screen active" id="scr-controller"><div id="ctrlArea"></div></div>
+  </div>
+  <script>window.LANG='en';window.t=key=>key;window.Audio_={sfx:{vote(){},submit(){}}};</script>
+  <script src="../js/controller.js"></script>
+  <script>
+    let attempts=0;
+    Controller.render(document.getElementById('ctrlArea'),{
+      type:'text',title:'Write a lie',context:'Nintendo was founded in ___',maxLen:60,enforceUnique:true
+    },async value=>{
+      attempts++;
+      document.body.dataset.attempts=String(attempts);
+      if(attempts===1)return {accepted:false,reason:'duplicate'};
+      document.body.dataset.submitted=value;
+      return {accepted:true};
+    });
+  </script>
+</body>
+</html>

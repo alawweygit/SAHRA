@@ -1,5 +1,5 @@
 /* Minimal in-memory Firebase RTDB shim for SAHRA tests.
-   Implements the surface FirebaseNet uses: ref(path).set/get/on('value')/off/onDisconnect().remove()
+   Implements the surface FirebaseNet uses: ref(path).set/get/transaction/remove/on('value')/off/onDisconnect().remove()
    Data is a nested object; paths are 'a/b/c'. Listeners fire on any change under their path. */
 function makeFakeFirebase() {
   const root = {};
@@ -64,7 +64,15 @@ function makeFakeFirebase() {
     return {
       path,
       async set(val) { setAt(path, val); notify(path); return; },
+      async remove() { removeAt(path); notify(path); return; },
       async get() { return makeSnap(getAt(path)); },
+      async transaction(update) {
+        const current = getAt(path);
+        const next = update(current === undefined ? null : deepClone(current));
+        if (next === undefined) return { committed: false, snapshot: makeSnap(current) };
+        setAt(path, next); notify(path);
+        return { committed: true, snapshot: makeSnap(next) };
+      },
       on(evt, cb) {
         const L = { path, cb };
         listeners.push(L);

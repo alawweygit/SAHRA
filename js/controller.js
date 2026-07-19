@@ -63,20 +63,30 @@ const Controller = (() => {
       const btn = document.createElement('button');
       btn.className = 'big-btn ctrl-submit';
       btn.textContent = t('submit');
-      btn.addEventListener('click', () => {
+      let submitting = false;
+      const showDuplicateHint = () => {
+        let hint = wrap.querySelector('.dup-hint');
+        if (!hint) {
+          hint = document.createElement('div');
+          hint.className = 'dup-hint';
+          hint.style.cssText = 'color:var(--pink);font-size:13px;text-align:center;animation:shake .3s;margin-top:6px';
+          wrap.appendChild(hint);
+        }
+        hint.textContent = LANG==='ar' ? '⚠️ هذه الإجابة موجودة — جرب إجابة ثانية!' : '⚠️ That answer is taken! Try another one.';
+        ta.classList.add('shake');
+        setTimeout(() => ta.classList.remove('shake'), 500);
+        ta.focus(); ta.select();
+      };
+      btn.addEventListener('click', async () => {
+        if (submitting) return;
         const v = ta.value.trim();
         if (!v) { ta.classList.add('shake'); setTimeout(() => ta.classList.remove('shake'), 500); return; }
-        // Real-time duplicate check for enforceUnique specs (bluff game)
+        // A broadcast list gives immediate feedback when available. The final
+        // decision is still made atomically by submitInput on Firebase.
         if (spec.enforceUnique) {
           const taken = window._hypoxTakenAnswers || [];
-          if (taken.some(t => t.toUpperCase() === v.toUpperCase())) {
-            // Show error — answer already taken
-            let hint = wrap.querySelector('.dup-hint');
-            if (!hint) { hint = document.createElement('div'); hint.className='dup-hint'; hint.style.cssText='color:var(--pink);font-size:13px;text-align:center;animation:shake .3s;margin-top:6px'; wrap.appendChild(hint); }
-            hint.textContent = LANG==='ar' ? '⚠️ هذه الإجابة موجودة — جرب إجابة ثانية!' : '⚠️ That answer is taken! Try another one.';
-            ta.classList.add('shake'); setTimeout(() => ta.classList.remove('shake'), 500);
-            return;
-          }
+          const normalized = s => String(s).normalize('NFKC').trim().replace(/\s+/g, ' ').toUpperCase();
+          if (taken.some(answer => normalized(answer) === normalized(v))) { showDuplicateHint(); return; }
         }
         // If answerLen hint provided (emoji riddle), validate length
         if (spec.answerLen && v.replace(/\s/g,'').length !== spec.answerLen) {
@@ -91,9 +101,28 @@ const Controller = (() => {
           setTimeout(() => { ta.classList.remove('shake'); }, 500);
           return;
         }
-        Audio_.sfx.submit();
-        lock(wrap);
-        onSubmit(v);
+        submitting = true;
+        btn.disabled = true;
+        wrap.setAttribute('aria-busy', 'true');
+        try {
+          const result = await onSubmit(v);
+          if (result?.accepted === false && result.reason === 'duplicate') {
+            submitting = false;
+            btn.disabled = false;
+            wrap.removeAttribute('aria-busy');
+            showDuplicateHint();
+            return;
+          }
+          Audio_.sfx.submit();
+          lock(wrap);
+        } catch (error) {
+          submitting = false;
+          btn.disabled = false;
+          wrap.removeAttribute('aria-busy');
+          let hint = wrap.querySelector('.submit-hint');
+          if (!hint) { hint = document.createElement('div'); hint.className = 'submit-hint'; hint.style.cssText = 'color:var(--pink);font-size:13px;text-align:center;margin-top:6px'; wrap.appendChild(hint); }
+          hint.textContent = LANG==='ar' ? 'تعذر الإرسال — حاول مرة ثانية.' : 'Could not submit — please try again.';
+        }
       });
       wrap.appendChild(btn);
       setTimeout(() => ta.focus(), 250);

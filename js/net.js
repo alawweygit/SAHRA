@@ -24,6 +24,16 @@ const AVATARS = [
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I/O — avoids confusion
 const makeCode = () => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
 
+/* All clients must turn equivalent text into the same Firebase-safe key.
+   NFKC handles visually equivalent Unicode, while whitespace/case folding
+   makes " monkeys ", "MONKEYS" and "monkeys" the same answer. */
+const normalizeUniqueAnswer = value => String(value ?? '')
+  .normalize('NFKC')
+  .trim()
+  .replace(/\s+/g, ' ')
+  .toUpperCase();
+const uniqueAnswerKey = value => encodeURIComponent(normalizeUniqueAnswer(value)).replace(/\./g, '%2E');
+
 /* ---------------- Firebase (online) ---------------- */
 class FirebaseNet {
   constructor(db) { this.db = db; this.isOffline = false; this.code = null; this.pid = null; this.isRoomOwner = false; this._collectors = {}; }
@@ -104,8 +114,37 @@ class FirebaseNet {
   setSharedScreen(view) { return this.room('sharedScreen').set({ ...view, ts: Date.now() }); }
   onSharedScreen(cb) { this.room('sharedScreen').on('value', s => cb(s.val() || null)); }
 
-  submitInput(phaseId, value) {
-    return this.room(`inputs/${phaseId}/${this.pid}`).set({ v: value, t: Date.now() });
+  async submitInput(phaseId, value, options = {}) {
+    const inputRef = this.room(`inputs/${phaseId}/${this.pid}`);
+    if (!options.enforceUnique) {
+      await inputRef.set({ v: value, t: Date.now() });
+      return { accepted: true };
+    }
+
+    // Claim the normalized answer atomically. Client-side answer lists are
+    // useful hints, but cannot prevent two phones submitting at the same time.
+    const normalized = normalizeUniqueAnswer(value);
+    const claimRef = this.room(`inputClaims/${phaseId}/${uniqueAnswerKey(normalized)}`);
+    const claimedAt = Date.now();
+    const result = await claimRef.transaction(current => {
+      if (current == null || current.pid === this.pid) return { pid: this.pid, normalized, t: claimedAt };
+      return; // abort transaction: another player owns this answer
+    });
+    if (!result.committed || result.snapshot.val()?.pid !== this.pid) {
+      return { accepted: false, reason: 'duplicate' };
+    }
+
+    try {
+      await inputRef.set({ v: value, t: Date.now() });
+      return { accepted: true };
+    } catch (error) {
+      // Do not leave a dead claim behind if the answer write fails.
+      try {
+        const claim = await claimRef.get();
+        if (claim.val()?.pid === this.pid) await claimRef.remove();
+      } catch (_) { /* original error is more useful */ }
+      throw error;
+    }
   }
 
   collect(phaseId, spec, pids, ms) {
@@ -125,11 +164,10 @@ class FirebaseNet {
       // local overlay and write it in, just like a remote submission.
       if (this.hostSelfPid && pids.includes(this.hostSelfPid) && this.promptLocal && spec) {
         const me = (this._players || []).find(p => p.pid === this.hostSelfPid) || { pid: this.hostSelfPid };
-        this.promptLocal(spec, me).then(value => {
-          if (value !== null && value !== undefined && !done) {
-            this.submitInput(phaseId, value);
-          }
-        });
+        const submit = value => this.submitInput(phaseId, value, { enforceUnique: spec.enforceUnique === true });
+        // phonesHostPrompt performs the submission before dismissing, so a
+        // duplicate can stay editable and show the same error as every phone.
+        this.promptLocal(spec, me, submit).catch(() => {});
       }
 
       ref.on('value', s => {

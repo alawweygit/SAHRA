@@ -795,7 +795,7 @@
 
   /* The Phones Only host answers below the shared game instead of receiving
      the pass-the-device privacy overlay used by One Device mode. */
-  function phonesHostPrompt(spec){
+  function phonesHostPrompt(spec,player,submitInput){
     return new Promise(resolve=>{
       const hidesStageAnswers=spec?.type==='choice'||spec?.type==='higherlow';
       if(hidesStageAnswers)document.body.classList.add('phones-host-answering');
@@ -816,7 +816,12 @@
       _ppDismiss=()=>done(null);
       window.__hypoxDismissPP=()=>{if(_ppDismiss)_ppDismiss();};
       const hostSpec={...spec,controlsOnly:true,title:LANG==='ar'?'👆 اختيارك':'👆 Your pick',context:'',sub:''};
-      Controller.render(panel,hostSpec,done);
+      Controller.render(panel,hostSpec,async value=>{
+        const result=submitInput?await submitInput(value):{accepted:true};
+        if(result?.accepted===false)return result;
+        done(value);
+        return result;
+      });
     });
   }
 
@@ -993,7 +998,12 @@
           const phoneSpec=state.spec?(phonesOnly?{...state.spec,controlsOnly:true,title:'',context:'',sub:''}:state.spec):null;
           if(!phoneSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
           document.body.classList.toggle('phones-player-answering',phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow'));
-          Controller.render(ctrl,phoneSpec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
+          Controller.render(ctrl,phoneSpec,async value=>{
+            const result=await net.submitInput(state.phaseId,value,{enforceUnique:phoneSpec.enforceUnique===true});
+            if(result?.accepted===false)return result;
+            setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
+            return result;
+          });
         }else if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl,T.watchScreen());
       }else if(state.phase==='input-split'&&state.phaseId!==lastPhaseId){
         lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
@@ -1002,7 +1012,12 @@
         const spec=phonesOnly?{...rawSpec,controlsOnly:true,title:'',context:'',sub:''}:rawSpec;
         ctrl.classList.remove('hidden');
         document.body.classList.toggle('phones-player-answering',phonesOnly&&(spec.type==='choice'||spec.type==='higherlow'));
-        Controller.render(ctrl,spec,value=>{net.submitInput(state.phaseId,value);setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);});
+        Controller.render(ctrl,spec,async value=>{
+          const result=await net.submitInput(state.phaseId,value,{enforceUnique:spec.enforceUnique===true});
+          if(result?.accepted===false)return result;
+          setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
+          return result;
+        });
       }else if(state.phase==='wait'||state.phase==='mirror'){
         // Show full game content on phone using mirror data
         if(phonesOnly){

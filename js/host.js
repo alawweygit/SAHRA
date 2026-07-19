@@ -119,10 +119,14 @@ const Host = (() => {
     return new Promise(res => { window.__hypoxSkip = () => { window.__hypoxSkip = null; res('skip'); }; });
   }
 
+  const autoplayEnabled = () => window.HYPOX_STATE?.autoplay === true;
+  const inputDeadline = seconds => autoplayEnabled() ? Date.now() + seconds * 1000 : null;
+  const inputTimeout = seconds => autoplayEnabled() ? seconds * 1000 : 9e7;
+
   /* ---------- input collection with big timer ---------- */
   async function collectWithTimer(spec, pids, seconds, statusLabelFn) {
     const phaseId = 'ph' + (++phaseCounter);
-    const deadline = Date.now() + seconds * 1000;
+    const deadline = inputDeadline(seconds);
 
     pushMirror({ headline: spec.context || spec.title || '', sub: spec.title || '' });
     net.setState({ phase: 'input', phaseId, spec, targets: pids, deadline, mirror: { ...mirror } });
@@ -189,7 +193,9 @@ const Host = (() => {
       }, 1000);
     }
 
-    const inputs = await net.collect(phaseId, spec, pids, net.isOffline ? 9e7 : seconds * 1000);
+    // Manual pacing must not silently complete a phase when its old 12–60s
+    // response timer expires. It still proceeds normally once everyone answers.
+    const inputs = await net.collect(phaseId, spec, pids, net.isOffline ? 9e7 : inputTimeout(seconds));
     if (timerInt) clearInterval(timerInt);
     try { Audio_.stopMusic(); } catch(e) {}
     net.setState({ phase: 'wait', msg: LANG==='ar'?'👆 تابع الشاشة':'👆 Watch the screen', mirror: { ...mirror } });
@@ -385,16 +391,9 @@ const Host = (() => {
       hostSay('prompt');
 
       const pids = players.map(p => p.pid);
-      // Track taken answers in real-time so controllers can check before submitting
-      const takenAnswers = new Set();
-      net.onEachInput((pid, value) => {
-        if (value) takenAnswers.add(value.trim().toUpperCase());
-        net.setState({ takenAnswers: [...takenAnswers], phase: 'input', phaseId: inputs && inputs._phaseId });
-      });
       const inputs = await collectWithTimer(
         { type: 'text', title: t('write_lie'), context: R.fact.replace('___', '____'), maxLen: 60, enforceUnique: true },
         pids, 60);
-      net.onEachInput(null);
 
       // Build answer set: unique lies + truth
       const truthUp = R.truth.toUpperCase();
@@ -531,7 +530,7 @@ const Host = (() => {
       } else {
         const phaseId = 'ph' + (++phaseCounter);
         net.setState({
-          phase: 'input-split', phaseId, deadline: Date.now() + 30000,
+          phase: 'input-split', phaseId, deadline: inputDeadline(30),
           specs: {
             [target.pid]: { type: 'choice', title: t('your_pick'), options: opts },
             _default: { type: 'choice', title: `${t('predict')} (${target.name})`, options: opts },
@@ -570,7 +569,7 @@ const Host = (() => {
           makeWyrBtns('wyrPickA', 'wyrPickB');
         }
 
-        const all = await net.collect(phaseId, null, players.map(p => p.pid), 30000);
+        const all = await net.collect(phaseId, null, players.map(p => p.pid), inputTimeout(30));
         net.onEachInput(null);
         net.setState({ phase: 'wait', msg: t('watch_screen') });
         targetPick = val(all, target.pid);
@@ -653,7 +652,7 @@ const Host = (() => {
 
       // Phase 2: Vote for favorite (can't vote own)
       const votePhaseId = 'ph' + (++phaseCounter);
-      const voteDeadline = Date.now() + 25000;
+      const voteDeadline = inputDeadline(25);
       await FX.wipe();
       scene(`<div class="eyebrow">🗳️ ${LANG==='ar'?'صوّت للأفضل':'VOTE FOR THE BEST'}</div>
         <div class="prompt-card display" style="font-size:clamp(14px,2.2vmin,20px)">${esc(Q.q)}</div>
@@ -715,7 +714,7 @@ const Host = (() => {
         }
       }
 
-      const votes = await net.collect(votePhaseId, null, pids, 25000);
+      const votes = await net.collect(votePhaseId, null, pids, inputTimeout(25));
       net.onEachInput(null);
 
       // Count votes
@@ -810,7 +809,7 @@ const Host = (() => {
 
       // Phase 2: Boxing intro + vote — audience + duelers all vote
       const votePhaseId = 'ph'+(++phaseCounter);
-      const voteDeadline = Date.now()+20000;
+      const voteDeadline = inputDeadline(20);
       await FX.wipe();
       scene(`<div class="eyebrow" style="font-size:clamp(18px,3vmin,28px)">🥊 ${LANG==='ar'?'التصويت!':'WHO WINS?'}</div>
         <div class="duel-cards">
@@ -876,7 +875,7 @@ const Host = (() => {
         }
       }
 
-      const votes = await net.collect(votePhaseId, null, allPids, 20000);
+      const votes = await net.collect(votePhaseId, null, allPids, inputTimeout(20));
       net.onEachInput(null);
 
       // Count votes
