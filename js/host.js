@@ -541,6 +541,16 @@ const Host = (() => {
         row.innerHTML = players.map(p => `<div class="mini" id="mini-${p.pid}">${avatarHTML(p)}<div class="check">✓</div></div>`).join('');
         net.onEachInput(pid => { Audio_.sfx.submit(); $('#mini-' + pid)?.classList.add('done'); });
 
+        // Auto-submit for bots (bypassed since we use net.collect directly)
+        players.filter(p => botPids.includes(p.pid)).forEach(botP => {
+          setTimeout(async () => {
+            try {
+              const pick = Math.random() < 0.5 ? 'a' : 'b';
+              await net.room('inputs/' + phaseId + '/' + botP.pid).set({ v: pick, t: Date.now() });
+            } catch(e) {}
+          }, 1000 + Math.random() * 2500);
+        });
+
         // A/B buttons for host to answer (target picks or guesses)
         const botPids = net.getBotPids ? net.getBotPids() : [];
         const hostNeedsAnswer = net.hostSelfPid && !botPids.includes(net.hostSelfPid);
@@ -585,7 +595,7 @@ const Host = (() => {
         for (const pid of matchers) {
           const p = players.find(x => x.pid === pid);
           addScore(pid, 1000);
-          mr.insertAdjacentHTML('beforeend', `<div class="player" style="animation-delay:0s">${avatarHTML(p)}<div class="pname">+500</div></div>`);
+          mr.insertAdjacentHTML('beforeend', `<div class="player" style="animation-delay:0s">${avatarHTML(p)}<div class="pname">+1000 ✓</div></div>`);
           Audio_.sfx.correct();
           await sleep(300);
         }
