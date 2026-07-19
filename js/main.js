@@ -11,8 +11,8 @@
     {emoji:'🦈',color:'#0ea5e9',label:'Shark'},
   ];
   const MODE_MIN = {bluff:3,wyr:3,interrogation:3,diss:4,trivia:2,pinpoint:2,emoji:2,year:2,mostlikely:3,trueorlie:2,flaghunt:2,higherlow:2,'2t1l':3,emojiplace:2,spy:3};
-  const MODE_ICONS = {bluff:'🔍',wyr:'⚖️',interrogation:'🔦',diss:'🎤',trivia:'⚡',pinpoint:'📍',emoji:'🧩',year:'⏳',mostlikely:'🏆',trueorlie:'✅',flaghunt:'🚩',higherlow:'📊','2t1l':'🤥',emojiplace:'🌍',spy:'🕵️'};
-  const MODE_COLORS = {bluff:'#f472b6',wyr:'#60a5fa',interrogation:'#a78bfa',diss:'#fb923c',trivia:'#facc15',pinpoint:'#22d3ee',emoji:'#e879f9',year:'#fbbf24',mostlikely:'#f43f5e',trueorlie:'#10b981',flaghunt:'#ef4444',higherlow:'#8b5cf6','2t1l':'#f97316',emojiplace:'#06b6d4',spy:'#64748b'};
+  const MODE_ICONS = {bluff:'🔍',wyr:'⚖️',interrogation:'🔥',diss:'🎤',trivia:'⚡',pinpoint:'📍',emoji:'🧩',year:'⏳',mostlikely:'🏆',trueorlie:'✅',flaghunt:'🚩',higherlow:'📊','2t1l':'🤥',emojiplace:'🌍',spy:'🕵️'};
+  const MODE_COLORS = {bluff:'#f472b6',wyr:'#60a5fa',interrogation:'#ff6b35',diss:'#fb923c',trivia:'#facc15',pinpoint:'#22d3ee',emoji:'#e879f9',year:'#fbbf24',mostlikely:'#f43f5e',trueorlie:'#10b981',flaghunt:'#ef4444',higherlow:'#8b5cf6','2t1l':'#f97316',emojiplace:'#06b6d4',spy:'#64748b'};
   const CAT_INFO = [
     {id:'general',icon:'🎲',name:'General Mix',nameAr:'خلطة عامة'},
     {id:'geography',icon:'🌍',name:'Geography',nameAr:'جغرافيا'},

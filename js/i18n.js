@@ -137,7 +137,7 @@ const I18N = {
     mode_taglines: {
       bluff: 'Spot the lie. Fool your friends.',
       wyr: 'How well do you know them?',
-      interrogation: 'Anonymous answers. Public blame.',
+      interrogation: 'Write it. Vote it. Own it.',
       diss: 'One-liner battle. Crowd decides.',
       quiz: 'Fastest fingers win.',
       trivia: 'Pick a category. Fastest wins.',

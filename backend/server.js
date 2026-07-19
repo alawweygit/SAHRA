@@ -26,7 +26,7 @@ const SHAPES = {
 const GUIDANCE = {
   bluff:        'Fill-in-the-blank weird true facts. ___ replaces the most surprising element. Truth in CAPS. Mix global and Gulf/Arab facts in Arabic.',
   wyr:          'Would You Rather dilemmas — both options equally appealing or awful. No obvious right answer. Gulf situations welcome in Arabic.',
-  interrogation:'Deep personal questions that reveal personality differences. Spicy but fun. Gulf/khaleeji situations in Arabic.',
+  interrogation:'Funny, spicy or thought-provoking prompts where everyone writes a creative honest answer. Examples: "What would you do if you were invisible for a day?", "What habit would your 15-year-old self hate about you?", "What\'s the most embarrassing thing in your search history?". Gulf/Arab situations in Arabic. Fun, relatable, makes people laugh.',
   diss:         'Roast battle setup lines — prompt to write a funny one-liner insult about the opponent.',
   quiz:         'Multiple-choice trivia. Vary correct position (0-3). Gulf/Arab focus in Arabic. Mix difficulty.',
   mostlikely:   '"Who is most likely to…" questions sparking funny debates. Gulf social situations in Arabic.',
