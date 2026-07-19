@@ -1114,14 +1114,16 @@ html{font-size:17px;}
   align-items:center!important;justify-content:center!important;
   padding:max(80px,env(safe-area-inset-top,0px)+68px) max(3vmin,env(safe-area-inset-right)) max(3vmin,env(safe-area-inset-bottom)) max(3vmin,env(safe-area-inset-left))!important;
   background:var(--bg)!important;overflow-y:auto!important;
+  overflow-anchor:none;overscroll-behavior-y:none;
 }
 .phones-only-player #scr-controller{
-  position:relative!important;inset:auto!important;justify-content:flex-start!important;
-  min-height:100dvh!important;height:auto!important;overflow:visible!important;
+  position:absolute!important;inset:0!important;justify-content:flex-start!important;
+  min-height:0!important;height:100vh!important;height:100dvh!important;overflow-y:auto!important;
   padding-top:max(100px,calc(env(safe-area-inset-top) + 76px))!important;
-  gap:16px!important;
+  padding-bottom:max(30px,env(safe-area-inset-bottom))!important;
+  gap:16px!important;-webkit-overflow-scrolling:touch;
 }
-.phones-only-player #phoneSharedStage{display:flex!important;}
+.phones-only-player #phoneSharedStage{display:flex!important;overflow-anchor:none;}
 .phones-only-player #phoneSharedStage #statusRow{display:flex;}
 .phones-only-player #ctrlArea{width:min(94vw,780px);margin-bottom:max(26px,env(safe-area-inset-bottom));}
 @media(max-width:600px){
@@ -1351,6 +1353,7 @@ html{font-size:17px;}
 /* ===== CTRL WRAP MOBILE - phone input screens ===== */
 @media(max-width:600px){
   #scr-controller { justify-content: flex-start !important; padding-top: max(70px,calc(env(safe-area-inset-top) + 62px)) !important; }
+  body.phones-only-player #scr-controller { padding-top: max(100px,calc(env(safe-area-inset-top) + 76px)) !important; }
   #ctrlArea { position: relative; top: 8px; }
   .phone-mirror { margin-bottom: 6px; padding: 10px 14px; gap: 5px; }
   .ctrl-wrap { padding: 16px 14px; gap: 10px; border-radius: 19px; }
@@ -1623,7 +1626,7 @@ body.ar .tutorial-bullets { text-align: right; }
   #scr-games,#scr-pregame{
     padding-top:calc(env(safe-area-inset-top, 0px) + 84px)!important;
   }
-  .screen.active:not(#scr-title):not(#scr-games):not(#scr-pregame){
+  .screen.active:not(#scr-title):not(#scr-games):not(#scr-pregame):not(#scr-controller){
     padding-top:calc(env(safe-area-inset-top, 0px) + 82px)!important;
     padding-bottom:max(env(safe-area-inset-bottom, 0px) + 20px,30px)!important;
   }

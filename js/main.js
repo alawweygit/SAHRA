@@ -36,16 +36,33 @@
   let _ppDismiss=null, _avatarCallback=null, _avatarContext=null;
   let gameActive=false, currentRoomCode=null;
   let _menuScrollY=0;
+  if('scrollRestoration' in history)history.scrollRestoration='manual';
+
+  function resetScrollPosition(){
+    const scrollingElement=document.scrollingElement;
+    const targets=[scrollingElement,document.documentElement,document.body,...$$('.screen')];
+    targets.forEach(el=>{
+      if(!el)return;
+      el.scrollTop=0;
+      el.scrollLeft=0;
+    });
+    window.scrollTo(0,0);
+  }
+
+  function resetScrollPositionAfterLayout(){
+    resetScrollPosition();
+    requestAnimationFrame(()=>{
+      resetScrollPosition();
+      requestAnimationFrame(resetScrollPosition);
+    });
+    setTimeout(resetScrollPosition,80);
+    setTimeout(resetScrollPosition,240);
+  }
 
   const show=id=>{
     $$('.screen').forEach(s=>{s.classList.remove('active');s.scrollTop=0;});
     const _sel=$(id);if(_sel){_sel.classList.add('active');_sel.scrollTop=0;}
-    // Reset scroll at multiple points to catch late-rendering content
-    const resetScroll=()=>{ window.scrollTo({top:0,left:0,behavior:'auto'}); };
-    resetScroll();
-    requestAnimationFrame(resetScroll);
-    setTimeout(resetScroll, 100);
-    setTimeout(resetScroll, 300);
+    resetScrollPositionAfterLayout();
   };
   const $=s=>document.querySelector(s);
   const $$=s=>Array.from(document.querySelectorAll(s));
@@ -838,6 +855,9 @@
     const phonesOnly=net.playMode==='phones';
     net.phonesOnly=phonesOnly;
     document.body.classList.toggle('phones-only-player',phonesOnly);
+    // The Phones Only layout changes which element owns scrolling. Reset only
+    // after that class is applied so iPhone Safari cannot restore the old offset.
+    resetScrollPositionAfterLayout();
     shared.dataset.gameStarted='';
     shared.dataset.sharedReady='';
     shared.classList.toggle('hidden',!phonesOnly);
@@ -920,8 +940,9 @@
     function renderSharedLobby(list){
       if(!phonesOnly||shared.dataset.sharedReady==='1')return;
       shared.innerHTML=`<div class="shared-lobby"><div class="lobby-title display">${LANG==='ar'?'اللاعبون':'PLAYERS'}</div><div class="shared-player-row">${list.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('')}</div><div class="shared-lobby-count">${list.length}/20</div></div>`;
-      // Reset scroll after content renders
-      requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'auto'}));
+      // Firebase delivers this card after the controller screen is already
+      // visible. Reset every possible Safari scroll owner after it is laid out.
+      resetScrollPositionAfterLayout();
     }
     function buildMirrorHTML(m){
       return `<div class="ctrl-mirror">
