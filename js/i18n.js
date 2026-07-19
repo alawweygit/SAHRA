@@ -117,8 +117,8 @@ const I18N = {
     mode_names: {
       bluff: 'LIE DETECTOR',
       wyr: 'WOULD YOU RATHER',
-      interrogation: 'CONFESSIONS',
-      diss: 'ROAST BATTLE',
+      interrogation: 'SAY IT ANON',
+      diss: 'LINE BATTLE',
       quiz: 'SPEED TRIVIA',
       trivia: 'QUESTIONS',
       pinpoint: 'PIN POINT',
@@ -137,8 +137,8 @@ const I18N = {
     mode_taglines: {
       bluff: 'Spot the lie. Fool your friends.',
       wyr: 'How well do you know them?',
-      interrogation: 'Write it. Vote it. Own it.',
-      diss: 'Secret duels. Anonymous lines. Savage votes.',
+      interrogation: 'Write it anonymously. Vote for the funniest.',
+      diss: 'Secret duel. One line. Crowd decides the winner.',
       quiz: 'Fastest fingers win.',
       trivia: 'Pick a category. Fastest wins.',
       pinpoint: 'Drop your pin. Closest wins.',
@@ -337,8 +337,8 @@ const I18N = {
     mode_names: {
       bluff: 'كاشف الكذب',
       wyr: 'يا هذا يا هذا',
-      interrogation: 'الاعترافات',
-      diss: 'حرب القصايد',
+      interrogation: 'قولها مجهول',
+      diss: 'معركة السطر',
       quiz: 'سرعة المعلومات',
       trivia: 'أسئلة',
       pinpoint: 'حدد المكان',
@@ -357,8 +357,8 @@ const I18N = {
     mode_taglines: {
       bluff: 'اكتشف الكذبة. اخدع ربعك.',
       wyr: 'شكثر تعرفهم صج؟',
-      interrogation: 'اعترافات مجهولة. اتهامات علنية.',
-      diss: 'مواجهة بسطر واحد. الجمهور يحكم.',
+      interrogation: 'اكتب بشكل مجهول. صوّت للأضحك.',
+      diss: 'مبارزة سرية. سطر واحد. الجمهور يحكم.',
       quiz: 'أسرع إصبع يفوز.',
       trivia: 'اختر فئة. أسرع واحد يفوز.',
       pinpoint: 'حط دبوسك. الأقرب يفوز.',
