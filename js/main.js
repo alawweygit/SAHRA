@@ -159,14 +159,6 @@
     $('#menuClose').addEventListener('click',closeMenu);
     $('#menuResume').addEventListener('click',closeMenu);
     $('#menuLeave').addEventListener('click',()=>{closeMenu();if(gameActive||currentRoomCode){leaveGame();}else{show('#scr-title');}});
-    // Topbar back button — leave game when active, go home otherwise
-    document.getElementById('topbarBack')?.addEventListener('click',()=>{
-      Audio_.sfx.blip();
-      if(gameActive||currentRoomCode){
-        if(confirm(LANG==='ar'?'تريد تترك اللعبة؟':'Leave the game?')) leaveGame();
-      } else { show('#scr-title'); }
-    });
-
     // Join screen — build mini avatar picker
     buildJoinAvatarRow();
     $('#joinGo').addEventListener('click',joinAsPlayer);
@@ -468,8 +460,13 @@
     window.__hypoxSkip=null;
     // Show loading on button immediately so user knows tap worked
     const startBtn=document.getElementById('pgStartBtn');
-    if(startBtn){startBtn.textContent=LANG==='ar'?'⏳ جاري...':'⏳ Starting...';startBtn.disabled=true;}
-    const restoreBtn=()=>{if(startBtn){startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';startBtn.disabled=false;}};
+    if(startBtn){
+      startBtn.innerHTML=`<span class="hypox-spinner" aria-hidden="true"></span><span>${LANG==='ar'?'جاري...':'Starting...'}</span>`;
+      startBtn.classList.add('is-loading');
+      startBtn.setAttribute('aria-busy','true');
+      startBtn.disabled=true;
+    }
+    const restoreBtn=()=>{if(startBtn){startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';startBtn.classList.remove('is-loading');startBtn.removeAttribute('aria-busy');startBtn.disabled=false;}};
     if(playMode!=='offline'&&!FirebaseNet.available()){Audio_.sfx.buzzer();restoreBtn();alert(T.noFirebase());return;}
     // Reset any existing session
     if(net)try{net.close?.();}catch(e){}
