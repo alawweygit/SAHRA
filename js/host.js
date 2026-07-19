@@ -1789,7 +1789,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     players = playerList;
     startSharedScreen();
     window.__hypoxAbort = false;
-    window._hypoxSession = Date.now().toString(36); // fresh session = fresh AI questions
+    window._hypoxSession = Date.now().toString(36); window._clearContentCache && window._clearContentCache(); // fresh session + clear cache
     let playAgain = true;
     let isFirstRound = true;
     while(playAgain && !window.__hypoxAbort) {
