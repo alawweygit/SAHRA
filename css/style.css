@@ -1766,3 +1766,4 @@ body.ar .tutorial-bullets { text-align: right; }
 .voter-chip{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;font-size:12px;background:rgba(255,255,255,0.06);}
 .voter-correct{background:rgba(52,211,153,0.15);border:1px solid var(--green);}
 .voter-wrong{background:rgba(255,255,255,0.05);opacity:.7;}
+@keyframes spin{to{transform:rotate(360deg)}}

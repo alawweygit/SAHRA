@@ -264,6 +264,7 @@ const Host = (() => {
       const onStart = () => {
         window.__hypoxSkip = null;
         if (timer) clearInterval(timer);
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>Loading…</span>'; }
         res();
       };
       if (btn) {
@@ -393,9 +394,32 @@ const Host = (() => {
       hostSay('prompt');
 
       const pids = players.map(p => p.pid);
+
+      // Host self-input for Phones Only mode
+      const botPids = net.getBotPids ? net.getBotPids() : [];
+      const hostNeedsInput = net.hostSelfPid && !botPids.includes(net.hostSelfPid);
+      if (hostNeedsInput) {
+        const dock = document.createElement('div');
+        dock.id = 'bluffHostDock';
+        dock.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--card);border-top:1.5px solid var(--border);padding:12px 16px max(env(safe-area-inset-bottom,0px)+12px,16px);display:flex;flex-direction:column;gap:8px;';
+        dock.innerHTML = '<input id="bluffHostInput" type="text" maxlength="60" placeholder="' + (LANG==='ar'?'اكتب كذبة مقنعة…':'Write a convincing lie…') + '" style="width:100%;box-sizing:border-box;padding:12px 14px;border-radius:12px;border:2px solid var(--accent);background:var(--bg2);color:var(--text);font-family:'Fredoka One',sans-serif;font-size:16px;outline:none;" /><button id="bluffHostSend" class="big-btn" style="margin:0">' + (LANG==='ar'?'أرسل':'Send It') + '</button>';
+        document.body.appendChild(dock);
+        const inp = document.getElementById('bluffHostInput');
+        const sendBtn = document.getElementById('bluffHostSend');
+        const submitHost = async () => {
+          const v = inp.value.trim().slice(0,60);
+          if (!v) return;
+          dock.remove();
+          await net.room('inputs/bluff_write_' + r + '/' + net.hostSelfPid).set({ v, t: Date.now() });
+        };
+        sendBtn.addEventListener('click', submitHost, { once: true });
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') submitHost(); });
+      }
+
       const inputs = await collectWithTimer(
         { type: 'text', title: t('write_lie'), context: R.fact.replace('___', '____'), maxLen: 60, enforceUnique: true },
         pids, 60);
+      document.getElementById('bluffHostDock')?.remove();
 
       // Build answer set: unique lies + truth
       const truthUp = R.truth.toUpperCase();
