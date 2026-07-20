@@ -32,6 +32,7 @@
     document.getElementById('topbarBack')?.style.setProperty('visibility','hidden');
   }
   let net=null, players=[], myPid=null, isVip=false, hostMode='tv';
+  let currentGameMode=null,currentPregameMode=null,currentViewKind='title';
   let selectedAvatar=AVATARS_LIST[0];
   let _ppDismiss=null, _avatarCallback=null, _avatarContext=null;
   let gameActive=false, currentRoomCode=null;
@@ -69,13 +70,137 @@
   const show=id=>{
     $$('.screen').forEach(s=>{s.classList.remove('active');s.scrollTop=0;});
     const _sel=$(id);if(_sel){_sel.classList.add('active');_sel.scrollTop=0;}
+    if(id==='#scr-title')currentViewKind='title';
+    else if(id==='#scr-games')currentViewKind='games';
+    else if(id==='#scr-join')currentViewKind='join';
+    else if(id==='#scr-controller')currentViewKind='controller';
     resetScrollPositionAfterLayout();
+    saveNavigationState(id.replace(/^#/,''));
   };
   const $=s=>document.querySelector(s);
   const $$=s=>Array.from(document.querySelectorAll(s));
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   window.esc=esc;
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+  const NAV_STATE_KEY='hypox_navigation_v1';
+  function navigationState(screenId){
+    const active=screenId||document.querySelector('.screen.active')?.id||'scr-title';
+    return {
+      screen:active,
+      viewKind:currentViewKind,
+      pregameMode:currentPregameMode,
+      gameMode:currentGameMode,
+      playMode:hostMode,
+      gameActive,
+      roomCode:currentRoomCode,
+      role:net?(net.isOffline||net.isRoomOwner?'host':'player'):null,
+      hostSelfPid:net?.hostSelfPid||null,
+      players:net?.isOffline?players.map(player=>({...player})):null,
+      hypoxState:{...window.HYPOX_STATE},
+      joinCode:document.getElementById('joinCode')?.value||'',
+      joinName:document.getElementById('joinName')?.value||'',
+      avatarContext:_avatarContext||null,
+      savedAt:Date.now(),
+    };
+  }
+  function saveNavigationState(screenId){
+    try{sessionStorage.setItem(NAV_STATE_KEY,JSON.stringify(navigationState(screenId)));}catch(e){}
+  }
+  function readNavigationState(){
+    try{
+      const saved=JSON.parse(sessionStorage.getItem(NAV_STATE_KEY)||'null');
+      return saved&&Date.now()-(saved.savedAt||0)<12*60*60*1000?saved:null;
+    }catch(e){return null;}
+  }
+
+  async function restoreNavigationState(){
+    const saved=readNavigationState();
+    if(!saved||saved.screen==='scr-title')return false;
+    if(saved.hypoxState)window.HYPOX_STATE={...window.HYPOX_STATE,...saved.hypoxState};
+    currentPregameMode=saved.pregameMode||null;
+    currentGameMode=saved.gameMode||saved.pregameMode||null;
+    hostMode=saved.playMode||'tv';
+
+    // A joined phone keeps its Firebase player id, so a refresh reconnects the
+    // same player instead of creating a duplicate entry or going home.
+    if(saved.role==='player'&&saved.roomCode&&FirebaseNet.available()){
+      try{
+        const session=JSON.parse(sessionStorage.getItem('hypox_session')||'null');
+        if(!session?.pid)throw new Error('missing-player-session');
+        net=FirebaseNet.create();
+        const resumed=await net.resumePlayer(saved.roomCode,session.pid);
+        myPid=resumed.pid;isVip=resumed.isVip;currentRoomCode=saved.roomCode;
+        selectedAvatar={emoji:session.emoji||resumed.player.emoji,color:session.color||resumed.player.color};
+        openPlayerController();
+        return true;
+      }catch(e){
+        net=null;currentRoomCode=null;
+        showHypoxHeader();paintJoin();
+        $('#joinCode').value=saved.roomCode||saved.joinCode||'';
+        $('#joinName').value=saved.joinName||'';
+        $('#joinErr').textContent=LANG==='ar'?'انتهت الغرفة. يمكنك الانضمام من جديد.':'That room ended. You can join again.';
+        show('#scr-join');
+        return true;
+      }
+    }
+
+    // The room is intentionally kept during an unexpected reload. Reattach
+    // the host, preserve all players, then reopen the same game area.
+    if(saved.role==='host'&&saved.roomCode&&saved.roomCode!=='LOCAL'&&FirebaseNet.available()){
+      try{
+        net=FirebaseNet.create();
+        const resumed=await net.resumeHost(saved.roomCode,saved.hostSelfPid||null);
+        players=resumed.players||[];hostMode=resumed.playMode||saved.playMode||'tv';
+        net.phonesOnly=hostMode==='phones';net.hostSelfPid=saved.hostSelfPid||null;
+        myPid=saved.hostSelfPid||null;currentRoomCode=saved.roomCode;
+        window.__hypoxAbort=false;
+        show('#scr-lobby');setupLobby(currentGameMode);
+        if(saved.viewKind==='game'&&currentGameMode)setTimeout(()=>startDirectGame(currentGameMode),0);
+        else if(saved.viewKind==='pack-picker')setTimeout(()=>showPackPicker(),0);
+        return true;
+      }catch(e){
+        net=null;currentRoomCode=null;players=[];
+      }
+    }
+
+    if(saved.role==='host'&&saved.roomCode==='LOCAL'){
+      net=new LocalNet();
+      net.players=Array.isArray(saved.players)?saved.players.map(player=>({...player})):[];
+      net.promptLocal=passAndPlayPrompt;players=net.players.slice();
+      currentRoomCode='LOCAL';hostMode='offline';window.__hypoxAbort=false;
+      show('#scr-lobby');setupLobby(currentGameMode);
+      if(saved.viewKind==='game'&&currentGameMode)setTimeout(()=>startDirectGame(currentGameMode),0);
+      else if(saved.viewKind==='pack-picker')setTimeout(()=>showPackPicker(),0);
+      return true;
+    }
+
+    if(saved.screen==='scr-games'){
+      document.getElementById('heroStart')?.click();
+      return true;
+    }
+    if(saved.screen==='scr-pregame'&&currentPregameMode){
+      document.getElementById('heroStart')?.click();
+      showPregame(currentPregameMode);
+      const modeButton={tv:'pgHostBtn',phones:'pgPhonesBtn',offline:'pgOfflineBtn'}[hostMode];
+      if(modeButton)document.getElementById(modeButton)?.click();
+      return true;
+    }
+    if(saved.screen==='scr-join'){
+      showHypoxHeader();paintJoin();
+      $('#joinCode').value=saved.joinCode||saved.roomCode||'';
+      $('#joinName').value=saved.joinName||'';
+      show('#scr-join');
+      return true;
+    }
+    // Non-serializable avatar callbacks cannot be recreated safely; return to
+    // the nearest setup screen instead of unexpectedly sending the user home.
+    if(saved.screen==='scr-avatar'&&currentPregameMode){
+      document.getElementById('heroStart')?.click();showPregame(currentPregameMode);
+      return true;
+    }
+    return false;
+  }
 
   // Translation helper for inline strings
   const T = {
@@ -147,7 +272,7 @@
         const saved=sessionStorage.getItem('hypox_session');
         if(saved){
           const s=JSON.parse(saved);
-          if(s.code&&s.name&&FirebaseNet.available()){
+          if(s.code&&s.name&&!s.pid&&FirebaseNet.available()){
             const jc=$('#joinCode'),jn=$('#joinName');
             if(jc)jc.value=s.code;
             if(jn)jn.value=s.name;
@@ -203,7 +328,11 @@
     // URL auto-join
     const urlParams=new URLSearchParams(window.location.search);
     const urlCode=urlParams.get('room');
-    if(urlCode){$('#joinCode').value=urlCode.toUpperCase();showHypoxHeader();show('#scr-join');}
+    const savedNav=readNavigationState();
+    if(urlCode&&savedNav?.roomCode!==urlCode.toUpperCase()){$('#joinCode').value=urlCode.toUpperCase();showHypoxHeader();paintJoin();show('#scr-join');}
+    else restoreNavigationState();
+    window.addEventListener('pagehide',()=>saveNavigationState());
+    window.addEventListener('beforeunload',()=>saveNavigationState());
   });
 
   function applyTheme(){
@@ -280,6 +409,7 @@
 
   /* ---- PREGAME: single page, no scroll ---- */
   function showPregame(mode){
+    currentPregameMode=mode;currentGameMode=mode;currentViewKind='pregame';
     document.getElementById('pgStickyBar')?.remove(); // clean up from previous
     // Wire topbar back button for pregame
     $('#topbar').classList.add('show');
@@ -426,7 +556,7 @@
     // Play mode buttons now just SET the mode, show a START button
     let selectedPlayMode = null;
     function selectPlayMode(playMode){
-      selectedPlayMode=playMode;
+      selectedPlayMode=playMode;hostMode=playMode;
       $$('.play-mode-btn').forEach(b=>{
         b.classList.remove('selected');
         b.style.borderColor='';b.style.color='';b.style.background='';
@@ -449,6 +579,7 @@
       }
       startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
       startBtn.onclick=()=>{if(!selectedPlayMode){alert(LANG==='ar'?'اختر طريقة اللعب أولاً':'Please select how you are playing first');return;}startGameWithMode(selectedPlayMode,mode);};
+      saveNavigationState('scr-pregame');
       Audio_.sfx.blip();
     }
     document.getElementById('pgHostBtn').onclick=()=>selectPlayMode('tv');
@@ -480,7 +611,8 @@
 
   /* ---- START GAME ---- */
   async function startGameWithMode(playMode,gameMode){
-    Audio_.sfx.submit();hostMode=playMode;
+    Audio_.sfx.submit();hostMode=playMode;currentGameMode=gameMode;currentViewKind='starting';
+    window.__hypoxAbort=false;
     window.__hypoxSkip=null;
     // Show loading on button immediately so user knows tap worked
     const startBtn=document.getElementById('pgStartBtn');
@@ -526,7 +658,8 @@
   }
 
   function setupLobby(gameMode){
-    gameActive=false;
+    gameActive=false;currentGameMode=gameMode;currentViewKind='lobby';
+    saveNavigationState('scr-lobby');
     // Ensure topbar is correct
     $('#topbar').classList.add('show');
     // menuBtn always visible (fixed position)
@@ -636,17 +769,26 @@
   }
 
   async function startDirectGame(gameMode){
-    Audio_.stopMusic();await FX.wipe();Host.hideHost();
+    const runningNet=net;
+    currentGameMode=gameMode;currentViewKind='game';saveNavigationState('scr-game');
+    Audio_.stopMusic();await FX.wipe();
+    if(window.__hypoxAbort||!runningNet||net!==runningNet)return;
+    Host.hideHost();
     show('#scr-game');gameActive=true;document.getElementById('topbarBack')?.style.setProperty('visibility','visible');$('#topbar').classList.add('show');$('#roundPill').style.visibility='visible';
     
     $('#roundPill').textContent=(t('mode_names')||{})[gameMode]||gameMode;
     net.setState({phase:'wait',msg:T.watchScreen()});
     await Host.run(net,players,gameMode);
+    if(window.__hypoxAbort||!net||net!==runningNet||!gameActive)return;
     showPackPicker();
   }
 
   async function showPackPicker(){
-    Audio_.stopMusic();await FX.wipe();Host.hideHost();
+    const runningNet=net;
+    currentViewKind='pack-picker';saveNavigationState('scr-game');
+    Audio_.stopMusic();await FX.wipe();
+    if(window.__hypoxAbort||!runningNet||net!==runningNet)return;
+    Host.hideHost();
     show('#scr-game');gameActive=true;document.getElementById('topbarBack')?.style.setProperty('visibility','visible');
     $('#roundPill').textContent=T.nextGame();
     const modeNamesObj=t('mode_names')||{};
@@ -709,26 +851,45 @@
       window.scrollTo({top:_menuScrollY,left:0,behavior:'auto'});
     }
   }
+  function clearGameUI(){
+    if(_ppDismiss)try{_ppDismiss();}catch(e){}
+    _ppDismiss=null;window.__hypoxDismissPP=null;
+    document.querySelectorAll('.phones-host-input-overlay').forEach(overlay=>overlay.remove());
+    const dock=$('#hostInputDock');if(dock){dock.classList.add('hidden');dock.innerHTML='';dock.removeAttribute('style');}
+    const pp=$('#ppOverlay');if(pp){pp.classList.remove('show');pp.innerHTML='';}
+    const ctrl=$('#ctrlArea');if(ctrl){ctrl.classList.add('hidden');ctrl.innerHTML='';}
+    const shared=$('#phoneSharedStage');if(shared){shared.classList.add('hidden');shared.innerHTML='';shared.dataset.sharedReady='';shared.dataset.gameStarted='';shared.dataset.sceneId='';}
+    const sharedHost=$('#phoneSharedHost');if(sharedHost){sharedHost.className='phone-shared-host hidden';sharedHost.innerHTML='';}
+    const mirror=$('#phoneMirror');if(mirror){mirror.classList.add('hidden');mirror.querySelectorAll('#pmPill,#pmHeadline,#pmSpeech').forEach(el=>el.textContent='');}
+    const stage=$('#hostStage');if(stage)stage.innerHTML='';
+    $('#scr-game')?.classList.remove('rebus-input-active');
+    document.body.classList.remove('phones-only-player','phones-host-answering','phones-player-answering');
+    Host.hideHost?.();
+    const speech=$('#speechText');if(speech)speech.textContent='';
+  }
   async function leaveGame(){
     try{sessionStorage.removeItem('hypox_session');}catch(e){}
-    gameActive=false;
-    document.body.classList.remove('phones-host-answering','phones-player-answering');
     window.__hypoxAbort = true;  // tells Host.run to stop after current await
+    window.__hypoxPlayAgain=false;
+    gameActive=false;
     Host.stopSharedScreen?.();
     if(window.__hypoxSkip)window.__hypoxSkip();
     window.__hypoxSkip=null;
     const leavingNet=net;
     if(leavingNet)try{leavingNet.setState({phase:'wait',msg:''});}catch(e){}
     Audio_.stopMusic();
-    currentRoomCode=null;net=null;players=[];
-    document.body.classList.remove('phones-only-player');
-    const hel=$('#host');if(hel)hel.classList.remove('show');
+    clearGameUI();
+    currentRoomCode=null;net=null;players=[];myPid=null;isVip=false;hostMode='tv';
+    currentGameMode=null;currentPregameMode=null;currentViewKind='title';
     document.getElementById('topbarBack')?.style.setProperty('visibility','hidden');
     show('#scr-title');
     $('#roundPill').style.visibility='hidden';
     $('#topbar').classList.remove('show');
     // menuBtn always visible (fixed position)
     if(leavingNet)try{await leavingNet.close();}catch(e){console.warn('Room cleanup failed',e);}
+    // Any already-resolving animation/input promise is harmless now, but run
+    // one final cleanup after it has had a chance to settle.
+    setTimeout(()=>{if(!gameActive&&!net)clearGameUI();},450);
   }
 
   /* ---- AVATAR ---- */
@@ -808,6 +969,7 @@
       if(hidesStageAnswers)document.body.classList.add('phones-host-answering');
       // Use a body-level modal overlay — avoids all overflow/stacking context issues
       const overlay=document.createElement('div');
+      overlay.className='phones-host-input-overlay';
       overlay.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none;';
       const panel=document.createElement('div');
       panel.style.cssText='pointer-events:auto;background:var(--bg);border-top:2px solid var(--border-hi);padding:16px 16px max(20px,env(safe-area-inset-bottom));width:100%;max-height:60vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.6);';
@@ -856,8 +1018,14 @@
     $('#joinErr').innerHTML='<div class="join-spinner"><div class="spinner-ring"></div><span>'+(LANG==='ar'?'جاري الاتصال...':'Joining...')+'</span></div>';
     try{net=FirebaseNet.create();const res=await net.joinRoom(code,name,selectedAvatar);myPid=res.pid;isVip=res.isVip;currentRoomCode=code;await net.getPlayMode();}
     catch(e){$('#joinErr').textContent=T.connFail();return;}
-    // Save session so reconnect works after phone lock
-    try{sessionStorage.setItem('hypox_session',JSON.stringify({code,name,emoji:selectedAvatar.emoji,color:selectedAvatar.color}));}catch(e){}
+    // Save the stable player id so refresh reconnects this player instead of
+    // adding a second copy to the room.
+    try{sessionStorage.setItem('hypox_session',JSON.stringify({code,name,pid:myPid,isVip,emoji:selectedAvatar.emoji,color:selectedAvatar.color}));}catch(e){}
+    openPlayerController();
+  }
+
+  function openPlayerController(){
+    currentViewKind='controller';gameActive=true;
     show('#scr-controller');
     showHypoxHeader(); // shows HYPOX logo in center, topbar visible
     updateMenu();
@@ -989,6 +1157,7 @@
       net.onSharedScreen(view=>renderShared(view));
     }
     let lastPhaseId=null;
+    let hostLeftTimer=null;
     net.onState(state=>{
       if(!state||state.phase==='hostLeft'){
         document.body.classList.remove('phones-player-answering');
@@ -998,12 +1167,17 @@
           <div style="font-family:'Fredoka One',sans-serif;font-size:20px;color:var(--text2);margin-top:12px">${LANG==='ar'?'المضيف غادر اللعبة':'Host left the game'}</div>
         </div>`;
         resetScrollPositionAfterLayout();
-        setTimeout(()=>{
-          currentRoomCode=null;net=null;players=[];gameActive=false;
+        if(!hostLeftTimer)hostLeftTimer=setTimeout(()=>{
+          try{sessionStorage.removeItem('hypox_session');}catch(e){}
+          clearGameUI();currentRoomCode=null;net=null;players=[];gameActive=false;
+          currentGameMode=null;currentPregameMode=null;currentViewKind='title';
           show('#scr-title');
         },2500);
         return;
       }
+      // A host refresh briefly publishes hostLeft, then resumeHost restores a
+      // normal state. Cancel the delayed redirect as soon as that happens.
+      if(hostLeftTimer){clearTimeout(hostLeftTimer);hostLeftTimer=null;}
       if(state.takenAnswers) window._hypoxTakenAnswers=state.takenAnswers;
       else if(state.phase==='input') window._hypoxTakenAnswers=[];
       if(state.mirror)renderMirror(state.mirror);

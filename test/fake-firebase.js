@@ -83,7 +83,7 @@ function makeFakeFirebase() {
       off() {
         for (let i = listeners.length - 1; i >= 0; i--) if (listeners[i].path === path) listeners.splice(i, 1);
       },
-      onDisconnect() { return { remove() {}, }; },
+      onDisconnect() { return { remove() {}, set() {}, cancel() {}, }; },
     };
   }
 

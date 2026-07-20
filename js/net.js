@@ -58,8 +58,37 @@ class FirebaseNet {
       createdAt: Date.now(), lang,
       state: { phase: 'lobby' },
     });
-    this.room().onDisconnect().remove(); // rooms die with the host
+    // Keep the room record long enough for a browser refresh to reconnect.
+    // A real host departure is still removed by close(); an unexpected tab
+    // close publishes hostLeft so controllers do not wait forever.
+    this.room('state').onDisconnect().set({ phase: 'hostLeft', ts: Date.now() });
     return this.code;
+  }
+
+  async resumeHost(code, pid = null) {
+    this.code = code.toUpperCase().trim();
+    const roomSnap = await this.room().get();
+    if (!roomSnap.exists()) throw new Error('no-room');
+    this.isRoomOwner = true;
+    this.pid = pid || null;
+    this.playMode = roomSnap.val()?.playMode || 'tv';
+    const existing = roomSnap.val()?.players || {};
+    this._players = Object.entries(existing).map(([playerPid, player]) => ({ pid: playerPid, ...player }))
+      .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+    this.room('state').onDisconnect().set({ phase: 'hostLeft', ts: Date.now() });
+    await this.setState({ phase: 'lobby' });
+    return { players: this._players, playMode: this.playMode };
+  }
+
+  async resumePlayer(code, pid) {
+    this.code = code.toUpperCase().trim();
+    const roomSnap = await this.room().get();
+    const player = roomSnap.val()?.players?.[pid];
+    if (!roomSnap.exists() || !player) throw new Error('no-room');
+    this.pid = pid;
+    this.isRoomOwner = false;
+    this.playMode = roomSnap.val()?.playMode || 'tv';
+    return { pid, isVip: !!player.isVip, player, playMode: this.playMode };
   }
 
   async joinRoom(code, name, av) {
@@ -202,6 +231,7 @@ class FirebaseNet {
     const roomRef = this.room();
     const playerRef = this.pid ? this.room('players/' + this.pid) : null;
     try { await roomRef.onDisconnect().cancel(); } catch(e) {}
+    try { await this.room('state').onDisconnect().cancel(); } catch(e) {}
     if (playerRef) {
       try { await playerRef.onDisconnect().cancel(); } catch(e) {}
     }
