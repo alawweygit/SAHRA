@@ -318,7 +318,14 @@
 
     // Avatar
     buildAvatarGrid();
-    $('#avatarDone').addEventListener('click',confirmAvatar);
+    $('#avatarDone').addEventListener('click',()=>{
+      const name=$('#avatarName').value.trim();
+      if(!name){$('#avatarName').classList.add('shake');setTimeout(()=>$('#avatarName').classList.remove('shake'),500);return;}
+      if(!selectedAvatar){return;}
+      const btn=$('#avatarDone');
+      btn.disabled=true;btn.innerHTML='<span style="display:inline-flex;align-items:center;gap:8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>'+(LANG==='ar'?'جاري...':'Loading...')+'</span>';
+      confirmAvatar();
+    });
     $('#avatarName').addEventListener('keydown',e=>{if(e.key==='Enter')confirmAvatar();});
 
     // Lobby
@@ -656,7 +663,7 @@
         show('#scr-lobby');setupLobby(gameMode);
       });return;
     }
-    show('#scr-lobby');setupLobby(gameMode);
+    show('#scr-lobby');setupLobby(gameMode);requestAnimationFrame(()=>{const _ls=document.getElementById('scr-lobby');if(_ls){_ls.scrollTop=0;requestAnimationFrame(()=>{_ls.scrollTop=0;});}});
   }
 
   function setupLobby(gameMode){
@@ -757,6 +764,7 @@
     });
 
     const startBtn=document.getElementById('startGameBtn');
+    if(startBtn){const _origStart=startBtn.onclick;startBtn.addEventListener('click',()=>{startBtn.disabled=true;startBtn.innerHTML='<span style="display:inline-flex;align-items:center;gap:8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>'+(LANG==='ar'?'جاري...':'Starting...')+'</span>';},{once:true});}
     if(startBtn)startBtn.onclick=()=>{
       const minPlayers = 2; // testing: allow 2 players for any game (real min shown on cards)
       if(players.length<minPlayers){
@@ -921,7 +929,7 @@
       avatarBack.onclick=()=>{
         Audio_.sfx.blip();
         avatarBack.style.setProperty('visibility','hidden');
-        if(_avatarContext==='offline')show('#scr-lobby');else show('#scr-title');
+        if(_avatarContext==='offline')show('#scr-lobby');else show('#scr-pregame');
       };
     }
     show('#scr-avatar');
