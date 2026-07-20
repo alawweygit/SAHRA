@@ -1337,12 +1337,7 @@
         document.getElementById('hostGoneBanner')?.remove();
         if(window._hypoxHostGone){
           window._hypoxHostGone=false;
-          ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:30px 20px">
-            <div style="font-size:48px">🎉</div>
-            <div style="font-family:'Fredoka One',sans-serif;font-size:22px;color:var(--text);margin-top:12px;margin-bottom:20px">${LANG==='ar'?'انتهت اللعبة!':'Game Over!'}</div>
-            <div style="font-family:'Fredoka One',sans-serif;font-size:16px;color:var(--text2);margin-bottom:20px">${LANG==='ar'?'المضيف غادر — من يريد أن يكون المضيف؟':'Host left — who wants to host next?'}</div>
-            <button id="becomeHostBtn2" class="big-btn">${LANG==='ar'?'أنا سأكون المضيف 👑':'I\'ll be the host 👑'}</button>
-          </div>\`;
+          ctrl.innerHTML='<div class="ctrl-wrap" style="text-align:center;padding:30px 20px"><div style="font-size:48px">🎉</div><div style="font-family:Fredoka One,sans-serif;font-size:22px;color:var(--text);margin-top:12px;margin-bottom:20px">'+(LANG==='ar'?'انتهت اللعبة!':'Game Over!')+'</div><div style="font-family:Fredoka One,sans-serif;font-size:16px;color:var(--text2);margin-bottom:20px">'+(LANG==='ar'?'المضيف غادر — من يريد أن يكون المضيف؟':'Host left — who wants to host next?')+'</div><button id="becomeHostBtn2" class="big-btn">'+(LANG==='ar'?'أنا سأكون المضيف 👑':"I'll be the host 👑")+'</button></div>';
           resetScrollPositionAfterLayout();
           document.getElementById('becomeHostBtn2')?.addEventListener('click',()=>_claimHost());
           return;
