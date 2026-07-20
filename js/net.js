@@ -226,10 +226,41 @@ class FirebaseNet {
 
   updateScore(pid, score) { return this.room(`players/${pid}/score`).set(score); }
 
+  // ── PRESENCE / HEARTBEAT ──
+  startHeartbeat() {
+    if (this._heartbeatInt) return;
+    const write = () => {
+      if (!this.code || !this.pid) return;
+      try { this.room('presence/' + this.pid).set({ t: Date.now() }); } catch(e) {}
+    };
+    write();
+    this._heartbeatInt = setInterval(write, 5000);
+  }
+  stopHeartbeat() {
+    if (this._heartbeatInt) { clearInterval(this._heartbeatInt); this._heartbeatInt = null; }
+    if (this.code && this.pid) {
+      try { this.room('presence/' + this.pid).remove(); } catch(e) {}
+    }
+  }
+  onPresence(cb) {
+    if (!this.code) return;
+    this.room('presence').on('value', s => {
+      const v = s.val() || {};
+      const now = Date.now();
+      const status = {};
+      for (const [pid, data] of Object.entries(v)) {
+        const age = now - (data.t || 0);
+        status[pid] = age < 15000 ? 'online' : age < 60000 ? 'away' : 'offline';
+      }
+      cb(status);
+    });
+  }
+
   async close() {
     if (!this.code) return;
     const roomRef = this.room();
     const playerRef = this.pid ? this.room('players/' + this.pid) : null;
+    this.stopHeartbeat();
     try { await roomRef.onDisconnect().cancel(); } catch(e) {}
     try { await this.room('state').onDisconnect().cancel(); } catch(e) {}
     if (playerRef) {

@@ -702,6 +702,7 @@
         show('#scr-lobby');setupLobby(gameMode);
       });return;
     }
+    if(net&&net.startHeartbeat&&net.pid)net.startHeartbeat();
     show('#scr-lobby');setupLobby(gameMode);requestAnimationFrame(()=>{const _ls=document.getElementById('scr-lobby');if(_ls){_ls.scrollTop=0;requestAnimationFrame(()=>{_ls.scrollTop=0;});}});
   }
 
@@ -752,6 +753,24 @@
       document.getElementById('scr-lobby').appendChild(addBotBtn);
     }
     // Back button via topbarBack (top-left) — not bottom
+    // Presence monitoring — update player row colors when online/offline status changes
+    if(net&&net.onPresence){
+      net.onPresence(status=>{
+        window._hypoxPresence=status;
+        // re-render player row with new status (reuses existing list)
+        if(net._players){
+          const _ls=document.getElementById('scr-lobby');
+          const _prevScroll=_ls?_ls.scrollTop:0;
+          const _pStatus=status||{};
+          const row=document.getElementById('playerRow');
+          if(row)row.innerHTML=net._players.map(p=>{
+            const _offline=_pStatus[p.pid]==='away'||_pStatus[p.pid]==='offline';
+            return `<div class="player${_offline?' player-offline':''}"><div class="avatar" style="background:${p.color};${_offline?'filter:grayscale(0.8);opacity:0.5':''}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}${_offline?'<span style="display:block;font-size:10px;color:var(--text3)">📶 offline</span>':''}</div></div>`;
+          }).join('');
+          if(_ls)requestAnimationFrame(()=>{_ls.scrollTop=_prevScroll<10?0:_prevScroll;});
+        }
+      });
+    }
     document.getElementById('lobbyBackBtn')?.remove();
     const lobbyBackEl=document.getElementById('topbarBack');
     if(lobbyBackEl){
@@ -798,7 +817,11 @@
       }
       const _ls=document.getElementById('scr-lobby');
       const _prevScroll=_ls?_ls.scrollTop:0;
-      $('#playerRow').innerHTML=list.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('');
+      const _pStatus=window._hypoxPresence||{};
+      $('#playerRow').innerHTML=list.map(p=>{
+        const _offline=_pStatus[p.pid]==='away'||_pStatus[p.pid]==='offline';
+        return `<div class="player${_offline?' player-offline':''}"><div class="avatar" style="background:${p.color};${_offline?'filter:grayscale(0.8);opacity:0.5':''}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}${_offline?'<span style="display:block;font-size:10px;color:var(--text3)">📶 offline</span>':''}</div></div>`;
+      }).join('');
       if(_ls){requestAnimationFrame(()=>{_ls.scrollTop=_prevScroll<10?0:_prevScroll;requestAnimationFrame(()=>{if(_ls.scrollTop<10)_ls.scrollTop=0;});});}
       const canStart=list.length>=2;
       $('#startGameBtn').classList.toggle('dim',!canStart);
@@ -1078,6 +1101,7 @@
 
   function openPlayerController(){
     currentViewKind='controller';gameActive=true;
+    if(net&&net.startHeartbeat)net.startHeartbeat();
     show('#scr-controller');
     showHypoxHeader(); // shows HYPOX logo in center, topbar visible
     updateMenu();

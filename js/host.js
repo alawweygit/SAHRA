@@ -166,7 +166,9 @@ const Host = (() => {
     if (row) {
       row.innerHTML = pids.map(pid => {
         const p = players.find(x => x.pid === pid);
-        return `<div class="mini" id="mini-${pid}">${avatarHTML(p)}<div class="check">✓</div></div>`;
+        const _st = (window._hypoxPresence||{})[pid];
+        const _off = _st==='away'||_st==='offline';
+        return `<div class="mini${_off?' mini-offline':''}" id="mini-${pid}" style="${_off?'opacity:0.4;filter:grayscale(0.8)':''}">${avatarHTML(p)}<div class="check">✓</div></div>`;
       }).join('');
     }
     net.onEachInput(pid => {
