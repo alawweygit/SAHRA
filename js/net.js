@@ -54,6 +54,7 @@ class FirebaseNet {
   async createRoom(lang) {
     this.code = makeCode();
     this.isRoomOwner = true;
+    this.pid = this.pid || ('host_' + Date.now());
     await this.room().set({
       createdAt: Date.now(), lang,
       state: { phase: 'lobby' },
@@ -239,6 +240,7 @@ class FirebaseNet {
         for (const [pid, data] of Object.entries(presence)) {
           if (pid === this.pid || pid === this.hostSelfPid) continue; // never remove self or host
           if ((this._botPids||[]).includes(pid)) continue; // never remove bots
+          if (!data || !data.t) continue; // never remove players with no heartbeat entry (TV mode host)
           const age = now - (data.t || 0);
           if (age > OFFLINE_MS) {
             try {

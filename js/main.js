@@ -305,7 +305,8 @@
     // Resume room banner for host after page reload
     try{
       const _resume=JSON.parse(sessionStorage.getItem('hypox_resume')||'null');
-      if(_resume&&_resume.code&&Date.now()-(_resume.savedAt||0)<2*60*60*1000&&FirebaseNet.available()){
+      const _noPlayerSession=!sessionStorage.getItem('hypox_session');
+      if(_resume&&_resume.code&&_noPlayerSession&&Date.now()-(_resume.savedAt||0)<2*60*60*1000&&FirebaseNet.available()){
         const _rb=document.createElement('div');
         _rb.id='resumeRoomBanner';
         _rb.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:999;background:var(--card);border:2px solid var(--yellow);border-radius:20px;padding:14px 20px;font-family:Fredoka One,sans-serif;font-size:15px;color:var(--text);box-shadow:0 4px 24px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;gap:10px;min-width:260px;text-align:center;';
@@ -1114,8 +1115,9 @@
     try{sessionStorage.setItem('hypox_resume',JSON.stringify({
       code:_code,mode:currentGameMode,hostSelfPid:_session?.pid||null,savedAt:Date.now()
     }));}catch(e){}
-    // Close player connection cleanly before reloading as host
-    if(net)try{net.stopHeartbeat?.();await net.close();}catch(e){}
+    // Stop heartbeat only — do NOT close/remove from Firebase
+    // We need to stay in the room so host can resume and see us
+    if(net)try{net.stopHeartbeat?.();}catch(e){}
     window.location.href=window.location.origin+window.location.pathname;
   }
 
@@ -1276,7 +1278,7 @@
         ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:30px 20px">
           <div style="font-size:48px">😢</div>
           <div style="font-family:'Fredoka One',sans-serif;font-size:20px;color:var(--text2);margin-top:12px">${LANG==='ar'?'المضيف غادر اللعبة':'Host left the game'}</div>
-          <button id="becomeHostBtn" class="big-btn" style="margin-top:20px">${LANG==='ar'?'أنا سأكون المضيف 👑':'I'll be the host 👑'}</button>
+          <button id="becomeHostBtn" class="big-btn" style="margin-top:20px">${LANG==='ar'?'أنا سأكون المضيف 👑':'I\'ll be the host 👑'}</button>
         </div>`;
         resetScrollPositionAfterLayout();
         document.getElementById('becomeHostBtn')?.addEventListener('click',()=>_claimHost());
@@ -1339,7 +1341,7 @@
             <div style="font-size:48px">🎉</div>
             <div style="font-family:'Fredoka One',sans-serif;font-size:22px;color:var(--text);margin-top:12px;margin-bottom:20px">${LANG==='ar'?'انتهت اللعبة!':'Game Over!'}</div>
             <div style="font-family:'Fredoka One',sans-serif;font-size:16px;color:var(--text2);margin-bottom:20px">${LANG==='ar'?'المضيف غادر — من يريد أن يكون المضيف؟':'Host left — who wants to host next?'}</div>
-            <button id="becomeHostBtn2" class="big-btn">${LANG==='ar'?'أنا سأكون المضيف 👑':"I'll be the host 👑"}</button>
+            <button id="becomeHostBtn2" class="big-btn">${LANG==='ar'?'أنا سأكون المضيف 👑':'I\'ll be the host 👑'}</button>
           </div>\`;
           resetScrollPositionAfterLayout();
           document.getElementById('becomeHostBtn2')?.addEventListener('click',()=>_claimHost());
