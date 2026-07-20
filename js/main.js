@@ -881,7 +881,7 @@
       </div>
       <button class="bar-btn" id="backToLobbyBtn" style="margin-top:2vmin">${T.backLobby()}</button>`);
     Audio_.unlock();
-    Audio_.startMusic('lobby');net.setState({phase:'wait',msg:T.watchScreen()});
+    Audio_.startMusic('lobby');net.setState({phase:'packpicker',msg:T.watchScreen()});
     $$('.pack-card').forEach(btn=>btn.addEventListener('click',async()=>{
       const mode=btn.dataset.mode,minP=MODE_MIN[mode]||2;
       if(players.length<minP){
@@ -1099,8 +1099,21 @@
     openPlayerController();
   }
 
+  async function _claimHost(){
+    if(!net||!currentRoomCode)return;
+    const _code=currentRoomCode;
+    const _session=JSON.parse(sessionStorage.getItem('hypox_session')||'null');
+    try{sessionStorage.setItem('hypox_resume',JSON.stringify({
+      code:_code,mode:currentGameMode,hostSelfPid:_session?.pid||null,savedAt:Date.now()
+    }));}catch(e){}
+    // Close player connection cleanly before reloading as host
+    if(net)try{net.stopHeartbeat?.();await net.close();}catch(e){}
+    window.location.href=window.location.origin+window.location.pathname;
+  }
+
   function openPlayerController(){
     currentViewKind='controller';gameActive=true;
+    window._hypoxHostGone=false;
     if(net&&net.startHeartbeat)net.startHeartbeat();
     show('#scr-controller');
     showHypoxHeader(); // shows HYPOX logo in center, topbar visible
@@ -1237,12 +1250,28 @@
     net.onState(state=>{
       if(!state||state.phase==='hostLeft'){
         document.body.classList.remove('phones-player-answering');
-        // Host left — go back to home
+        // If game is active, don't redirect — show banner and let game finish
+        if(gameActive){
+          // Show subtle banner that host disconnected but game continues
+          let _hb=document.getElementById('hostGoneBanner');
+          if(!_hb){
+            _hb=document.createElement('div');
+            _hb.id='hostGoneBanner';
+            _hb.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:300;background:rgba(0,0,0,0.85);border:1.5px solid var(--yellow);border-radius:20px;padding:10px 20px;font-family:Fredoka One,sans-serif;font-size:14px;color:var(--yellow);text-align:center;';
+            _hb.textContent=LANG==='ar'?'المضيف انقطع — اللعبة مستمرة ⚡':'Host disconnected — game continues ⚡';
+            document.body.appendChild(_hb);
+          }
+          window._hypoxHostGone=true;
+          return;
+        }
+        // Not in game — show host left screen with option to become host
         ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:30px 20px">
           <div style="font-size:48px">😢</div>
           <div style="font-family:'Fredoka One',sans-serif;font-size:20px;color:var(--text2);margin-top:12px">${LANG==='ar'?'المضيف غادر اللعبة':'Host left the game'}</div>
+          <button id="becomeHostBtn" class="big-btn" style="margin-top:20px">${LANG==='ar'?'أنا سأكون المضيف 👑':'I'll be the host 👑'}</button>
         </div>`;
         resetScrollPositionAfterLayout();
+        document.getElementById('becomeHostBtn')?.addEventListener('click',()=>_claimHost());
         if(!hostLeftTimer)hostLeftTimer=setTimeout(()=>{
           try{sessionStorage.removeItem('hypox_session');}catch(e){}
           clearGameUI();currentRoomCode=null;net=null;players=[];gameActive=false;
@@ -1254,6 +1283,11 @@
       // A host refresh briefly publishes hostLeft, then resumeHost restores a
       // normal state. Cancel the delayed redirect as soon as that happens.
       if(hostLeftTimer){clearTimeout(hostLeftTimer);hostLeftTimer=null;}
+      // If host came back, remove the gone banner
+      if(window._hypoxHostGone){
+        window._hypoxHostGone=false;
+        document.getElementById('hostGoneBanner')?.remove();
+      }
       if(state.takenAnswers) window._hypoxTakenAnswers=state.takenAnswers;
       else if(state.phase==='input') window._hypoxTakenAnswers=[];
       if(state.mirror)renderMirror(state.mirror);
@@ -1287,6 +1321,22 @@
           return result;
         });
         resetScrollPositionAfterLayout();
+      }else if(state.phase==='packpicker'){
+        // Game ended — host is showing next game picker
+        gameActive=false;
+        document.getElementById('hostGoneBanner')?.remove();
+        if(window._hypoxHostGone){
+          window._hypoxHostGone=false;
+          ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:30px 20px">
+            <div style="font-size:48px">🎉</div>
+            <div style="font-family:'Fredoka One',sans-serif;font-size:22px;color:var(--text);margin-top:12px;margin-bottom:20px">${LANG==='ar'?'انتهت اللعبة!':'Game Over!'}</div>
+            <div style="font-family:'Fredoka One',sans-serif;font-size:16px;color:var(--text2);margin-bottom:20px">${LANG==='ar'?'المضيف غادر — من يريد أن يكون المضيف؟':'Host left — who wants to host next?'}</div>
+            <button id="becomeHostBtn2" class="big-btn">${LANG==='ar'?'أنا سأكون المضيف 👑':"I'll be the host 👑"}</button>
+          </div>\`;
+          resetScrollPositionAfterLayout();
+          document.getElementById('becomeHostBtn2')?.addEventListener('click',()=>_claimHost());
+          return;
+        }
       }else if(state.phase==='wait'||state.phase==='mirror'){
         // Show full game content on phone using mirror data
         if(phonesOnly){
