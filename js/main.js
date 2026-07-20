@@ -1228,9 +1228,8 @@
     function renderSharedLobby(list){
       if(!phonesOnly||shared.dataset.sharedReady==='1')return;
       shared.innerHTML=`<div class="shared-lobby"><div class="lobby-title display">${LANG==='ar'?'اللاعبون':'PLAYERS'}</div><div class="shared-player-row">${list.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('')}</div><div class="shared-lobby-count">${list.length}/20</div></div>`;
-      // Firebase delivers this card after the controller screen is already
-      // visible. Reset every possible Safari scroll owner after it is laid out.
-      resetScrollPositionAfterLayout();
+      const _sc=document.getElementById('scr-controller');
+      if(_sc){_sc.scrollTop=0;requestAnimationFrame(()=>{_sc.scrollTop=0;requestAnimationFrame(()=>{_sc.scrollTop=0;});});}
     }
     function buildMirrorHTML(m){
       return `<div class="ctrl-mirror">

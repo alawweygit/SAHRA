@@ -1112,10 +1112,13 @@ html{font-size:17px;}
 #scr-controller{
   position:absolute!important;inset:0!important;
   display:flex!important;flex-direction:column!important;
-  align-items:center!important;justify-content:center!important;
-  padding:max(80px,env(safe-area-inset-top,0px)+68px) max(3vmin,env(safe-area-inset-right)) max(3vmin,env(safe-area-inset-bottom)) max(3vmin,env(safe-area-inset-left))!important;
+  align-items:center!important;justify-content:flex-start!important;
+  padding:max(90px,calc(env(safe-area-inset-top,0px) + 72px)) max(3vmin,env(safe-area-inset-right)) max(40px,calc(env(safe-area-inset-bottom,0px) + 20px)) max(3vmin,env(safe-area-inset-left))!important;
   background:var(--bg)!important;overflow-y:auto!important;
   overflow-anchor:none;overscroll-behavior-y:none;
+  -webkit-overflow-scrolling:touch!important;
+  height:100%!important;height:100dvh!important;
+  min-height:0!important;
 }
 .phones-only-player #scr-controller{
   position:absolute!important;inset:0!important;justify-content:flex-start!important;
