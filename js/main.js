@@ -764,8 +764,8 @@
     });
 
     const startBtn=document.getElementById('startGameBtn');
-    if(startBtn){const _origStart=startBtn.onclick;startBtn.addEventListener('click',()=>{startBtn.disabled=true;startBtn.innerHTML='<span style="display:inline-flex;align-items:center;gap:8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>'+(LANG==='ar'?'جاري...':'Starting...')+'</span>';},{once:true});}
     if(startBtn)startBtn.onclick=()=>{
+      startBtn.disabled=true;startBtn.innerHTML='<span style="display:inline-flex;align-items:center;gap:8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>'+(LANG==='ar'?'جاري...':'Starting...')+'</span>';
       const minPlayers = 2; // testing: allow 2 players for any game (real min shown on cards)
       if(players.length<minPlayers){
         Audio_.sfx.buzzer();
@@ -1182,7 +1182,7 @@
           clearGameUI();currentRoomCode=null;net=null;players=[];gameActive=false;
           currentGameMode=null;currentPregameMode=null;currentViewKind='title';
           show('#scr-title');
-        },2500);
+        },8000);
         return;
       }
       // A host refresh briefly publishes hostLeft, then resumeHost restores a
