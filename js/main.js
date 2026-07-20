@@ -757,7 +757,10 @@
         if(prev===0&&list.length===1) Host.say(tPick('banter_lobby'));
         else if(list.length>1) Host.say(LANG==='ar'?`${newPlayer.name} انضم! أهلاً!`:`${newPlayer.name} just joined!`);
       }
-      $('#playerRow').innerHTML=list.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('');requestAnimationFrame(()=>{const _ls=document.getElementById('scr-lobby');if(_ls){_ls.scrollTop=0;requestAnimationFrame(()=>{_ls.scrollTop=0;});}}); 
+      const _ls=document.getElementById('scr-lobby');
+      const _prevScroll=_ls?_ls.scrollTop:0;
+      $('#playerRow').innerHTML=list.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('');
+      if(_ls){requestAnimationFrame(()=>{_ls.scrollTop=_prevScroll<10?0:_prevScroll;requestAnimationFrame(()=>{if(_ls.scrollTop<10)_ls.scrollTop=0;});});}
       const canStart=list.length>=2;
       $('#startGameBtn').classList.toggle('dim',!canStart);
       $('#lobbyHint').textContent=list.length<2?T.need2():list.length<3?T.need3():'';
