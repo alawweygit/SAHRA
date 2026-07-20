@@ -11,17 +11,17 @@ const Audio_ = (() => {
   // Royalty-free tracks from Pixabay (no license required)
   const TRACKS = {
     lobby: [
-      'https://cdn.pixabay.com/audio/2023/10/30/audio_9971916c5a.mp3',   // upbeat party
-      'https://cdn.pixabay.com/audio/2022/10/25/audio_0b6a3d5e37.mp3',   // fun background
+      'https://cdn.pixabay.com/audio/2023/10/30/audio_9971916c5a.mp3',
+      'https://cdn.pixabay.com/audio/2024/01/16/audio_6e1e09d2c7.mp3',
     ],
     tension: [
-      'https://cdn.pixabay.com/audio/2022/10/25/audio_0b6a3d5e37.mp3',   // tension background (reuse lobby2)
+      'https://cdn.pixabay.com/audio/2023/08/22/audio_d1718ab609.mp3',
     ],
     results: [
-      'https://cdn.pixabay.com/audio/2023/04/18/audio_c5b6e4b9af.mp3',   // celebration
+      'https://cdn.pixabay.com/audio/2023/04/18/audio_c5b6e4b9af.mp3',
     ],
     winner: [
-      'https://cdn.pixabay.com/audio/2022/11/22/audio_fbc4b2c2f1.mp3',   // fanfare
+      'https://cdn.pixabay.com/audio/2022/11/22/audio_fbc4b2c2f1.mp3',
     ],
   };
 
@@ -113,7 +113,6 @@ const Audio_ = (() => {
     const url = pool[Math.floor(Math.random() * pool.length)];
 
     const audio = new Audio();
-    audio.crossOrigin = 'anonymous';
     audio.loop = true;
     audio.volume = 0.28;
     audio.src = url;
@@ -128,12 +127,20 @@ const Audio_ = (() => {
       // fallback: just play normally
     }
 
+    // Resume AudioContext if suspended (iOS requirement)
+    if (AC && AC.state === 'suspended') AC.resume().catch(()=>{});
     const playPromise = audio.play();
     if (playPromise) {
       playPromise.catch(() => {
-        // Autoplay blocked — play on next user interaction
-        const resume = () => { audio.play().catch(()=>{}); document.removeEventListener('click', resume); };
+        // Autoplay blocked — play on next user interaction (iOS needs touchstart)
+        const resume = () => {
+          if (AC && AC.state === 'suspended') AC.resume();
+          audio.play().catch(()=>{});
+          document.removeEventListener('click', resume);
+          document.removeEventListener('touchstart', resume);
+        };
         document.addEventListener('click', resume, { once: true });
+        document.addEventListener('touchstart', resume, { once: true });
       });
     }
 
