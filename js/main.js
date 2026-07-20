@@ -294,6 +294,45 @@
       }catch(e){}
     },100); // welcome confetti on landing
 
+    // Resume room banner for host after page reload
+    try{
+      const _resume=JSON.parse(sessionStorage.getItem('hypox_resume')||'null');
+      if(_resume&&_resume.code&&Date.now()-(_resume.savedAt||0)<2*60*60*1000&&FirebaseNet.available()){
+        const _rb=document.createElement('div');
+        _rb.id='resumeRoomBanner';
+        _rb.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:999;background:var(--card);border:2px solid var(--yellow);border-radius:20px;padding:14px 20px;font-family:Fredoka One,sans-serif;font-size:15px;color:var(--text);box-shadow:0 4px 24px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;gap:10px;min-width:260px;text-align:center;';
+        _rb.innerHTML='<div style="color:var(--yellow);font-size:17px">'+(LANG==='ar'?'استأنف الغرفة؟':'Resume Room?')+'</div><div style="color:var(--text2);font-size:13px">'+(LANG==='ar'?'كود الغرفة:':'Room code:')+'&nbsp;<b style="color:var(--yellow)">'+_resume.code+'</b></div><div style="display:flex;gap:10px"><button id="resumeYes" style="background:var(--yellow);color:#000;border:none;border-radius:12px;padding:8px 22px;font-family:Fredoka One,sans-serif;font-size:15px;cursor:pointer">'+(LANG==='ar'?'استأنف ▶':'Resume ▶')+'</button><button id="resumeNo" style="background:var(--card2,#2a2a3e);color:var(--text2);border:1.5px solid var(--border);border-radius:12px;padding:8px 18px;font-family:Fredoka One,sans-serif;font-size:14px;cursor:pointer">'+(LANG==='ar'?'لا، شكراً':'No thanks')+'</button></div>';
+        document.body.appendChild(_rb);
+        document.getElementById('resumeNo').onclick=()=>{
+          sessionStorage.removeItem('hypox_resume');
+          _rb.remove();
+        };
+        document.getElementById('resumeYes').onclick=async()=>{
+          _rb.remove();
+          sessionStorage.removeItem('hypox_resume');
+          try{
+            net=FirebaseNet.create();
+            const resumed=await net.resumeHost(_resume.code,_resume.hostSelfPid||null);
+            players=resumed.players||[];
+            hostMode=resumed.playMode||'tv';
+            net.phonesOnly=hostMode==='phones';
+            net.hostSelfPid=_resume.hostSelfPid||null;
+            myPid=_resume.hostSelfPid||null;
+            currentRoomCode=_resume.code;
+            currentGameMode=_resume.mode||null;
+            window.__hypoxAbort=false;
+            show('#scr-lobby');
+            setupLobby(currentGameMode);
+            requestAnimationFrame(()=>{const _ls=document.getElementById('scr-lobby');if(_ls){_ls.scrollTop=0;requestAnimationFrame(()=>{_ls.scrollTop=0;});}});
+          }catch(e){
+            net=null;currentRoomCode=null;players=[];
+            alert(LANG==='ar'?'انتهت الغرفة.':'That room has ended.');
+          }
+        };
+        setTimeout(()=>_rb?.remove(),15000);
+      }
+    }catch(e){}
+
     $('#soundBtn').addEventListener('click',e=>{const on=Audio_.toggle();e.target.textContent=on?'🔊':'🔇';});
     $('#themeBtn').addEventListener('click',()=>{setTheme(THEME==='dark'?'light':'dark');$('#themeBtn').textContent=THEME==='dark'?'🌙':'☀️';});
     $('#themeBtn').textContent=THEME==='dark'?'🌙':'☀️';
@@ -881,7 +920,6 @@
     const speech=$('#speechText');if(speech)speech.textContent='';
   }
   async function leaveGame(){
-    try{sessionStorage.removeItem('hypox_session');}catch(e){}
     window.__hypoxAbort = true;
     window.__hypoxPlayAgain=false;
     gameActive=false;
@@ -889,15 +927,21 @@
     if(window.__hypoxSkip)window.__hypoxSkip();
     window.__hypoxSkip=null;
     const leavingNet=net;
+    const savedCode=currentRoomCode;
+    const savedMode=currentGameMode;
+    const savedHostSelfPid=net?.hostSelfPid||null;
+    const savedRole=(net?.isOffline||net?.isRoomOwner)?'host':'player';
     if(leavingNet)try{leavingNet.setState({phase:'wait',msg:''});}catch(e){}
     Audio_.stopMusic();
+    // Save resume info BEFORE closing net
+    if(savedCode&&savedCode!=='LOCAL'&&savedRole==='host'){
+      try{sessionStorage.setItem('hypox_resume',JSON.stringify({
+        code:savedCode,mode:savedMode,hostSelfPid:savedHostSelfPid,savedAt:Date.now()
+      }));}catch(e){}
+    }
+    try{sessionStorage.removeItem('hypox_session');}catch(e){}
     if(leavingNet)try{await leavingNet.close();}catch(e){}
-    // Full page reload for clean slate — fixes all stale scroll/state issues
     window.location.href=window.location.origin+window.location.pathname;
-    return;
-    // Any already-resolving animation/input promise is harmless now, but run
-    // one final cleanup after it has had a chance to settle.
-    setTimeout(()=>{if(!gameActive&&!net)clearGameUI();},450);
   }
 
   /* ---- AVATAR ---- */
