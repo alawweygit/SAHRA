@@ -135,6 +135,14 @@
         myPid=resumed.pid;isVip=resumed.isVip;currentRoomCode=saved.roomCode;
         selectedAvatar={emoji:session.emoji||resumed.player.emoji,color:session.color||resumed.player.color};
         openPlayerController();
+        // Show reconnect toast
+        setTimeout(()=>{
+          const _t=document.createElement('div');
+          _t.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:500;background:var(--card);border:2px solid #4ade80;border-radius:20px;padding:10px 22px;font-family:Fredoka One,sans-serif;font-size:15px;color:#4ade80;';
+          _t.textContent=LANG==='ar'?'✓ عدت للعبة!':'✓ Back in the game!';
+          document.body.appendChild(_t);
+          setTimeout(()=>_t.remove(),3000);
+        },500);
         return true;
       }catch(e){
         net=null;currentRoomCode=null;

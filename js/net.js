@@ -226,6 +226,35 @@ class FirebaseNet {
 
   updateScore(pid, score) { return this.room(`players/${pid}/score`).set(score); }
 
+  // ── AUTO-REMOVE OFFLINE PLAYERS ──
+  watchAndRemoveOffline(onRemove) {
+    if (this._offlineWatcher) return;
+    const OFFLINE_MS = 30000; // 30s before auto-remove
+    this._offlineWatcher = setInterval(async () => {
+      if (!this.code) return;
+      try {
+        const snap = await this.room('presence').get();
+        const presence = snap.val() || {};
+        const now = Date.now();
+        for (const [pid, data] of Object.entries(presence)) {
+          if (pid === this.pid || pid === this.hostSelfPid) continue; // never remove self or host
+          if ((this._botPids||[]).includes(pid)) continue; // never remove bots
+          const age = now - (data.t || 0);
+          if (age > OFFLINE_MS) {
+            try {
+              await this.room('players/' + pid).remove();
+              await this.room('presence/' + pid).remove();
+              if (onRemove) onRemove(pid);
+            } catch(e) {}
+          }
+        }
+      } catch(e) {}
+    }, 10000);
+  }
+  stopOfflineWatcher() {
+    if (this._offlineWatcher) { clearInterval(this._offlineWatcher); this._offlineWatcher = null; }
+  }
+
   // ── PRESENCE / HEARTBEAT ──
   startHeartbeat() {
     if (this._heartbeatInt) return;
@@ -261,6 +290,7 @@ class FirebaseNet {
     const roomRef = this.room();
     const playerRef = this.pid ? this.room('players/' + this.pid) : null;
     this.stopHeartbeat();
+    this.stopOfflineWatcher();
     try { await roomRef.onDisconnect().cancel(); } catch(e) {}
     try { await this.room('state').onDisconnect().cancel(); } catch(e) {}
     if (playerRef) {
