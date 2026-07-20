@@ -1794,6 +1794,21 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
   async function run(netInstance, playerList, mode) {
     net = netInstance;
     players = playerList;
+    // Start auto-remove watcher for offline players
+    if (net.watchAndRemoveOffline) {
+      net.watchAndRemoveOffline(pid => {
+        const idx = players.findIndex(p => p.pid === pid);
+        if (idx !== -1) {
+          const removed = players[idx];
+          players.splice(idx, 1);
+          const toast = document.createElement('div');
+          toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:var(--text2);font-family:Fredoka One,sans-serif;font-size:14px;padding:8px 20px;border-radius:20px;z-index:500;';
+          toast.textContent = (removed.emoji||'👤') + ' ' + (removed.name||'Player') + (LANG==='ar'?' غادر اللعبة':' left the game');
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 3000);
+        }
+      });
+    }
     startSharedScreen();
     window.__hypoxAbort = false;
     window._hypoxSession = Date.now().toString(36); window._clearContentCache && window._clearContentCache(); // fresh session + clear cache
