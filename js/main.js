@@ -757,7 +757,7 @@
         if(prev===0&&list.length===1) Host.say(tPick('banter_lobby'));
         else if(list.length>1) Host.say(LANG==='ar'?`${newPlayer.name} انضم! أهلاً!`:`${newPlayer.name} just joined!`);
       }
-      $('#playerRow').innerHTML=list.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('');
+      $('#playerRow').innerHTML=list.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('');requestAnimationFrame(()=>{const _ls=document.getElementById('scr-lobby');if(_ls){_ls.scrollTop=0;requestAnimationFrame(()=>{_ls.scrollTop=0;});}}); 
       const canStart=list.length>=2;
       $('#startGameBtn').classList.toggle('dim',!canStart);
       $('#lobbyHint').textContent=list.length<2?T.need2():list.length<3?T.need3():'';
@@ -920,7 +920,7 @@
     _avatarContext=context;_avatarCallback=cb||null;buildAvatarGrid();
     $('#avatarName').value='';$('#avatarName').placeholder=T.yourName();
     $('#avatarTitle').textContent=T.pickAvatar();
-    $('#avatarDone').textContent=T.letsGo();
+    $('#avatarDone').textContent=T.letsGo();$('#avatarDone').disabled=false;
     const backBtn=$('#backFromAvatar');
     $('#topbar').classList.add('show');
     const avatarBack=document.getElementById('topbarBack');
