@@ -882,7 +882,7 @@
   }
   async function leaveGame(){
     try{sessionStorage.removeItem('hypox_session');}catch(e){}
-    window.__hypoxAbort = true;  // tells Host.run to stop after current await
+    window.__hypoxAbort = true;
     window.__hypoxPlayAgain=false;
     gameActive=false;
     Host.stopSharedScreen?.();
@@ -891,15 +891,10 @@
     const leavingNet=net;
     if(leavingNet)try{leavingNet.setState({phase:'wait',msg:''});}catch(e){}
     Audio_.stopMusic();
-    clearGameUI();
-    currentRoomCode=null;net=null;players=[];myPid=null;isVip=false;hostMode='tv';
-    currentGameMode=null;currentPregameMode=null;currentViewKind='title';
-    document.getElementById('topbarBack')?.style.setProperty('visibility','hidden');
-    show('#scr-title');
-    $('#roundPill').style.visibility='hidden';
-    $('#topbar').classList.remove('show');
-    // menuBtn always visible (fixed position)
-    if(leavingNet)try{await leavingNet.close();}catch(e){console.warn('Room cleanup failed',e);}
+    if(leavingNet)try{await leavingNet.close();}catch(e){}
+    // Full page reload for clean slate — fixes all stale scroll/state issues
+    window.location.href=window.location.origin+window.location.pathname;
+    return;
     // Any already-resolving animation/input promise is harmless now, but run
     // one final cleanup after it has had a chance to settle.
     setTimeout(()=>{if(!gameActive&&!net)clearGameUI();},450);
