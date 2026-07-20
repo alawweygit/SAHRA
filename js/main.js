@@ -61,6 +61,8 @@
     });
     setTimeout(resetScrollPosition,80);
     setTimeout(resetScrollPosition,240);
+    setTimeout(resetScrollPosition,600);
+    setTimeout(resetScrollPosition,1200);
   }
   // Host scenes live in a separate module, so expose one shared reset hook.
   // Every logical screen change uses this instead of relying on Safari's
