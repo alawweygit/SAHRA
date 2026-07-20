@@ -1110,7 +1110,7 @@ html{font-size:17px;}
 
 /* ============ CONTROLLER SCREEN — SINGLE SOURCE OF TRUTH ============ */
 #scr-controller{
-  position:absolute!important;inset:0!important;
+  position:fixed!important;inset:0!important;
   display:flex!important;flex-direction:column!important;
   align-items:center!important;justify-content:flex-start!important;
   padding:max(90px,calc(env(safe-area-inset-top,0px) + 72px)) max(3vmin,env(safe-area-inset-right)) max(40px,calc(env(safe-area-inset-bottom,0px) + 20px)) max(3vmin,env(safe-area-inset-left))!important;

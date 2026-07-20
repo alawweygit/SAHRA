@@ -9,21 +9,48 @@ const Audio_ = (() => {
   let master = null;
 
   // Royalty-free tracks from Pixabay (no license required)
-  const TRACKS = {
-    lobby: [
-      'https://cdn.pixabay.com/audio/2023/10/30/audio_9971916c5a.mp3',
-      'https://cdn.pixabay.com/audio/2024/01/16/audio_6e1e09d2c7.mp3',
-    ],
-    tension: [
-      'https://cdn.pixabay.com/audio/2023/08/22/audio_d1718ab609.mp3',
-    ],
-    results: [
-      'https://cdn.pixabay.com/audio/2023/04/18/audio_c5b6e4b9af.mp3',
-    ],
-    winner: [
-      'https://cdn.pixabay.com/audio/2022/11/22/audio_fbc4b2c2f1.mp3',
-    ],
-  };
+  // No external tracks — all music is synthesized via Web Audio
+  // This avoids CDN 403 errors and works on all devices including iOS
+  const TRACKS = {};
+
+  // Synthesized ambient music using Web Audio API
+  let _synthMusic = null;
+  function startSynthMusic(name) {
+    stopSynthMusic();
+    if (!soundOn) return;
+    try {
+      const c = ac();
+      const nodes = [];
+      // Base drone
+      const baseFreqs = {lobby:[130,165,196], tension:[110,138,165], results:[196,247,294], winner:[261,330,392]};
+      const freqs = baseFreqs[name] || baseFreqs.lobby;
+      freqs.forEach((freq, i) => {
+        const osc = c.createOscillator();
+        const g = c.createGain();
+        osc.type = i===0 ? 'sine' : 'triangle';
+        osc.frequency.value = freq;
+        g.gain.value = i===0 ? 0.06 : 0.03;
+        osc.connect(g); g.connect(musicGain);
+        osc.start();
+        nodes.push(osc, g);
+      });
+      // Slow LFO tremolo
+      const lfo = c.createOscillator();
+      const lfoGain = c.createGain();
+      lfo.frequency.value = name==='tension' ? 0.8 : 0.3;
+      lfoGain.gain.value = 0.015;
+      lfo.connect(lfoGain);
+      lfo.start();
+      nodes.push(lfo, lfoGain);
+      _synthMusic = { nodes, name };
+    } catch(e) {}
+  }
+  function stopSynthMusic() {
+    if (_synthMusic) {
+      _synthMusic.nodes.forEach(n => { try { n.stop?.(); n.disconnect?.(); } catch(e){} });
+      _synthMusic = null;
+    }
+  }
 
   function ac() {
     if (!AC) {
@@ -96,56 +123,23 @@ const Audio_ = (() => {
     crown:   () => { PENTA.slice(0,8).forEach((f,i) => pluck(f,{t:i*0.07,dur:0.55,vol:0.09})); chord([523,659,784,1047],0.6,1.1,0.1); },
   };
 
-  /* ---- Real music via Audio elements ---- */
+  /* ---- Music via Web Audio synthesis (no CDN, no 403 errors) ---- */
   function stopMusic() {
+    stopSynthMusic();
     if (currentMusic) {
       try { currentMusic.pause(); currentMusic.currentTime = 0; } catch(e) {}
-      currentMusic = null; currentMusicName = null;
+      currentMusic = null;
     }
+    currentMusicName = null;
   }
 
   function startMusic(name='lobby') {
-    if (currentMusicName === name) return; // already playing
+    if (currentMusicName === name) return;
     stopMusic();
     if (!soundOn) return;
-
-    const pool = TRACKS[name] || TRACKS.lobby;
-    const url = pool[Math.floor(Math.random() * pool.length)];
-
-    const audio = new Audio();
-    audio.loop = true;
-    audio.volume = 0.28;
-    audio.src = url;
-
-    // Connect to Web Audio for consistent volume management
-    try {
-      ac();
-      const src = AC.createMediaElementSource(audio);
-      const g = AC.createGain(); g.gain.value = 1;
-      src.connect(g); g.connect(musicGain);
-    } catch(e) {
-      // fallback: just play normally
-    }
-
-    // Resume AudioContext if suspended (iOS requirement)
     if (AC && AC.state === 'suspended') AC.resume().catch(()=>{});
-    const playPromise = audio.play();
-    if (playPromise) {
-      playPromise.catch(() => {
-        // Autoplay blocked — play on next user interaction (iOS needs touchstart)
-        const resume = () => {
-          if (AC && AC.state === 'suspended') AC.resume();
-          audio.play().catch(()=>{});
-          document.removeEventListener('click', resume);
-          document.removeEventListener('touchstart', resume);
-        };
-        document.addEventListener('click', resume, { once: true });
-        document.addEventListener('touchstart', resume, { once: true });
-      });
-    }
-
-    currentMusic = audio;
     currentMusicName = name;
+    startSynthMusic(name);
   }
 
   return {
