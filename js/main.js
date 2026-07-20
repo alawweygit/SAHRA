@@ -119,6 +119,19 @@
   async function restoreNavigationState(){
     const saved=readNavigationState();
     if(!saved||saved.screen==='scr-title')return false;
+    // Hide all screens instantly to prevent flash while restoring
+    const _allScreens=document.querySelectorAll('.screen');
+    _allScreens.forEach(s=>{s.style.opacity='0';s.style.pointerEvents='none';});
+    // Show loading overlay
+    const _loader=document.createElement('div');
+    _loader.id='restoreLoader';
+    _loader.style.cssText='position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;';
+    _loader.innerHTML='<svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#ff3d8a" stroke-width="3" stroke-linecap="round"/></svg>';
+    document.body.appendChild(_loader);
+    const _removeLoader=()=>{
+      document.getElementById('restoreLoader')?.remove();
+      _allScreens.forEach(s=>{s.style.opacity='';s.style.pointerEvents='';});
+    };
     if(saved.hypoxState)window.HYPOX_STATE={...window.HYPOX_STATE,...saved.hypoxState};
     currentPregameMode=saved.pregameMode||null;
     currentGameMode=saved.gameMode||saved.pregameMode||null;
@@ -134,6 +147,7 @@
         const resumed=await net.resumePlayer(saved.roomCode,session.pid);
         myPid=resumed.pid;isVip=resumed.isVip;currentRoomCode=saved.roomCode;
         selectedAvatar={emoji:session.emoji||resumed.player.emoji,color:session.color||resumed.player.color};
+        _removeLoader();
         openPlayerController();
         // Show reconnect toast
         setTimeout(()=>{
@@ -150,7 +164,9 @@
         $('#joinCode').value=saved.roomCode||saved.joinCode||'';
         $('#joinName').value=saved.joinName||'';
         $('#joinErr').textContent=LANG==='ar'?'انتهت الغرفة. يمكنك الانضمام من جديد.':'That room ended. You can join again.';
-        show('#scr-join');
+        // Session missing — go home instead of join screen
+        _removeLoader();
+        show('#scr-title');
         return true;
       }
     }

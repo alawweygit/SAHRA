@@ -402,15 +402,22 @@ const Host = (() => {
         { type: 'text', title: t('write_lie'), context: R.fact.replace('___', '____'), maxLen: 60, enforceUnique: true },
         pids, 60);
 
-      // Build answer set: unique lies + truth
+      // Build answer set: unique lies + truth (all UPPERCASE)
       const truthUp = R.truth.toUpperCase();
       const seen = new Set([truthUp]);
       const lies = [];
+      const truthWriters = []; // players who wrote the correct answer
       for (const pid of pids) {
         const v = (val(inputs, pid) || '').trim().toUpperCase().slice(0, 60);
-        if (v && !seen.has(v)) { seen.add(v); lies.push({ text: v, by: pid }); }
+        if (!v) continue;
+        if (v === truthUp) {
+          // Player wrote the truth — they get credit, don't add as separate answer
+          truthWriters.push(pid);
+        } else if (!seen.has(v)) {
+          seen.add(v); lies.push({ text: v, by: pid });
+        }
       }
-      const answers = shuffle([{ text: R.truth.charAt(0).toUpperCase() + R.truth.slice(1).toLowerCase(), truth: true }, ...lies]);
+      const answers = shuffle([{ text: truthUp, truth: true, writers: truthWriters }, ...lies]);
 
       // VOTE — each player picks (can't pick own lie)
       await FX.wipe();
@@ -483,7 +490,6 @@ const Host = (() => {
       // then truth
       Audio_.sfx.drum();
       await say(LANG === 'ar' ? '…والحقيقة هي' : 'And the truth is…', { speed: 40 });
-      // hostSay after say to avoid overlap
       hideHost();
       const ti = answers.findIndex(a => a.truth);
       const tCard = $('#card-' + ti);
@@ -491,10 +497,22 @@ const Host = (() => {
       await sleep(350);
       Audio_.sfx.reveal(); FX.shake(); FX.burst(150); FX.burstAt(tCard, 40);
       const finders = votesByCard[ti];
-      finders.forEach(pid => addScore(pid, 1000));
-      if (finders.length) {
-        const names = finders.map(pid => players.find(x => x.pid === pid)?.name).filter(Boolean).join(' & ');
+      // Also give points to players who WROTE the truth
+      const truthAns = answers[ti];
+      const writerPids = truthAns.writers || [];
+      // Combine voters and writers (no duplicates)
+      const allWinners = [...new Set([...finders, ...writerPids])];
+      allWinners.forEach(pid => addScore(pid, 1000));
+      if (allWinners.length) {
+        const names = allWinners.map(pid => players.find(x => x.pid === pid)?.name).filter(Boolean).join(' & ');
         FX.flyPoints(tCard, `+1000 ${names}`);
+      }
+      // Special callout for truth writers
+      if (writerPids.length) {
+        const writerNames = writerPids.map(pid => players.find(x => x.pid === pid)?.name).filter(Boolean).join(' & ');
+        await sleep(400);
+        await say(LANG === 'ar' ? `🎯 ${writerNames} كتب الإجابة الصحيحة!` : `🎯 ${writerNames} wrote the truth!`, { speed: 35 });
+        hideHost();
       }
       await sleep(1600);
       await showScores();
