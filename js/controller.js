@@ -30,6 +30,28 @@ const Controller = (() => {
       ctx.textContent = spec.context;
       if (!spec.controlsOnly) wrap.appendChild(ctx);
     }
+    // Translate button for players — per device, not shared
+    const _txCtx = spec.translateContext || (spec.controlsOnly ? null : spec.context);
+    if(_txCtx && typeof LANG !== 'undefined' && LANG !== 'ar'){
+      const txBtn = document.createElement('button');
+      txBtn.textContent = '🌐 ترجم';
+      txBtn.style.cssText = 'background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(96,165,250,0.15));border:1.5px solid rgba(167,139,250,0.4);border-radius:20px;color:var(--purple);font-size:13px;padding:6px 16px;cursor:pointer;margin-top:8px;font-family:Fredoka One,sans-serif;box-shadow:0 2px 12px rgba(167,139,250,0.2);display:block;';
+      const txDiv = document.createElement('div');
+      txDiv.style.cssText = 'font-weight:700;font-size:13px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;line-height:1.5;margin-top:6px;direction:rtl;text-align:right;display:none;';
+      let txDone = false;
+      txBtn.addEventListener('click', async () => {
+        if(txDone){txDiv.style.display='none';txBtn.textContent='🌐 ترجم';txDone=false;return;}
+        txBtn.textContent='...';
+        try{
+          const r=await fetch('https://hypox-ai-backend-production.up.railway.app/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:_txCtx,to:'ar'})});
+          const d=await r.json();
+          if(d.translation){txDiv.textContent=d.translation;txDiv.style.display='block';txBtn.textContent='🔤 English';txDone=true;}
+          else txBtn.textContent='🌐 ترجم';
+        }catch(e){txBtn.textContent='🌐 ترجم';}
+      });
+      wrap.appendChild(txBtn);
+      wrap.appendChild(txDiv);
+    }
     if (!spec.controlsOnly && spec.sub) {
       const sub = document.createElement('div');
       sub.className = 'ctrl-sub';
