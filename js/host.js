@@ -366,6 +366,8 @@ const Host = (() => {
       document.getElementById('againBtn')?.addEventListener('click', () => { window.__hypoxPlayAgain = true; res(); }, { once: true });
       document.getElementById('changeGameBtn')?.addEventListener('click', () => {
         players.forEach(p => p.score = 0); // reset scores for fresh start
+        window.__hypoxAbort = true;
+        if(window.__hypoxShowScreen) window.__hypoxShowScreen('#scr-lobby');
         res();
       }, { once: true });
     });
