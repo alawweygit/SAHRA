@@ -399,7 +399,7 @@ const Host = (() => {
       const pids = [...new Set([...players.map(p => p.pid), ...(net.hostSelfPid && !_bluffBots.includes(net.hostSelfPid) ? [net.hostSelfPid] : [])])];
 
       const inputs = await collectWithTimer(
-        { type: 'text', title: t('write_lie'), context: R.fact.replace('___', '____'), maxLen: 60, enforceUnique: true },
+        { type: 'text', title: t('write_lie'), context: R.fact.replace('___', '____'), maxLen: 30, enforceUnique: true, oneWord: true },
         pids, 60);
 
       // Build answer set: unique lies + truth (all UPPERCASE)

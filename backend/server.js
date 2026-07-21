@@ -24,7 +24,7 @@ const SHAPES = {
 };
 
 const GUIDANCE = {
-  bluff:        'Fill-in-the-blank weird true facts. ___ replaces the most surprising element. RULES: truth must be ONE SINGLE WORD only (e.g. BANANAS, TALLER, FIRE). Never use phrases. Make the blank genuinely tricky — the real answer should be surprising and not obvious. Wrong guesses should seem just as plausible. Mix global and Gulf/Arab facts in Arabic.',
+  bluff:        'Fill-in-the-blank SHOCKING funny true facts. ___ replaces the most surprising word. RULES: (1) truth must be ONE SINGLE WORD only — no exceptions, never a phrase (e.g. BANANAS, LOUDER, CATS, DUBAI, CRYING). (2) The fact must be genuinely shocking, funny, or embarrassing — not boring trivia. (3) The blank should make players laugh or say "no way". (4) Wrong guesses should sound equally plausible. (5) Mix bizarre animal facts, embarrassing human body facts, shocking Gulf/Arab facts, and absurd world records. AVOID: anything educational-sounding, anything obvious, multi-word truths.',
   wyr:          'Would You Rather dilemmas — both options equally appealing or awful. No obvious right answer. Gulf situations welcome in Arabic.',
   interrogation:'Funny, spicy or thought-provoking prompts where everyone writes a creative honest answer. Examples: "What would you do if you were invisible for a day?", "What habit would your 15-year-old self hate about you?", "What\'s the most embarrassing thing in your search history?". Gulf/Arab situations in Arabic. Fun, relatable, makes people laugh.',
   diss:         'Roast battle setup lines — prompt to write a funny one-liner insult about the opponent.',

@@ -88,6 +88,18 @@ const Controller = (() => {
           const normalized = s => String(s).normalize('NFKC').trim().replace(/\s+/g, ' ').toUpperCase();
           if (taken.some(answer => normalized(answer) === normalized(v))) { showDuplicateHint(); return; }
         }
+        // One-word validation (bluff mode)
+        if (spec.oneWord && v.trim().split(/\s+/).length > 1) {
+          wrap.querySelector('.oneword-hint')?.remove();
+          const msg = document.createElement('div');
+          msg.className = 'oneword-hint';
+          msg.style.cssText = 'color:var(--pink);font-size:13px;text-align:center;animation:shake .3s;margin-top:6px';
+          msg.textContent = LANG==='ar' ? '⚠️ كلمة واحدة فقط!' : '⚠️ One word only!';
+          wrap.appendChild(msg);
+          ta.classList.add('shake');
+          setTimeout(() => ta.classList.remove('shake'), 500);
+          return;
+        }
         // If answerLen hint provided (emoji riddle), validate length
         if (spec.answerLen && v.replace(/\s/g,'').length !== spec.answerLen) {
           const msg = document.createElement('div');
