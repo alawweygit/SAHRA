@@ -308,7 +308,7 @@
           document.documentElement.scrollTop=0;
           document.body.scrollTop=0;
           // Only safe screens to jump to directly
-          if(_goto==='#scr-controller'){restoreNavigationState();}
+          if(_goto==='#scr-controller'||_goto==='#scr-game'||_goto==='#scr-lobby'){restoreNavigationState();}
           else if(_goto==='#scr-title'){show('#scr-title');}
           else{show(_goto);}
         });
@@ -398,7 +398,9 @@
     $('#langBtn').addEventListener('click',()=>{
       setLang(LANG==='en'?'ar':'en');
       $('#langBtn').textContent=LANG==='en'?'عر':'EN';
-      // Always reload — LANG persisted in localStorage, sessionStorage restores game state
+      // Save current screen so we return to it after reload
+      const _activeScreen=document.querySelector('.screen.active');
+      if(_activeScreen)try{sessionStorage.setItem('hypox_goto','#'+_activeScreen.id);}catch(e){}
       location.reload();
     });
     $('#langBtn').textContent=LANG==='en'?'عر':'EN';
