@@ -1012,7 +1012,7 @@
         code:savedCode,mode:savedMode,hostSelfPid:savedHostSelfPid,savedAt:Date.now()
       }));}catch(e){}
     }
-    try{sessionStorage.removeItem('hypox_session');}catch(e){}
+    try{sessionStorage.removeItem('hypox_session');localStorage.removeItem('hypox_player_session');}catch(e){}
     if(leavingNet)try{await leavingNet.close();}catch(e){}
     window.location.href=window.location.origin+window.location.pathname;
   }
@@ -1345,7 +1345,7 @@
         resetScrollPositionAfterLayout();
         document.getElementById('becomeHostBtn')?.addEventListener('click',()=>_claimHost());
         if(!hostLeftTimer)hostLeftTimer=setTimeout(()=>{
-          try{sessionStorage.removeItem('hypox_session');}catch(e){}
+          try{sessionStorage.removeItem('hypox_session');localStorage.removeItem('hypox_player_session');}catch(e){}
           clearGameUI();currentRoomCode=null;net=null;players=[];gameActive=false;
           currentGameMode=null;currentPregameMode=null;currentViewKind='title';
           show('#scr-title');
