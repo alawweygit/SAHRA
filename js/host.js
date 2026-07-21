@@ -445,9 +445,16 @@ const Host = (() => {
       answers.forEach((a, i) => setTimeout(() => Audio_.sfx.pop(), i * 120));
       hostSay('vote');
 
+      // Build per-player excludeId map (each player can't vote for their own lie)
+      const _bluffExcludeMap = {};
+      for (const pid of pids) {
+        const ownIdx = answers.findIndex(a => !a.truth && a.by === pid);
+        if (ownIdx !== -1) _bluffExcludeMap[pid] = ownIdx;
+      }
       const votes = await collectWithTimer({
         type: 'choice', title: t('pick_truth'),
         options: answers.map((a, i) => ({ id: i, label: a.text })),
+        playerExcludes: _bluffExcludeMap,
       }, pids, 30);
 
       // land voters on cards (skip self-votes on own lie)

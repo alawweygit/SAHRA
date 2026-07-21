@@ -1446,7 +1446,9 @@
         if(!state.targets||state.targets.includes(myPid)){
           lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
           ctrl.classList.remove('hidden');
-          const phoneSpec=state.spec?(phonesOnly?{...state.spec,controlsOnly:true,title:'',context:'',sub:''}:state.spec):null;
+          const _rawSpec=state.spec?{...state.spec}:null;
+          if(_rawSpec&&_rawSpec.playerExcludes&&myPid!==undefined&&_rawSpec.playerExcludes[myPid]!==undefined){_rawSpec.excludeId=_rawSpec.playerExcludes[myPid];}
+          const phoneSpec=_rawSpec?(phonesOnly?{..._rawSpec,controlsOnly:true,title:'',context:'',sub:''}:_rawSpec):null;
           if(!phoneSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
           document.body.classList.toggle('phones-player-answering',phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow'));
           Controller.render(ctrl,phoneSpec,async value=>{

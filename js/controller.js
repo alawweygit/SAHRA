@@ -186,6 +186,8 @@ const Controller = (() => {
         const key = String(o.id);
         if (seenOptionIds.has(key)) return false;
         seenOptionIds.add(key);
+        // Hide player's own answer
+        if (spec.excludeId !== undefined && String(o.id) === String(spec.excludeId)) return false;
         return true;
       });
       options.forEach((o, i) => {
