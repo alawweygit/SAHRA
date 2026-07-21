@@ -969,7 +969,8 @@
     show('#scr-game');gameActive=true;document.getElementById('topbarBack')?.style.setProperty('visibility','visible');$('#topbar').classList.add('show');$('#roundPill').style.visibility='visible';
     
     $('#roundPill').textContent=(t('mode_names')||{})[gameMode]||gameMode;
-    net.setState({phase:'wait',msg:T.watchScreen()});
+    const _isPhones=net.playMode==='phones';
+    net.setState({phase:'wait',msg:_isPhones?(LANG==='ar'?'اللعبة تبدأ الآن…':'Game starting…'):T.watchScreen()});
     await Host.run(net,players,gameMode);
     if(window.__hypoxAbort||!net||net!==runningNet||!gameActive)return;
     showPackPicker();
