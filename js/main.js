@@ -862,10 +862,25 @@
           const _prevScroll=_ls?_ls.scrollTop:0;
           const _pStatus=status||{};
           const row=document.getElementById('playerRow');
-          if(row)row.innerHTML=net._players.map(p=>{
-            const _offline=_pStatus[p.pid]==='away'||_pStatus[p.pid]==='offline';
-            return `<div class="player${_offline?' player-offline':''}"><div class="avatar" style="background:${p.color};${_offline?'filter:grayscale(0.8);opacity:0.5':''}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}${_offline?'<span style="display:block;font-size:10px;color:var(--text3)">📶 offline</span>':''}</div></div>`;
-          }).join('');
+          if(row){
+            row.innerHTML=net._players.map(p=>{
+              const _offline=_pStatus[p.pid]==='away'||_pStatus[p.pid]==='offline';
+              const _isHost=net.isRoomOwner||net.isOffline;
+              const _xBtn=_isHost&&!p.isVip?`<button class="kick-btn" data-pid="${p.pid}" title="Remove" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:2px 4px;line-height:1;margin-left:4px">✕</button>`:'';
+              return `<div class="player${_offline?' player-offline':''}"><div class="avatar" style="background:${p.color};${_offline?'filter:grayscale(0.8);opacity:0.5':''}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}${_offline?'<span style="display:block;font-size:10px;color:var(--text3)">📶 offline</span>':''}${_xBtn}</div></div>`;
+            }).join('');
+            row.querySelectorAll('.kick-btn').forEach(btn=>{
+              btn.addEventListener('click',async()=>{
+                const pid=btn.dataset.pid;
+                const p=net._players?.find(x=>x.pid===pid);
+                if(!p)return;
+                if(!confirm((LANG==='ar'?'تريد تطرد ':'Remove ')+p.name+'?'))return;
+                try{await net.room('players/'+pid).remove();await net.room('presence/'+pid).remove();}catch(e){}
+                net._players=net._players?.filter(x=>x.pid!==pid);
+                players=players.filter(x=>x.pid!==pid);
+              },{once:true});
+            });
+          }
           if(_ls)requestAnimationFrame(()=>{_ls.scrollTop=_prevScroll<10?0:_prevScroll;});
         }
       });
@@ -1072,6 +1087,11 @@
     const savedMode=currentGameMode;
     const savedHostSelfPid=net?.hostSelfPid||null;
     const savedRole=(net?.isOffline||net?.isRoomOwner)?'host':'player';
+    // Show full-screen spinner while leaving
+    const _leaveLoader=document.createElement('div');
+    _leaveLoader.style.cssText='position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;';
+    _leaveLoader.innerHTML='<svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#ff3d8a" stroke-width="3" stroke-linecap="round"/></svg>';
+    document.body.appendChild(_leaveLoader);
     if(leavingNet)try{leavingNet.setState({phase:'wait',msg:''});}catch(e){}
     Audio_.stopMusic();
     // Save resume info BEFORE closing net
