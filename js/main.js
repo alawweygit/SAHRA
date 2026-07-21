@@ -80,14 +80,8 @@
     else if(id==='#scr-controller')currentViewKind='controller';
     resetScrollPositionAfterLayout();
     saveNavigationState(id.replace(/^#/,''));
-    // iOS Safari scroll fix: reload to force top position
-    // Only reload for screens that actually have scroll issues — NOT join/title/games
-    const _iosScrollScreens = ['#scr-controller','#scr-lobby','#scr-pregame'];
-    if(isIOS && _iosScrollScreens.includes(id)){
-      try{sessionStorage.setItem('hypox_goto',id);}catch(e){}
-      window.location.reload();
-      return;
-    }
+    // iOS scroll: force top on every transition
+    window.scrollTo({top:0,left:0,behavior:'auto'});
     window.scrollTo({top:0,left:0,behavior:'auto'});
     document.documentElement.scrollTop=0;
     document.body.scrollTop=0;
