@@ -32,7 +32,7 @@ const PACKS = {
       { fact: 'The inventor of Pringles was buried in a ___', truth: 'PRINGLES CAN (per his request)' },
       { fact: 'Humans share about 60% of their DNA with ___', truth: 'BANANAS' },
       { fact: 'The Twitter bird has an official name: ___', truth: 'LARRY' },
-      { fact: 'Nintendo was founded in ___', truth: '1889 (as a playing card company)' },
+      { fact: 'Nintendo was founded in ___ as a playing card company', truth: '1889' },
       { fact: 'In Japan, there is a ___ specifically for people who are too tired to talk', truth: 'SILENT TAXI SERVICE' },
       { fact: 'The average person walks about ___ in a lifetime', truth: '5 TIMES AROUND THE EARTH' },
       { fact: 'A bolt of lightning is five times hotter than the ___', truth: 'SURFACE OF THE SUN' },
