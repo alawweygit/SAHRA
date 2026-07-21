@@ -79,7 +79,7 @@ const Host = (() => {
      (just extra state fields) in TV mode. */
   let mirror = { headline: '', sub: '', pill: '' };
   // Safe player lookup — never returns undefined, uses ghost fallback
-  const safeP = pid => players.find(x => x.pid === pid) || { pid, name: '?', emoji: '👤', color: '#555', score: 0, isVip: false };
+  const safeP = pid => safeP(pid) || { pid, name: '?', emoji: '👤', color: '#555', score: 0, isVip: false };
   function pushMirror(patch) {
     mirror = { ...mirror, ...patch };
     if (net && net.setMirror) net.setMirror({ ...mirror });
@@ -167,7 +167,7 @@ const Host = (() => {
     const row = $('#statusRow');
     if (row) {
       row.innerHTML = pids.map(pid => {
-        const p = players.find(x => x.pid === pid);
+        const p = safeP(pid);
         const _st = (window._hypoxPresence||{})[pid];
         const _off = _st==='away'||_st==='offline';
         return `<div class="mini${_off?' mini-offline':''}" id="mini-${pid}" style="${_off?'opacity:0.4;filter:grayscale(0.8)':''}">${avatarHTML(p)}<div class="check">✓</div></div>`;
@@ -372,7 +372,7 @@ const Host = (() => {
   }
 
   function addScore(pid, pts) {
-    const p = players.find(x => x.pid === pid);
+    const p = safeP(pid);
     if (!p) return;
     p.score += pts;
     net.updateScore(pid, p.score);
@@ -461,7 +461,7 @@ const Host = (() => {
       for (let i = 0; i < answers.length; i++) {
         for (const pid of votesByCard[i]) {
           Audio_.sfx.vote();
-          const p = players.find(x => x.pid === pid);
+          const p = safeP(pid);
           const strip = $('#voters-' + i);
           if (strip) strip.insertAdjacentHTML('beforeend',
             `<div class="voter" style="background:${p.color}">${p.emoji}</div>`);
@@ -477,7 +477,7 @@ const Host = (() => {
         if (a.truth) continue;
         await sleep(650);
         const card = $('#card-' + i);
-        const author = players.find(x => x.pid === a.by);
+        const author = safeP(a.by);
         card.querySelector('.ans-back div:last-child').textContent = author ? `${author.emoji} ${author.name}` : '?';
         card.classList.add('flipped');
         await sleep(400);
@@ -506,12 +506,12 @@ const Host = (() => {
       const allWinners = [...new Set([...finders, ...writerPids])];
       allWinners.forEach(pid => addScore(pid, 1000));
       if (allWinners.length) {
-        const names = allWinners.map(pid => players.find(x => x.pid === pid)?.name).filter(Boolean).join(' & ');
+        const names = allWinners.map(pid => safeP(pid)?.name).filter(Boolean).join(' & ');
         FX.flyPoints(tCard, `+1000 ${names}`);
       }
       // Special callout for truth writers
       if (writerPids.length) {
-        const writerNames = writerPids.map(pid => players.find(x => x.pid === pid)?.name).filter(Boolean).join(' & ');
+        const writerNames = writerPids.map(pid => safeP(pid)?.name).filter(Boolean).join(' & ');
         await sleep(400);
         await say(LANG === 'ar' ? `🎯 ${writerNames} كتب الإجابة الصحيحة!` : `🎯 ${writerNames} wrote the truth!`, { speed: 35 });
         hideHost();
@@ -619,7 +619,7 @@ const Host = (() => {
       const mr = $('#matchRow');
       if (matchers.length) {
         for (const pid of matchers) {
-          const p = players.find(x => x.pid === pid);
+          const p = safeP(pid);
           addScore(pid, 1000);
           mr.insertAdjacentHTML('beforeend', `<div class="player" style="animation-delay:0s">${avatarHTML(p)}<div class="pname">+1000 ✓</div></div>`);
           Audio_.sfx.correct();
@@ -766,7 +766,7 @@ const Host = (() => {
       scene(`<div class="eyebrow">🔥 ${LANG==='ar'?'النتائج':'RESULTS'}</div>
         <div class="prompt-card display" style="font-size:clamp(13px,1.9vmin,18px)">${esc(Q.q)}</div>
         <div class="ans-reveal-list">${answerList.map((a,idx) => {
-          const p = players.find(x=>x.pid===a.pid);
+          const p = safeP(a.pid);
           const vc = voteCounts[a.pid]||0;
           const isWin = winners.includes(a.pid);
           return `<div class="ans-card${isWin?' ans-card-win':''}" style="border-color:${COLS[idx%COLS.length]}${isWin?'':'40'}">
@@ -922,7 +922,7 @@ const Host = (() => {
 
       // Dramatic reveal scene
       Audio_.sfx.reveal(); FX.burst(80);
-      const winnerPlayer = winnerPid ? players.find(p=>p.pid===winnerPid) : null;
+      const winnerPlayer = winnerPid ? safeP(winnerPid) : null;
       scene(`<div class="eyebrow" style="font-size:clamp(20px,3.5vmin,32px)">
           ${winnerPlayer ? `🏆 ${esc(winnerPlayer.name)} ${LANG==='ar'?'يفوز!':'WINS!'}` : `🤝 ${LANG==='ar'?'تعادل!':'TIE!'}`}
         </div>
@@ -942,7 +942,7 @@ const Host = (() => {
           </div>
         </div>
         <div class="voter-reveal">${voterReveal.map(({pid,pick})=>{
-          const p=players.find(x=>x.pid===pid);
+          const p=safeP(pid);
           const correct=(pick==='a'&&winnerPid===A.pid)||(pick==='b'&&winnerPid===B.pid);
           return `<div class="voter-chip ${correct?'voter-correct':'voter-wrong'}">${avatarHTML(p)}<span>${esc(p?.name||'')}</span><span style="font-size:11px;opacity:.7">→ ${pick.toUpperCase()}</span>${correct?'<span>+300</span>':''}`;
         }).join('')}</div>`);
@@ -1271,7 +1271,7 @@ const Host = (() => {
         <div class="rebus-answer display">${esc(answer.toUpperCase())}</div>
         ${exp ? `<div class="rebus-explain">${esc(exp)}</div>` : ''}
         <div class="score-list">${pids.map((pid,idx) => {
-          const p = players.find(x=>x.pid===pid);
+          const p = safeP(pid);
           const got = right.includes(pid);
           const pts = got ? earnedPoints.get(pid) : 0;
           return `<div class="score-row" style="animation-delay:${idx*.1}s">
@@ -1401,7 +1401,7 @@ const Host = (() => {
       right.forEach(pid=>addScore(pid,CORRECT_PTS));
       Audio_.sfx.reveal();
       const resultLabel = Q.truth?(LANG==='ar'?'✅ حقيقة!':'✅ TRUE!'):(LANG==='ar'?'❌ خطأ!':'❌ FALSE!');
-      scene(`<div class="eyebrow">${esc(Q.s)}</div><div class="prompt-card display" style="color:${Q.truth?'var(--green)':'var(--pink)'}">${resultLabel}</div><div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);if(!p)return '';const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+( CORRECT_PTS):'✗ 0'}</div></div></div>`;}).join('')}</div>`);
+      scene(`<div class="eyebrow">${esc(Q.s)}</div><div class="prompt-card display" style="color:${Q.truth?'var(--green)':'var(--pink)'}">${resultLabel}</div><div class="score-list">${pids.map((pid,idx)=>{const p=safeP(pid);if(!p)return '';const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+( CORRECT_PTS):'✗ 0'}</div></div></div>`;}).join('')}</div>`);
       pushMirror({ headline: resultLabel });
       FX.burst(60);
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?'ولا واحد عرفها!':'Nobody got it!'));
@@ -1440,7 +1440,7 @@ const Host = (() => {
       scene(`<div class="eyebrow">🚩 FLAG HUNT</div>
         <div style="font-size:clamp(70px,12vw,110px);text-align:center;margin:1vmin 0;line-height:1">${Q.flag}</div>
         <div class="prompt-card display" style="color:var(--yellow);font-size:clamp(24px,4vw,42px);margin:1vmin 0">${esc(answer)}</div>
-        <div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);if(!p)return '';const got=right.includes(pid);const pts=got?CORRECT_PTS:0;const typed=(val(answers,pid)||'').trim()||'—';return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+pts:'✗ '+esc(typed)}</div></div></div>`;}).join('')}</div>`);
+        <div class="score-list">${pids.map((pid,idx)=>{const p=safeP(pid);if(!p)return '';const got=right.includes(pid);const pts=got?CORRECT_PTS:0;const typed=(val(answers,pid)||'').trim()||'—';return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+pts:'✗ '+esc(typed)}</div></div></div>`;}).join('')}</div>`);
       pushMirror({ headline: `${Q.flag} = ${answer}` });
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`ولا واحد! هو ${answer}`:`Nobody! It was ${answer}.`));
       hideHost(); await waitNext();
@@ -1675,7 +1675,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       scene(`<div class="eyebrow">🌍 ${esc(Q.e)}</div>
         <div class="rebus-answer display">${esc(answer.toUpperCase())}</div>
         ${exp?`<div class="rebus-explain">${esc(exp)}</div>`:''}
-        <div class="score-list">${pids.map((pid,idx)=>{const p=players.find(x=>x.pid===pid);if(!p)return '';const got=right.includes(pid);const pts=got?earnedPoints.get(pid):0;const name=esc(p.name.length>12?p.name.slice(0,11)+"…":p.name);return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track${got?'':' zero-track'}">${got?`<div class="bar-fill" style="width:80%;background:var(--green)">${name} ✓ +${pts}</div>`:`<div class="bar-zero"><span>${name} ✗</span><span>0</span></div>`}</div></div>`;}).join('')}</div>`);
+        <div class="score-list">${pids.map((pid,idx)=>{const p=safeP(pid);if(!p)return '';const got=right.includes(pid);const pts=got?earnedPoints.get(pid):0;const name=esc(p.name.length>12?p.name.slice(0,11)+"…":p.name);return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track${got?'':' zero-track'}">${got?`<div class="bar-fill" style="width:80%;background:var(--green)">${name} ✓ +${pts}</div>`:`<div class="bar-zero"><span>${name} ✗</span><span>0</span></div>`}</div></div>`;}).join('')}</div>`);
       pushMirror({headline:`🌍 = ${answer.toUpperCase()}`});
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`المكان: ${answer}`:`It was ${answer}! ${exp}`));
       hideHost(); await waitNext();
@@ -1726,9 +1726,9 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       // One device: show "pass to X" then reveal role privately
       for(let pi=0; pi<pids.length; pi++){
         const pid=pids[pi];
-        const p=players.find(x=>x.pid===pid);
+        const p=safeP(pid);
         const isSpy=spyPids.includes(pid);
-        const nextP=pi<pids.length-1?players.find(x=>x.pid===pids[pi+1]):null;
+        const nextP=pi<pids.length-1?safeP(pids[pi+1]):null;
         // Step 1: Pass screen (everyone sees this)
         await FX.wipe();
         scene(`<div class="eyebrow">🕵️ SPY GAME</div>
