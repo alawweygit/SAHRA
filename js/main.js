@@ -690,7 +690,20 @@
         document.getElementById('pregameInner').appendChild(startBtn);
       }
       startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
-      startBtn.onclick=()=>{if(!selectedPlayMode){alert(LANG==='ar'?'اختر طريقة اللعب أولاً':'Please select how you are playing first');return;}startBtn.disabled=true;startBtn.innerHTML='<span style="display:inline-flex;align-items:center;gap:8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>Loading…</span>';startGameWithMode(selectedPlayMode,mode);};
+      // Show content-ready indicator on the button
+      const _cm2=mode==='trivia'?'quiz':mode;
+      const _preloadPromise=window.Content?window.Content.preload(_cm2,LANG,window.HYPOX_STATE?.rounds||5):null;
+      if(_preloadPromise){
+        startBtn.innerHTML=(LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME')+' <span id="pgReadyDot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--yellow);margin-left:6px;animation:spin 1s linear infinite;vertical-align:middle"></span>';
+        _preloadPromise.then(()=>{
+          const dot=document.getElementById('pgReadyDot');
+          if(dot){dot.style.animation='none';dot.style.background='#4ade80';}
+        }).catch(()=>{
+          const dot=document.getElementById('pgReadyDot');
+          if(dot)dot.remove();
+        });
+      }
+      startBtn.onclick=()=>{if(!selectedPlayMode){alert(LANG==='ar'?'اختر طريقة اللعب أولاً':'Please select how you are playing first');return;}startBtn.disabled=true;startBtn.innerHTML='<span style="display:inline-flex;align-items:center;gap:8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>'+(LANG==='ar'?'جاري التحميل…':'Loading…')+'</span>';startGameWithMode(selectedPlayMode,mode);};
       saveNavigationState('scr-pregame');
       Audio_.sfx.blip();
     }
