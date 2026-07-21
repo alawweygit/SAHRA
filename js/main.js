@@ -408,7 +408,7 @@
 
     $('#menuClose').addEventListener('click',closeMenu);
     $('#menuResume').addEventListener('click',closeMenu);
-    $('#menuLeave').addEventListener('click',()=>{closeMenu();if(gameActive||currentRoomCode){leaveGame();}else{show('#scr-title');}});
+    $('#menuLeave').addEventListener('click',()=>{closeMenu();if(gameActive||currentRoomCode){if(confirm(LANG==='ar'?'متأكد أنك تريد تغادر؟':'Are you sure you want to leave?')){leaveGame();}}else{show('#scr-title');}});
     // Join screen — build mini avatar picker
     buildJoinAvatarRow();
     $('#joinGo').addEventListener('click',joinAsPlayer);
@@ -1040,7 +1040,7 @@
 
   /* ---- MENU ---- */
   function updateMenu(){
-    const m=$('#menuOverlay .menu-card');
+    const m=$('#menuOverlay .menu-card');m.style.cssText='margin-top:60px;';
     if(!m)return;
     m.querySelector('.menu-title').textContent=T.menu();
     m.querySelector('#menuResume').textContent=T.resume();
@@ -1098,8 +1098,9 @@
     const savedHostSelfPid=net?.hostSelfPid||null;
     const savedRole=(net?.isOffline||net?.isRoomOwner)?'host':'player';
     // Show full-screen spinner while leaving
+    // Spinner overlay on same page
     const _leaveLoader=document.createElement('div');
-    _leaveLoader.style.cssText='position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;';
+    _leaveLoader.style.cssText='position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;';
     _leaveLoader.innerHTML='<svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#ff3d8a" stroke-width="3" stroke-linecap="round"/></svg>';
     document.body.appendChild(_leaveLoader);
     if(leavingNet)try{leavingNet.setState({phase:'wait',msg:''});}catch(e){}
@@ -1209,27 +1210,7 @@
       window.__hypoxDismissPP=()=>{if(_ppDismiss)_ppDismiss();};
       const _hExclude=spec?.playerExcludes?.[net?.hostSelfPid];
       const hostSpec={...spec,controlsOnly:true,title:LANG==='ar'?'👆 اختيارك':'👆 Your pick',context:'',sub:'',...(_hExclude!==undefined?{excludeId:_hExclude}:{})};
-      // Add translate button for host
-      if(spec?.context&&LANG!=='ar'){
-        const _txBtn=document.createElement('button');
-        _txBtn.textContent='🌐 ترجم';
-        _txBtn.style.cssText='background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(96,165,250,0.15));border:1.5px solid rgba(167,139,250,0.4);border-radius:20px;color:var(--purple);font-size:13px;padding:6px 16px;cursor:pointer;margin-bottom:10px;font-family:Fredoka One,sans-serif;box-shadow:0 2px 12px rgba(167,139,250,0.2);display:block;';
-        const _txDiv=document.createElement('div');
-        _txDiv.style.cssText='font-weight:700;font-size:13px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;line-height:1.5;margin-bottom:8px;direction:rtl;text-align:right;display:none;';
-        panel.appendChild(_txDiv);
-        panel.appendChild(_txBtn);
-        let _txDone=false;
-        _txBtn.addEventListener('click',async()=>{
-          if(_txDone){_txDiv.style.display='none';_txBtn.textContent='🌐 ترجم';_txDone=false;return;}
-          _txBtn.textContent='...';
-          try{
-            const r=await fetch('https://hypox-ai-backend-production.up.railway.app/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:spec.context,to:'ar'})});
-            const d=await r.json();
-            if(d.translation){_txDiv.textContent=d.translation;_txDiv.style.display='block';_txBtn.textContent='🔤 English';_txDone=true;}
-            else _txBtn.textContent='🌐 ترجم';
-          }catch(e){_txBtn.textContent='🌐 ترجم';}
-        });
-      }
+
       Controller.render(panel,hostSpec,async value=>{
         const result=submitInput?await submitInput(value):{accepted:true};
         if(result?.accepted===false)return result;
