@@ -24,13 +24,16 @@ const Controller = (() => {
       wrap.appendChild(title);
     }
 
-    if (!spec.controlsOnly && spec.context) {
-      const ctx = document.createElement('div');
-      ctx.className = 'ctrl-context';
-      ctx.textContent = spec.context;
-      wrap.appendChild(ctx);
-      // Translate button — only show if context is in English
+    if (spec.context) {
+      if (!spec.controlsOnly) {
+        const ctx = document.createElement('div');
+        ctx.className = 'ctrl-context';
+        ctx.textContent = spec.context;
+        wrap.appendChild(ctx);
+      }
+      // Translate button — show even in controlsOnly (phones-only) mode
       if(typeof LANG !== 'undefined' && LANG !== 'ar') {
+        const ctx = wrap.querySelector('.ctrl-context') || {textContent:spec.context,dir:''};
         const txBtn = document.createElement('button');
         txBtn.textContent = '🌐 ترجم';
         txBtn.style.cssText = 'background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(96,165,250,0.15));border:1.5px solid rgba(167,139,250,0.4);border-radius:20px;color:var(--purple);font-size:13px;padding:6px 16px;cursor:pointer;margin-top:8px;font-family:Fredoka One,sans-serif;letter-spacing:0.3px;transition:all 0.2s;box-shadow:0 2px 12px rgba(167,139,250,0.2);';
