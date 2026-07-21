@@ -447,7 +447,8 @@ const Host = (() => {
 
       // Build per-player excludeId map (each player can't vote for their own lie)
       const _bluffExcludeMap = {};
-      for (const pid of pids) {
+      const _allVoters = [...pids, ...(net.hostSelfPid ? [net.hostSelfPid] : [])];
+      for (const pid of _allVoters) {
         const ownIdx = answers.findIndex(a => !a.truth && a.by === pid);
         if (ownIdx !== -1) _bluffExcludeMap[pid] = ownIdx;
       }
