@@ -1201,6 +1201,27 @@
       window.__hypoxDismissPP=()=>{if(_ppDismiss)_ppDismiss();};
       const _hExclude=spec?.playerExcludes?.[net?.hostSelfPid];
       const hostSpec={...spec,controlsOnly:true,title:LANG==='ar'?'👆 اختيارك':'👆 Your pick',context:'',sub:'',...(_hExclude!==undefined?{excludeId:_hExclude}:{})};
+      // Add translate button for host
+      if(spec?.context&&LANG!=='ar'){
+        const _txBtn=document.createElement('button');
+        _txBtn.textContent='🌐 ترجم';
+        _txBtn.style.cssText='background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(96,165,250,0.15));border:1.5px solid rgba(167,139,250,0.4);border-radius:20px;color:var(--purple);font-size:13px;padding:6px 16px;cursor:pointer;margin-bottom:10px;font-family:Fredoka One,sans-serif;box-shadow:0 2px 12px rgba(167,139,250,0.2);display:block;';
+        const _txDiv=document.createElement('div');
+        _txDiv.style.cssText='font-weight:700;font-size:13px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;line-height:1.5;margin-bottom:8px;direction:rtl;text-align:right;display:none;';
+        panel.appendChild(_txDiv);
+        panel.appendChild(_txBtn);
+        let _txDone=false;
+        _txBtn.addEventListener('click',async()=>{
+          if(_txDone){_txDiv.style.display='none';_txBtn.textContent='🌐 ترجم';_txDone=false;return;}
+          _txBtn.textContent='...';
+          try{
+            const r=await fetch('https://hypox-ai-backend-production.up.railway.app/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:spec.context,to:'ar'})});
+            const d=await r.json();
+            if(d.translation){_txDiv.textContent=d.translation;_txDiv.style.display='block';_txBtn.textContent='🔤 English';_txDone=true;}
+            else _txBtn.textContent='🌐 ترجم';
+          }catch(e){_txBtn.textContent='🌐 ترجم';}
+        });
+      }
       Controller.render(panel,hostSpec,async value=>{
         const result=submitInput?await submitInput(value):{accepted:true};
         if(result?.accepted===false)return result;
