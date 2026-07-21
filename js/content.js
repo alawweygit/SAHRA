@@ -375,6 +375,7 @@ const Content = (() => {
           if (Array.isArray(data.prompts) && data.prompts.length) return data.prompts.slice(0, count);
         }
       } catch (e) {
+        console.error('[HYPOX] AI fetch failed:', e.message);
         // AI unavailable — fall through to static
       } finally {
         if (timeoutId) clearTimeout(timeoutId);
