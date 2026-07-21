@@ -727,7 +727,24 @@
           if(dot)dot.remove();
         });
       }
-      startBtn.onclick=()=>{if(!selectedPlayMode){alert(LANG==='ar'?'اختر طريقة اللعب أولاً':'Please select how you are playing first');return;}startBtn.disabled=true;startBtn.innerHTML='<span style="display:inline-flex;align-items:center;gap:8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>'+(LANG==='ar'?'جاري التحميل…':'Loading…')+'</span>';startGameWithMode(selectedPlayMode,mode);};
+      startBtn.onclick=async()=>{
+        if(!selectedPlayMode){alert(LANG==='ar'?'اختر طريقة اللعب أولاً':'Please select how you are playing first');return;}
+        startBtn.disabled=true;
+        // Show full-screen loading spinner while AI prepares
+        const _sl=document.createElement('div');
+        _sl.id='startLoader';
+        _sl.style.cssText='position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;';
+        _sl.innerHTML='<svg width="56" height="56" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#ff3d8a" stroke-width="3" stroke-linecap="round"/></svg><div style="font-family:Fredoka One,sans-serif;font-size:18px;color:var(--text2)">'+(LANG==='ar'?'جاري تحضير الأسئلة…':'Preparing questions…')+'</div>';
+        document.body.appendChild(_sl);
+        // Wait up to 20s for AI, then start anyway
+        const _cm2=mode==='trivia'?'quiz':mode;
+        if(window.Content){
+          try{await Promise.race([window.Content.preload(_cm2,LANG,window.HYPOX_STATE?.rounds||5),new Promise(r=>setTimeout(r,20000))]);}catch(e){}
+        }
+        _sl.remove();
+        startBtn.disabled=false;
+        startGameWithMode(selectedPlayMode,mode);
+      };
       saveNavigationState('scr-pregame');
       Audio_.sfx.blip();
     }
