@@ -876,6 +876,24 @@
         }
       });
     }
+    // Auto-remove offline players from lobby after 30s
+    if(net&&net.watchAndRemoveOffline){
+      net.watchAndRemoveOffline(pid=>{
+        players=players.filter(p=>p.pid!==pid);
+        if(net._players)net._players=net._players.filter(p=>p.pid!==pid);
+        const row=document.getElementById('playerRow');
+        if(row&&net._players){
+          row.innerHTML=net._players.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('');
+        }
+        const _c=document.getElementById('lobbyCount');if(_c)_c.textContent=(net._players||players).length+'/20';
+        const toast=document.createElement('div');
+        toast.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:var(--text2);font-family:Fredoka One,sans-serif;font-size:14px;padding:8px 20px;border-radius:20px;z-index:500;';
+        const removed=players.find(p=>p.pid===pid)||{emoji:'👤',name:'Player'};
+        toast.textContent=(removed.emoji||'👤')+' '+(removed.name||'Player')+(LANG==='ar'?' غادر الغرفة':' left the lobby');
+        document.body.appendChild(toast);
+        setTimeout(()=>toast.remove(),3000);
+      });
+    }
     document.getElementById('lobbyBackBtn')?.remove();
     const lobbyBackEl=document.getElementById('topbarBack');
     if(lobbyBackEl){
