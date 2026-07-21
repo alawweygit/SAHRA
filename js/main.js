@@ -717,16 +717,7 @@
       // Show content-ready indicator on the button
       const _cm2=mode==='trivia'?'quiz':mode;
       const _preloadPromise=window.Content?window.Content.preload(_cm2,LANG,window.HYPOX_STATE?.rounds||5):null;
-      if(_preloadPromise){
-        startBtn.innerHTML=(LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME')+' <span id="pgReadyDot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--yellow);margin-left:6px;animation:spin 1s linear infinite;vertical-align:middle"></span>';
-        _preloadPromise.then(()=>{
-          const dot=document.getElementById('pgReadyDot');
-          if(dot){dot.style.animation='none';dot.style.background='#4ade80';}
-        }).catch(()=>{
-          const dot=document.getElementById('pgReadyDot');
-          if(dot)dot.remove();
-        });
-      }
+      startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
       startBtn.onclick=async()=>{
         if(!selectedPlayMode){alert(LANG==='ar'?'اختر طريقة اللعب أولاً':'Please select how you are playing first');return;}
         startBtn.disabled=true;
