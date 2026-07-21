@@ -422,7 +422,7 @@
         }catch(e){localStorage.removeItem('hypox_player_session');show('#scr-title');}
       };
       setTimeout(()=>_pb?.remove(),20000);
-    } else restoreNavigationState();
+    } else if(!urlCode) restoreNavigationState();
     window.addEventListener('pagehide',()=>saveNavigationState());
     window.addEventListener('beforeunload',()=>saveNavigationState());
   });
