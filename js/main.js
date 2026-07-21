@@ -484,6 +484,14 @@
   function showPregame(mode){
     currentPregameMode=mode;currentGameMode=mode;currentViewKind='pregame';
     document.getElementById('pgStickyBar')?.remove(); // clean up from previous
+    // Start AI preload immediately when user picks a game — maximizes loading time
+    try{
+      const _cfg=window.HYPOX_CONFIG||{};
+      if(_cfg.aiEndpoint&&window.Content){
+        const _cm=mode==='trivia'?'quiz':mode;
+        window.Content.preload(_cm,LANG,window.HYPOX_STATE?.rounds||5).catch(()=>{});
+      }
+    }catch(e){}
     // Wire topbar back button for pregame
     $('#topbar').classList.add('show');
     const pregameBack=document.getElementById('topbarBack');
