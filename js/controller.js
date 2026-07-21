@@ -24,37 +24,11 @@ const Controller = (() => {
       wrap.appendChild(title);
     }
 
-    const _txContext = spec.translateContext || spec.context;
     if (spec.context) {
       const ctx = document.createElement('div');
       ctx.className = 'ctrl-context';
       ctx.textContent = spec.context;
       if (!spec.controlsOnly) wrap.appendChild(ctx);
-    }
-    if (_txContext) {
-      const ctx = wrap.querySelector('.ctrl-context') || document.createElement('div');
-      // Translate button — always show if translateContext exists and lang is not Arabic
-      if(typeof LANG !== 'undefined' && LANG !== 'ar') {
-        const txBtn = document.createElement('button');
-        txBtn.textContent = '🌐 ترجم';
-        txBtn.style.cssText = 'background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(96,165,250,0.15));border:1.5px solid rgba(167,139,250,0.4);border-radius:20px;color:var(--purple);font-size:13px;padding:6px 16px;cursor:pointer;margin-top:8px;font-family:Fredoka One,sans-serif;letter-spacing:0.3px;transition:all 0.2s;box-shadow:0 2px 12px rgba(167,139,250,0.2);';
-        let translated = false;
-        let origText = _txContext;
-        txBtn.addEventListener('click', async () => {
-          if(translated){ ctx.textContent=origText; ctx.dir='ltr'; txBtn.textContent='🌐 ترجم'; translated=false; if(spec.controlsOnly&&wrap.contains(ctx))wrap.removeChild(ctx); return; }
-          txBtn.textContent='...';
-          try{
-            const r = await fetch('https://hypox-ai-backend-production.up.railway.app/api/translate', {
-              method:'POST', headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ text: _txContext, to: 'ar' })
-            });
-            const d = await r.json();
-            if(d.translation){ ctx.textContent=d.translation; ctx.dir='rtl'; txBtn.textContent='🔤 English'; translated=true; if(spec.controlsOnly&&!wrap.contains(ctx)){ctx.style.cssText='font-weight:700;font-size:13px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;line-height:1.5;margin-bottom:8px;direction:rtl;text-align:right;';wrap.insertBefore(ctx,txBtn);} }
-            else { txBtn.textContent='🌐 ترجم'; }
-          }catch(e){ txBtn.textContent='🌐 ترجم'; }
-        });
-        wrap.appendChild(txBtn);
-      }
     }
     if (!spec.controlsOnly && spec.sub) {
       const sub = document.createElement('div');
