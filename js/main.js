@@ -1199,7 +1199,8 @@
       };
       _ppDismiss=()=>done(null);
       window.__hypoxDismissPP=()=>{if(_ppDismiss)_ppDismiss();};
-      const hostSpec={...spec,controlsOnly:true,title:LANG==='ar'?'👆 اختيارك':'👆 Your pick',context:'',sub:''};
+      const _hExclude=spec?.playerExcludes?.[net?.hostSelfPid];
+      const hostSpec={...spec,controlsOnly:true,title:LANG==='ar'?'👆 اختيارك':'👆 Your pick',context:'',sub:'',...(_hExclude!==undefined?{excludeId:_hExclude}:{})};
       Controller.render(panel,hostSpec,async value=>{
         const result=submitInput?await submitInput(value):{accepted:true};
         if(result?.accepted===false)return result;

@@ -452,10 +452,13 @@ const Host = (() => {
         const ownIdx = answers.findIndex(a => !a.truth && a.by === pid);
         if (ownIdx !== -1) _bluffExcludeMap[pid] = ownIdx;
       }
+      // For host self-vote: find and exclude host's own lie index
+      const _hostExcludeIdx = net.hostSelfPid ? answers.findIndex(a => !a.truth && a.by === net.hostSelfPid) : -1;
       const votes = await collectWithTimer({
         type: 'choice', title: t('pick_truth'),
         options: answers.map((a, i) => ({ id: i, label: a.text })),
         playerExcludes: _bluffExcludeMap,
+        hostExcludeIdx: _hostExcludeIdx,
       }, pids, 30);
 
       // land voters on cards (skip self-votes on own lie)
