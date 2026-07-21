@@ -81,7 +81,9 @@
     resetScrollPositionAfterLayout();
     saveNavigationState(id.replace(/^#/,''));
     // iOS Safari scroll fix: reload to force top position
-    if(isIOS){
+    // Only reload for screens that actually have scroll issues — NOT join/title/games
+    const _iosScrollScreens = ['#scr-controller','#scr-lobby','#scr-pregame'];
+    if(isIOS && _iosScrollScreens.includes(id)){
       try{sessionStorage.setItem('hypox_goto',id);}catch(e){}
       window.location.reload();
       return;
