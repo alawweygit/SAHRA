@@ -457,7 +457,8 @@ const Host = (() => {
         };
       }
       net.setState({ phase: 'input-split', phaseId: votePhaseIdBluff, deadline: voteDeadlineBluff, specs: bluffVoteSpecs, mirror: { ...mirror } });
-      const votes = await collect(votePhaseIdBluff, pids, 30);
+      const votes = await net.collect(votePhaseIdBluff, null, pids, inputTimeout(30));
+      net.onEachInput(null);
 
       // land voters on cards (skip self-votes on own lie)
       const votesByCard = answers.map(() => []);
