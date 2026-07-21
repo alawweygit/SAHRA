@@ -33,7 +33,7 @@ const Controller = (() => {
       if(typeof LANG !== 'undefined' && LANG !== 'ar') {
         const txBtn = document.createElement('button');
         txBtn.textContent = '🌐 ترجم';
-        txBtn.style.cssText = 'background:none;border:1px solid var(--border);border-radius:20px;color:var(--text2);font-size:12px;padding:4px 12px;cursor:pointer;margin-top:6px;font-family:Fredoka One,sans-serif;';
+        txBtn.style.cssText = 'background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(96,165,250,0.15));border:1.5px solid rgba(167,139,250,0.4);border-radius:20px;color:var(--purple);font-size:13px;padding:6px 16px;cursor:pointer;margin-top:8px;font-family:Fredoka One,sans-serif;letter-spacing:0.3px;transition:all 0.2s;box-shadow:0 2px 12px rgba(167,139,250,0.2);';
         let translated = false;
         let origText = spec.context;
         txBtn.addEventListener('click', async () => {
