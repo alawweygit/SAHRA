@@ -730,7 +730,7 @@
         // Wait up to 20s for AI, then start anyway
         const _cm2=mode==='trivia'?'quiz':mode;
         if(window.Content){
-          try{await Promise.race([window.Content.preload(_cm2,LANG,window.HYPOX_STATE?.rounds||5),new Promise(r=>setTimeout(r,20000))]);}catch(e){}
+          try{await window.Content.preload(_cm2,LANG,window.HYPOX_STATE?.rounds||5);}catch(e){}
         }
         _sl.remove();
         startBtn.disabled=false;

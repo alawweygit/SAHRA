@@ -362,7 +362,7 @@ const Content = (() => {
       let timeoutId;
       try {
         const controller = new AbortController();
-        timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout then fall back to static
+        timeoutId = setTimeout(() => controller.abort(), 60000); // 60s max wait for AI
         const res = await fetch(cfg.aiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
