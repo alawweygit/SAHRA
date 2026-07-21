@@ -1824,6 +1824,9 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
           toast.textContent = (removed.emoji||'👤') + ' ' + (removed.name||'Player') + (LANG==='ar'?' غادر اللعبة':' left the game');
           document.body.appendChild(toast);
           setTimeout(() => toast.remove(), 3000);
+          // Broadcast to all players' phones via mirror
+          updateMirror({ announce: (removed.emoji||'👤') + ' ' + (removed.name||'Player') + (LANG==='ar'?' غادر اللعبة':' left the game'), announceId: Date.now() });
+          setTimeout(() => updateMirror({ announce: null, announceId: null }), 4000);
         }
       });
     }

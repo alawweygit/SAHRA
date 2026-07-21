@@ -1218,8 +1218,18 @@
     }
     const mstrip=$('#phoneMirror');
     let _lastMirrorKey = '';
+    let _lastAnnounceId = null;
     function renderMirror(m){
       if(!m)return;
+      // Show player-left toast on phones
+      if(m.announce && m.announceId && m.announceId !== _lastAnnounceId){
+        _lastAnnounceId = m.announceId;
+        const _t = document.createElement('div');
+        _t.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#ccc;font-family:Fredoka One,sans-serif;font-size:14px;padding:8px 20px;border-radius:20px;z-index:999;white-space:nowrap;';
+        _t.textContent = m.announce;
+        document.body.appendChild(_t);
+        setTimeout(() => _t.remove(), 3000);
+      }
       // Update the small strip
       if(!phonesOnly)mstrip.classList.remove('hidden');
       if(m.pill!==undefined)$('#pmPill').textContent=m.pill||'';
