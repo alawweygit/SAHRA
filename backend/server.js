@@ -211,3 +211,9 @@ setTimeout(async () => {
     }
   }
 }, 3000); // wait 3s after boot before warming
+
+// Keep-warm: ping self every 20 minutes to prevent Railway sleep
+setInterval(() => {
+  const port = process.env.PORT || 3000;
+  require('http').get(`http://localhost:${port}/health`, () => {}).on('error', () => {});
+}, 20 * 60 * 1000);
