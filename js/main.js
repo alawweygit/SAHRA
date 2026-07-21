@@ -402,7 +402,25 @@
     const urlCode=urlParams.get('room');
     const savedNav=readNavigationState();
     if(urlCode&&savedNav?.roomCode!==urlCode.toUpperCase()){$('#joinCode').value=urlCode.toUpperCase();showHypoxHeader();paintJoin();show('#scr-join');}
-    else restoreNavigationState();
+    // Player rejoin banner — shows if tab was closed but localStorage has a session
+    const _ps=JSON.parse(localStorage.getItem('hypox_player_session')||'null');
+    const _noSession=!sessionStorage.getItem('hypox_session');
+    if(_ps&&_ps.code&&_ps.pid&&_noSession&&FirebaseNet.available()){
+      const _pb=document.createElement('div');
+      _pb.id='playerRejoinBanner';
+      _pb.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:999;background:var(--card);border:2px solid var(--pink);border-radius:20px;padding:16px 22px;font-family:Fredoka One,sans-serif;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.5);min-width:260px;';
+      _pb.innerHTML='<div style="color:var(--pink);font-size:17px">'+(LANG==='ar'?'تريد ترجع للعبة؟':'Rejoin the game?')+'</div><div style="color:var(--text2);font-size:13px;margin:4px 0 12px">'+(LANG==='ar'?'الغرفة:':'Room:')+'&nbsp;<b style="color:var(--yellow)">'+_ps.code+'</b></div><div style="display:flex;gap:10px;justify-content:center"><button id="rejoinYes" style="background:var(--pink);color:#fff;border:none;border-radius:12px;padding:8px 22px;font-family:Fredoka One,sans-serif;font-size:15px;cursor:pointer">'+(LANG==='ar'?'ارجع ▶':'Rejoin ▶')+'</button><button id="rejoinNo" style="background:var(--card2,#2a2a3e);color:var(--text2);border:1.5px solid var(--border);border-radius:12px;padding:8px 18px;font-family:Fredoka One,sans-serif;font-size:14px;cursor:pointer">'+(LANG==='ar'?'لا':'No')+'</button></div>';
+      document.body.appendChild(_pb);
+      document.getElementById('rejoinNo').onclick=()=>{localStorage.removeItem('hypox_player_session');_pb.remove();};
+      document.getElementById('rejoinYes').onclick=async()=>{
+        _pb.remove();
+        try{
+          sessionStorage.setItem('hypox_session',JSON.stringify(_ps));
+          await restoreNavigationState();
+        }catch(e){localStorage.removeItem('hypox_player_session');show('#scr-title');}
+      };
+      setTimeout(()=>_pb?.remove(),20000);
+    } else restoreNavigationState();
     window.addEventListener('pagehide',()=>saveNavigationState());
     window.addEventListener('beforeunload',()=>saveNavigationState());
   });
@@ -1127,7 +1145,7 @@
     catch(e){$('#joinErr').textContent=T.connFail();return;}
     // Save the stable player id so refresh reconnects this player instead of
     // adding a second copy to the room.
-    try{sessionStorage.setItem('hypox_session',JSON.stringify({code,name,pid:myPid,isVip,emoji:selectedAvatar.emoji,color:selectedAvatar.color}));}catch(e){}
+    try{const _sd=JSON.stringify({code,name,pid:myPid,isVip,emoji:selectedAvatar.emoji,color:selectedAvatar.color});sessionStorage.setItem('hypox_session',_sd);localStorage.setItem('hypox_player_session',_sd);}catch(e){}
     // Reload page so iOS Safari starts at top — session restore picks up automatically
     window.location.reload();
   }
