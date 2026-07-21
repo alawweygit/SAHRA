@@ -79,7 +79,7 @@ const Host = (() => {
      (just extra state fields) in TV mode. */
   let mirror = { headline: '', sub: '', pill: '' };
   // Safe player lookup — never returns undefined, uses ghost fallback
-  const safeP = pid => safeP(pid) || { pid, name: '?', emoji: '👤', color: '#555', score: 0, isVip: false };
+  const safeP = pid => players.find(x => x.pid === pid) || { pid, name: '?', emoji: '👤', color: '#555', score: 0, isVip: false };
   function pushMirror(patch) {
     mirror = { ...mirror, ...patch };
     if (net && net.setMirror) net.setMirror({ ...mirror });
