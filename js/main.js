@@ -400,6 +400,8 @@
     // URL auto-join
     const urlParams=new URLSearchParams(window.location.search);
     const urlCode=urlParams.get('room');
+    // Clear saved nav state when opening via QR/link so spinner never blocks
+    if(urlCode){try{sessionStorage.removeItem(NAV_STATE_KEY);}catch(e){}}
     const savedNav=readNavigationState();
     if(urlCode&&savedNav?.roomCode!==urlCode.toUpperCase()){$('#joinCode').value=urlCode.toUpperCase();showHypoxHeader();paintJoin();show('#scr-join');}
     // Player rejoin banner — shows if tab was closed but localStorage has a session
