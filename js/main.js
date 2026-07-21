@@ -405,7 +405,7 @@
     // Player rejoin banner — shows if tab was closed but localStorage has a session
     const _ps=JSON.parse(localStorage.getItem('hypox_player_session')||'null');
     const _noSession=!sessionStorage.getItem('hypox_session');
-    if(_ps&&_ps.code&&_ps.pid&&_noSession&&FirebaseNet.available()){
+    if(_ps&&_ps.code&&_ps.pid&&_noSession&&FirebaseNet.available()&&!urlCode){
       const _pb=document.createElement('div');
       _pb.id='playerRejoinBanner';
       _pb.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:999;background:var(--card);border:2px solid var(--pink);border-radius:20px;padding:16px 22px;font-family:Fredoka One,sans-serif;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.5);min-width:260px;';
