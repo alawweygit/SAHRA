@@ -37,7 +37,7 @@ const Controller = (() => {
         let translated = false;
         let origText = spec.context;
         txBtn.addEventListener('click', async () => {
-          if(translated){ ctx.textContent=origText; txBtn.textContent='🌐 ترجم'; translated=false; return; }
+          if(translated){ ctx.textContent=origText; ctx.dir='ltr'; txBtn.textContent='🌐 ترجم'; translated=false; if(spec.controlsOnly&&wrap.contains(ctx))wrap.removeChild(ctx); return; }
           txBtn.textContent='...';
           try{
             const r = await fetch('https://hypox-ai-backend-production.up.railway.app/api/translate', {
@@ -45,7 +45,7 @@ const Controller = (() => {
               body: JSON.stringify({ text: spec.context, to: 'ar' })
             });
             const d = await r.json();
-            if(d.translation){ ctx.textContent=d.translation; ctx.dir='rtl'; txBtn.textContent='🔤 English'; translated=true; }
+            if(d.translation){ ctx.textContent=d.translation; ctx.dir='rtl'; txBtn.textContent='🔤 English'; translated=true; if(spec.controlsOnly&&!wrap.contains(ctx)){ctx.style.cssText='font-weight:700;font-size:13px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;line-height:1.5;margin-bottom:8px;direction:rtl;text-align:right;';wrap.insertBefore(ctx,txBtn);} }
             else { txBtn.textContent='🌐 ترجم'; }
           }catch(e){ txBtn.textContent='🌐 ترجم'; }
         });
