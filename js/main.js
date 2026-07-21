@@ -364,9 +364,8 @@
     $('#langBtn').addEventListener('click',()=>{
       setLang(LANG==='en'?'ar':'en');
       $('#langBtn').textContent=LANG==='en'?'عر':'EN';
-      // If no room/game is active, a reload repaints EVERY screen instantly (lang is saved)
-      if(!currentRoomCode && !gameActive){ location.reload(); return; }
-      buildTitleScreen(); // in-game: rebuild what we safely can
+      // Always reload — LANG persisted in localStorage, sessionStorage restores game state
+      location.reload();
     });
     $('#langBtn').textContent=LANG==='en'?'عر':'EN';
     $('#menuBtn').addEventListener('click',openMenu);
