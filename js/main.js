@@ -1209,6 +1209,8 @@
       if(!isInputActive() && (m.headline||m.scores) && mirrorKey !== _lastMirrorKey){
         _lastMirrorKey = mirrorKey;
         ctrl.innerHTML=buildMirrorHTML(m);
+        const _sc=document.getElementById('scr-controller');
+        if(_sc){_sc.scrollTop=0;requestAnimationFrame(()=>{_sc.scrollTop=0;requestAnimationFrame(()=>{_sc.scrollTop=0;});});}
         resetScrollPositionAfterLayout();
       }
     }
@@ -1265,6 +1267,25 @@
       return !!el;
     }
     net.onMirror(renderMirror);
+    // Re-render input when phone comes back from lock screen
+    document.addEventListener('visibilitychange',()=>{
+      if(document.visibilityState==='visible'&&gameActive&&net){
+        try{
+          net.room('state').get().then(snap=>{
+            const st=snap.val();
+            if(st&&st.phase==='input'&&st.phaseId&&st.spec){
+              const now=Date.now();
+              const deadline=st.deadline||0;
+              if(deadline>now&&st.targets&&st.targets.includes(myPid)){
+                // Still time left — re-render input
+                lastPhaseId=null; // force re-render
+                net.onState._lastState=null;
+              }
+            }
+          }).catch(()=>{});
+        }catch(e){}
+      }
+    });
     if(phonesOnly){
       // Always show a useful state while Firebase delivers the lobby/game.
       renderSharedStatus(LANG==='ar'?'تم الاتصال!':'YOU\'RE IN!',LANG==='ar'?'جاري تحميل الصالة…':'Loading the lobby…');
