@@ -78,6 +78,10 @@
     else if(id==='#scr-controller')currentViewKind='controller';
     resetScrollPositionAfterLayout();
     saveNavigationState(id.replace(/^#/,''));
+    // iOS Safari scroll fix: force window to top on every screen change
+    window.scrollTo({top:0,left:0,behavior:'auto'});
+    document.documentElement.scrollTop=0;
+    document.body.scrollTop=0;
   };
   const $=s=>document.querySelector(s);
   const $$=s=>Array.from(document.querySelectorAll(s));
