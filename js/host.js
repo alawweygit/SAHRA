@@ -78,6 +78,8 @@ const Host = (() => {
      lightweight text mirror of the stage to every player's phone. Harmless
      (just extra state fields) in TV mode. */
   let mirror = { headline: '', sub: '', pill: '' };
+  // Safe player lookup — never returns undefined, uses ghost fallback
+  const safeP = pid => players.find(x => x.pid === pid) || { pid, name: '?', emoji: '👤', color: '#555', score: 0, isVip: false };
   function pushMirror(patch) {
     mirror = { ...mirror, ...patch };
     if (net && net.setMirror) net.setMirror({ ...mirror });
@@ -659,7 +661,7 @@ const Host = (() => {
       Audio_.sfx.sting(); hostSay('prompt');
 
       const row = $('#statusRow');
-      row.innerHTML = pids.map(pid => `<div class="mini" id="mini-${pid}">${avatarHTML(players.find(p=>p.pid===pid))}<div class="check">✓</div></div>`).join('');
+      row.innerHTML = pids.map(pid => `<div class="mini" id="mini-${pid}">${avatarHTML(safeP(pid))}<div class="check">✓</div></div>`).join('');
       net.onEachInput(pid => { Audio_.sfx.submit(); $('#mini-'+pid)?.classList.add('done'); });
 
       const answers = await collectWithTimer({
@@ -699,7 +701,7 @@ const Host = (() => {
       net.setState({ phase: 'input-split', phaseId: votePhaseId, deadline: voteDeadline, specs: voteSpecs, mirror: { ...mirror } });
 
       const voteRow = $('#statusRow');
-      voteRow.innerHTML = pids.map(pid => `<div class="mini" id="vmini-${pid}">${avatarHTML(players.find(p=>p.pid===pid))}<div class="check">✓</div></div>`).join('');
+      voteRow.innerHTML = pids.map(pid => `<div class="mini" id="vmini-${pid}">${avatarHTML(safeP(pid))}<div class="check">✓</div></div>`).join('');
       net.onEachInput(pid => { Audio_.sfx.submit(); $('#vmini-'+pid)?.classList.add('done'); });
 
       // Bot auto-vote
@@ -810,7 +812,7 @@ const Host = (() => {
       Audio_.sfx.sting();
 
       const sRow = $('#statusRow');
-      sRow.innerHTML = duelerPids.map(pid=>`<div class="mini" id="mini-${pid}">${avatarHTML(players.find(p=>p.pid===pid))}<div class="check">✓</div></div>`).join('');
+      sRow.innerHTML = duelerPids.map(pid=>`<div class="mini" id="mini-${pid}">${avatarHTML(safeP(pid))}<div class="check">✓</div></div>`).join('');
       net.onEachInput(pid => { Audio_.sfx.submit(); $('#mini-'+pid)?.classList.add('done'); });
 
       // Auto-submit bots
@@ -852,7 +854,7 @@ const Host = (() => {
       Audio_.sfx.sting();
 
       const vRow = $('#statusRow');
-      vRow.innerHTML = allPids.map(pid=>`<div class="mini" id="vmini-${pid}">${avatarHTML(players.find(p=>p.pid===pid))}<div class="check">✓</div></div>`).join('');
+      vRow.innerHTML = allPids.map(pid=>`<div class="mini" id="vmini-${pid}">${avatarHTML(safeP(pid))}<div class="check">✓</div></div>`).join('');
       net.onEachInput(pid=>{Audio_.sfx.submit();$('#vmini-'+pid)?.classList.add('done');});
 
       const voteOpts = [
@@ -1491,7 +1493,7 @@ const Host = (() => {
       const ansLabel = `${arrow} ${LANG==='ar'?'الجواب':'Answer'}: ${Q.n.toLocaleString()} ${Q.unit}`;
       scene(`<div class="eyebrow">${esc(Q.q)}</div>
         <div class="prompt-card display" style="color:var(--yellow);font-size:clamp(20px,3.5vmin,36px)">${ansLabel}</div>
-        <div class="score-list" style="margin-top:1.5vmin">${pids.map((pid,idx2)=>{const p=players.find(x=>x.pid===pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx2*.1}s">${avatarHTML(p)}<div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}"><span class="bar-name">${esc(p.name)}</span><span class="bar-pts">${got?'✓ +'+(CORRECT_PTS):'✗ 0'}</span></div></div></div>`;}).join('')}</div>`);
+        <div class="score-list" style="margin-top:1.5vmin">${pids.map((pid,idx2)=>{const p=safeP(pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx2*.1}s">${avatarHTML(p)}<div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}"><span class="bar-name">${esc(p.name)}</span><span class="bar-pts">${got?'✓ +'+(CORRECT_PTS):'✗ 0'}</span></div></div></div>`;}).join('')}</div>`);
       pushMirror({ headline: ansLabel });
       await hostSay('reveal');
       await waitNext();
