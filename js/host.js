@@ -443,10 +443,19 @@ const Host = (() => {
       answers.forEach((a, i) => setTimeout(() => Audio_.sfx.pop(), i * 120));
       hostSay('vote');
 
-      const votes = await collectWithTimer({
-        type: 'choice', title: t('pick_truth'),
-        options: answers.map((a, i) => ({ id: i, label: a.text })),
-      }, pids, 30);
+      // Per-player vote: exclude own lie from options
+      const votePhaseIdBluff = 'vote_' + Date.now();
+      const voteDeadlineBluff = Date.now() + 30000;
+      const bluffVoteSpecs = {};
+      for (const pid of pids) {
+        bluffVoteSpecs[pid] = {
+          type: 'choice', title: t('pick_truth'),
+          options: answers.map((a, i) => ({ id: i, label: a.text }))
+            .filter((_, i) => answers[i].truth || answers[i].by !== pid),
+        };
+      }
+      net.setState({ phase: 'input-split', phaseId: votePhaseIdBluff, deadline: voteDeadlineBluff, specs: bluffVoteSpecs, mirror: { ...mirror } });
+      const votes = await collect(votePhaseIdBluff, pids, 30);
 
       // land voters on cards (skip self-votes on own lie)
       const votesByCard = answers.map(() => []);
