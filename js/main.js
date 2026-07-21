@@ -119,6 +119,13 @@
   async function restoreNavigationState(){
     const saved=readNavigationState();
     if(!saved||saved.screen==='scr-title')return false;
+    // Safety timeout — if restore hangs, fall back to title after 5s
+    const _safetyTimer=setTimeout(()=>{
+      document.getElementById('restoreLoader')?.remove();
+      document.querySelectorAll('.screen').forEach(s=>{s.style.opacity='';s.style.pointerEvents='';});
+      show('#scr-title');
+    },5000);
+    const _origRemove=()=>clearTimeout(_safetyTimer);
     // Hide all screens instantly to prevent flash while restoring
     const _allScreens=document.querySelectorAll('.screen');
     _allScreens.forEach(s=>{s.style.opacity='0';s.style.pointerEvents='none';});
@@ -129,6 +136,7 @@
     _loader.innerHTML='<svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#ff3d8a" stroke-width="3" stroke-linecap="round"/></svg>';
     document.body.appendChild(_loader);
     const _removeLoader=()=>{
+      clearTimeout(_safetyTimer);
       document.getElementById('restoreLoader')?.remove();
       _allScreens.forEach(s=>{s.style.opacity='';s.style.pointerEvents='';});
     };
