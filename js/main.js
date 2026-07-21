@@ -116,7 +116,7 @@
   function readNavigationState(){
     try{
       const saved=JSON.parse(sessionStorage.getItem(NAV_STATE_KEY)||'null');
-      return saved&&Date.now()-(saved.savedAt||0)<12*60*60*1000?saved:null;
+      return saved&&Date.now()-(saved.savedAt||0)<30*60*1000?saved:null;
     }catch(e){return null;}
   }
 
