@@ -29,6 +29,28 @@ const Controller = (() => {
       ctx.className = 'ctrl-context';
       ctx.textContent = spec.context;
       wrap.appendChild(ctx);
+      // Translate button — only show if context is in English
+      if(typeof LANG !== 'undefined' && LANG !== 'ar') {
+        const txBtn = document.createElement('button');
+        txBtn.textContent = '🌐 ترجم';
+        txBtn.style.cssText = 'background:none;border:1px solid var(--border);border-radius:20px;color:var(--text2);font-size:12px;padding:4px 12px;cursor:pointer;margin-top:6px;font-family:Fredoka One,sans-serif;';
+        let translated = false;
+        let origText = spec.context;
+        txBtn.addEventListener('click', async () => {
+          if(translated){ ctx.textContent=origText; txBtn.textContent='🌐 ترجم'; translated=false; return; }
+          txBtn.textContent='...';
+          try{
+            const r = await fetch('https://hypox-ai-backend-production.up.railway.app/api/translate', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ text: spec.context, to: 'ar' })
+            });
+            const d = await r.json();
+            if(d.translation){ ctx.textContent=d.translation; ctx.dir='rtl'; txBtn.textContent='🔤 English'; translated=true; }
+            else { txBtn.textContent='🌐 ترجم'; }
+          }catch(e){ txBtn.textContent='🌐 ترجم'; }
+        });
+        wrap.appendChild(txBtn);
+      }
     }
     if (!spec.controlsOnly && spec.sub) {
       const sub = document.createElement('div');

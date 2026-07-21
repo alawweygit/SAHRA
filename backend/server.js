@@ -188,6 +188,22 @@ app.post('/api/prompts', async (req, res) => {
 });
 
 app.get('/health', (_, res) => res.json({ ok: true, modes: Object.keys(SHAPES), timestamp: new Date().toISOString() }));
+
+app.post('/api/translate', async (req, res) => {
+  try {
+    const { text, to } = req.body || {};
+    if (!text) return res.status(400).json({ error: 'No text' });
+    const msg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      messages: [{ role: 'user', content: `Translate this game question to Arabic. Keep ___ as is. Return ONLY the translation, nothing else:\n${text}` }],
+    });
+    const translation = msg.content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
+    res.json({ translation });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('HYPOX backend port ' + PORT));
 
