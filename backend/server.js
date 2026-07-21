@@ -190,3 +190,24 @@ app.post('/api/prompts', async (req, res) => {
 app.get('/health', (_, res) => res.json({ ok: true, modes: Object.keys(SHAPES), timestamp: new Date().toISOString() }));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('HYPOX backend port ' + PORT));
+
+// Self-warm: pre-generate the 3 most popular modes on startup so first request is instant
+const WARM_MODES = [
+  { mode: 'bluff', lang: 'ar' },
+  { mode: 'bluff', lang: 'en' },
+  { mode: 'wyr',   lang: 'ar' },
+];
+setTimeout(async () => {
+  for (const { mode, lang } of WARM_MODES) {
+    try {
+      const baseKey = mode + ':' + lang;
+      if (!usedFingerprints.has(baseKey)) usedFingerprints.set(baseKey, new Set());
+      const fresh = await generateBatch(mode, lang, usedFingerprints.get(baseKey), baseKey);
+      const current = pool.get(baseKey) || [];
+      pool.set(baseKey, [...current, ...fresh]);
+      console.log(`[warm] ${baseKey} — ${fresh.length} items cached`);
+    } catch(e) {
+      console.warn(`[warm] ${mode}:${lang} failed — ${e.message}`);
+    }
+  }
+}, 3000); // wait 3s after boot before warming
