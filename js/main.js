@@ -312,7 +312,7 @@
           document.documentElement.scrollTop=0;
           document.body.scrollTop=0;
           // Only safe screens to jump to directly
-          if(_goto==='#scr-controller'){openPlayerController&&openPlayerController();}
+          if(_goto==='#scr-controller'){restoreNavigationState();}
           else if(_goto==='#scr-title'){show('#scr-title');}
           else{show(_goto);}
         });
