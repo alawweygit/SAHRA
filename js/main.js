@@ -1156,8 +1156,8 @@
     // Save the stable player id so refresh reconnects this player instead of
     // adding a second copy to the room.
     try{const _sd=JSON.stringify({code,name,pid:myPid,isVip,emoji:selectedAvatar.emoji,color:selectedAvatar.color});sessionStorage.setItem('hypox_session',_sd);localStorage.setItem('hypox_player_session',_sd);}catch(e){}
-    // Reload page so iOS Safari starts at top — session restore picks up automatically
-    window.location.reload();
+    // Go directly to controller — no reload needed
+    openPlayerController();
   }
 
   async function _claimHost(){
