@@ -69,6 +69,8 @@
   // remembered position for whichever element currently owns scrolling.
   window.__hypoxResetScroll=resetScrollPositionAfterLayout;
 
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) && /WebKit/.test(navigator.userAgent);
+
   const show=id=>{
     $$('.screen').forEach(s=>{s.classList.remove('active');s.scrollTop=0;});
     const _sel=$(id);if(_sel){_sel.classList.add('active');_sel.scrollTop=0;requestAnimationFrame(()=>{_sel.scrollTop=0;requestAnimationFrame(()=>{_sel.scrollTop=0;});});}
@@ -78,7 +80,12 @@
     else if(id==='#scr-controller')currentViewKind='controller';
     resetScrollPositionAfterLayout();
     saveNavigationState(id.replace(/^#/,''));
-    // iOS Safari scroll fix: force window to top on every screen change
+    // iOS Safari scroll fix: reload to force top position
+    if(isIOS){
+      try{sessionStorage.setItem('hypox_goto',id);}catch(e){}
+      window.location.reload();
+      return;
+    }
     window.scrollTo({top:0,left:0,behavior:'auto'});
     document.documentElement.scrollTop=0;
     document.body.scrollTop=0;
@@ -293,6 +300,25 @@
   let booted=false;
   document.addEventListener('DOMContentLoaded',()=>{
     if(booted)return;booted=true;
+    // iOS reload-to-top: if we reloaded to fix scroll, jump to target screen
+    try{
+      const _goto=sessionStorage.getItem('hypox_goto');
+      if(_goto){
+        sessionStorage.removeItem('hypox_goto');
+        applyTheme();applyLang();FX.init();
+        buildTitleScreen();
+        requestAnimationFrame(()=>{
+          window.scrollTo({top:0,left:0,behavior:'auto'});
+          document.documentElement.scrollTop=0;
+          document.body.scrollTop=0;
+          // Only safe screens to jump to directly
+          if(_goto==='#scr-controller'){openPlayerController&&openPlayerController();}
+          else if(_goto==='#scr-title'){show('#scr-title');}
+          else{show(_goto);}
+        });
+        return;
+      }
+    }catch(e){}
     // Expose show() globally for host.js to use
     window.__hypoxShowScreen = show;
     applyTheme();
