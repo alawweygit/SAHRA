@@ -457,8 +457,32 @@ const Host = (() => {
         };
       }
       net.setState({ phase: 'input-split', phaseId: votePhaseIdBluff, deadline: voteDeadlineBluff, specs: bluffVoteSpecs, mirror: { ...mirror } });
+
+      // Status row showing who has voted
+      const _bvRow = document.createElement('div');
+      _bvRow.className = 'status-row';
+      _bvRow.innerHTML = pids.map(pid => `<div class="mini" id="bvmini-${pid}">${avatarHTML(safeP(pid))}<div class="check">✓</div></div>`).join('');
+      document.getElementById('hostStage')?.appendChild(_bvRow);
+      net.onEachInput(pid => { Audio_.sfx.submit(); document.getElementById('bvmini-'+pid)?.classList.add('done'); });
+
+      // Host self-vote in phones-only mode
+      if (net.hostSelfPid) {
+        const myOpts = answers.map((a,i) => ({...a, idx:i})).filter(a => a.truth || a.by !== net.hostSelfPid);
+        const _hvRow = document.createElement('div');
+        _hvRow.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-top:14px;width:100%;max-width:700px;';
+        _hvRow.innerHTML = myOpts.map(a => `<button id="hbv_${a.idx}" style="padding:12px 16px;border-radius:14px;background:var(--card);border:2px solid var(--border);color:var(--text);font-family:Fredoka One,sans-serif;font-size:clamp(13px,1.8vmin,16px);cursor:pointer">${esc(a.text)}</button>`).join('');
+        document.getElementById('hostStage')?.appendChild(_hvRow);
+        myOpts.forEach(a => {
+          document.getElementById('hbv_'+a.idx)?.addEventListener('click', async () => {
+            Audio_.sfx.submit(); _hvRow.remove();
+            await net.room('inputs/'+votePhaseIdBluff+'/'+net.hostSelfPid).set({ v: a.idx, t: Date.now() });
+          }, { once: true });
+        });
+      }
+
       const votes = await net.collect(votePhaseIdBluff, null, pids, inputTimeout(30));
       net.onEachInput(null);
+      _bvRow.remove();
 
       // land voters on cards (skip self-votes on own lie)
       const votesByCard = answers.map(() => []);
