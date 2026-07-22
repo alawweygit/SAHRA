@@ -576,7 +576,7 @@ const Host = (() => {
       // Brief "whose turn" announcement
       scene(`
         <div style="text-align:center;padding:2vmin">
-          <div style="font-size:clamp(14px,2.5vmin,18px);color:var(--yellow);font-family:'Fredoka One',sans-serif;margin-bottom:1.5vmin;letter-spacing:1px">${LANG==='ar'?'دور':'IT'S'}</div>
+          <div style="font-size:clamp(14px,2.5vmin,18px);color:var(--yellow);font-family:'Fredoka One',sans-serif;margin-bottom:1.5vmin;letter-spacing:1px">${LANG==='ar'?'دور':'IT\'S'}</div>
           ${avatarHTML(target)}
           <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(22px,4vmin,36px);color:var(--text);margin-top:1vmin">${esc(target.name)}</div>
           <div style="font-size:clamp(13px,2vmin,16px);color:var(--text2);margin-top:0.8vmin">${LANG==='ar'?'على الكرسي الساخن 🔥':'is in the hot seat 🔥'}</div>
