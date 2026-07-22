@@ -421,7 +421,6 @@ const Host = (() => {
       scene(frameWithTimer(
         `<div class="prompt-card display">${esc(R.fact).replace('___', '<span class="blank">&nbsp;???&nbsp;</span>')}</div>`,
         t('write_lie')));
-      addTranslateBtn(R.fact);
       hostSay('prompt');
 
       const _bluffBots = net.getBotPids ? net.getBotPids() : [];
