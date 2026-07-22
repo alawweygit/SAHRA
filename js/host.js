@@ -81,26 +81,6 @@ const Host = (() => {
   // Safe player lookup — never returns undefined, uses ghost fallback
   const safeP = pid => players.find(x => x.pid === pid) || { pid, name: '?', emoji: '👤', color: '#555', score: 0, isVip: false };
 
-  function addTranslateBtn(factText) {
-    if(LANG === 'ar') return;
-    const _tb = document.createElement('button');
-    _tb.textContent = '🌐 ترجم';
-    _tb.style.cssText = 'background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(96,165,250,0.15));border:1.5px solid rgba(167,139,250,0.4);border-radius:20px;color:var(--purple);font-size:13px;padding:6px 16px;cursor:pointer;margin-top:8px;font-family:Fredoka One,sans-serif;box-shadow:0 2px 12px rgba(167,139,250,0.2);';
-    let _done = false;
-    const _card = document.querySelector('#hostStage .prompt-card');
-    if(!_card) return;
-    _card.parentNode.insertBefore(_tb, _card.nextSibling);
-    _tb.addEventListener('click', async () => {
-      if(_done){ _card.innerHTML=esc(factText).replace('___','<span class="blank">&nbsp;???&nbsp;</span>'); _tb.textContent='🌐 ترجم'; _done=false; return; }
-      _tb.textContent='...';
-      try{
-        const r=await fetch('https://hypox-ai-backend-production.up.railway.app/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:factText,to:'ar'})});
-        const d=await r.json();
-        if(d.translation){_card.innerHTML=d.translation.replace('___','<span class="blank">&nbsp;???&nbsp;</span>');_card.dir='rtl';_tb.textContent='🔤 English';_done=true;}
-        else _tb.textContent='🌐 ترجم';
-      }catch(e){_tb.textContent='🌐 ترجم';}
-    });
-  }
   function pushMirror(patch) {
     mirror = { ...mirror, ...patch };
     if (net && net.setMirror) net.setMirror({ ...mirror });
@@ -418,7 +398,6 @@ const Host = (() => {
       scene(frameWithTimer(
         `<div class="prompt-card display">${esc(R.fact).replace('___', '<span class="blank">&nbsp;???&nbsp;</span>')}</div>`,
         t('write_lie')));
-      addTranslateBtn(R.fact);
       hostSay('prompt');
 
       const _bluffBots = net.getBotPids ? net.getBotPids() : [];
@@ -464,7 +443,6 @@ const Host = (() => {
             </div>`).join('')}
         </div>
         <div id="statusRow" class="status-row"></div>`);
-      addTranslateBtn(R.fact);
       answers.forEach((a, i) => setTimeout(() => Audio_.sfx.pop(), i * 120));
       hostSay('vote');
 
