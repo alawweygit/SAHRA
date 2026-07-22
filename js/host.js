@@ -573,6 +573,17 @@ const Host = (() => {
       const R = prompts[r], target = seats[r];
       await FX.wipe();
       setPill(`${t('round')} ${r + 1} ${t('of')} ${prompts.length}`);
+      // Brief "whose turn" announcement
+      scene(`
+        <div style="text-align:center;padding:2vmin">
+          <div style="font-size:clamp(14px,2.5vmin,18px);color:var(--yellow);font-family:'Fredoka One',sans-serif;margin-bottom:1.5vmin;letter-spacing:1px">${LANG==='ar'?'دور':'IT'S'}</div>
+          ${avatarHTML(target)}
+          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(22px,4vmin,36px);color:var(--text);margin-top:1vmin">${esc(target.name)}</div>
+          <div style="font-size:clamp(13px,2vmin,16px);color:var(--text2);margin-top:0.8vmin">${LANG==='ar'?'على الكرسي الساخن 🔥':'is in the hot seat 🔥'}</div>
+        </div>`);
+      net.setState({ phase:'wait', msg: `${LANG==='ar'?'دور':'It\'s'} ${target.name} ${LANG==='ar'?'🔥':'🔥'}` });
+      await sleep(2000);
+      await FX.wipe();
       scene(frameWithTimer(`
         <div class="hotseat">${avatarHTML(target)}<div class="pname">${esc(target.name)}</div></div>
         <div class="prompt-card small display">
@@ -580,9 +591,6 @@ const Host = (() => {
           <span class="vs-mid display">${esc(t('vs'))}</span>
           <span class="opt-b">${esc(R.b)}</span>
         </div>`, t('mode_names')['wyr']));
-      say(LANG === 'ar'
-        ? `${target.name} على الكرسي الساخن! والباقي — توقعوا اختياره.`
-        : `${target.name} is in the hot seat! Everyone else — predict their pick.`);
 
       const others = players.filter(p => p.pid !== target.pid).map(p => p.pid);
       const opts = [{ id: 'a', label: R.a, color: '#2de1fc' }, { id: 'b', label: R.b, color: '#ff3d8a' }];
