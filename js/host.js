@@ -338,7 +338,7 @@ const Host = (() => {
       </div>`);
     await sleep(300);
     sorted.forEach((p, i) => setTimeout(() => {
-      Audio_.sfx.submit();
+      if(i===0)Audio_.sfx.submit();
       const b = $('#bar-' + p.pid);
       const ptsEl = $('#pts-' + p.pid);
       if (b) b.style.width = p.score > 0 ? Math.max(18, (p.score / max) * 100) + '%' : '0';
@@ -354,7 +354,7 @@ const Host = (() => {
       } else if (ptsEl) {
         ptsEl.textContent = '0';
       }
-    }, i * 220));
+    }, i * 80));
     await sleep(800);
     await hostSay('scores');
     Audio_.stopMusic();

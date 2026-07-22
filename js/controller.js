@@ -35,7 +35,7 @@ const Controller = (() => {
     if(_txCtx && typeof LANG !== 'undefined' && LANG !== 'ar'){
       const txBtn = document.createElement('button');
       txBtn.textContent = '🌐 ترجم';
-      txBtn.style.cssText = 'background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(96,165,250,0.15));border:1.5px solid rgba(167,139,250,0.4);border-radius:20px;color:var(--purple);font-size:13px;padding:6px 16px;cursor:pointer;margin-top:8px;font-family:Fredoka One,sans-serif;box-shadow:0 2px 12px rgba(167,139,250,0.2);display:block;';
+      txBtn.style.cssText = 'background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(96,165,250,0.15));border:1.5px solid rgba(167,139,250,0.4);border-radius:20px;color:var(--purple);font-size:13px;padding:6px 16px;cursor:pointer;margin-top:8px;margin-bottom:8px;font-family:Fredoka One,sans-serif;box-shadow:0 2px 12px rgba(167,139,250,0.2);display:block;';
       const txDiv = document.createElement('div');
       txDiv.style.cssText = 'font-weight:700;font-size:13px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;line-height:1.5;margin-top:6px;direction:rtl;text-align:right;display:none;';
       let txDone = false;
@@ -49,8 +49,15 @@ const Controller = (() => {
           else txBtn.textContent='🌐 ترجم';
         }catch(e){txBtn.textContent='🌐 ترجم';}
       });
-      wrap.appendChild(txBtn);
-      wrap.appendChild(txDiv);
+      // Insert translate button right below question card if in shared stage
+      const _qCard = document.querySelector('#phoneSharedStage .ctrl-context, #phoneSharedStage .prompt-card');
+      if(_qCard){
+        _qCard.parentNode.insertBefore(txBtn, _qCard.nextSibling);
+        _qCard.parentNode.insertBefore(txDiv, txBtn.nextSibling);
+      } else {
+        wrap.appendChild(txBtn);
+        wrap.appendChild(txDiv);
+      }
     }
 
     if (!spec.controlsOnly && spec.sub) {
