@@ -1030,7 +1030,7 @@ const Host = (() => {
       Audio_.sfx.sting();
 
       const answers = await collectWithTimer({
-        type: 'choice', title: t('quiz_pick'), context: Q.q, seconds: 15,
+        type: 'choice', title: t('quiz_pick'), context: Q.q, translateContext: Q.q, seconds: 15,
         options: Q.options.map((o, j) => ({ id: j, label: `${'ABCD'[j]} · ${o}`, color: colors[j] })),
       }, pids, 15);
 
@@ -1348,7 +1348,7 @@ const Host = (() => {
       pushMirror({ headline: Q.q, pill: `${i+1}/${qs.length}` });
       Audio_.sfx.sting();
       const answers = await collectWithTimer({
-        type: 'text', title: LANG==='ar'?'اكتب السنة':'Type the year', context: Q.q, maxLen: 4, numeric: true, seconds: 20,
+        type: 'text', title: LANG==='ar'?'اكتب السنة':'Type the year', context: Q.q, translateContext: Q.q, maxLen: 4, numeric: true, seconds: 20,
       }, players.map(p => p.pid), 20);
       const results = players.map(p => {
         let raw = answers[p.pid] ? String(answers[p.pid].value || '').trim() : '';
@@ -1399,7 +1399,7 @@ const Host = (() => {
       pushMirror({ headline: Q.q });
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p => p.pid);
-      const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'من الأرجح؟':'Who is most likely?', context:Q.q, options:players.map(p=>({id:p.pid,label:`${p.emoji} ${p.name}`,color:p.color})), seconds:20 }, pids, 20);
+      const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'من الأرجح؟':'Who is most likely?', context:Q.q, translateContext:Q.q, options:players.map(p=>({id:p.pid,label:`${p.emoji} ${p.name}`,color:p.color})), seconds:20 }, pids, 20);
       const tally = {};
       pids.forEach(pid => { const v = val(votes, pid); if (v) tally[v] = (tally[v]||0)+1; });
       const maxV = Math.max(0, ...Object.values(tally));
@@ -1431,7 +1431,7 @@ const Host = (() => {
       pushMirror({ headline: Q.s });
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p => p.pid);
-      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'صح ولا كذب؟':'True or Lie?', context:Q.s, options:opts, seconds:15 }, pids, 15);
+      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'صح ولا كذب؟':'True or Lie?', context:Q.s, translateContext:Q.s, options:opts, seconds:15 }, pids, 15);
       const correctId = Q.truth ? 'true' : 'false';
       Audio_.sfx.drum(); await sleep(900);
       const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
