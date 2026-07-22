@@ -586,10 +586,10 @@ const Host = (() => {
       await FX.wipe();
       scene(frameWithTimer(`
         <div class="hotseat">${avatarHTML(target)}<div class="pname">${esc(target.name)}</div></div>
-        <div class="prompt-card small display">
-          <span class="opt-a">${esc(R.a)}</span>
-          <span class="vs-mid display">${esc(t('vs'))}</span>
-          <span class="opt-b">${esc(R.b)}</span>
+        <div class="prompt-card small display" style="font-size:clamp(14px,2.2vmin,20px)">
+          <span style="color:#2de1fc">${esc(R.a)}</span>
+          <span class="vs-mid display" style="color:var(--text3)"> VS </span>
+          <span style="color:#ff3d8a">${esc(R.b)}</span>
         </div>`, t('mode_names')['wyr']));
 
       const others = players.filter(p => p.pid !== target.pid).map(p => p.pid);
@@ -606,8 +606,8 @@ const Host = (() => {
         net.setState({
           phase: 'input-split', phaseId, deadline: inputDeadline(30),
           specs: {
-            [target.pid]: { type: 'choice', title: t('your_pick'), options: [{ id:'a', label:'🔵 A', color:'#2de1fc' }, { id:'b', label:'🔴 B', color:'#ff3d8a' }] },
-            _default: { type: 'choice', title: `${t('predict')} (${target.name})`, options: [{ id:'a', label:'🔵 A', color:'#2de1fc' }, { id:'b', label:'🔴 B', color:'#ff3d8a' }] },
+            [target.pid]: { type: 'choice', title: t('your_pick'), options: opts },
+            _default: { type: 'choice', title: `${t('predict')} (${target.name})`, options: opts },
           },
         });
         const row = $('#statusRow');
