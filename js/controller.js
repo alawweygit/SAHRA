@@ -32,7 +32,7 @@ const Controller = (() => {
     }
     // Translate button — only for players (not host, host has its own button)
     const _txCtx = spec.translateContext || spec.context;
-    if(_txCtx && typeof LANG !== 'undefined' && LANG !== 'ar' && !document.getElementById('hostStage')){
+    if(_txCtx && typeof LANG !== 'undefined' && LANG !== 'ar' && !(window._hypoxIsHost)){
       const txBtn = document.createElement('button');
       txBtn.textContent = '🌐 ترجم';
       txBtn.style.cssText = 'background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(96,165,250,0.15));border:1.5px solid rgba(167,139,250,0.4);border-radius:20px;color:var(--purple);font-size:13px;padding:6px 16px;cursor:pointer;margin-top:8px;font-family:Fredoka One,sans-serif;box-shadow:0 2px 12px rgba(167,139,250,0.2);display:block;';

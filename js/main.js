@@ -778,6 +778,7 @@
 
   /* ---- START GAME ---- */
   async function startGameWithMode(playMode,gameMode){
+    window._hypoxIsHost=true;
     Audio_.sfx.submit();hostMode=playMode;currentGameMode=gameMode;currentViewKind='starting';
     window.__hypoxAbort=false;
     window.__hypoxSkip=null;
@@ -1276,6 +1277,7 @@
   }
 
   function openPlayerController(){
+    window._hypoxIsHost=false;
     currentViewKind='controller';gameActive=true;
     window._hypoxHostGone=false;
     if(net&&net.startHeartbeat)net.startHeartbeat();
