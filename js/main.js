@@ -408,7 +408,17 @@
 
     $('#menuClose').addEventListener('click',closeMenu);
     $('#menuResume').addEventListener('click',closeMenu);
-    $('#menuLeave').addEventListener('click',()=>{closeMenu();if(gameActive||currentRoomCode){if(confirm(LANG==='ar'?'متأكد أنك تريد تغادر؟':'Are you sure you want to leave?')){leaveGame();}}else{show('#scr-title');}});
+    $('#menuLeave').addEventListener('click',()=>{
+      closeMenu();
+      if(gameActive||currentRoomCode){
+        const _conf=document.createElement('div');
+        _conf.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;';
+        _conf.innerHTML='<div style="background:var(--card);border:2px solid var(--border-hi);border-radius:24px;padding:28px 24px;max-width:320px;width:90%;text-align:center;font-family:Fredoka One,sans-serif"><div style="font-size:20px;color:var(--text);margin-bottom:8px">'+(LANG==='ar'?'تريد تغادر؟':'Leave the game?')+'</div><div style="font-size:14px;color:var(--text2);margin-bottom:20px">'+(LANG==='ar'?'اللاعبين الثانيين بيكملون':'Other players will continue')+'</div><div style="display:flex;gap:12px;justify-content:center"><button id="_confYes" style="background:var(--pink);color:#fff;border:none;border-radius:14px;padding:10px 28px;font-family:Fredoka One,sans-serif;font-size:16px;cursor:pointer">'+(LANG==='ar'?'اغادر':'Leave')+'</button><button id="_confNo" style="background:var(--card2,#2a2a3e);color:var(--text2);border:1.5px solid var(--border);border-radius:14px;padding:10px 28px;font-family:Fredoka One,sans-serif;font-size:16px;cursor:pointer">'+(LANG==='ar'?'ارجع':'Stay')+'</button></div></div>';
+        document.body.appendChild(_conf);
+        document.getElementById('_confYes').onclick=()=>{_conf.remove();leaveGame();};
+        document.getElementById('_confNo').onclick=()=>_conf.remove();
+      }else{show('#scr-title');}
+    });
     // Join screen — build mini avatar picker
     buildJoinAvatarRow();
     $('#joinGo').addEventListener('click',joinAsPlayer);
@@ -1040,8 +1050,8 @@
 
   /* ---- MENU ---- */
   function updateMenu(){
-    const m=$('#menuOverlay .menu-card');m.style.cssText='position:fixed;top:10px;left:50%;transform:translateX(-50%);width:90%;max-width:400px;z-index:10000;';
-    const _mo=$('#menuOverlay');if(_mo)_mo.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);display:flex;align-items:flex-start;justify-content:center;padding-top:0;';
+    const m=$('#menuOverlay .menu-card');
+    const _mo=$('#menuOverlay');if(_mo)_mo.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;';
     if(!m)return;
     m.querySelector('.menu-title').textContent=T.menu();
     m.querySelector('#menuResume').textContent=T.resume();
@@ -1114,7 +1124,7 @@
     }
     try{sessionStorage.removeItem('hypox_session');localStorage.removeItem('hypox_player_session');}catch(e){}
     if(leavingNet)try{await leavingNet.close();}catch(e){}
-    window.location.href=window.location.origin+window.location.pathname;
+    window.location.href=window.location.origin+window.location.pathname+'?t='+Date.now();
   }
 
   /* ---- AVATAR ---- */
