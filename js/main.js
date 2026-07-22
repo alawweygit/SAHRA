@@ -1572,7 +1572,8 @@
           resetScrollPositionAfterLayout();
         }
       }else if(state.phase==='gameinfo'){
-        // Show tutorial for phones-only players too
+        // Hide shared stage, show tutorial only in controller
+        if(phonesOnly){shared.classList.add('hidden');shared.innerHTML='';}
         ctrl.classList.remove('hidden');
         ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:20px 16px">
           <div style="font-size:56px;margin-bottom:8px">${esc(state.icon||'🎮')}</div>
