@@ -21,6 +21,8 @@ const Host = (() => {
   }
   /* Say a line from the current host's own banter pool (falls back to i18n keys) */
   function hostSay(kind) {
+    // Only show host avatar before/after game — not during prompt/vote
+    if (kind === 'prompt' || kind === 'vote') return Promise.resolve();
     if (currentHost) {
       const pool = (currentHost.banter[LANG] || currentHost.banter.en || {})[kind];
       if (pool && pool.length) return say(pool[Math.floor(Math.random() * pool.length)]);
@@ -596,8 +598,8 @@ const Host = (() => {
         net.setState({
           phase: 'input-split', phaseId, deadline: inputDeadline(30),
           specs: {
-            [target.pid]: { type: 'choice', title: t('your_pick'), options: opts },
-            _default: { type: 'choice', title: `${t('predict')} (${target.name})`, options: opts },
+            [target.pid]: { type: 'choice', title: t('your_pick'), options: [{ id:'a', label:'🔵 A', color:'#2de1fc' }, { id:'b', label:'🔴 B', color:'#ff3d8a' }] },
+            _default: { type: 'choice', title: `${t('predict')} (${target.name})`, options: [{ id:'a', label:'🔵 A', color:'#2de1fc' }, { id:'b', label:'🔴 B', color:'#ff3d8a' }] },
           },
         });
         const row = $('#statusRow');
