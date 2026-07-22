@@ -604,7 +604,10 @@ const Host = (() => {
         row.innerHTML = players.map(p => `<div class="mini" id="mini-${p.pid}">${avatarHTML(p)}<div class="check">✓</div></div>`).join('');
         net.onEachInput(pid => { Audio_.sfx.submit(); $('#mini-' + pid)?.classList.add('done'); });
 
-        // Auto-submit for bots (bypassed since we use net.collect directly)
+        // A/B buttons for host to answer (target picks or guesses)
+        const botPids = net.getBotPids ? net.getBotPids() : [];
+
+        // Auto-submit for bots
         players.filter(p => botPids.includes(p.pid)).forEach(botP => {
           setTimeout(async () => {
             try {
@@ -613,9 +616,6 @@ const Host = (() => {
             } catch(e) {}
           }, 1000 + Math.random() * 2500);
         });
-
-        // A/B buttons for host to answer (target picks or guesses)
-        const botPids = net.getBotPids ? net.getBotPids() : [];
         const hostNeedsAnswer = net.hostSelfPid && !botPids.includes(net.hostSelfPid);
         if (hostNeedsAnswer) {
           const isTarget = net.hostSelfPid === target.pid;
