@@ -1572,8 +1572,21 @@
           resetScrollPositionAfterLayout();
         }
       }else if(state.phase==='gameinfo'){
-        // In phones-only, the shared host tutorial already shows above — don't duplicate
-        if(phonesOnly){ctrl.classList.add('hidden');ctrl.innerHTML='';return;}
+        if(phonesOnly){
+          // Show shared stage with tutorial, hide controller
+          shared.classList.remove('hidden');
+          ctrl.classList.add('hidden');ctrl.innerHTML='';
+          if(shared.dataset.sharedReady!=='1'){
+            shared.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:20px 16px">
+              <div style="font-size:56px;margin-bottom:8px">${esc(state.icon||'🎮')}</div>
+              <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(20px,5vw,28px);color:var(--yellow);margin-bottom:6px">${esc(state.modeName||'')}</div>
+              <div style="font-size:clamp(13px,3.5vw,16px);color:var(--text2);margin-bottom:12px">${esc(state.tagline||'')}</div>
+              ${state.rules?`<div style="font-size:clamp(12px,3vw,14px);color:var(--text3);line-height:1.5;background:rgba(255,255,255,0.06);border-radius:12px;padding:10px 14px;text-align:left">${esc(state.rules)}</div>`:''}
+              <div style="margin-top:16px;font-size:13px;color:var(--text3)">${LANG==='ar'?'انتظر المضيف يبدأ…':'Waiting for host to start…'}</div>
+            </div>`;
+          }
+          return;
+        }
         ctrl.classList.remove('hidden');
         ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:20px 16px">
           <div style="font-size:56px;margin-bottom:8px">${esc(state.icon||'🎮')}</div>
