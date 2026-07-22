@@ -358,7 +358,7 @@ const Content = (() => {
 
   async _load(mode, lang, count, region) {
     const cfg = window.HYPOX_CONFIG || {};
-    if (cfg.aiEndpoint) {
+    if (cfg.aiEndpoint && !window._hypoxTestMode) {
       let timeoutId;
       try {
         const controller = new AbortController();

@@ -724,6 +724,15 @@
         document.getElementById('pregameInner').appendChild(startBtn);
       }
       startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
+      // Test mode toggle
+      if(!document.getElementById('testModeBtn')){
+        const _tm=document.createElement('button');
+        _tm.id='testModeBtn';
+        _tm.style.cssText='background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:12px;padding:4px 14px;cursor:pointer;margin-top:6px;font-family:Fredoka One,sans-serif;display:block;margin-left:auto;margin-right:auto;';
+        _tm.textContent=window._hypoxTestMode?'🧪 Test Mode: ON':'🧪 Test Mode: OFF';
+        _tm.onclick=()=>{window._hypoxTestMode=!window._hypoxTestMode;_tm.textContent=window._hypoxTestMode?'🧪 Test Mode: ON (no AI)':'🧪 Test Mode: OFF';_tm.style.color=window._hypoxTestMode?'var(--yellow)':'var(--text3)';};
+        document.getElementById('pregameInner').appendChild(_tm);
+      }
       // Show content-ready indicator on the button
       const _cm2=mode==='trivia'?'quiz':mode;
       const _preloadPromise=window.Content?window.Content.preload(_cm2,LANG,window.HYPOX_STATE?.rounds||5):null;
