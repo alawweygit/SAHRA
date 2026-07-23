@@ -50,10 +50,10 @@
       el.scrollTop=0;
       el.scrollLeft=0;
     });
-    window.scrollTo(0,0);
+    if(!SCROLLABLE_SCREENS.includes(document.querySelector('.screen.active')?.id||''))window.scrollTo(0,0);
   }
 
-  function resetScrollPositionAfterLayout(){
+  function resetScrollPositionAfterLayout_DISABLED(){
     resetScrollPosition();
     requestAnimationFrame(()=>{
       resetScrollPosition();
