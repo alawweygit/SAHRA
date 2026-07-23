@@ -643,7 +643,9 @@ const Host = (() => {
           makeWyrBtns('wyrPickA', 'wyrPickB');
         }
 
-        const all = await net.collect(phaseId, null, players.map(p => p.pid), inputTimeout(30));
+        // Collect only from players — host vote doesn't trigger round end
+        const _nonHostPids = players.map(p => p.pid).filter(pid => pid !== net.hostSelfPid);
+        const all = await net.collect(phaseId, null, _nonHostPids.length ? _nonHostPids : players.map(p => p.pid), inputTimeout(30));
         net.onEachInput(null);
         net.setState({ phase: 'wait', msg: t('watch_screen') });
         targetPick = val(all, target.pid);
