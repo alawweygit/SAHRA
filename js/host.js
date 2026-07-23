@@ -583,16 +583,21 @@ const Host = (() => {
       if (!questions.length) continue;
       await FX.wipe();
       setPill(`${LANG==='ar'?'دور':'Turn'} ${r+1} ${LANG==='ar'?'من':'of'} ${playerTurns.length}`);
-      // "Whose turn" announcement
+      // "Whose turn" announcement — 3D card flip
       scene(`
-        <div style="text-align:center;padding:2vmin">
-          <div style="font-size:clamp(14px,2.5vmin,18px);color:var(--yellow);font-family:'Fredoka One',sans-serif;margin-bottom:1.5vmin;letter-spacing:1px">${LANG==='ar'?'شكثر تعرف':'HOW WELL DO YOU KNOW'}</div>
-          ${avatarHTML(target)}
-          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(22px,4vmin,36px);color:var(--text);margin-top:1vmin">${esc(target.name)}</div>
-          <div style="font-size:clamp(13px,2vmin,16px);color:var(--text2);margin-top:0.8vmin">${LANG==='ar'?'🔥 على الكرسي الساخن':'🔥 is in the hot seat'}</div>
+        <div style="text-align:center;padding:2vmin;perspective:800px">
+          <div style="font-size:clamp(13px,2.2vmin,17px);color:var(--yellow);font-family:'Fredoka One',sans-serif;letter-spacing:2px;margin-bottom:2vmin;animation:fadeSlideUp 0.5s both">${LANG==='ar'?'شكثر تعرف':'HOW WELL DO YOU KNOW'}</div>
+          <div class="wyr-flip-card" style="width:clamp(120px,18vmin,160px);height:clamp(120px,18vmin,160px);margin:0 auto 2vmin;perspective:600px">
+            <div class="wyr-flip-inner" style="position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:wyrCardFlip 0.8s 0.3s both cubic-bezier(0.4,0,0.2,1)">
+              <div style="position:absolute;inset:0;backface-visibility:hidden;background:var(--card-hi);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(48px,8vmin,72px)">❓</div>
+              <div style="position:absolute;inset:0;backface-visibility:hidden;transform:rotateY(180deg);border-radius:50%;overflow:hidden">${avatarHTML(target)}</div>
+            </div>
+          </div>
+          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(24px,4.5vmin,42px);color:var(--text);animation:fadeSlideUp 0.5s 0.9s both">${esc(target.name)}</div>
+          <div style="font-size:clamp(13px,2vmin,16px);color:var(--yellow);margin-top:1vmin;animation:fadeSlideUp 0.5s 1.1s both">🔥 ${LANG==='ar'?'على الكرسي الساخن':'is in the hot seat'}</div>
         </div>`);
       net.setState({ phase:'wait', msg: `${LANG==='ar'?'شكثر تعرف':'How well do you know'} ${target.name}?` });
-      await sleep(2000);
+      await sleep(2800);
       await FX.wipe();
 
       // Build 3-question spec for phones
@@ -742,20 +747,18 @@ const Host = (() => {
         knowScores[p.pid][target.pid] = correct;
       }
 
-      await sleep(3000);
-
       // Mini leaderboard: who knows target best
       const bestPredictor = others.reduce((best, p) => {
         const c = turnCorrect[p.pid] || 0;
         return (!best || c > (turnCorrect[best.pid]||0)) ? p : best;
       }, null);
-
       if (bestPredictor) {
         const bestCount = turnCorrect[bestPredictor.pid];
         await say(LANG==='ar'
           ? `${bestPredictor.name} يعرف ${target.name} أكثر — ${bestCount}/${questions.length} ✓`
           : `${bestPredictor.name} knows ${target.name} best — ${bestCount}/${questions.length} ✓`);
       }
+      await waitNext();
       await showScores();
     }
 
@@ -771,14 +774,29 @@ const Host = (() => {
     const maxPossible = players.length * QS_PER_PLAYER; // questions answered about others (one less player)
     const groupBestTotal = totalByPredictor[groupBest.pid]||0;
     scene(`
-      <div style="text-align:center;padding:2vmin">
-        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(18px,3vmin,28px);color:var(--yellow);margin-bottom:2vmin">${LANG==='ar'?'🏆 أكثر واحد يعرف المجموعة':'🏆 Knows the Group Best'}</div>
-        ${avatarHTML(groupBest)}
-        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(22px,4vmin,36px);color:var(--text);margin-top:1vmin">${esc(groupBest.name)}</div>
-        <div style="font-size:clamp(16px,2.5vmin,22px);color:var(--green);margin-top:1vmin;font-family:'Fredoka One',sans-serif">${groupBestTotal}/${maxPossible} ✓</div>
+      <div style="text-align:center;padding:2vmin;perspective:1000px">
+        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(14px,2.2vmin,20px);color:var(--text2);letter-spacing:2px;text-transform:uppercase;animation:fadeSlideUp 0.5s both">${LANG==='ar'?'الفائز':'WINNER'}</div>
+        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(20px,3.5vmin,30px);color:var(--yellow);margin-bottom:2vmin;animation:fadeSlideUp 0.5s 0.1s both">${LANG==='ar'?'أكثر واحد يعرف المجموعة':'Knows the Group Best'}</div>
+        <div style="position:relative;display:inline-block;animation:wyrTrophyPop 0.7s 0.3s both cubic-bezier(0.34,1.56,0.64,1)">
+          <div style="font-size:clamp(48px,8vmin,72px);margin-bottom:0.5vmin">🏆</div>
+        </div>
+        <div style="animation:wyrTrophyPop 0.6s 0.6s both cubic-bezier(0.34,1.56,0.64,1)">
+          ${avatarHTML(groupBest)}
+        </div>
+        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(26px,5vmin,48px);color:var(--text);margin-top:1vmin;animation:fadeSlideUp 0.5s 0.9s both">${esc(groupBest.name)}</div>
+        <div style="display:inline-block;background:linear-gradient(135deg,#2de1fc,#a78bff);border-radius:40px;padding:8px 28px;margin-top:1.5vmin;animation:fadeSlideUp 0.5s 1.1s both">
+          <span style="font-family:'Fredoka One',sans-serif;font-size:clamp(18px,3vmin,28px);color:#000;font-weight:900">${groupBestTotal}/${maxPossible} ✓</span>
+        </div>
+        <div style="margin-top:2vmin;display:flex;justify-content:center;gap:16px;flex-wrap:wrap;animation:fadeSlideUp 0.5s 1.3s both">
+          ${players.filter(p=>p.pid!==groupBest.pid).map(p=>`
+            <div style="text-align:center;opacity:0.7">
+              ${avatarHTML(p)}
+              <div style="font-size:clamp(11px,1.6vmin,14px);color:var(--text2);margin-top:4px">${totalByPredictor[p.pid]||0}/${maxPossible}</div>
+            </div>`).join('')}
+        </div>
       </div>`);
     Audio_.sfx.reveal(); FX.burst(150);
-    await waitNext(8);
+    await waitNext(12);
   }
 
   /* ================================================================

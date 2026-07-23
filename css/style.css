@@ -1795,3 +1795,7 @@ body.ar .tutorial-bullets { text-align: right; }
 .wyr-reveal-predictor{display:flex;flex-direction:column;align-items:center;gap:2px;}
 .wyr-reveal-predictor.correct .wyr-reveal-check{color:var(--green);font-size:16px;font-weight:700;}
 .wyr-reveal-predictor.wrong .wyr-reveal-check{color:var(--red,#ff4466);font-size:16px;font-weight:700;}
+
+@keyframes wyrCardFlip{0%{transform:rotateY(0deg)}100%{transform:rotateY(180deg)}}
+@keyframes wyrTrophyPop{0%{transform:scale(0) rotate(-10deg);opacity:0}100%{transform:scale(1) rotate(0deg);opacity:1}}
+@keyframes fadeSlideUp{0%{opacity:0;transform:translateY(16px)}100%{opacity:1;transform:translateY(0)}}
