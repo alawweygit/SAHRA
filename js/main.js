@@ -71,16 +71,17 @@
 
   const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) && /WebKit/.test(navigator.userAgent);
 
+  const SCROLLABLE_SCREENS=['scr-title','scr-games','scr-pregame','scr-lobby','scr-join','scr-avatar'];
   const show=id=>{
+    const _clean=id.replace(/^#/,'');
     $$('.screen').forEach(s=>{s.classList.remove('active');s.scrollTop=0;});
     const _sel=$(id);if(_sel){_sel.classList.add('active');_sel.scrollTop=0;requestAnimationFrame(()=>{_sel.scrollTop=0;requestAnimationFrame(()=>{_sel.scrollTop=0;});});}
     if(id==='#scr-title')currentViewKind='title';
     else if(id==='#scr-games')currentViewKind='games';
     else if(id==='#scr-join')currentViewKind='join';
     else if(id==='#scr-controller')currentViewKind='controller';
-    saveNavigationState(id.replace(/^#/,''));
-    // Only reset scroll for non-scrollable screens
-    if(!SCROLLABLE_SCREENS.includes(clean)){
+    saveNavigationState(_clean);
+    if(!SCROLLABLE_SCREENS.includes(_clean)){
       resetScrollPositionAfterLayout();
       window.scrollTo({top:0,left:0,behavior:'auto'});
       document.documentElement.scrollTop=0;
