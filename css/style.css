@@ -56,7 +56,7 @@ body.theme-light {
 /* ============ BASE ============ */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
 html,body{height:100%;overflow:hidden;position:fixed;width:100%;}
-#scr-pregame,#scr-title,#scr-lobby,#scr-join,#scr-avatar{position:relative!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;height:100vh!important;}
+.screen{position:relative!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;}
 #scr-games{overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;}
 html,body,#app,.screen,#hostStage,#scr-controller,#phoneSharedStage,#ctrlArea{overflow-anchor:none;}
 body{
