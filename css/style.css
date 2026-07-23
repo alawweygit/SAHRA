@@ -1799,3 +1799,7 @@ body.ar .tutorial-bullets { text-align: right; }
 @keyframes wyrCardFlip{0%{transform:rotateY(0deg)}100%{transform:rotateY(180deg)}}
 @keyframes wyrTrophyPop{0%{transform:scale(0) rotate(-10deg);opacity:0}100%{transform:scale(1) rotate(0deg);opacity:1}}
 @keyframes fadeSlideUp{0%{opacity:0;transform:translateY(16px)}100%{opacity:1;transform:translateY(0)}}
+
+.wyr-flip-inner{-webkit-transform-style:preserve-3d;transform-style:preserve-3d;}
+.wyr-flip-inner > div{-webkit-backface-visibility:hidden;backface-visibility:hidden;}
+@-webkit-keyframes wyrCardFlip{0%{-webkit-transform:rotateY(0deg)}100%{-webkit-transform:rotateY(180deg)}}
