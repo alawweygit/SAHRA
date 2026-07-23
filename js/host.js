@@ -760,7 +760,6 @@ const Host = (() => {
           : `${bestPredictor.name} knows ${target.name} best — ${bestCount}/${questions.length} ✓`);
       }
       await waitNext();
-      await showScores();
     }
 
     // Final summary: who knows the whole group best
