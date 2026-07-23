@@ -393,7 +393,7 @@ const Host = (() => {
       document.getElementById('changeGameBtn')?.addEventListener('click', () => {
         players.forEach(p => p.score = 0); // reset scores for fresh start
         window.__hypoxAbort = true;
-        if(window.__hypoxShowScreen) window.__hypoxShowScreen('#scr-games');
+        if(window.__hypoxShowPackPicker) window.__hypoxShowPackPicker(); else if(window.__hypoxShowScreen) window.__hypoxShowScreen('#scr-games');
         res();
       }, { once: true });
     });

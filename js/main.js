@@ -317,6 +317,7 @@
     }catch(e){}
     // Expose show() globally for host.js to use
     window.__hypoxShowScreen = show;
+    window.__hypoxShowPackPicker = showPackPicker;
     applyTheme();
     applyLang();
     FX.init();
