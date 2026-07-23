@@ -601,8 +601,9 @@ const Host = (() => {
         net.setState({
           phase: 'input-split', phaseId, deadline: inputDeadline(30),
           specs: {
-            [target.pid]: { type: 'wyr-hidden', title: t('your_pick'), options: opts },
-            _default: { type: 'wyr-hidden', title: `${t('predict')} (${target.name})`, options: opts },
+            [target.pid]: { type: 'choice', title: t('your_pick'), options: opts },
+            ...(net.phonesOnly && net.hostSelfPid ? { [net.hostSelfPid]: { type: 'choice', title: net.hostSelfPid === target.pid ? t('your_pick') : `${t('predict')} (${target.name})`, options: opts } } : {}),
+            _default: { type: 'choice', title: `${t('predict')} (${target.name})`, options: opts },
           },
         });
         const row = $('#statusRow');
