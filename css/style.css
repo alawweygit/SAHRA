@@ -503,7 +503,9 @@ body.ar .eyebrow{letter-spacing:0;}
 .choice-btn{font-family:inherit;font-weight:700;font-size:15px;color:var(--text);background:var(--card);border:2px solid var(--cb,var(--border-hi));border-radius:16px;padding:14px;cursor:pointer;text-align:center;box-shadow:0 4px 0 var(--shadow);transition:transform 0.1s;animation:cardDeal 0.4s both;line-height:1.35;}
 .choice-btn.wyr-btn{background:var(--cb);border-color:var(--cb);color:#000;font-size:clamp(15px,2.2vw,20px);min-height:80px;border-radius:20px;}
 .choice-btn.wyr-btn:nth-child(3){color:#fff;}
-.ctrl-choices.wyr-choices{flex-direction:column;gap:12px;}
+.ctrl-choices.wyr-choices{flex-direction:row;gap:10px;align-items:stretch;}
+.ctrl-choices.wyr-choices .choice-btn{flex:1;}
+.wyr-vs{font-family:'Fredoka One',sans-serif;font-size:18px;color:var(--text3);display:flex;align-items:center;flex-shrink:0;padding:0 4px;}
 .choice-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--shadow);}
 .choice-btn.picked{border-color:var(--yellow);background:var(--card-hi);}
 .ctrl-done{font-family:'Fredoka One',sans-serif;color:var(--green);font-size:16px;animation:popIn 0.4s both;}

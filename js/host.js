@@ -623,6 +623,22 @@ const Host = (() => {
             } catch(e) {}
           }, 1000 + Math.random() * 2500);
         });
+        // Host renders its own cyan/pink buttons locally
+        if (net.hostSelfPid) {
+          const wyrRow = document.createElement('div');
+          wyrRow.id = 'wyrHostBtns';
+          wyrRow.style.cssText = 'display:flex;gap:12px;align-items:stretch;justify-content:center;margin-top:16px;width:100%;max-width:680px;padding:0 12px;box-sizing:border-box;';
+          const btnStyle = (bg,fg) => `flex:1;min-height:80px;padding:16px 12px;border-radius:20px;background:${bg};color:${fg};font-family:'Fredoka One',sans-serif;font-size:clamp(16px,2.2vmin,22px);border:none;cursor:pointer;line-height:1.3;word-break:break-word;font-weight:700;`;
+          wyrRow.innerHTML = `<button id="wyrHostA" style="${btnStyle('#2de1fc','#000')}">${esc(R.a)}</button><div style="font-family:'Fredoka One',sans-serif;font-size:20px;color:var(--text3);display:flex;align-items:center;padding:0 6px;flex-shrink:0">VS</div><button id="wyrHostB" style="${btnStyle('#ff3d8a','#fff')}">${esc(R.b)}</button>`;
+          document.getElementById('hostStage')?.appendChild(wyrRow);
+          const hostPick = async (v) => {
+            wyrRow.remove();
+            await net.room('inputs/' + phaseId + '/' + net.hostSelfPid).set({ v, t: Date.now() });
+          };
+          document.getElementById('wyrHostA')?.addEventListener('click', () => { Audio_.sfx.submit(); hostPick('a'); }, { once: true });
+          document.getElementById('wyrHostB')?.addEventListener('click', () => { Audio_.sfx.submit(); hostPick('b'); }, { once: true });
+        }
+
         // Collect from ALL players including host — everyone votes equally
         const all = await net.collect(phaseId, null, players.map(p => p.pid), inputTimeout(30));
         net.onEachInput(null);

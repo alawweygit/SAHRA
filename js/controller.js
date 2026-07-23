@@ -221,6 +221,12 @@ const Controller = (() => {
         return true;
       });
       options.forEach((o, i) => {
+        if (i > 0 && spec.gridClass === 'wyr-choices') {
+          const vs = document.createElement('div');
+          vs.className = 'wyr-vs';
+          vs.textContent = 'VS';
+          grid.appendChild(vs);
+        }
         const b = document.createElement('button');
         b.className = 'choice-btn' + (o.btnClass ? ' ' + o.btnClass : '');
         b.textContent = o.label;
