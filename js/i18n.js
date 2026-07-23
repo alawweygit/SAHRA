@@ -156,7 +156,7 @@ const I18N = {
     },
     mode_rules: {
       bluff: 'A weird fact appears with a blank. Everyone writes a fake answer to fill it. Then vote for what you think is real. Fool them: +1000. Find the truth: +1000.',
-      wyr: 'One player secretly picks A or B. Everyone else predicts their choice. Match it: +1000.',
+      wyr: 'Each player hits the hot seat with 3 questions. Everyone answers at the same time — you about yourself, others predict you. See who knows you best! +500 per correct guess.',
       interrogation: 'Everyone anonymously answers a spicy question. Then vote on who wrote each answer. Catch someone: +400. Stay hidden: +300 per person you fooled.',
       diss: 'Two players get the same funny challenge. Write the funniest response. Everyone votes — most votes wins.',
       trivia: 'Pick a category, then answer as fast as you can. Right answer = points. Fastest = more points.',
@@ -376,7 +376,7 @@ const I18N = {
     },
     mode_rules: {
       bluff: 'تظهر معلومة غريبة ناقصها جزء. كل واحد يكتب كذبة تكمّل الفراغ، وبعدها الكل يصوّت. خدعت صديق: +٥٠٠. لقيت الحقيقة: +١٠٠٠.',
-      wyr: 'لاعب واحد يجاوب سراً على "يا هذا يا هذا". الباقي يتوقعون اختياره. توقعت صح: +٥٠٠.',
+      wyr: 'كل لاعب يجلس على الكرسي الساخن وعنده ٣ أسئلة. الكل يجاوب في نفس الوقت — أنت عن نفسك، والثاني يتوقعك. شوف مين يعرفك أكثر! +٥٠٠ لكل توقع صح.',
       interrogation: 'الكل يجاوب على سؤال شخصي بشكل مجهول. بعدها الكل يصوّت منو كاتبها. توقعت صح: +٤٠٠. ما انكشفت: +٣٠٠ عن كل واحد انخدع.',
       diss: 'لاعبين يجاوبان على نفس التحدي المضحك. اكتب الأضحك. الكل يصوّت — اللي ياخذ أكثر أصوات يفوز.',
       trivia: 'اختر فئة، وجاوب بأسرع ما تقدر. جواب صح = نقاط. أسرع = أكثر نقاط.',

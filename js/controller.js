@@ -205,6 +205,45 @@ const Controller = (() => {
       wrap.appendChild(grid);
     }
 
+    else if (spec.type === 'wyr-multi') {
+      // 3 questions shown at once — player answers all then submits
+      wrap.innerHTML = '';
+      const isTarget = spec.targetPid && typeof myPid !== 'undefined' && myPid === spec.targetPid;
+      const header = document.createElement('div');
+      header.style.cssText = 'font-family:Fredoka One,sans-serif;font-size:clamp(13px,3.5vw,16px);color:var(--yellow);text-align:center;margin-bottom:10px;letter-spacing:0.5px;';
+      header.textContent = isTarget
+        ? (typeof LANG!=='undefined'&&LANG==='ar' ? '🔥 أنت على الكرسي! جاوب عن نفسك' : '🔥 You\'re in the hot seat! Answer for yourself')
+        : (typeof LANG!=='undefined'&&LANG==='ar' ? `شكثر تعرف ${spec.targetName}؟ توقع اختياره` : `How well do you know ${spec.targetName}? Predict their picks`);
+      wrap.appendChild(header);
+
+      const answers = new Array(spec.questions.length).fill(null);
+      const btnStyle = (bg, fg) => `flex:1;min-height:52px;padding:10px 8px;border-radius:14px;background:${bg};color:${fg};font-family:'Fredoka One',sans-serif;font-size:clamp(12px,3.2vw,15px);border:none;cursor:pointer;line-height:1.3;word-break:break-word;font-weight:700;transition:opacity 0.2s;`;
+
+      spec.questions.forEach((Q, qi) => {
+        const qWrap = document.createElement('div');
+        qWrap.style.cssText = 'display:flex;gap:6px;align-items:stretch;margin-bottom:8px;';
+        qWrap.innerHTML = `<button id="wm_${qi}_a" style="${btnStyle('#2de1fc','#000')}">${Q.a}</button><div style="font-family:'Fredoka One',sans-serif;font-size:14px;color:var(--text3);display:flex;align-items:center;padding:0 3px;flex-shrink:0">VS</div><button id="wm_${qi}_b" style="${btnStyle('#ff3d8a','#fff')}">${Q.b}</button>`;
+        wrap.appendChild(qWrap);
+
+        const pick = (v) => {
+          answers[qi] = v;
+          const btnA = document.getElementById(`wm_${qi}_a`);
+          const btnB = document.getElementById(`wm_${qi}_b`);
+          if (btnA) { btnA.style.opacity = v==='a'?'1':'0.35'; btnA.disabled=true; }
+          if (btnB) { btnB.style.opacity = v==='b'?'1':'0.35'; btnB.disabled=true; }
+          if (answers.every(a => a !== null)) {
+            lock(wrap);
+            onSubmit(answers.join(','));
+          }
+        };
+        // Use setTimeout to ensure elements are in DOM
+        setTimeout(() => {
+          document.getElementById(`wm_${qi}_a`)?.addEventListener('click', () => { Audio_.sfx.vote(); pick('a'); }, { once: true });
+          document.getElementById(`wm_${qi}_b`)?.addEventListener('click', () => { Audio_.sfx.vote(); pick('b'); }, { once: true });
+        }, 0);
+      });
+    }
+
     else if (spec.type === 'choice') {
       const grid = document.createElement('div');
       grid.className = 'ctrl-choices' + (spec.gridClass ? ' ' + spec.gridClass : '');

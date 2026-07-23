@@ -561,122 +561,208 @@ const Host = (() => {
   }
 
   /* ================================================================
-     MODE 2 — WOULD YOU RATHER: PERSONAL  (predict the hot seat)
+     MODE 2 — WOULD YOU RATHER: KNOW YOUR CREW
+     Each player is hot seat once. 3 questions shown at once.
+     Everyone answers simultaneously. Reveal who knows who best.
   ================================================================ */
   async function playWyr() {
     await modeTitleCard('wyr');
-    const count = window.HYPOX_STATE?.rounds||3;
-    const prompts = await Content.get('wyr', LANG, count);
-    const seats = Array.from({length:count},(_,i)=>players[i%players.length]);
+    const QS_PER_PLAYER = 3;
+    const totalNeeded = players.length * QS_PER_PLAYER;
+    const allPrompts = await Content.get('wyr', LANG, totalNeeded);
+    // Give each player exactly QS_PER_PLAYER questions
+    const playerTurns = players.map((p, i) => ({
+      player: p,
+      questions: allPrompts.slice(i * QS_PER_PLAYER, i * QS_PER_PLAYER + QS_PER_PLAYER)
+    }));
+    // Track scores per (predictor → subject)
+    const knowScores = {}; // knowScores[predictorPid][subjectPid] = correct count
 
-    for (let r = 0; r < prompts.length; r++) {
-      const R = prompts[r], target = seats[r];
+    for (let r = 0; r < playerTurns.length; r++) {
+      const { player: target, questions } = playerTurns[r];
+      if (!questions.length) continue;
       await FX.wipe();
-      setPill(`${t('round')} ${r + 1} ${t('of')} ${prompts.length}`);
-      // Brief "whose turn" announcement
+      setPill(`${LANG==='ar'?'دور':'Turn'} ${r+1} ${LANG==='ar'?'من':'of'} ${playerTurns.length}`);
+      // "Whose turn" announcement
       scene(`
         <div style="text-align:center;padding:2vmin">
-          <div style="font-size:clamp(14px,2.5vmin,18px);color:var(--yellow);font-family:'Fredoka One',sans-serif;margin-bottom:1.5vmin;letter-spacing:1px">${LANG==='ar'?'دور':'IT\'S'}</div>
+          <div style="font-size:clamp(14px,2.5vmin,18px);color:var(--yellow);font-family:'Fredoka One',sans-serif;margin-bottom:1.5vmin;letter-spacing:1px">${LANG==='ar'?'شكثر تعرف':'HOW WELL DO YOU KNOW'}</div>
           ${avatarHTML(target)}
           <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(22px,4vmin,36px);color:var(--text);margin-top:1vmin">${esc(target.name)}</div>
-          <div style="font-size:clamp(13px,2vmin,16px);color:var(--text2);margin-top:0.8vmin">${LANG==='ar'?'على الكرسي الساخن 🔥':'is in the hot seat 🔥'}</div>
+          <div style="font-size:clamp(13px,2vmin,16px);color:var(--text2);margin-top:0.8vmin">${LANG==='ar'?'🔥 على الكرسي الساخن':'🔥 is in the hot seat'}</div>
         </div>`);
-      net.setState({ phase:'wait', msg: `${LANG==='ar'?'دور':'It\'s'} ${target.name} ${LANG==='ar'?'🔥':'🔥'}` });
+      net.setState({ phase:'wait', msg: `${LANG==='ar'?'شكثر تعرف':'How well do you know'} ${target.name}?` });
       await sleep(2000);
       await FX.wipe();
+
+      // Build 3-question spec for phones
+      const wyrQSpecs = questions.map((Q, qi) => ({
+        qIndex: qi,
+        a: Q.a, b: Q.b
+      }));
+      const phoneWyrSpec = {
+        type: 'wyr-multi',
+        targetName: target.name,
+        targetPid: target.pid,
+        questions: wyrQSpecs,
+      };
+
+      // Host screen: show all 3 questions + status row
       scene(frameWithTimer(`
         <div class="hotseat">${avatarHTML(target)}<div class="pname">${esc(target.name)}</div></div>
-        <div id="statusRow" class="status-row"></div>`, t('mode_names')['wyr']));
+        <div class="wyr-multi-host">
+          ${questions.map((Q,qi)=>`
+            <div class="wyr-q-row">
+              <div class="wyr-q-label">${qi+1}</div>
+              <div class="wyr-q-a">${esc(Q.a)}</div>
+              <div class="wyr-q-vs">VS</div>
+              <div class="wyr-q-b">${esc(Q.b)}</div>
+            </div>`).join('')}
+        </div>
+        <div id="statusRow" class="status-row" style="margin-top:12px"></div>`, t('mode_names')['wyr']));
 
-      const others = players.filter(p => p.pid !== target.pid).map(p => p.pid);
-      const opts = [{ id: 'a', label: R.a, color: '#2de1fc', btnClass: 'wyr-btn' }, { id: 'b', label: R.b, color: '#ff3d8a', btnClass: 'wyr-btn' }];
-      const wyrGridClass = 'wyr-choices';
+      const phaseId = 'ph' + (++phaseCounter);
+      net.setState({
+        phase: 'input-split', phaseId, deadline: inputDeadline(45),
+        specs: { _default: phoneWyrSpec },
+      });
 
-      // collect both in parallel online; offline collects target then predictors
-      let targetPick, predictions;
-      if (net.isOffline) {
-        const ti = await collectWithTimer({ type: 'choice', title: t('your_pick'), options: opts }, [target.pid], 30);
-        targetPick = val(ti, target.pid);
-        predictions = await collectWithTimer({ type: 'choice', title: `${t('predict')} (${target.name})`, options: opts }, others, 30);
-      } else {
-        const phaseId = 'ph' + (++phaseCounter);
-        const wyrSpec = { type: 'choice', title: `${esc(R.a)} VS ${esc(R.b)}`, options: opts, gridClass: wyrGridClass };
-        net.setState({
-          phase: 'input-split', phaseId, deadline: inputDeadline(30),
-          specs: {
-            _default: wyrSpec,
-          },
-        });
-        const row = $('#statusRow');
-        row.innerHTML = players.map(p => `<div class="mini" id="mini-${p.pid}">${avatarHTML(p)}<div class="check">✓</div></div>`).join('');
-        net.onEachInput(pid => { Audio_.sfx.submit(); $('#mini-' + pid)?.classList.add('done'); });
+      const statusRow = $('#statusRow');
+      if (statusRow) statusRow.innerHTML = players.map(p => `<div class="mini" id="mini-${p.pid}">${avatarHTML(p)}<div class="check">✓</div></div>`).join('');
+      net.onEachInput(pid => { Audio_.sfx.submit(); $('#mini-' + pid)?.classList.add('done'); });
 
-        // A/B buttons for host to answer (target picks or guesses)
-        const botPids = net.getBotPids ? net.getBotPids() : [];
+      const botPids = net.getBotPids ? net.getBotPids() : [];
+      players.filter(p => botPids.includes(p.pid)).forEach(botP => {
+        setTimeout(async () => {
+          try {
+            const picks = questions.map(() => Math.random() < 0.5 ? 'a' : 'b');
+            await net.room('inputs/' + phaseId + '/' + botP.pid).set({ v: picks.join(','), t: Date.now() });
+          } catch(e) {}
+        }, 1000 + Math.random() * 2500);
+      });
 
-        // Auto-submit for bots
-        players.filter(p => botPids.includes(p.pid)).forEach(botP => {
-          setTimeout(async () => {
-            try {
-              const pick = Math.random() < 0.5 ? 'a' : 'b';
-              await net.room('inputs/' + phaseId + '/' + botP.pid).set({ v: pick, t: Date.now() });
-            } catch(e) {}
-          }, 1000 + Math.random() * 2500);
-        });
-        // Host renders its own cyan/pink buttons locally
-        if (net.hostSelfPid) {
-          const wyrRow = document.createElement('div');
-          wyrRow.id = 'wyrHostBtns';
-          wyrRow.className = 'host-only-ui';
-          wyrRow.style.cssText = 'display:flex;gap:12px;align-items:stretch;justify-content:center;margin-top:16px;width:100%;max-width:680px;padding:0 12px;box-sizing:border-box;';
-          const btnStyle = (bg,fg) => `flex:1;min-height:80px;padding:16px 12px;border-radius:20px;background:${bg};color:${fg};font-family:'Fredoka One',sans-serif;font-size:clamp(16px,2.2vmin,22px);border:none;cursor:pointer;line-height:1.3;word-break:break-word;font-weight:700;`;
-          wyrRow.innerHTML = `<button id="wyrHostA" style="${btnStyle('#2de1fc','#000')}">${esc(R.a)}</button><div style="font-family:'Fredoka One',sans-serif;font-size:20px;color:var(--text3);display:flex;align-items:center;padding:0 6px;flex-shrink:0">VS</div><button id="wyrHostB" style="${btnStyle('#ff3d8a','#fff')}">${esc(R.b)}</button>`;
-          document.getElementById('hostStage')?.appendChild(wyrRow);
-          const hostPick = async (v) => {
-            wyrRow.remove();
-            await net.room('inputs/' + phaseId + '/' + net.hostSelfPid).set({ v, t: Date.now() });
+      // Host renders 3 sets of cyan/pink buttons locally
+      if (net.hostSelfPid) {
+        const hostWyrWrap = document.createElement('div');
+        hostWyrWrap.id = 'wyrHostBtns';
+        hostWyrWrap.className = 'host-only-ui';
+        hostWyrWrap.style.cssText = 'width:100%;max-width:680px;margin-top:8px;display:flex;flex-direction:column;gap:10px;padding:0 12px;box-sizing:border-box;';
+        const hostAnswers = new Array(questions.length).fill(null);
+        const btnStyle = (bg,fg) => `flex:1;min-height:56px;padding:12px 10px;border-radius:16px;background:${bg};color:${fg};font-family:'Fredoka One',sans-serif;font-size:clamp(13px,1.8vmin,18px);border:none;cursor:pointer;line-height:1.3;word-break:break-word;font-weight:700;transition:opacity 0.2s;`;
+        questions.forEach((Q, qi) => {
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex;gap:8px;align-items:stretch;';
+          row.innerHTML = `<button id="wyrH_${qi}_a" style="${btnStyle('#2de1fc','#000')}">${esc(Q.a)}</button><div style="font-family:'Fredoka One',sans-serif;font-size:16px;color:var(--text3);display:flex;align-items:center;padding:0 4px;flex-shrink:0">VS</div><button id="wyrH_${qi}_b" style="${btnStyle('#ff3d8a','#fff')}">${esc(Q.b)}</button>`;
+          hostWyrWrap.appendChild(row);
+          const pick = (v) => {
+            hostAnswers[qi] = v;
+            const btnA = document.getElementById(`wyrH_${qi}_a`);
+            const btnB = document.getElementById(`wyrH_${qi}_b`);
+            if (btnA) { btnA.style.opacity = v==='a' ? '1' : '0.35'; btnA.disabled = true; }
+            if (btnB) { btnB.style.opacity = v==='b' ? '1' : '0.35'; btnB.disabled = true; }
+            // If all answered, submit
+            if (hostAnswers.every(a => a !== null)) {
+              hostWyrWrap.remove();
+              net.room('inputs/' + phaseId + '/' + net.hostSelfPid).set({ v: hostAnswers.join(','), t: Date.now() }).catch(()=>{});
+            }
           };
-          document.getElementById('wyrHostA')?.addEventListener('click', () => { Audio_.sfx.submit(); hostPick('a'); }, { once: true });
-          document.getElementById('wyrHostB')?.addEventListener('click', () => { Audio_.sfx.submit(); hostPick('b'); }, { once: true });
-        }
-
-        // Collect from ALL players including host — everyone votes equally
-        const all = await net.collect(phaseId, null, players.map(p => p.pid), inputTimeout(30));
-        net.onEachInput(null);
-        net.setState({ phase: 'wait', msg: t('watch_screen') });
-        targetPick = val(all, target.pid);
-        predictions = {};
-        for (const pid of others) if (all[pid]) predictions[pid] = all[pid];
+          document.getElementById(`wyrH_${qi}_a`)?.addEventListener('click', () => { Audio_.sfx.submit(); pick('a'); });
+          document.getElementById(`wyrH_${qi}_b`)?.addEventListener('click', () => { Audio_.sfx.submit(); pick('b'); });
+        });
+        document.getElementById('hostStage')?.appendChild(hostWyrWrap);
       }
 
-      // reveal
+      const all = await net.collect(phaseId, null, players.map(p => p.pid), inputTimeout(45));
+      net.onEachInput(null);
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
+
+      // Parse answers: stored as "a,b,a" strings
+      const parseAnswers = (entry) => entry?.value ? String(entry.value).split(',') : [];
+      const targetAnswers = parseAnswers(all[target.pid]);
+      // Fill missing answers randomly
+      while (targetAnswers.length < questions.length) targetAnswers.push(Math.random()<.5?'a':'b');
+
+      // Reveal: show all 3 questions with what target picked + who guessed right
       await FX.wipe();
-      if (targetPick === null || targetPick === undefined) targetPick = Math.random() < .5 ? 'a' : 'b';
-      const pickedLabel = targetPick === 'a' ? R.a : R.b;
-      const matchers = Object.entries(predictions).filter(([, e]) => e.value === targetPick).map(([pid]) => pid);
-      scene(`
-        <div class="hotseat big">${avatarHTML(target)}<div class="pname">${esc(target.name)}</div></div>
-        <div class="prompt-card display reveal-pick ${targetPick === 'a' ? 'pick-a' : 'pick-b'}">${esc(pickedLabel)}</div>
-        <div class="match-row" id="matchRow"></div>`);
       Audio_.sfx.drum();
-      await sleep(1200);
-      Audio_.sfx.reveal(); FX.burst(120);
-      const mr = $('#matchRow');
-      if (matchers.length) {
-        for (const pid of matchers) {
-          const p = safeP(pid);
-          addScore(pid, 1000);
-          mr.insertAdjacentHTML('beforeend', `<div class="player" style="animation-delay:0s">${avatarHTML(p)}<div class="pname">+1000 ✓</div></div>`);
-          Audio_.sfx.correct();
-          await sleep(300);
-        }
-        await say(LANG === 'ar' ? `${matchers.length} ${t('matched')}!` : `${matchers.length} ${t('matched')}!`);
-      } else {
-        Audio_.sfx.wrong();
-        await say(LANG === 'ar' ? `${t('nobody')} توقع صح. ${target.name} لغز.` : `${t('nobody')} saw that coming. ${target.name} is an enigma.`);
+
+      // Build per-predictor correct counts for this turn
+      const others = players.filter(p => p.pid !== target.pid);
+      const turnCorrect = {}; // pid -> correct count
+      others.forEach(p => { turnCorrect[p.pid] = 0; });
+
+      const revealRows = questions.map((Q, qi) => {
+        const tPick = targetAnswers[qi];
+        const tLabel = tPick === 'a' ? Q.a : Q.b;
+        const predictorResults = others.map(p => {
+          const pAnswers = parseAnswers(all[p.pid]);
+          const pPick = pAnswers[qi] || null;
+          const correct = pPick === tPick;
+          if (correct) turnCorrect[p.pid]++;
+          return `<div class="wyr-reveal-predictor ${correct?'correct':'wrong'}">${avatarHTML(p)}<div class="wyr-reveal-check">${correct?'✓':'✗'}</div></div>`;
+        }).join('');
+        return `
+          <div class="wyr-reveal-row">
+            <div class="wyr-reveal-q">
+              <span class="wyr-reveal-${tPick==='a'?'a':'b'}">${esc(tLabel)}</span>
+            </div>
+            <div class="wyr-reveal-predictors">${predictorResults}</div>
+          </div>`;
+      }).join('');
+
+      scene(`
+        <div class="hotseat">${avatarHTML(target)}<div class="pname">${esc(target.name)}</div></div>
+        <div class="wyr-reveal-block">${revealRows}</div>`);
+
+      await sleep(1000);
+      Audio_.sfx.reveal(); FX.burst(80);
+
+      // Award points and track know-scores
+      for (const p of others) {
+        const correct = turnCorrect[p.pid];
+        const pts = correct * 500;
+        if (pts > 0) addScore(p.pid, pts);
+        if (!knowScores[p.pid]) knowScores[p.pid] = {};
+        knowScores[p.pid][target.pid] = correct;
+      }
+
+      await sleep(3000);
+
+      // Mini leaderboard: who knows target best
+      const bestPredictor = others.reduce((best, p) => {
+        const c = turnCorrect[p.pid] || 0;
+        return (!best || c > (turnCorrect[best.pid]||0)) ? p : best;
+      }, null);
+
+      if (bestPredictor) {
+        const bestCount = turnCorrect[bestPredictor.pid];
+        await say(LANG==='ar'
+          ? `${bestPredictor.name} يعرف ${target.name} أكثر — ${bestCount}/${questions.length} ✓`
+          : `${bestPredictor.name} knows ${target.name} best — ${bestCount}/${questions.length} ✓`);
       }
       await showScores();
     }
+
+    // Final summary: who knows the whole group best
+    await FX.wipe();
+    const totalByPredictor = {};
+    players.forEach(p => {
+      totalByPredictor[p.pid] = Object.values(knowScores[p.pid]||{}).reduce((a,b)=>a+b,0);
+    });
+    const groupBest = players.reduce((best, p) => {
+      return (totalByPredictor[p.pid]||0) > (totalByPredictor[best.pid]||0) ? p : best;
+    }, players[0]);
+    const maxPossible = players.length * QS_PER_PLAYER; // questions answered about others (one less player)
+    const groupBestTotal = totalByPredictor[groupBest.pid]||0;
+    scene(`
+      <div style="text-align:center;padding:2vmin">
+        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(18px,3vmin,28px);color:var(--yellow);margin-bottom:2vmin">${LANG==='ar'?'🏆 أكثر واحد يعرف المجموعة':'🏆 Knows the Group Best'}</div>
+        ${avatarHTML(groupBest)}
+        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(22px,4vmin,36px);color:var(--text);margin-top:1vmin">${esc(groupBest.name)}</div>
+        <div style="font-size:clamp(16px,2.5vmin,22px);color:var(--green);margin-top:1vmin;font-family:'Fredoka One',sans-serif">${groupBestTotal}/${maxPossible} ✓</div>
+      </div>`);
+    Audio_.sfx.reveal(); FX.burst(150);
+    await waitNext(8);
   }
 
   /* ================================================================
