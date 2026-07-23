@@ -606,8 +606,8 @@ const Host = (() => {
         net.setState({
           phase: 'input-split', phaseId, deadline: inputDeadline(30),
           specs: {
-            [target.pid]: { type: 'choice', title: t('your_pick'), options: opts },
-            _default: { type: 'choice', title: `${t('predict')} (${target.name})`, options: opts },
+            [target.pid]: { type: 'wyr-hidden', title: t('your_pick'), options: opts },
+            _default: { type: 'wyr-hidden', title: `${t('predict')} (${target.name})`, options: opts },
           },
         });
         const row = $('#statusRow');
@@ -632,7 +632,7 @@ const Host = (() => {
           const makeWyrBtns = (idA, idB, cb) => {
             const row = document.createElement('div');
             row.style.cssText = 'display:flex;gap:8px;align-items:stretch;justify-content:center;margin-top:14px;width:100%;max-width:680px;padding:0 12px;box-sizing:border-box;';
-            const btnStyle = (bg,fg) => `flex:1;max-width:300px;min-height:52px;padding:10px 8px;border-radius:14px;background:${bg};color:${fg};font-family:'Fredoka One',sans-serif;font-size:clamp(12px,1.6vmin,15px);border:none;cursor:pointer;line-height:1.3;overflow:hidden;word-break:break-word;`;
+            const btnStyle = (bg,fg) => `flex:1;max-width:300px;min-height:70px;padding:14px 12px;border-radius:18px;background:${bg};color:${fg};font-family:'Fredoka One',sans-serif;font-size:clamp(16px,2vmin,22px);border:none;cursor:pointer;line-height:1.3;overflow:hidden;word-break:break-word;font-weight:700;`;
             row.innerHTML = `<button id="${idA}" style="${btnStyle('#2de1fc','#000')}">${esc(R.a)}</button><div style="font-family:'Fredoka One',sans-serif;font-size:18px;color:var(--text3);display:flex;align-items:center;padding:0 4px;flex-shrink:0">VS</div><button id="${idB}" style="${btnStyle('#ff3d8a','#fff')}">${esc(R.b)}</button>`;
             const stage = document.getElementById('hostStage');
             if (stage) stage.appendChild(row);
