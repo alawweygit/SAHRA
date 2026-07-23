@@ -585,16 +585,17 @@ const Host = (() => {
       setPill(`${LANG==='ar'?'دور':'Turn'} ${r+1} ${LANG==='ar'?'من':'of'} ${playerTurns.length}`);
       // "Whose turn" announcement — 3D card flip
       scene(`
-        <div style="text-align:center;padding:2vmin;perspective:800px">
-          <div style="font-size:clamp(13px,2.2vmin,17px);color:var(--yellow);font-family:'Fredoka One',sans-serif;letter-spacing:2px;margin-bottom:2vmin;animation:fadeSlideUp 0.5s both">${LANG==='ar'?'شكثر تعرف':'HOW WELL DO YOU KNOW'}</div>
-          <div class="wyr-flip-card" style="width:clamp(120px,18vmin,160px);height:clamp(120px,18vmin,160px);margin:0 auto 2vmin;perspective:600px">
-            <div class="wyr-flip-inner" style="position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:wyrCardFlip 0.8s 0.3s both cubic-bezier(0.4,0,0.2,1)">
-              <div style="position:absolute;inset:0;backface-visibility:hidden;background:var(--card-hi);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(48px,8vmin,72px)">❓</div>
-              <div style="position:absolute;inset:0;backface-visibility:hidden;transform:rotateY(180deg);border-radius:50%;overflow:hidden">${avatarHTML(target)}</div>
-            </div>
+        <div style="text-align:center;padding:3vmin 2vmin;display:flex;flex-direction:column;align-items:center;gap:1.5vmin">
+          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(12px,2vmin,16px);color:var(--text2);letter-spacing:3px;text-transform:uppercase;animation:fadeSlideUp 0.4s both">${LANG==='ar'?'شكثر تعرف':'HOW WELL DO YOU KNOW'}</div>
+          <div style="position:relative;margin:1vmin auto;animation:wyrTrophyPop 0.7s 0.2s both cubic-bezier(0.34,1.56,0.64,1)">
+            <div style="width:clamp(100px,16vmin,140px);height:clamp(100px,16vmin,140px);border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.15),transparent);box-shadow:0 0 40px ${target.color||'#a78bff'}88,0 0 80px ${target.color||'#a78bff'}44;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:clamp(52px,9vmin,80px);">${target.emoji||'😊'}</div>
+            <div style="position:absolute;inset:-4px;border-radius:50%;border:3px solid ${target.color||'#a78bff'};animation:wyrRingPulse 1.5s ease-in-out infinite;"></div>
           </div>
-          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(32px,6vmin,56px);color:var(--text);animation:fadeSlideUp 0.5s 0.9s both;margin-top:1.5vmin">${esc(target.name)}</div>
-          <div style="font-size:clamp(14px,2.2vmin,18px);color:var(--yellow);margin-top:1vmin;animation:fadeSlideUp 0.5s 1.1s both">🔥 ${LANG==='ar'?'على الكرسي الساخن':'is in the hot seat'}</div>
+          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(30px,6vmin,60px);color:var(--text);animation:fadeSlideUp 0.5s 0.6s both;line-height:1">${esc(target.name)}</div>
+          <div style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#ff3d8a33,#ff3d8a11);border:1.5px solid #ff3d8a66;border-radius:30px;padding:6px 20px;animation:fadeSlideUp 0.5s 0.8s both">
+            <span style="font-size:clamp(14px,2vmin,18px)">🔥</span>
+            <span style="font-family:'Fredoka One',sans-serif;font-size:clamp(13px,2vmin,17px);color:#ff3d8a">${LANG==='ar'?'على الكرسي الساخن':'is in the hot seat'}</span>
+          </div>
         </div>`);
       net.setState({ phase:'wait', msg: `${LANG==='ar'?'شكثر تعرف':'How well do you know'} ${target.name}?` });
       await sleep(2800);
@@ -771,7 +772,7 @@ const Host = (() => {
     const groupBest = players.reduce((best, p) => {
       return (totalByPredictor[p.pid]||0) > (totalByPredictor[best.pid]||0) ? p : best;
     }, players[0]);
-    const maxPossible = players.length * QS_PER_PLAYER; // questions answered about others (one less player)
+    const maxPossible = (players.length - 1) * QS_PER_PLAYER; // each player can't vote for themselves
     const groupBestTotal = totalByPredictor[groupBest.pid]||0;
     scene(`
       <div style="text-align:center;padding:2vmin;perspective:1000px">

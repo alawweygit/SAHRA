@@ -1803,3 +1803,5 @@ body.ar .tutorial-bullets { text-align: right; }
 .wyr-flip-inner{-webkit-transform-style:preserve-3d;transform-style:preserve-3d;}
 .wyr-flip-inner > div{-webkit-backface-visibility:hidden;backface-visibility:hidden;}
 @-webkit-keyframes wyrCardFlip{0%{-webkit-transform:rotateY(0deg)}100%{-webkit-transform:rotateY(180deg)}}
+
+@keyframes wyrRingPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(1.08)}}
