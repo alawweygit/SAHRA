@@ -388,14 +388,29 @@ const Host = (() => {
     FX.shake(); FX.burst(260, true);
     setTimeout(() => FX.burst(180, true), 900);
     net.setState({ phase: 'winner', name: w.name, emoji: w.emoji });
+    window.__hypoxWinnerChoice = null;
     await new Promise(res => {
       document.getElementById('againBtn')?.addEventListener('click', () => { window.__hypoxPlayAgain = true; res(); }, { once: true });
       document.getElementById('changeGameBtn')?.addEventListener('click', () => {
-        players.forEach(p => p.score = 0); // reset scores for fresh start
+        players.forEach(p => p.score = 0);
         window.__hypoxAbort = true;
         if(window.__hypoxShowPackPicker) window.__hypoxShowPackPicker(); else if(window.__hypoxShowScreen) window.__hypoxShowScreen('#scr-games');
         res();
       }, { once: true });
+      // Poll for phone host choice
+      const _poll = setInterval(() => {
+        if(window.__hypoxWinnerChoice === 'again') {
+          clearInterval(_poll);
+          window.__hypoxPlayAgain = true;
+          res();
+        } else if(window.__hypoxWinnerChoice === 'change') {
+          clearInterval(_poll);
+          players.forEach(p => p.score = 0);
+          window.__hypoxAbort = true;
+          if(window.__hypoxShowPackPicker) window.__hypoxShowPackPicker();
+          res();
+        }
+      }, 300);
     });
   }
 

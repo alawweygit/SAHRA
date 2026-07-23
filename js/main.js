@@ -759,7 +759,6 @@
         startBtn.disabled=false;
         startGameWithMode(selectedPlayMode,mode);
       };
-      saveNavigationState('scr-pregame');
       Audio_.sfx.blip();
     }
     document.getElementById('pgHostBtn').onclick=()=>selectPlayMode('tv');
