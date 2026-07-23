@@ -657,10 +657,35 @@ const Host = (() => {
               net.room('inputs/' + phaseId + '/' + net.hostSelfPid).set({ v: hostAnswers.join(','), t: Date.now() }).catch(()=>{});
             }
           };
-          document.getElementById(`wyrH_${qi}_a`)?.addEventListener('click', () => { Audio_.sfx.submit(); pick('a'); });
-          document.getElementById(`wyrH_${qi}_b`)?.addEventListener('click', () => { Audio_.sfx.submit(); pick('b'); });
         });
         document.getElementById('hostStage')?.appendChild(hostWyrWrap);
+        // Wire buttons AFTER appending to DOM
+        questions.forEach((Q, qi) => {
+          document.getElementById(`wyrH_${qi}_a`)?.addEventListener('click', () => {
+            Audio_.sfx.submit();
+            hostAnswers[qi] = 'a';
+            const btnA = document.getElementById(`wyrH_${qi}_a`);
+            const btnB = document.getElementById(`wyrH_${qi}_b`);
+            if (btnA) { btnA.style.opacity='1'; btnA.style.outline='3px solid #fff'; }
+            if (btnB) { btnB.style.opacity='0.35'; btnB.style.outline='none'; }
+            if (hostAnswers.every(a => a !== null)) {
+              hostWyrWrap.remove();
+              net.room('inputs/' + phaseId + '/' + net.hostSelfPid).set({ v: hostAnswers.join(','), t: Date.now() }).catch(()=>{});
+            }
+          });
+          document.getElementById(`wyrH_${qi}_b`)?.addEventListener('click', () => {
+            Audio_.sfx.submit();
+            hostAnswers[qi] = 'b';
+            const btnA = document.getElementById(`wyrH_${qi}_a`);
+            const btnB = document.getElementById(`wyrH_${qi}_b`);
+            if (btnA) { btnA.style.opacity='0.35'; btnA.style.outline='none'; }
+            if (btnB) { btnB.style.opacity='1'; btnB.style.outline='3px solid #fff'; }
+            if (hostAnswers.every(a => a !== null)) {
+              hostWyrWrap.remove();
+              net.room('inputs/' + phaseId + '/' + net.hostSelfPid).set({ v: hostAnswers.join(','), t: Date.now() }).catch(()=>{});
+            }
+          });
+        });
       }
 
       const all = await net.collect(phaseId, null, players.map(p => p.pid), inputTimeout(45));

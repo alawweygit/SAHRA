@@ -229,8 +229,8 @@ const Controller = (() => {
           answers[qi] = v;
           const btnA = document.getElementById(`wm_${qi}_a`);
           const btnB = document.getElementById(`wm_${qi}_b`);
-          if (btnA) { btnA.style.opacity = v==='a'?'1':'0.35'; btnA.disabled=true; }
-          if (btnB) { btnB.style.opacity = v==='b'?'1':'0.35'; btnB.disabled=true; }
+          if (btnA) { btnA.style.opacity = v==='a'?'1':'0.35'; btnA.style.outline = v==='a'?'3px solid #fff':'none'; btnA.disabled=true; }
+          if (btnB) { btnB.style.opacity = v==='b'?'1':'0.35'; btnB.style.outline = v==='b'?'3px solid #fff':'none'; btnB.disabled=true; }
           if (answers.every(a => a !== null)) {
             lock(wrap);
             onSubmit(answers.join(','));
