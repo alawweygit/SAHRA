@@ -571,6 +571,7 @@
       };
     }
     show('#scr-pregame');
+    setTimeout(()=>{const _pg=document.getElementById('scr-pregame');if(_pg)_pg.scrollTop=0;},50);
     const isTrivia=mode==='trivia'||mode==='quiz';
     const modeNamesObj=t('mode_names')||{};
     const modeTagsObj=t('mode_taglines')||{};
