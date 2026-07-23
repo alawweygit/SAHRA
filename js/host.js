@@ -585,7 +585,12 @@ const Host = (() => {
       await sleep(2000);
       await FX.wipe();
       scene(frameWithTimer(`
-        <div class="hotseat">${avatarHTML(target)}<div class="pname">${esc(target.name)}</div></div>`, t('mode_names')['wyr']));
+        <div class="hotseat">${avatarHTML(target)}<div class="pname">${esc(target.name)}</div></div>
+        <div class="prompt-card small display">
+          <span class="opt-a">${esc(R.a)}</span>
+          <span class="vs-mid display">${esc(t('vs'))}</span>
+          <span class="opt-b">${esc(R.b)}</span>
+        </div>`, t('mode_names')['wyr']));
 
       const others = players.filter(p => p.pid !== target.pid).map(p => p.pid);
       const opts = [{ id: 'a', label: R.a, color: '#2de1fc' }, { id: 'b', label: R.b, color: '#ff3d8a' }];
@@ -602,7 +607,6 @@ const Host = (() => {
           phase: 'input-split', phaseId, deadline: inputDeadline(30),
           specs: {
             [target.pid]: { type: 'choice', title: t('your_pick'), options: opts },
-            ...(net.phonesOnly && net.hostSelfPid ? { [net.hostSelfPid]: { type: 'choice', title: net.hostSelfPid === target.pid ? t('your_pick') : `${t('predict')} (${target.name})`, options: opts } } : {}),
             _default: { type: 'choice', title: `${t('predict')} (${target.name})`, options: opts },
           },
         });
@@ -622,7 +626,7 @@ const Host = (() => {
             } catch(e) {}
           }, 1000 + Math.random() * 2500);
         });
-        const hostNeedsAnswer = net.hostSelfPid && !botPids.includes(net.hostSelfPid) && !net.phonesOnly;
+        const hostNeedsAnswer = net.hostSelfPid && !botPids.includes(net.hostSelfPid);
         if (hostNeedsAnswer) {
           const isTarget = net.hostSelfPid === target.pid;
           const makeWyrBtns = (idA, idB, cb) => {
@@ -639,8 +643,7 @@ const Host = (() => {
           makeWyrBtns('wyrPickA', 'wyrPickB');
         }
 
-        const _wyrPids = [...players.map(p => p.pid), ...(net.phonesOnly && net.hostSelfPid ? [net.hostSelfPid] : [])];
-        const all = await net.collect(phaseId, null, _wyrPids, inputTimeout(30));
+        const all = await net.collect(phaseId, null, players.map(p => p.pid), inputTimeout(30));
         net.onEachInput(null);
         net.setState({ phase: 'wait', msg: t('watch_screen') });
         targetPick = val(all, target.pid);
