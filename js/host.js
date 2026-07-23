@@ -621,7 +621,7 @@ const Host = (() => {
             } catch(e) {}
           }, 1000 + Math.random() * 2500);
         });
-        const hostNeedsAnswer = net.hostSelfPid && !botPids.includes(net.hostSelfPid);
+        const hostNeedsAnswer = net.hostSelfPid && !botPids.includes(net.hostSelfPid) && !net.phonesOnly;
         if (hostNeedsAnswer) {
           const isTarget = net.hostSelfPid === target.pid;
           const makeWyrBtns = (idA, idB, cb) => {
@@ -638,7 +638,8 @@ const Host = (() => {
           makeWyrBtns('wyrPickA', 'wyrPickB');
         }
 
-        const all = await net.collect(phaseId, null, players.map(p => p.pid), inputTimeout(30));
+        const _wyrPids = [...players.map(p => p.pid), ...(net.phonesOnly && net.hostSelfPid ? [net.hostSelfPid] : [])];
+        const all = await net.collect(phaseId, null, _wyrPids, inputTimeout(30));
         net.onEachInput(null);
         net.setState({ phase: 'wait', msg: t('watch_screen') });
         targetPick = val(all, target.pid);
