@@ -501,6 +501,9 @@ body.ar .eyebrow{letter-spacing:0;}
 .ctrl-submit{width:100%;font-size:19px;padding:13px;}
 .ctrl-choices{display:flex;flex-direction:column;gap:9px;width:100%;}
 .choice-btn{font-family:inherit;font-weight:700;font-size:15px;color:var(--text);background:var(--card);border:2px solid var(--cb,var(--border-hi));border-radius:16px;padding:14px;cursor:pointer;text-align:center;box-shadow:0 4px 0 var(--shadow);transition:transform 0.1s;animation:cardDeal 0.4s both;line-height:1.35;}
+.choice-btn.wyr-btn{background:var(--cb);border-color:var(--cb);color:#000;font-size:clamp(15px,2.2vw,20px);min-height:80px;border-radius:20px;}
+.choice-btn.wyr-btn:nth-child(3){color:#fff;}
+.ctrl-choices.wyr-choices{flex-direction:column;gap:12px;}
 .choice-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--shadow);}
 .choice-btn.picked{border-color:var(--yellow);background:var(--card-hi);}
 .ctrl-done{font-family:'Fredoka One',sans-serif;color:var(--green);font-size:16px;animation:popIn 0.4s both;}

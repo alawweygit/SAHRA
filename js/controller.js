@@ -207,7 +207,7 @@ const Controller = (() => {
 
     else if (spec.type === 'choice') {
       const grid = document.createElement('div');
-      grid.className = 'ctrl-choices';
+      grid.className = 'ctrl-choices' + (spec.gridClass ? ' ' + spec.gridClass : '');
       // A realtime state may be replayed and some game modes build their choices
       // dynamically. Keep one button per option id so a malformed/repeated list
       // can never turn into a second visible answer set.
@@ -222,7 +222,7 @@ const Controller = (() => {
       });
       options.forEach((o, i) => {
         const b = document.createElement('button');
-        b.className = 'choice-btn';
+        b.className = 'choice-btn' + (o.btnClass ? ' ' + o.btnClass : '');
         b.textContent = o.label;
         if (o.color) b.style.setProperty('--cb', o.color);
         b.style.animationDelay = (i * .07) + 's';
