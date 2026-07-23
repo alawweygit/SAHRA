@@ -1775,3 +1775,6 @@ body.ar .tutorial-bullets { text-align: right; }
 .voter-correct{background:rgba(52,211,153,0.15);border:1px solid var(--green);}
 .voter-wrong{background:rgba(255,255,255,0.05);opacity:.7;}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+.host-only-ui{display:flex!important;}
+#phoneSharedStage .host-only-ui{display:none!important;}
