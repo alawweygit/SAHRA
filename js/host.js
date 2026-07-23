@@ -593,8 +593,8 @@ const Host = (() => {
               <div style="position:absolute;inset:0;backface-visibility:hidden;transform:rotateY(180deg);border-radius:50%;overflow:hidden">${avatarHTML(target)}</div>
             </div>
           </div>
-          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(24px,4.5vmin,42px);color:var(--text);animation:fadeSlideUp 0.5s 0.9s both">${esc(target.name)}</div>
-          <div style="font-size:clamp(13px,2vmin,16px);color:var(--yellow);margin-top:1vmin;animation:fadeSlideUp 0.5s 1.1s both">🔥 ${LANG==='ar'?'على الكرسي الساخن':'is in the hot seat'}</div>
+          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(32px,6vmin,56px);color:var(--text);animation:fadeSlideUp 0.5s 0.9s both;margin-top:1.5vmin">${esc(target.name)}</div>
+          <div style="font-size:clamp(14px,2.2vmin,18px);color:var(--yellow);margin-top:1vmin;animation:fadeSlideUp 0.5s 1.1s both">🔥 ${LANG==='ar'?'على الكرسي الساخن':'is in the hot seat'}</div>
         </div>`);
       net.setState({ phase:'wait', msg: `${LANG==='ar'?'شكثر تعرف':'How well do you know'} ${target.name}?` });
       await sleep(2800);
@@ -780,10 +780,10 @@ const Host = (() => {
         <div style="position:relative;display:inline-block;animation:wyrTrophyPop 0.7s 0.3s both cubic-bezier(0.34,1.56,0.64,1)">
           <div style="font-size:clamp(48px,8vmin,72px);margin-bottom:0.5vmin">🏆</div>
         </div>
-        <div style="animation:wyrTrophyPop 0.6s 0.6s both cubic-bezier(0.34,1.56,0.64,1)">
+        <div style="animation:wyrTrophyPop 0.6s 0.6s both cubic-bezier(0.34,1.56,0.64,1);display:flex;justify-content:center;margin:0 auto">
           ${avatarHTML(groupBest)}
         </div>
-        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(26px,5vmin,48px);color:var(--text);margin-top:1vmin;animation:fadeSlideUp 0.5s 0.9s both">${esc(groupBest.name)}</div>
+        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(26px,5vmin,48px);color:var(--text);margin-top:1vmin;animation:fadeSlideUp 0.5s 0.9s both;text-align:center">${esc(groupBest.name)}</div>
         <div style="display:inline-block;background:linear-gradient(135deg,#2de1fc,#a78bff);border-radius:40px;padding:8px 28px;margin-top:1.5vmin;animation:fadeSlideUp 0.5s 1.1s both">
           <span style="font-family:'Fredoka One',sans-serif;font-size:clamp(18px,3vmin,28px);color:#000;font-weight:900">${groupBestTotal}/${maxPossible} ✓</span>
         </div>
