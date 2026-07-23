@@ -1383,7 +1383,7 @@
     }
     function renderSharedStatus(title,sub=''){
       if(!phonesOnly)return;
-      shared.innerHTML=`<div class="shared-status ctrl-wrap"><div class="ctrl-title display">${esc(title)}</div>${sub?`<div class="ctrl-sub">${esc(sub)}</div>`:''}<div class="ctrl-mirror-dots"><div class="pulse-dot"></div><div class="pulse-dot"></div><div class="pulse-dot"></div></div></div>`;
+      shared.innerHTML=`<div class="shared-status ctrl-wrap"><div class="ctrl-title display">${esc(title)}</div>${sub?`<div class="ctrl-sub">${esc(sub)}</div>`:''}</div>`;
       resetScrollPositionAfterLayout();
     }
     function renderShared(view){
