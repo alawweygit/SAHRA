@@ -555,7 +555,7 @@
       if(_cfg.aiEndpoint&&window.Content){
         const _cm=mode==='trivia'?'quiz':mode;
         window.Content.preload(_cm,LANG,window.HYPOX_STATE?.rounds||5).catch(()=>{});
-      setTimeout(()=>{const _rl=document.getElementById('pgRoundsLabel');const _rb=document.getElementById('pgRoundsBtns');const _isWyr=_cm==='wyr';if(_rl)_rl.style.display=_isWyr?'none':'';if(_rb)_rb.style.display=_isWyr?'none':'';},50);
+
       }
     }catch(e){}
     // Wire topbar back button for pregame
@@ -587,7 +587,7 @@
       </div>
 
       <div class="pg-row">
-        ${mode!=='spy'?`<div class="pg-block">
+        ${(mode!=='spy'&&mode!=='wyr')?`<div class="pg-block">
           <div class="pg-label" id="pgRoundsLabel">${T.rounds()}</div>
           <div class="round-btns" id="pgRoundsBtns">
             ${[5,10,15].map(n=>`<button class="round-btn${window.HYPOX_STATE.rounds===n?' selected':''}" data-r="${n}">${n}</button>`).join('')}
@@ -664,8 +664,7 @@
     $$('[data-r]').forEach(btn=>btn.addEventListener('click',()=>{
       $$('[data-r]').forEach(b=>b.classList.remove('selected'));
       btn.classList.add('selected');window.HYPOX_STATE.rounds=+btn.dataset.r;Audio_.sfx.blip();
-      const _wyrHideRounds=()=>{const _rl=document.getElementById('pgRoundsLabel');const _rb=document.getElementById('pgRoundsBtns');const _isWyr=window.HYPOX_STATE?.mode==='wyr';if(_rl)_rl.style.display=_isWyr?'none':'';if(_rb)_rb.style.display=_isWyr?'none':'';};
-      _wyrHideRounds();
+
     }));
     // Flavor buttons (Arab/Global)
     $$('[data-flavor]').forEach(btn=>btn.addEventListener('click',()=>{
