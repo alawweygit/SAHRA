@@ -78,13 +78,14 @@
     else if(id==='#scr-games')currentViewKind='games';
     else if(id==='#scr-join')currentViewKind='join';
     else if(id==='#scr-controller')currentViewKind='controller';
-    resetScrollPositionAfterLayout();
     saveNavigationState(id.replace(/^#/,''));
-    // iOS scroll: force top on every transition
-    window.scrollTo({top:0,left:0,behavior:'auto'});
-    window.scrollTo({top:0,left:0,behavior:'auto'});
-    document.documentElement.scrollTop=0;
-    document.body.scrollTop=0;
+    // Only reset scroll for non-scrollable screens
+    if(!SCROLLABLE_SCREENS.includes(clean)){
+      resetScrollPositionAfterLayout();
+      window.scrollTo({top:0,left:0,behavior:'auto'});
+      document.documentElement.scrollTop=0;
+      document.body.scrollTop=0;
+    }
   };
   const $=s=>document.querySelector(s);
   const $$=s=>Array.from(document.querySelectorAll(s));
