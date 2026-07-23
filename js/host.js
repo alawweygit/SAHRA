@@ -585,12 +585,7 @@ const Host = (() => {
       await sleep(2000);
       await FX.wipe();
       scene(frameWithTimer(`
-        <div class="hotseat">${avatarHTML(target)}<div class="pname">${esc(target.name)}</div></div>
-        <div class="prompt-card small display" style="font-size:clamp(14px,2.2vmin,20px)">
-          <span style="color:#2de1fc">${esc(R.a)}</span>
-          <span class="vs-mid display" style="color:var(--text3)"> VS </span>
-          <span style="color:#ff3d8a">${esc(R.b)}</span>
-        </div>`, t('mode_names')['wyr']));
+        <div class="hotseat">${avatarHTML(target)}<div class="pname">${esc(target.name)}</div></div>`, t('mode_names')['wyr']));
 
       const others = players.filter(p => p.pid !== target.pid).map(p => p.pid);
       const opts = [{ id: 'a', label: R.a, color: '#2de1fc' }, { id: 'b', label: R.b, color: '#ff3d8a' }];
