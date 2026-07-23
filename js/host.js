@@ -607,18 +607,9 @@ const Host = (() => {
         questions: wyrQSpecs,
       };
 
-      // Host screen: show all 3 questions + status row
+      // Host screen: avatar + status row only (host answers via buttons like everyone else)
       scene(frameWithTimer(`
         <div class="hotseat">${avatarHTML(target)}<div class="pname">${esc(target.name)}</div></div>
-        <div class="wyr-multi-host">
-          ${questions.map((Q,qi)=>`
-            <div class="wyr-q-row">
-              <div class="wyr-q-label">${qi+1}</div>
-              <div class="wyr-q-a">${esc(Q.a)}</div>
-              <div class="wyr-q-vs">VS</div>
-              <div class="wyr-q-b">${esc(Q.b)}</div>
-            </div>`).join('')}
-        </div>
         <div id="statusRow" class="status-row" style="margin-top:12px"></div>`, t('mode_names')['wyr']));
 
       const phaseId = 'ph' + (++phaseCounter);
