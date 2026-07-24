@@ -383,35 +383,46 @@ const Host = (() => {
         <button class="big-btn" id="againBtn" style="max-width:340px;width:100%">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
         <button class="big-btn ghost" id="changeGameBtn" style="max-width:340px;width:100%">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
       </div>`);
+    net.setState({ phase: 'winner', name: w.name, emoji: w.emoji });
+
+    // Wire the result actions as soon as the buttons are visible. Winner
+    // banter and effects can take a moment, and taps during that animation
+    // must not be lost.
+    const resultAction = new Promise(resolve => {
+      const againBtn = document.getElementById('againBtn');
+      const changeGameBtn = document.getElementById('changeGameBtn');
+      let settled = false;
+      const choose = action => {
+        if (settled) return;
+        settled = true;
+        againBtn?.removeEventListener('click', playAgain);
+        changeGameBtn?.removeEventListener('click', changeGame);
+        [againBtn, changeGameBtn].forEach(btn => {
+          if (!btn) return;
+          btn.disabled = true;
+          btn.setAttribute('aria-busy', 'true');
+        });
+        const activeBtn = action === 'again' ? againBtn : changeGameBtn;
+        if (activeBtn) {
+          activeBtn.textContent = action === 'again'
+            ? (LANG === 'ar' ? '⏳ جاري إعادة اللعبة…' : '⏳ Starting again…')
+            : (LANG === 'ar' ? '⏳ جاري فتح الألعاب…' : '⏳ Opening games…');
+        }
+        window.__hypoxPlayAgain = action === 'again';
+        players.forEach(p => p.score = 0);
+        resolve(action);
+      };
+      const playAgain = () => choose('again');
+      const changeGame = () => choose('change');
+      againBtn?.addEventListener('click', playAgain);
+      changeGameBtn?.addEventListener('click', changeGame);
+    });
+
     Audio_.sfx.crown(); Audio_.sfx.fanfare();
     await say(tPick('banter_winner')||'');
     FX.shake(); FX.burst(260, true);
     setTimeout(() => FX.burst(180, true), 900);
-    net.setState({ phase: 'winner', name: w.name, emoji: w.emoji });
-    window.__hypoxWinnerChoice = null;
-    await new Promise(res => {
-      document.getElementById('againBtn')?.addEventListener('click', () => { window.__hypoxPlayAgain = true; res(); }, { once: true });
-      document.getElementById('changeGameBtn')?.addEventListener('click', () => {
-        players.forEach(p => p.score = 0);
-        window.__hypoxAbort = true;
-        if(window.__hypoxShowPackPicker) window.__hypoxShowPackPicker(); else if(window.__hypoxShowScreen) window.__hypoxShowScreen('#scr-games');
-        res();
-      }, { once: true });
-      // Poll for phone host choice
-      const _poll = setInterval(() => {
-        if(window.__hypoxWinnerChoice === 'again') {
-          clearInterval(_poll);
-          window.__hypoxPlayAgain = true;
-          res();
-        } else if(window.__hypoxWinnerChoice === 'change') {
-          clearInterval(_poll);
-          players.forEach(p => p.score = 0);
-          window.__hypoxAbort = true;
-          if(window.__hypoxShowPackPicker) window.__hypoxShowPackPicker();
-          res();
-        }
-      }, 300);
-    });
+    return await resultAction;
   }
 
   function addScore(pid, pts) {
@@ -709,7 +720,15 @@ const Host = (() => {
         });
       }
 
-      const all = await net.collect(phaseId, null, players.map(p => p.pid), inputTimeout(45));
+      // Online players already received the split-input state above. One
+      // Device mode has no remote controller, so it still needs the complete
+      // WYR spec to render each pass-the-phone answer sheet.
+      const all = await net.collect(
+        phaseId,
+        net.isOffline ? phoneWyrSpec : null,
+        players.map(p => p.pid),
+        inputTimeout(45)
+      );
       net.onEachInput(null);
       net.setState({ phase: 'wait', msg: t('watch_screen') });
 
@@ -2036,8 +2055,8 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         await new Promise(r => document.getElementById('errContinueBtn')?.addEventListener('click', r, {once:true}));
       }
       if (window.__hypoxAbort) { stopSharedScreen(); return; }
-      await winnerScene();
-      if(window.__hypoxPlayAgain) {
+      const resultAction = await winnerScene();
+      if(resultAction === 'again') {
         playAgain = true;
       }
     }
