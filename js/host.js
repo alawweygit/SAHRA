@@ -416,6 +416,14 @@ const Host = (() => {
       const changeGame = () => choose('change');
       againBtn?.addEventListener('click', playAgain);
       changeGameBtn?.addEventListener('click', changeGame);
+      // Poll for phone host choice (phones-only mode)
+      const _poll = setInterval(() => {
+        if(window.__hypoxWinnerChoice === 'again') {
+          clearInterval(_poll); window.__hypoxWinnerChoice = null; choose('again');
+        } else if(window.__hypoxWinnerChoice === 'change') {
+          clearInterval(_poll); window.__hypoxWinnerChoice = null; choose('change');
+        }
+      }, 300);
     });
 
     Audio_.sfx.crown(); Audio_.sfx.fanfare();

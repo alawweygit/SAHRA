@@ -46,13 +46,15 @@
       scrollingElement,document.documentElement,document.body,
       ...$$('.screen,#hostStage,#scr-controller,#phoneSharedStage,#ctrlArea,#ppOverlay,.host-input-dock,.menu-card')
     ];
+    const _scrollableIds=['scr-title','scr-games','scr-pregame','scr-lobby','scr-join','scr-avatar'];
+    const _isScrollable=activeScreen&&_scrollableIds.includes(activeScreen.id);
     targets.forEach(el=>{
       if(!el)return;
-      if(activeScreen&&el===activeScreen&&['scr-title','scr-games','scr-pregame','scr-lobby','scr-join','scr-avatar'].includes(activeScreen.id))return;
+      if(_isScrollable&&el===activeScreen)return;
       el.scrollTop=0;
       el.scrollLeft=0;
     });
-    window.scrollTo(0,0);
+    if(!_isScrollable)window.scrollTo(0,0);
   }
 
   function resetScrollPositionAfterLayout(){
@@ -1614,9 +1616,28 @@
         resetScrollPositionAfterLayout();
       }else if(state.phase==='winner'){
         ctrl.classList.remove('hidden');
-        ctrl.innerHTML=`<div class="ctrl-wrap"><div class="crown">👑</div><div class="ctrl-title display">${state.emoji} ${esc(state.name)}</div><div class="ctrl-sub">${T.winner()}</div></div>`;
+        const _isHostPhone=window._hypoxIsHost&&net?.phonesOnly;
+        ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center">
+          <div class="crown">👑</div>
+          <div class="ctrl-title display">${state.emoji} ${esc(state.name)}</div>
+          <div class="ctrl-sub">${T.winner()}</div>
+          ${_isHostPhone?`<div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;width:100%;max-width:340px;margin:20px auto 0">
+            <button id="phoneAgainBtn" class="big-btn">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
+            <button id="phoneChangeBtn" class="big-btn ghost">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
+          </div>`:''}
+        </div>`;
         resetScrollPositionAfterLayout();
         Audio_.sfx.fanfare();
+        if(_isHostPhone){
+          document.getElementById('phoneAgainBtn')?.addEventListener('click',()=>{
+            Audio_.sfx.submit();
+            window.__hypoxWinnerChoice='again';
+          },{once:true});
+          document.getElementById('phoneChangeBtn')?.addEventListener('click',()=>{
+            Audio_.sfx.submit();
+            window.__hypoxWinnerChoice='change';
+          },{once:true});
+        }
       }
     });
   }
