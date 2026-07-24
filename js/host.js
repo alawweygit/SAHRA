@@ -845,158 +845,235 @@ const Host = (() => {
      MODE 3 — THE INTERROGATION  (anonymous answers, public blame)
   ================================================================ */
   async function playInterrogation() {
-    // SAY IT ANON — Quiplash style: write funny anonymous answers, vote for funniest
-    // No correct answer — just crowd voting. Winner gets points, voters of winner get bonus.
+    // SAY IT ANON — Hot seat edition
+    // Each player sits in the hot seat. A statement about them is shown.
+    // Everyone else writes a funny anonymous answer.
+    // Answers revealed one by one with animation.
+    // Hot seat player ONLY picks their favorite → winner gets 1000pts.
     await modeTitleCard('interrogation');
-    const CORRECT_PTS = 1000;
-    const VOTER_BONUS = 300;
-    const rounds = window.HYPOX_STATE?.rounds || 5;
-    const qs = await Content.get('interrogation', LANG, rounds);
-    if (!qs.length) { scene(`<div class="prompt-card display">😂 No prompts loaded</div>`); await waitNext(5); return; }
+    const WIN_PTS = 1000;
     const COLS = ['#f472b6','#60a5fa','#34d399','#fb923c','#a78bff','#fbbf24','#22d3ee','#f43f5e'];
 
-    for (let i = 0; i < qs.length; i++) {
-      const Q = qs[i];
-      const pids = players.map(p => p.pid);
+    // Static prompts — [NAME] gets replaced with the hot seat player's name
+    const PROMPTS_EN = [
+      'What is [NAME] most scared to do?',
+      'What would [NAME] spend 1 million dollars on first?',
+      'What is [NAME]\'s biggest red flag?',
+      'What is [NAME] definitely lying about right now?',
+      'What would [NAME] do if they were invisible for a day?',
+      'What is [NAME]\'s most embarrassing habit?',
+      'What is [NAME] absolutely terrible at?',
+      'What would [NAME] be doing at 3am on a Friday?',
+      'What is [NAME]\'s go-to excuse for everything?',
+      'What is [NAME] secretly obsessed with?',
+      'What would [NAME]\'s villain origin story be?',
+      'What would [NAME] do if they were president for one day?',
+      'What is [NAME] definitely Googling in private?',
+      'What is [NAME]\'s most useless skill?',
+      'What would [NAME]\'s dating profile say?',
+      'What is [NAME]\'s spirit animal and why?',
+      'What would [NAME] do if they woke up famous tomorrow?',
+      'What job would [NAME] be immediately fired from?',
+      'What is [NAME]\'s most suspicious behavior?',
+      'What is [NAME] definitely not telling us?',
+    ];
+    const PROMPTS_AR = [
+      'شنو أكثر شي [NAME] يخاف يسويه؟',
+      'شنو أول شي [NAME] يشتريه بمليون؟',
+      'شنو أكبر علامة تحذير عند [NAME]؟',
+      'شنو [NAME] يكذب فيه هالحين؟',
+      'شنو [NAME] يسوي لو صار خفي ليوم؟',
+      'شنو أكثر عادة محرجة عند [NAME]؟',
+      'شنو [NAME] فاشل فيه بالكامل؟',
+      'شنو [NAME] يسوي الساعة 3 الفجر يوم الجمعة؟',
+      'شنو عذر [NAME] الجاهز لكل موقف؟',
+      'شنو [NAME] مهووس فيه بسرية؟',
+      'شنو قصة تحول [NAME] للشرير؟',
+      'شنو [NAME] يسوي لو صار رئيس ليوم؟',
+      'شنو [NAME] يبحث عنه بالسر في قوقل؟',
+      'شنو أعظم موهبة عديمة الفايدة عند [NAME]؟',
+      'شنو يكتب [NAME] في بروفايل المواعدة؟',
+      'شنو حيوان يمثل [NAME] وليش؟',
+      'شنو [NAME] يسوي لو صحى مشهور بكرة؟',
+      'من أي وظيفة يطردون [NAME] فوراً؟',
+      'شنو أكثر تصرف مريب يسويه [NAME]؟',
+      'شنو [NAME] ما يقوله لنا؟',
+    ];
 
-      // Phase 1: Show question, collect answers
+    const prompts = LANG === 'ar' ? PROMPTS_AR : PROMPTS_EN;
+    const shuffledPlayers = shuffle(players.slice());
+    const usedPromptIdxs = new Set();
+
+    for (let r = 0; r < shuffledPlayers.length; r++) {
+      const hotSeat = shuffledPlayers[r];
+      const hotPid = hotSeat.pid;
+      const writerPids = players.map(p => p.pid).filter(pid => pid !== hotPid);
+      if (writerPids.length < 1) continue;
+
+      // Pick a unique prompt
+      let promptIdx;
+      do { promptIdx = Math.floor(Math.random() * prompts.length); } while (usedPromptIdxs.has(promptIdx) && usedPromptIdxs.size < prompts.length);
+      usedPromptIdxs.add(promptIdx);
+      const promptText = prompts[promptIdx].replace(/\[NAME\]/g, hotSeat.name);
+
+      // Phase 1: Hot seat announcement — WYR style
       await FX.wipe();
-      setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
+      setPill(`${LANG==='ar'?'دور':'Turn'} ${r+1} ${LANG==='ar'?'من':'of'} ${shuffledPlayers.length}`);
+      scene(`
+        <div style="text-align:center;padding:3vmin 2vmin;display:flex;flex-direction:column;align-items:center;gap:1.5vmin">
+          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(12px,2vmin,16px);color:var(--text2);letter-spacing:3px;text-transform:uppercase;animation:fadeSlideUp 0.4s both">${LANG==='ar'?'على الكرسي الساخن':'ON THE HOT SEAT'}</div>
+          <div style="position:relative;margin:1vmin auto;animation:wyrTrophyPop 0.7s 0.2s both cubic-bezier(0.34,1.56,0.64,1)">
+            <div style="width:clamp(100px,16vmin,140px);height:clamp(100px,16vmin,140px);border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.15),transparent);box-shadow:0 0 40px ${hotSeat.color||'#f472b6'}88,0 0 80px ${hotSeat.color||'#f472b6'}44;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:clamp(52px,9vmin,80px)">${hotSeat.emoji||'😂'}</div>
+            <div style="position:absolute;inset:-4px;border-radius:50%;border:3px solid ${hotSeat.color||'#f472b6'};animation:wyrRingPulse 1.5s ease-in-out infinite"></div>
+          </div>
+          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(30px,6vmin,60px);color:var(--text);animation:fadeSlideUp 0.5s 0.6s both;line-height:1">${esc(hotSeat.name)}</div>
+          <div style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#ff3d8a33,#ff3d8a11);border:1.5px solid #ff3d8a66;border-radius:30px;padding:6px 20px;animation:fadeSlideUp 0.5s 0.8s both">
+            <span style="font-size:clamp(14px,2vmin,18px)">🔥</span>
+            <span style="font-family:'Fredoka One',sans-serif;font-size:clamp(13px,2vmin,17px);color:#ff3d8a">${LANG==='ar'?'على الكرسي الساخن':'is in the hot seat'}</span>
+          </div>
+        </div>`);
+      net.setState({ phase:'wait', msg: `🔥 ${esc(hotSeat.name)} ${LANG==='ar'?'على الكرسي الساخن':'is on the hot seat'}` });
+      await sleep(2800);
+
+      // Phase 2: Show prompt, collect answers from everyone except hot seat
+      await FX.wipe();
       scene(`<div class="eyebrow">😂 ${LANG==='ar'?'قولها أنون':'SAY IT ANON'}</div>
-        <div class="prompt-card display">${esc(Q.q)}</div>
-        <div class="pick-sub" style="opacity:.7;font-size:clamp(12px,1.8vmin,16px)">${LANG==='ar'?'✍️ اكتب أضحك إجابة — هويتك سرية!':'✍️ Write the funniest answer — stay anonymous!'}</div>
+        <div class="prompt-card display">${esc(promptText)}</div>
+        <div class="pick-sub">${LANG==='ar'?'✍️ اكتب أضحك إجابة — هويتك سرية!':'✍️ Write the funniest answer — stay anonymous!'}</div>
         <div id="statusRow" class="status-row"></div>`);
-      pushMirror({ headline: Q.q, sub: LANG==='ar'?'✍️ اكتب إجابتك...':'✍️ Write your answer...' });
+      pushMirror({ headline: promptText, sub: LANG==='ar'?'✍️ اكتب إجابتك...':'✍️ Write your answer...' });
       Audio_.sfx.sting(); hostSay('prompt');
+      net.setState({ phase:'wait', msg: LANG==='ar'?'✍️ اكتب إجابتك...':'✍️ Write your answer...' });
 
       const row = $('#statusRow');
-      row.innerHTML = pids.map(pid => `<div class="mini" id="mini-${pid}">${avatarHTML(safeP(pid))}<div class="check">✓</div></div>`).join('');
-      net.onEachInput(pid => { Audio_.sfx.submit(); $('#mini-'+pid)?.classList.add('done'); });
+      row.innerHTML = writerPids.map(pid => `<div class="mini" id="mini-${pid}">${avatarHTML(safeP(pid))}<div class="check">✓</div></div>`).join('');
+      net.onEachInput(pid => { if(writerPids.includes(pid)){ Audio_.sfx.submit(); $('#mini-'+pid)?.classList.add('done'); } });
 
       const answers = await collectWithTimer({
         type: 'text',
         title: LANG==='ar' ? '✍️ اكتب إجابتك' : '✍️ Write your answer',
-        context: Q.q, maxLen: 80,
-      }, pids, 40);
+        context: promptText, maxLen: 80,
+      }, writerPids, 40);
 
-      const answerList = pids
+      const answerList = writerPids
         .map(pid => ({ pid, text: (val(answers, pid)||'').trim() }))
         .filter(a => a.text)
         .sort(() => Math.random() - 0.5);
 
-      if (answerList.length < 2) continue;
+      if (answerList.length < 1) continue;
+      net.onEachInput(null);
 
-      // Phase 2: Vote for favorite (can't vote own)
-      const votePhaseId = 'ph' + (++phaseCounter);
-      const voteDeadline = inputDeadline(25);
+      // Phase 3: Reveal answers ONE BY ONE with animation
       await FX.wipe();
-      scene(`<div class="eyebrow">🗳️ ${LANG==='ar'?'صوّت للأضحك':'VOTE FOR THE FUNNIEST'}</div>
-        <div class="prompt-card display" style="font-size:clamp(13px,2vmin,18px)">${esc(Q.q)}</div>
-        <div class="pick-sub">${LANG==='ar'?'مو قادر تصوت لنفسك 😏':'Can\'t vote for yourself 😏'}</div>
+      const revealStage = document.getElementById('hostStage');
+      scene(`<div class="eyebrow">👀 ${LANG==='ar'?'الإجابات':'THE ANSWERS'}</div>
+        <div class="prompt-card display" style="font-size:clamp(13px,2vmin,18px)">${esc(promptText)}</div>
+        <div class="ans-reveal-list" id="ansRevealList"></div>`);
+      net.setState({ phase:'wait', msg: LANG==='ar'?'👀 شوف الإجابات...':'👀 Watch the answers...' });
+
+      const listEl = document.getElementById('ansRevealList');
+      for (let idx = 0; idx < answerList.length; idx++) {
+        const a = answerList[idx];
+        const col = COLS[idx % COLS.length];
+        await sleep(800);
+        Audio_.sfx.submit();
+        const card = document.createElement('div');
+        card.className = 'ans-card';
+        card.style.cssText = `border-color:${col}55;background:${col}12;animation:cardIn 0.5s both`;
+        card.innerHTML = `<span class="ans-letter" style="color:${col}">${String.fromCharCode(65+idx)}</span><span>${esc(a.text)}</span>`;
+        listEl?.appendChild(card);
+      }
+      await sleep(1200);
+
+      // Phase 4: Hot seat player picks favorite
+      await FX.wipe();
+      const pickPhaseId = 'ph' + (++phaseCounter);
+      const pickDeadline = inputDeadline(30);
+
+      // Build pick options for hot seat only
+      const pickOptions = answerList.map((a, idx) => ({
+        id: a.pid,
+        label: `${String.fromCharCode(65+idx)}. ${a.text}`,
+        color: COLS[idx % COLS.length]
+      }));
+      const pickSpecs = {};
+      pickSpecs[hotPid] = { type: 'choice', title: LANG==='ar'?'😂 اختار الأضحك':'😂 Pick the funniest', options: pickOptions };
+      // Everyone else waits
+      for (const pid of writerPids) {
+        pickSpecs[pid] = { type: 'wait', title: LANG==='ar'?`⏳ ${esc(hotSeat.name)} يختار الأضحك`:`⏳ ${esc(hotSeat.name)} is picking...` };
+      }
+
+      scene(`<div class="eyebrow">😂 ${LANG==='ar'?`${esc(hotSeat.name)} يختار الأضحك`:`${esc(hotSeat.name)} picks the funniest`}</div>
+        <div class="prompt-card display" style="font-size:clamp(13px,2vmin,18px)">${esc(promptText)}</div>
         <div class="ans-reveal-list">${answerList.map((a,idx)=>{
           const col=COLS[idx%COLS.length];
-          return `<div class="ans-card" style="border-color:${col}55;background:${col}12">
+          return `<div class="ans-card" style="border-color:${col}55;background:${col}12;animation-delay:${idx*0.08}s">
             <span class="ans-letter" style="color:${col}">${String.fromCharCode(65+idx)}</span>
             <span>${esc(a.text)}</span>
           </div>`;}).join('')}</div>
-        <div id="statusRow" class="status-row"></div>`);
-      Audio_.sfx.sting();
+        <div class="pick-sub" style="margin-top:8px">${LANG==='ar'?`🔥 ${esc(hotSeat.name)} يختار الآن...`:`🔥 ${esc(hotSeat.name)} is choosing...`}</div>`);
 
-      // Per-player vote specs (each sees all answers except their own)
-      const voteSpecs = {};
-      for (const pid of pids) {
-        const votable = answerList
-          .map((a,idx) => ({ id: a.pid, label: `${String.fromCharCode(65+idx)}. ${a.text}`, color: COLS[idx%COLS.length] }))
-          .filter(opt => opt.id !== pid);
-        voteSpecs[pid] = { type: 'choice', title: LANG==='ar'?'🗳️ صوّت للأفضل':'🗳️ Vote for the best', options: votable };
+      net.setState({ phase: 'input-split', phaseId: pickPhaseId, deadline: pickDeadline, specs: pickSpecs, mirror: { ...mirror } });
+
+      // Hot seat on TV/phones-only host gets buttons too
+      const isHotSeatHost = net.hostSelfPid === hotPid;
+      if (isHotSeatHost || (!net.phonesOnly && !net.hostSelfPid)) {
+        const btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-top:14px;width:100%;max-width:700px;';
+        btnRow.innerHTML = answerList.map((a,idx) => {
+          const col = COLS[idx%COLS.length];
+          return `<button id="sia_${idx}" style="padding:12px 18px;border-radius:14px;background:${col}18;border:2px solid ${col}55;color:var(--text);font-family:'Fredoka One',sans-serif;font-size:clamp(13px,1.8vmin,16px);cursor:pointer;text-align:left;transition:all .15s">
+            <span style="color:${col};margin-right:10px;font-size:clamp(15px,2.2vmin,20px)">${String.fromCharCode(65+idx)}</span>${esc(a.text)}
+          </button>`;
+        }).join('');
+        revealStage?.appendChild(btnRow);
+        answerList.forEach((a, idx) => {
+          document.getElementById('sia_'+idx)?.addEventListener('click', async () => {
+            Audio_.sfx.submit(); btnRow.remove();
+            await net.room('inputs/'+pickPhaseId+'/'+hotPid).set({ v: a.pid, t: Date.now() });
+          }, { once: true });
+        });
       }
-      net.setState({ phase: 'input-split', phaseId: votePhaseId, deadline: voteDeadline, specs: voteSpecs, mirror: { ...mirror } });
 
-      const voteRow = $('#statusRow');
-      voteRow.innerHTML = pids.map(pid => `<div class="mini" id="vmini-${pid}">${avatarHTML(safeP(pid))}<div class="check">✓</div></div>`).join('');
-      net.onEachInput(pid => { Audio_.sfx.submit(); $('#vmini-'+pid)?.classList.add('done'); });
-
-      // Bot auto-vote
+      // Bot hot seat auto-picks
       const botPids = net.getBotPids ? net.getBotPids() : [];
-      players.filter(p => botPids.includes(p.pid)).forEach(botP => {
+      if (botPids.includes(hotPid)) {
         setTimeout(async () => {
           try {
-            const votable = answerList.filter(a => a.pid !== botP.pid);
-            if (votable.length) {
-              const pick = votable[Math.floor(Math.random()*votable.length)];
-              await net.room('inputs/'+votePhaseId+'/'+botP.pid).set({ v: pick.pid, t: Date.now() });
-            }
+            const pick = answerList[Math.floor(Math.random()*answerList.length)];
+            await net.room('inputs/'+pickPhaseId+'/'+hotPid).set({ v: pick.pid, t: Date.now() });
           } catch(e) {}
-        }, 1000 + Math.random()*2000);
-      });
-
-      // Host votes if phones-only
-      if (net.hostSelfPid) {
-        const myVotable = answerList.filter(a => a.pid !== net.hostSelfPid);
-        if (myVotable.length) {
-          const btnRow = document.createElement('div');
-          btnRow.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-top:14px;width:100%;max-width:700px;';
-          btnRow.innerHTML = myVotable.map((a,idx) => {
-            const globalIdx = answerList.indexOf(a);
-            return `<button id="ht_${idx}" style="padding:12px 16px;border-radius:14px;background:${COLS[globalIdx%COLS.length]}22;border:2px solid ${COLS[globalIdx%COLS.length]}60;color:var(--text);font-family:'Fredoka One',sans-serif;font-size:clamp(13px,1.8vmin,16px);cursor:pointer;text-align:left;transition:background .15s">
-              <span style="color:${COLS[globalIdx%COLS.length]};margin-right:8px">${String.fromCharCode(65+globalIdx)}</span>${esc(a.text)}
-            </button>`;
-          }).join('');
-          const stage = document.getElementById('hostStage');
-          if (stage) stage.appendChild(btnRow);
-          myVotable.forEach((a, idx) => {
-            document.getElementById('ht_'+idx)?.addEventListener('click', async () => {
-              Audio_.sfx.submit(); btnRow.remove();
-              await net.room('inputs/'+votePhaseId+'/'+net.hostSelfPid).set({ v: a.pid, t: Date.now() });
-            }, { once: true });
-          });
-        }
+        }, 1500 + Math.random()*2000);
       }
 
-      const votes = await net.collect(votePhaseId, null, pids, inputTimeout(25));
+      const picks = await net.collect(pickPhaseId, null, [hotPid], inputTimeout(30));
       net.onEachInput(null);
 
-      // Count votes
-      const voteCounts = {};
-      answerList.forEach(a => { voteCounts[a.pid] = 0; });
-      for (const pid of pids) {
-        const v = val(votes, pid);
-        if (v && v in voteCounts) voteCounts[v]++;
-      }
-      const maxVotes = Math.max(...Object.values(voteCounts));
-      const winners = Object.keys(voteCounts).filter(pid => voteCounts[pid] === maxVotes && maxVotes > 0);
+      const chosenPid = val(picks, hotPid);
+      const winner = answerList.find(a => a.pid === chosenPid) || answerList[0];
+      const winnerPlayer = safeP(winner.pid);
+      if (winner.pid) addScore(winner.pid, WIN_PTS);
 
-      // Score: funniest answer wins 1000pts, voters who picked winner get 300 bonus
-      winners.forEach(winPid => addScore(winPid, CORRECT_PTS));
-      for (const pid of pids) {
-        const v = val(votes, pid);
-        if (v && winners.includes(v)) addScore(pid, VOTER_BONUS);
-      }
-
-      // Reveal - Lie Detector style
-      Audio_.sfx.reveal(); FX.burst(60);
+      // Phase 5: Reveal winner with celebration
+      Audio_.sfx.reveal(); FX.burst(80);
       scene(`<div class="eyebrow">🏆 ${LANG==='ar'?'الأضحك':'FUNNIEST ANSWER'}</div>
-        <div class="prompt-card display" style="font-size:clamp(13px,1.9vmin,18px)">${esc(Q.q)}</div>
+        <div class="prompt-card display" style="font-size:clamp(13px,2vmin,18px)">${esc(promptText)}</div>
         <div class="ans-reveal-list">${answerList.map((a,idx) => {
-          const p = safeP(a.pid);
-          const vc = voteCounts[a.pid]||0;
-          const isWin = winners.includes(a.pid);
+          const isWin = a.pid === winner.pid;
           const col = COLS[idx%COLS.length];
-          return `<div class="ans-card${isWin?' ans-card-win':''}" style="border-color:${isWin?'var(--yellow)':col+'50'};background:${isWin?'rgba(251,191,36,0.12)':col+'10'};flex-direction:column;gap:6px;animation-delay:${idx*0.1}s">
+          const p = safeP(a.pid);
+          return `<div class="ans-card${isWin?' ans-card-win':''}" style="border-color:${isWin?'var(--yellow)':col+'40'};background:${isWin?'rgba(251,191,36,0.13)':col+'10'};flex-direction:column;gap:5px;animation-delay:${idx*0.1}s">
             <div style="display:flex;align-items:center;gap:10px">
               <span class="ans-letter" style="color:${isWin?'var(--yellow)':col}">${String.fromCharCode(65+idx)}</span>
               <span style="flex:1;font-size:clamp(13px,1.9vmin,17px)">${esc(a.text)}</span>
-              ${isWin?`<span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(12px,1.7vmin,15px);white-space:nowrap">🏆 +${CORRECT_PTS}</span>`:''}
+              ${isWin?`<span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(12px,1.7vmin,15px);white-space:nowrap">🏆 +${WIN_PTS}</span>`:''}
             </div>
-            <div style="display:flex;align-items:center;gap:6px;padding-left:34px">
-              ${avatarHTML(p)}
-              <span style="font-size:clamp(10px,1.4vmin,12px);color:${isWin?'var(--yellow)':'var(--text3)'}">${esc(p?.name||'')} · ${vc} ${LANG==='ar'?'صوت':'vote'}${vc!==1?'s':''}${isWin&&vc>0?' · voters +'+VOTER_BONUS+' 🎯':''}</span>
-            </div>
+            ${isWin?`<div style="display:flex;align-items:center;gap:6px;padding-left:34px">${avatarHTML(p)}<span style="font-size:clamp(10px,1.4vmin,12px);color:var(--yellow)">${esc(p?.name||'')} ${LANG==='ar'?'اختاره':'was chosen by'} ${esc(hotSeat.name)} 🔥</span></div>`:''}
           </div>`;
         }).join('')}</div>`);
       await hostSay('reveal');
       await waitNext();
-      if (i < qs.length-1) await showScores();
+      if (r < shuffledPlayers.length - 1) await showScores();
     }
     await showScores();
   }
