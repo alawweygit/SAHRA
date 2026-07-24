@@ -1673,14 +1673,14 @@ body.ar .tutorial-bullets { text-align: right; }
   }
   #scr-game.active.pack-picker-active{
     display:block!important;
-    height:auto!important;
-    min-height:100dvh;
-    overflow:visible!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    height:100dvh!important;
     touch-action:pan-y;
   }
   #scr-game.active.pack-picker-active #hostStage{
     height:auto!important;
-    min-height:calc(100dvh - env(safe-area-inset-top, 0px) - 112px);
+    min-height:0!important;
     overflow:visible!important;
     justify-content:flex-start!important;
     padding-bottom:max(48px,env(safe-area-inset-bottom,0px) + 28px)!important;
