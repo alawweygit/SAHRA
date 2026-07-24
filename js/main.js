@@ -78,8 +78,9 @@
   const SCROLLABLE_SCREENS=['scr-title','scr-games','scr-pregame','scr-lobby','scr-join','scr-avatar'];
   const show=id=>{
     const _clean=id.replace(/^#/,'');
-    $$('.screen').forEach(s=>{s.classList.remove('active');s.scrollTop=0;});
-    const _sel=$(id);if(_sel){_sel.classList.add('active');_sel.scrollTop=0;requestAnimationFrame(()=>{_sel.scrollTop=0;requestAnimationFrame(()=>{_sel.scrollTop=0;});});}
+    const _isScrollableDest=SCROLLABLE_SCREENS.includes(_clean);
+    $$('.screen').forEach(s=>{s.classList.remove('active');if(s.id!==_clean)s.scrollTop=0;});
+    const _sel=$(id);if(_sel){_sel.classList.add('active');if(!_isScrollableDest){_sel.scrollTop=0;requestAnimationFrame(()=>{_sel.scrollTop=0;requestAnimationFrame(()=>{_sel.scrollTop=0;});});}}
     if(id==='#scr-title')currentViewKind='title';
     else if(id==='#scr-games')currentViewKind='games';
     else if(id==='#scr-join')currentViewKind='join';
