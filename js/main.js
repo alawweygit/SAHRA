@@ -39,22 +39,18 @@
   let _menuScrollY=0;
   if('scrollRestoration' in history)history.scrollRestoration='manual';
 
+  const DOCUMENT_SCROLL_SCREENS=new Set(['scr-title','scr-games','scr-pregame','scr-game','scr-lobby','scr-join','scr-avatar']);
+  const usesDocumentScroll=screen=>window.matchMedia('(max-width: 600px)').matches&&DOCUMENT_SCROLL_SCREENS.has(screen?.id);
+  function scrollTarget(screen=document.querySelector('.screen.active')){
+    return usesDocumentScroll(screen)?(document.scrollingElement||document.documentElement):screen;
+  }
   function resetScrollPosition(){
-    const activeScreen=document.querySelector('.screen.active');
-    const scrollingElement=document.scrollingElement;
-    const targets=[
-      scrollingElement,document.documentElement,document.body,
-      ...$$('.screen,#hostStage,#scr-controller,#phoneSharedStage,#ctrlArea,#ppOverlay,.host-input-dock,.menu-card')
-    ];
-    const _scrollableIds=['scr-title','scr-games','scr-pregame','scr-lobby','scr-join','scr-avatar'];
-    const _isScrollable=activeScreen&&_scrollableIds.includes(activeScreen.id);
-    if(_isScrollable)return;
-    targets.forEach(el=>{
-      if(!el)return;
-      el.scrollTop=0;
-      el.scrollLeft=0;
-    });
-    window.scrollTo(0,0);
+    const active=document.querySelector('.screen.active');
+    const target=scrollTarget(active);
+    if(!target)return;
+    target.scrollTop=0;
+    target.scrollLeft=0;
+    if(usesDocumentScroll(active))window.scrollTo({top:0,left:0,behavior:'auto'});
   }
 
   function resetScrollPositionAfterLayout(){
@@ -63,10 +59,6 @@
       resetScrollPosition();
       requestAnimationFrame(resetScrollPosition);
     });
-    setTimeout(resetScrollPosition,80);
-    setTimeout(resetScrollPosition,240);
-    setTimeout(resetScrollPosition,600);
-    setTimeout(resetScrollPosition,1200);
   }
   // Host scenes live in a separate module, so expose one shared reset hook.
   // Every logical screen change uses this instead of relying on Safari's
@@ -75,23 +67,16 @@
 
   const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) && /WebKit/.test(navigator.userAgent);
 
-  const SCROLLABLE_SCREENS=['scr-title','scr-games','scr-pregame','scr-lobby','scr-join','scr-avatar'];
   const show=id=>{
     const _clean=id.replace(/^#/,'');
-    const _isScrollableDest=SCROLLABLE_SCREENS.includes(_clean);
-    $$('.screen').forEach(s=>{s.classList.remove('active');if(s.id!==_clean)s.scrollTop=0;});
-    const _sel=$(id);if(_sel){_sel.classList.add('active');if(!_isScrollableDest){_sel.scrollTop=0;requestAnimationFrame(()=>{_sel.scrollTop=0;requestAnimationFrame(()=>{_sel.scrollTop=0;});});}}
+    $$('.screen').forEach(s=>s.classList.remove('active'));
+    const _sel=$(id);if(_sel)_sel.classList.add('active');
     if(id==='#scr-title')currentViewKind='title';
     else if(id==='#scr-games')currentViewKind='games';
     else if(id==='#scr-join')currentViewKind='join';
     else if(id==='#scr-controller')currentViewKind='controller';
     saveNavigationState(_clean);
-    if(!SCROLLABLE_SCREENS.includes(_clean)){
-      resetScrollPositionAfterLayout();
-      window.scrollTo({top:0,left:0,behavior:'auto'});
-      document.documentElement.scrollTop=0;
-      document.body.scrollTop=0;
-    }
+    resetScrollPositionAfterLayout();
   };
   const $=s=>document.querySelector(s);
   const $$=s=>Array.from(document.querySelectorAll(s));
@@ -578,7 +563,6 @@
       };
     }
     show('#scr-pregame');
-    setTimeout(()=>{const _pg=document.getElementById('scr-pregame');if(_pg)_pg.scrollTop=0;},50);
     const isTrivia=mode==='trivia'||mode==='quiz';
     const modeNamesObj=t('mode_names')||{};
     const modeTagsObj=t('mode_taglines')||{};
@@ -667,6 +651,11 @@
             <div><div class="pmm-name">${T.oneDevice()}</div><div class="pmm-sub">${T.oneSub()}</div></div>
           </button>
         </div>
+      </div>
+
+      <div class="pg-actions" id="pgActions">
+        <button class="big-btn" id="pgStartBtn" style="margin-top:16px;width:100%;max-width:400px;">${LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME'}</button>
+        <button id="testModeBtn" type="button" style="background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:12px;padding:4px 14px;cursor:pointer;margin-top:6px;font-family:Fredoka One,sans-serif;display:block;margin-left:auto;margin-right:auto;">${window._hypoxTestMode?'🧪 Test Mode: ON (no AI)':'🧪 Test Mode: OFF'}</button>
       </div>`;
 
     // Round buttons (each group independent)
@@ -725,78 +714,34 @@
         btn.style.color='var(--yellow)';
         btn.style.background='rgba(251,191,36,0.12)';
       }
-      // Show start button in normal page flow
-      let startBtn=document.getElementById('pgStartBtn');
-      if(!startBtn){
-        startBtn=document.createElement('button');
-        startBtn.id='pgStartBtn';
-        startBtn.className='big-btn';
-        startBtn.style.cssText='margin-top:16px;width:100%;max-width:400px;';
-        const _pg=document.getElementById('scr-pregame');const _st=_pg?_pg.scrollTop:0;
-        document.getElementById('pregameInner').appendChild(startBtn);
-        if(_pg)requestAnimationFrame(()=>{_pg.scrollTop=_st;});
-      }
-      startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
-      // Test mode toggle
-      if(!document.getElementById('testModeBtn')){
-        const _tm=document.createElement('button');
-        _tm.id='testModeBtn';
-        _tm.style.cssText='background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:12px;padding:4px 14px;cursor:pointer;margin-top:6px;font-family:Fredoka One,sans-serif;display:block;margin-left:auto;margin-right:auto;';
-        _tm.textContent=window._hypoxTestMode?'🧪 Test Mode: ON':'🧪 Test Mode: OFF';
-        _tm.onclick=()=>{window._hypoxTestMode=!window._hypoxTestMode;_tm.textContent=window._hypoxTestMode?'🧪 Test Mode: ON (no AI)':'🧪 Test Mode: OFF';_tm.style.color=window._hypoxTestMode?'var(--yellow)':'var(--text3)';};
-        const _pg2=document.getElementById('scr-pregame');const _st2=_pg2?_pg2.scrollTop:0;
-        document.getElementById('pregameInner').appendChild(_tm);
-        if(_pg2)requestAnimationFrame(()=>{_pg2.scrollTop=_st2;});
-      }
-      // Show content-ready indicator on the button
-      const _cm2=mode==='trivia'?'quiz':mode;
-      const _preloadPromise=window.Content?window.Content.preload(_cm2,LANG,window.HYPOX_STATE?.rounds||5):null;
-      startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
-      startBtn.onclick=async()=>{
-        if(!selectedPlayMode){alert(LANG==='ar'?'اختر طريقة اللعب أولاً':'Please select how you are playing first');return;}
-        startBtn.disabled=true;
-        // Show full-screen loading spinner while AI prepares
-        const _sl=document.createElement('div');
-        _sl.id='startLoader';
-        _sl.style.cssText='position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;';
-        _sl.innerHTML='<svg width="56" height="56" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#ff3d8a" stroke-width="3" stroke-linecap="round"/></svg><div style="font-family:Fredoka One,sans-serif;font-size:18px;color:var(--text2)">'+(LANG==='ar'?'جاري تحضير الأسئلة…':'Preparing questions…')+'</div>';
-        document.body.appendChild(_sl);
-        // Wait up to 20s for AI, then start anyway
-        const _cm2=mode==='trivia'?'quiz':mode;
-        if(window.Content){
-          try{await window.Content.preload(_cm2,LANG,window.HYPOX_STATE?.rounds||5);}catch(e){}
-        }
-        _sl.remove();
-        startBtn.disabled=false;
-        startGameWithMode(selectedPlayMode,mode);
-      };
       Audio_.sfx.blip();
     }
     document.getElementById('pgHostBtn').onclick=()=>selectPlayMode('tv');
     document.getElementById('pgPhonesBtn').onclick=()=>selectPlayMode('phones');
     document.getElementById('pgOfflineBtn').onclick=()=>selectPlayMode('offline');
-    // Pre-show start button with no mode selected yet
-    {
-      const startBtn=document.createElement('button');
-      startBtn.id='pgStartBtn';startBtn.className='big-btn';
-      startBtn.style.cssText='margin-top:16px;width:100%;max-width:400px;';
-      startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
-        const _pgX1=document.getElementById('scr-pregame');const _stX1=_pgX1?_pgX1.scrollTop:0;
-      document.getElementById('pregameInner').appendChild(startBtn);
-        if(_pgX1)requestAnimationFrame(()=>{_pgX1.scrollTop=_stX1;});
-      startBtn.onclick=()=>{
-        if(!selectedPlayMode){
-          // Default to phones only if nothing selected
-          selectPlayMode('phones');
-          setTimeout(()=>startGameWithMode('phones',mode),100);
-          return;
-        }
-        startGameWithMode(selectedPlayMode,mode);
-      };
-        const _pgX2=document.getElementById('scr-pregame');const _stX2=_pgX2?_pgX2.scrollTop:0;
-      document.getElementById('pregameInner').appendChild(startBtn);
-        if(_pgX2)requestAnimationFrame(()=>{_pgX2.scrollTop=_stX2;});
-    }
+    const testModeBtn=document.getElementById('testModeBtn');
+    testModeBtn.onclick=()=>{
+      window._hypoxTestMode=!window._hypoxTestMode;
+      testModeBtn.textContent=window._hypoxTestMode?'🧪 Test Mode: ON (no AI)':'🧪 Test Mode: OFF';
+      testModeBtn.style.color=window._hypoxTestMode?'var(--yellow)':'var(--text3)';
+    };
+    const startBtn=document.getElementById('pgStartBtn');
+    startBtn.onclick=async()=>{
+      if(!selectedPlayMode)selectPlayMode('phones');
+      startBtn.disabled=true;
+      const _sl=document.createElement('div');
+      _sl.id='startLoader';
+      _sl.style.cssText='position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;';
+      _sl.innerHTML='<svg width="56" height="56" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#ff3d8a" stroke-width="3" stroke-linecap="round"/></svg><div style="font-family:Fredoka One,sans-serif;font-size:18px;color:var(--text2)">'+(LANG==='ar'?'جاري تحضير الأسئلة…':'Preparing questions…')+'</div>';
+      document.body.appendChild(_sl);
+      const _cm2=mode==='trivia'?'quiz':mode;
+      if(window.Content){
+        try{await window.Content.preload(_cm2,LANG,window.HYPOX_STATE?.rounds||5);}catch(e){}
+      }
+      _sl.remove();
+      startBtn.disabled=false;
+      startGameWithMode(selectedPlayMode,mode);
+    };
 
     const backBtn=$('#backFromPregame');
     backBtn.textContent=T.back();
@@ -1025,6 +970,7 @@
 
   async function startDirectGame(gameMode){
     const runningNet=net;
+    $('#scr-game')?.classList.remove('pack-picker-active');
     currentGameMode=gameMode;currentViewKind='game';saveNavigationState('scr-game');
     Audio_.stopMusic();await FX.wipe();
     if(window.__hypoxAbort||!runningNet||net!==runningNet)return;
@@ -1046,6 +992,7 @@
     if(window.__hypoxAbort||!runningNet||net!==runningNet)return;
     Host.hideHost();
     show('#scr-game');gameActive=true;document.getElementById('topbarBack')?.style.setProperty('visibility','hidden');
+    $('#scr-game')?.classList.add('pack-picker-active');
     $('#roundPill').textContent=T.nextGame();
     const modeNamesObj=t('mode_names')||{};
     const modeTagsObj=t('mode_taglines')||{};
@@ -1119,7 +1066,7 @@
     const sharedHost=$('#phoneSharedHost');if(sharedHost){sharedHost.className='phone-shared-host hidden';sharedHost.innerHTML='';}
     const mirror=$('#phoneMirror');if(mirror){mirror.classList.add('hidden');mirror.querySelectorAll('#pmPill,#pmHeadline,#pmSpeech').forEach(el=>el.textContent='');}
     const stage=$('#hostStage');if(stage)stage.innerHTML='';
-    $('#scr-game')?.classList.remove('rebus-input-active');
+    $('#scr-game')?.classList.remove('rebus-input-active','pack-picker-active');
     document.body.classList.remove('phones-only-player','phones-host-answering','phones-player-answering');
     Host.hideHost?.();
     const speech=$('#speechText');if(speech)speech.textContent='';

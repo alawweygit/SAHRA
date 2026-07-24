@@ -1113,6 +1113,18 @@ html{font-size:17px;}
 /* ============ HOST STAGE ============ */
 #scr-game{padding:0!important;}
 #hostStage{width:100%!important;max-width:100%!important;padding:2vmin 4vmin!important;}
+#scr-game.pack-picker-active{
+  justify-content:flex-start!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+}
+#scr-game.pack-picker-active #hostStage{
+  height:auto!important;
+  min-height:100%;
+  justify-content:flex-start!important;
+  padding-bottom:max(40px,env(safe-area-inset-bottom,0px))!important;
+}
 .quiz-grid{max-width:min(94vw,1100px);margin:0 auto;}
 
 /* ============ CONTROLLER SCREEN — SINGLE SOURCE OF TRUTH ============ */
@@ -1548,11 +1560,15 @@ body.ar .tutorial-bullets { text-align: right; }
    Desktop keeps the fixed app shell; phones use one document-flow screen at a time. */
 @media(max-width:600px){
   html{
+    position:static;
     height:auto;
     min-height:100%;
+    overflow-x:hidden;
+    overflow-y:auto;
     background:var(--bg);
   }
   body{
+    position:static;
     height:auto;
     min-height:100dvh;
     overflow-x:hidden;
@@ -1614,8 +1630,10 @@ body.ar .tutorial-bullets { text-align: right; }
     position:relative;
     inset:auto;
     width:100%;
+    height:auto!important;
     min-height:100dvh;
     overflow:visible!important;
+    transform:none!important;
   }
   #scr-games.active,#scr-pregame.active{display:block!important;}
   #scr-games.active{overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;height:100dvh!important;}
@@ -1645,6 +1663,20 @@ body.ar .tutorial-bullets { text-align: right; }
   #hostStage{
     height:auto;
     min-height:calc(100dvh - env(safe-area-inset-top, 0px) - 112px);
+  }
+  #scr-game.active.pack-picker-active{
+    display:block!important;
+    height:auto!important;
+    min-height:100dvh;
+    overflow:visible!important;
+    touch-action:pan-y;
+  }
+  #scr-game.active.pack-picker-active #hostStage{
+    height:auto!important;
+    min-height:calc(100dvh - env(safe-area-inset-top, 0px) - 112px);
+    overflow:visible!important;
+    justify-content:flex-start!important;
+    padding-bottom:max(48px,env(safe-area-inset-bottom,0px) + 28px)!important;
   }
 
   /* Keep each game's promise visible below its name on phone cards. */

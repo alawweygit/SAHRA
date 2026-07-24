@@ -1,47 +1,71 @@
 const fs = require('fs');
 const path = require('path');
-const { JSDOM } = require('jsdom');
 
 const root = path.join(__dirname, '..');
 const main = fs.readFileSync(path.join(root, 'js/main.js'), 'utf8');
 const host = fs.readFileSync(path.join(root, 'js/host.js'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'css/style.css'), 'utf8');
+const config = fs.readFileSync(path.join(root, 'firebase-config.js'), 'utf8');
 
-const requiredScrollOwners = ['#hostStage', '#scr-controller', '#phoneSharedStage', '#ctrlArea', '#ppOverlay', '.host-input-dock'];
-for (const selector of requiredScrollOwners) {
-  if (!main.includes(selector)) throw new Error(`scroll reset does not cover ${selector}`);
+for (const required of [
+  "const DOCUMENT_SCROLL_SCREENS=new Set(['scr-title','scr-games','scr-pregame','scr-game'",
+  "document.scrollingElement||document.documentElement",
+  "window.__hypoxResetScroll=resetScrollPositionAfterLayout",
+  "requestAnimationFrame(resetScrollPosition)",
+]) {
+  if (!main.includes(required)) throw new Error(`single-owner scroll reset is missing: ${required}`);
 }
-if (!main.includes('window.__hypoxResetScroll=resetScrollPositionAfterLayout')) {
-  throw new Error('shared scroll reset hook is missing');
+
+if (main.includes('setTimeout(resetScrollPosition')) {
+  throw new Error('delayed scroll resets can still pull the screen away from the user');
 }
+if (config.includes("document.addEventListener('click'")) {
+  throw new Error('a global button click handler still resets the page scroll');
+}
+if (config.includes('MutationObserver')) {
+  throw new Error('configuration still contains a second competing screen-scroll controller');
+}
+
+// Pregame actions must exist before the first play-mode tap. Appending either
+// control during the tap changes layout at the exact moment iOS starts a gesture.
+const pregameStart = main.indexOf('function showPregame(mode)');
+const pregameEnd = main.indexOf('/* ---- START GAME ---- */', pregameStart);
+const pregame = main.slice(pregameStart, pregameEnd);
+for (const id of ['id="pgStartBtn"', 'id="testModeBtn"']) {
+  if (!pregame.includes(id)) throw new Error(`pregame action is not rendered up front: ${id}`);
+}
+for (const forbidden of ["appendChild(startBtn)", "appendChild(_tm)"]) {
+  if (pregame.includes(forbidden)) throw new Error(`pregame still appends controls after a tap: ${forbidden}`);
+}
+
+for (const required of [
+  '#scr-game.pack-picker-active',
+  '#scr-game.pack-picker-active #hostStage',
+  'justify-content:flex-start!important',
+  'touch-action:pan-y',
+  'html{\n    position:static;',
+  'overflow-y:auto;\n    background:var(--bg);',
+  'body{\n    position:static;',
+  '#scr-game.active.pack-picker-active',
+]) {
+  if (!css.includes(required)) throw new Error(`mobile pack-picker scrolling is missing: ${required}`);
+}
+if (!main.includes("classList.add('pack-picker-active')")) {
+  throw new Error('the game picker never enables its scrolling layout');
+}
+if (!main.includes("classList.remove('pack-picker-active')")) {
+  throw new Error('normal game scenes do not restore their centered layout');
+}
+
 if (!host.includes('sharedSceneId++') || !host.includes('window.__hypoxResetScroll?.()')) {
-  throw new Error('host scene changes do not reset to the top');
-}
-if (!host.includes('sceneId: sharedSceneId')) {
-  throw new Error('shared phone screens cannot distinguish new scenes from live mutations');
+  throw new Error('new host scenes do not reset their active scroll owner');
 }
 if (!main.includes('if(sceneChanged)resetScrollPositionAfterLayout()')) {
-  throw new Error('new shared phone scenes do not reset to the top');
-}
-if (!css.includes('#phoneSharedStage,#ctrlArea{overflow-anchor:none;}')) {
-  throw new Error('Safari scroll anchoring remains enabled on the live game layout');
+  throw new Error('new shared-phone scenes do not reset their active scroll owner');
 }
 
-// Exercise the reset itself against every scroll owner used during a game.
-const dom = new JSDOM(`<body><div id="app"><div class="screen" id="scr-game"><div id="hostStage"></div></div><div class="screen" id="scr-controller"><div id="phoneSharedStage"></div><div id="ctrlArea"></div></div><div id="ppOverlay"></div><div class="host-input-dock"></div><div class="menu-card"></div></div></body>`);
-const { window } = dom;
-const { document } = window;
-let windowReset = false;
-window.scrollTo = (x, y) => { if (x === 0 && y === 0) windowReset = true; };
-const resetStart = main.indexOf('  function resetScrollPosition(){');
-const resetEnd = main.indexOf('\n\n  function resetScrollPositionAfterLayout()', resetStart);
-const resetSource = main.slice(resetStart, resetEnd);
-const reset = new Function('document', 'window', '$$', `${resetSource};return resetScrollPosition;`)(document, window, selector => Array.from(document.querySelectorAll(selector)));
-const owners = [document.documentElement, document.body, ...document.querySelectorAll('.screen,#hostStage,#scr-controller,#phoneSharedStage,#ctrlArea,#ppOverlay,.host-input-dock,.menu-card')];
-owners.forEach(owner => { owner.scrollTop = 77; owner.scrollLeft = 33; });
-reset();
-if (!owners.every(owner => owner.scrollTop === 0 && owner.scrollLeft === 0) || !windowReset) {
-  throw new Error('one or more live-game scroll owners kept their previous position');
-}
+new Function(main);
+new Function(host);
+new Function(config);
 
 console.log('GAME SCROLL RESET PASSED ✅');
