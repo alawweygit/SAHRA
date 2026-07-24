@@ -56,7 +56,8 @@ body.theme-light {
 /* ============ BASE ============ */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
 html,body{height:100%;overflow:hidden;position:fixed;width:100%;}
-#scr-pregame,#scr-title,#scr-lobby,#scr-join,#scr-avatar{overflow-y:scroll!important;-webkit-overflow-scrolling:touch!important;height:100vh;padding-bottom:120px!important;scroll-behavior:auto;overscroll-behavior-y:contain;will-change:scroll-position;}
+#scr-title,#scr-lobby,#scr-join,#scr-avatar{overflow-y:scroll!important;-webkit-overflow-scrolling:touch!important;height:100vh;padding-bottom:120px!important;scroll-behavior:auto;overscroll-behavior-y:contain;will-change:scroll-position;}
+#scr-pregame{overflow-y:scroll!important;-webkit-overflow-scrolling:touch!important;height:100vh!important;padding-bottom:120px!important;scroll-behavior:auto;overscroll-behavior-y:contain;will-change:scroll-position;position:absolute!important;inset:0!important;display:block!important;}
 #scr-games{overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;scroll-behavior:auto;overscroll-behavior-y:contain;will-change:scroll-position;height:100vh;}
 html,body,#app,.screen,#hostStage,#scr-controller,#phoneSharedStage,#ctrlArea{overflow-anchor:none;}
 body{
@@ -735,7 +736,7 @@ body.ar .eyebrow{letter-spacing:0;}
 /* TITLE V2 removed — see TITLE V4 below */
 
 /* ============ PRE-GAME SCREEN ============ */
-#scr-pregame{justify-content:flex-start;padding-top:max(14vmin,70px);overflow-y:auto;padding-bottom:0;}
+#scr-pregame{justify-content:flex-start;padding-top:max(14vmin,70px);}
 #pregameContent{overflow-y:auto;max-height:calc(100vh - 14vmin);padding-bottom:1vmin;}
 .pregame-sticky-bottom{
   position:sticky;bottom:0;left:0;right:0;
@@ -889,8 +890,6 @@ body.ar .eyebrow{letter-spacing:0;}
 /* ============ PREGAME V3 — scrollable ============ */
 #scr-pregame{
   padding:2.5vmin;padding-top:max(14vmin,70px);gap:1.4vmin;
-  overflow-y:auto;-webkit-overflow-scrolling:touch;
-  display:block!important;
 }
 .pregame-inner{
   display:flex;flex-direction:column;gap:1.3vmin;
