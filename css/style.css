@@ -1618,6 +1618,7 @@ body.ar .tutorial-bullets { text-align: right; }
     overflow:visible!important;
   }
   #scr-games.active,#scr-pregame.active{display:block!important;}
+  #scr-games.active{overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;height:100dvh!important;}
 
   #topbar{
     position:fixed!important;

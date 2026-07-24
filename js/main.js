@@ -40,6 +40,7 @@
   if('scrollRestoration' in history)history.scrollRestoration='manual';
 
   function resetScrollPosition(){
+    const activeScreen=document.querySelector('.screen.active');
     const scrollingElement=document.scrollingElement;
     const targets=[
       scrollingElement,document.documentElement,document.body,
@@ -47,6 +48,7 @@
     ];
     targets.forEach(el=>{
       if(!el)return;
+      if(activeScreen&&el===activeScreen&&['scr-title','scr-games','scr-pregame','scr-lobby','scr-join','scr-avatar'].includes(activeScreen.id))return;
       el.scrollTop=0;
       el.scrollLeft=0;
     });
