@@ -732,7 +732,9 @@
         startBtn.id='pgStartBtn';
         startBtn.className='big-btn';
         startBtn.style.cssText='margin-top:16px;width:100%;max-width:400px;';
+        const _pg=document.getElementById('scr-pregame');const _st=_pg?_pg.scrollTop:0;
         document.getElementById('pregameInner').appendChild(startBtn);
+        if(_pg)requestAnimationFrame(()=>{_pg.scrollTop=_st;});
       }
       startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
       // Test mode toggle
@@ -742,7 +744,9 @@
         _tm.style.cssText='background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:12px;padding:4px 14px;cursor:pointer;margin-top:6px;font-family:Fredoka One,sans-serif;display:block;margin-left:auto;margin-right:auto;';
         _tm.textContent=window._hypoxTestMode?'🧪 Test Mode: ON':'🧪 Test Mode: OFF';
         _tm.onclick=()=>{window._hypoxTestMode=!window._hypoxTestMode;_tm.textContent=window._hypoxTestMode?'🧪 Test Mode: ON (no AI)':'🧪 Test Mode: OFF';_tm.style.color=window._hypoxTestMode?'var(--yellow)':'var(--text3)';};
+        const _pg2=document.getElementById('scr-pregame');const _st2=_pg2?_pg2.scrollTop:0;
         document.getElementById('pregameInner').appendChild(_tm);
+        if(_pg2)requestAnimationFrame(()=>{_pg2.scrollTop=_st2;});
       }
       // Show content-ready indicator on the button
       const _cm2=mode==='trivia'?'quiz':mode;
@@ -777,7 +781,9 @@
       startBtn.id='pgStartBtn';startBtn.className='big-btn';
       startBtn.style.cssText='margin-top:16px;width:100%;max-width:400px;';
       startBtn.textContent=LANG==='ar'?'▶ ابدأ اللعبة':'▶ START GAME';
+        const _pgX1=document.getElementById('scr-pregame');const _stX1=_pgX1?_pgX1.scrollTop:0;
       document.getElementById('pregameInner').appendChild(startBtn);
+        if(_pgX1)requestAnimationFrame(()=>{_pgX1.scrollTop=_stX1;});
       startBtn.onclick=()=>{
         if(!selectedPlayMode){
           // Default to phones only if nothing selected
@@ -787,7 +793,9 @@
         }
         startGameWithMode(selectedPlayMode,mode);
       };
+        const _pgX2=document.getElementById('scr-pregame');const _stX2=_pgX2?_pgX2.scrollTop:0;
       document.getElementById('pregameInner').appendChild(startBtn);
+        if(_pgX2)requestAnimationFrame(()=>{_pgX2.scrollTop=_stX2;});
     }
 
     const backBtn=$('#backFromPregame');
