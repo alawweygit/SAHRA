@@ -48,13 +48,13 @@
     ];
     const _scrollableIds=['scr-title','scr-games','scr-pregame','scr-lobby','scr-join','scr-avatar'];
     const _isScrollable=activeScreen&&_scrollableIds.includes(activeScreen.id);
+    if(_isScrollable)return;
     targets.forEach(el=>{
       if(!el)return;
-      if(_isScrollable&&el===activeScreen)return;
       el.scrollTop=0;
       el.scrollLeft=0;
     });
-    if(!_isScrollable)window.scrollTo(0,0);
+    window.scrollTo(0,0);
   }
 
   function resetScrollPositionAfterLayout(){
