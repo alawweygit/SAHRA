@@ -46,6 +46,8 @@
   }
   function resetScrollPosition(){
     const active=document.querySelector('.screen.active');
+    const SKIP=['scr-pregame','scr-title','scr-games','scr-lobby','scr-join','scr-avatar'];
+    if(active&&SKIP.includes(active.id))return;
     const target=scrollTarget(active);
     if(!target)return;
     target.scrollTop=0;
