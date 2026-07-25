@@ -918,7 +918,8 @@ const Host = (() => {
       let promptIdx;
       do { promptIdx = Math.floor(Math.random() * prompts.length); } while (usedPromptIdxs.has(promptIdx) && usedPromptIdxs.size < prompts.length);
       usedPromptIdxs.add(promptIdx);
-      const promptText = prompts[promptIdx].replace(/\[NAME\]/g, hotSeat.name);
+      const _hotName = hotSeat.name.charAt(0).toUpperCase() + hotSeat.name.slice(1);
+      const promptText = prompts[promptIdx].replace(/\[NAME\]/g, _hotName);
 
       // Phase 1: Hot seat announcement — WYR style
       await FX.wipe();
@@ -1007,6 +1008,7 @@ const Host = (() => {
 
       // Full-screen pick UI — cards ARE the buttons
       scene(`
+        <div style="height:max(60px,8vmin)"></div>
         <div class="eyebrow" style="text-transform:none;font-size:clamp(12px,2vmin,16px)">😂 ${LANG==='ar'?`${esc(hotSeat.name)} يختار الأضحك`:`<span style="text-transform:uppercase;letter-spacing:2px">${esc(hotSeat.name)}</span> PICKS THE FUNNIEST`}</div>
         <div class="prompt-card display" style="font-size:clamp(14px,2.2vmin,20px);margin-bottom:1.5vmin">${esc(promptText)}</div>
         <div class="pick-sub" style="font-size:clamp(12px,1.6vmin,15px);margin-bottom:1vmin;opacity:.7">${LANG==='ar'?'👇 اضغط على الأضحك':'👇 Tap the funniest answer'}</div>
@@ -1033,6 +1035,8 @@ const Host = (() => {
       _pickBtns.forEach(btn => {
         btn.addEventListener('click', async () => {
           if (_picked) return;
+          // Only the hot seat player (host in phones-only) can pick
+          if(net.phonesOnly && !window._hypoxIsHost) return;
           _picked = true;
           const idx = parseInt(btn.dataset.idx);
           const a = answerList[idx];
