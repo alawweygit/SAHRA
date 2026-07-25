@@ -1510,8 +1510,24 @@
         // Show full game content on phone using mirror data
         if(phonesOnly){
           document.body.classList.remove('phones-player-answering');
-          ctrl.classList.add('hidden');ctrl.innerHTML='';
           if(shared.dataset.sharedReady!=='1')renderSharedStatus(state.msg||T.watchScreen(),LANG==='ar'?'اللعبة تبدأ الآن…':'The game is starting…');
+          // Host phone gets a Next button to advance the game
+          if(window._hypoxIsHost&&window.__hypoxSkip){
+            ctrl.classList.remove('hidden');
+            if(!ctrl.querySelector('#phonesNextBtn')){
+              ctrl.innerHTML=`<div style="padding:12px 16px">
+                <button id="phonesNextBtn" class="big-btn" style="width:100%;max-width:400px;margin:0 auto;display:block">
+                  ▶ ${t('next_round')||'Next Round'}
+                </button>
+              </div>`;
+              document.getElementById('phonesNextBtn')?.addEventListener('click',()=>{
+                Audio_.sfx.submit();
+                if(window.__hypoxSkip)window.__hypoxSkip();
+              },{once:true});
+            }
+          } else {
+            ctrl.classList.add('hidden');ctrl.innerHTML='';
+          }
           return;
         }
         const m = state.mirror||state;
