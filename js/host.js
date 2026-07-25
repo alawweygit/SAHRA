@@ -965,25 +965,24 @@ const Host = (() => {
 
       // Phase 3: Reveal answers ONE BY ONE with animation
       await FX.wipe();
-      const revealStage = document.getElementById('hostStage');
       scene(`<div class="eyebrow">👀 ${LANG==='ar'?'الإجابات':'THE ANSWERS'}</div>
         <div class="prompt-card display" style="font-size:clamp(13px,2vmin,18px)">${esc(promptText)}</div>
-        <div class="ans-reveal-list" id="ansRevealList"></div>`);
+        <div class="ans-reveal-list" id="ansRevealList" style="width:100%;max-width:700px"></div>`);
       net.setState({ phase:'wait', msg: LANG==='ar'?'👀 شوف الإجابات...':'👀 Watch the answers...' });
 
       const listEl = document.getElementById('ansRevealList');
       for (let idx = 0; idx < answerList.length; idx++) {
         const a = answerList[idx];
         const col = COLS[idx % COLS.length];
-        await sleep(800);
+        await sleep(900);
         Audio_.sfx.submit();
         const card = document.createElement('div');
         card.className = 'ans-card';
-        card.style.cssText = `border-color:${col}55;background:${col}12;animation:cardIn 0.5s both`;
-        card.innerHTML = `<span class="ans-letter" style="color:${col}">${String.fromCharCode(65+idx)}</span><span>${esc(a.text)}</span>`;
+        card.style.cssText = `border-color:${col}70;background:linear-gradient(135deg,${col}22,${col}0a);animation:cardIn 0.45s cubic-bezier(0.34,1.56,0.64,1) both`;
+        card.innerHTML = `<span class="ans-letter" style="color:${col};font-size:clamp(18px,2.5vmin,24px)">${String.fromCharCode(65+idx)}</span><span style="font-size:clamp(14px,2vmin,18px);font-weight:600">${esc(a.text)}</span>`;
         listEl?.appendChild(card);
       }
-      await sleep(1200);
+      await sleep(1400);
 
       // Phase 4: Hot seat player picks favorite
       await FX.wipe();
@@ -1005,19 +1004,19 @@ const Host = (() => {
 
       scene(`<div class="eyebrow">😂 ${LANG==='ar'?`${esc(hotSeat.name)} يختار الأضحك`:`${esc(hotSeat.name)} picks the funniest`}</div>
         <div class="prompt-card display" style="font-size:clamp(13px,2vmin,18px)">${esc(promptText)}</div>
-        <div class="ans-reveal-list">${answerList.map((a,idx)=>{
+        <div class="ans-reveal-list" style="width:100%;max-width:700px">${answerList.map((a,idx)=>{
           const col=COLS[idx%COLS.length];
-          return `<div class="ans-card" style="border-color:${col}55;background:${col}12;animation-delay:${idx*0.08}s">
-            <span class="ans-letter" style="color:${col}">${String.fromCharCode(65+idx)}</span>
-            <span>${esc(a.text)}</span>
+          return `<div class="ans-card" style="border-color:${col}70;background:linear-gradient(135deg,${col}22,${col}0a);animation-delay:${idx*0.08}s">
+            <span class="ans-letter" style="color:${col};font-size:clamp(18px,2.5vmin,24px)">${String.fromCharCode(65+idx)}</span>
+            <span style="font-size:clamp(14px,2vmin,18px);font-weight:600">${esc(a.text)}</span>
           </div>`;}).join('')}</div>
-        <div class="pick-sub" style="margin-top:8px">${LANG==='ar'?`🔥 ${esc(hotSeat.name)} يختار الآن...`:`🔥 ${esc(hotSeat.name)} is choosing...`}</div>`);
+        <div class="pick-sub" style="margin-top:8px;animation:fadeSlideUp 0.4s 0.6s both">${LANG==='ar'?`🔥 ${esc(hotSeat.name)} يختار الآن...`:`🔥 ${esc(hotSeat.name)} is choosing...`}</div>`);
 
       net.setState({ phase: 'input-split', phaseId: pickPhaseId, deadline: pickDeadline, specs: pickSpecs, mirror: { ...mirror } });
 
-      // Hot seat on TV/phones-only host gets buttons too
+      // TV host buttons only — phones get their UI via net.setState spec
       const isHotSeatHost = net.hostSelfPid === hotPid;
-      if (isHotSeatHost || (!net.phonesOnly && !net.hostSelfPid)) {
+      if (isHotSeatHost) {
         const btnRow = document.createElement('div');
         btnRow.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-top:14px;width:100%;max-width:700px;';
         btnRow.innerHTML = answerList.map((a,idx) => {
@@ -1062,13 +1061,15 @@ const Host = (() => {
           const isWin = a.pid === winner.pid;
           const col = COLS[idx%COLS.length];
           const p = safeP(a.pid);
-          return `<div class="ans-card${isWin?' ans-card-win':''}" style="border-color:${isWin?'var(--yellow)':col+'40'};background:${isWin?'rgba(251,191,36,0.13)':col+'10'};flex-direction:column;gap:5px;animation-delay:${idx*0.1}s">
+          const bg = isWin ? `linear-gradient(135deg,rgba(251,191,36,0.18),rgba(251,191,36,0.06))` : `linear-gradient(135deg,${col}20,${col}08)`;
+          const border = isWin ? 'var(--yellow)' : col+'70';
+          return `<div class="ans-card${isWin?' ans-card-win':''}" style="border-color:${border};background:${bg};flex-direction:column;gap:5px;animation-delay:${idx*0.12}s">
             <div style="display:flex;align-items:center;gap:10px">
-              <span class="ans-letter" style="color:${isWin?'var(--yellow)':col}">${String.fromCharCode(65+idx)}</span>
-              <span style="flex:1;font-size:clamp(13px,1.9vmin,17px)">${esc(a.text)}</span>
+              <span class="ans-letter" style="color:${isWin?'var(--yellow)':col};font-size:clamp(18px,2.5vmin,24px)">${String.fromCharCode(65+idx)}</span>
+              <span style="flex:1;font-size:clamp(14px,2vmin,18px);font-weight:600">${esc(a.text)}</span>
               ${isWin?`<span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(12px,1.7vmin,15px);white-space:nowrap">🏆 +${WIN_PTS}</span>`:''}
             </div>
-            ${isWin?`<div style="display:flex;align-items:center;gap:6px;padding-left:34px">${avatarHTML(p)}<span style="font-size:clamp(10px,1.4vmin,12px);color:var(--yellow)">${esc(p?.name||'')} ${LANG==='ar'?'اختاره':'was chosen by'} ${esc(hotSeat.name)} 🔥</span></div>`:''}
+            ${isWin?`<div style="display:flex;align-items:center;gap:6px;padding-left:34px">${avatarHTML(p)}<span style="font-size:clamp(10px,1.4vmin,12px);color:var(--yellow)">${esc(p?.name||'')} ${LANG==='ar'?'اختاره':'was chosen by'} ${esc(hotSeat.name)} 🔥</span></div>`:'<div style="padding-left:34px;font-size:clamp(10px,1.3vmin,12px);color:var(--text3)">'+avatarHTML(p)+'<span style="margin-left:6px">'+esc(p?.name||'')+'</span></div>'}
           </div>`;
         }).join('')}</div>`);
       await hostSay('reveal');
