@@ -1492,10 +1492,9 @@
           : phonesOnly
             ? {...rawSpec, controlsOnly:true, title:'', context:'', sub:''}
             : rawSpec;
-        if(phonesOnly && !_needsInput){
-          // wait type — show waiting message, hide ctrl
-          ctrl.classList.remove('hidden');
-          ctrl.innerHTML=`<div style="text-align:center;padding:20px 16px;color:var(--text3);font-size:clamp(13px,3.5vw,16px)">⏳ ${LANG==='ar'?'انتظر...':'Please wait...'}</div>`;
+        if(!_needsInput){
+          // wait type — hide ctrl on all devices
+          ctrl.classList.add('hidden');ctrl.innerHTML='';
           return;
         }
         ctrl.classList.remove('hidden');

@@ -1017,9 +1017,9 @@ const Host = (() => {
           return `<button class="sia-pick-btn" data-idx="${idx}" style="
             display:flex;align-items:center;gap:12px;width:100%;
             padding:clamp(14px,2.4vmin,22px) clamp(16px,2.6vmin,24px);
-            border-radius:16px;border:2px solid ${col};
-            background:linear-gradient(135deg,${col}30,${col}10);
-            box-shadow:0 4px 16px ${col}25;
+            border-radius:16px;border:1px solid var(--border);border-left:4px solid ${col};
+            background:rgba(255,255,255,0.04);
+            box-shadow:none;
             cursor:pointer;text-align:left;
             font-family:inherit;color:var(--text);
             transition:transform .15s,box-shadow .15s,border-color .15s;
@@ -1080,14 +1080,16 @@ const Host = (() => {
           const isWin = a.pid === winner.pid;
           const col = COLS[idx%COLS.length];
           const p = safeP(a.pid);
+          // Winner: full color gradient + glow. Losers: dark + thin left border only
           const bg = isWin
-            ? `linear-gradient(135deg,rgba(251,191,36,0.22),rgba(251,191,36,0.08))`
-            : `linear-gradient(135deg,${col}28,${col}08)`;
-          const border = isWin ? 'var(--yellow)' : col;
-          const shadow = isWin ? '0 0 20px rgba(251,191,36,0.3)' : `0 0 12px ${col}22`;
-          return `<div class="ans-card${isWin?' ans-card-win':''}" style="border-color:${border};background:${bg};box-shadow:${shadow};flex-direction:column;gap:8px;padding:14px 16px;animation-delay:${idx*0.12}s">
+            ? `linear-gradient(135deg,rgba(251,191,36,0.2),rgba(251,191,36,0.06))`
+            : `rgba(255,255,255,0.03)`;
+          const border = isWin ? 'var(--yellow)' : 'var(--border)';
+          const shadow = isWin ? '0 0 24px rgba(251,191,36,0.35),inset 0 0 0 1px rgba(251,191,36,0.2)' : 'none';
+          const leftAccent = isWin ? '' : `border-left:4px solid ${col}!important;`;
+          return `<div class="ans-card${isWin?' ans-card-win':''}" style="border-color:${border};background:${bg};box-shadow:${shadow};${leftAccent}flex-direction:column;gap:8px;padding:14px 16px;animation-delay:${idx*0.12}s">
             <div style="display:flex;align-items:center;gap:12px">
-              <span style="font-family:'Fredoka One',sans-serif;color:${isWin?'var(--yellow)':col};font-size:clamp(20px,3vmin,28px);min-width:28px;text-shadow:0 0 10px ${isWin?'rgba(251,191,36,0.6)':col+'88'}">${String.fromCharCode(65+idx)}</span>
+              <span style="font-family:'Fredoka One',sans-serif;color:${isWin?'var(--yellow)':col};font-size:clamp(20px,3vmin,28px);min-width:28px">${String.fromCharCode(65+idx)}</span>
               <span style="flex:1;font-size:clamp(15px,2.2vmin,20px);font-weight:700;color:${isWin?'#fff':'var(--text)'}">${esc(a.text)}</span>
               ${isWin?`<span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(13px,1.8vmin,16px);white-space:nowrap;background:rgba(251,191,36,0.15);padding:4px 10px;border-radius:20px">🏆 +${WIN_PTS}</span>`:''}
             </div>
