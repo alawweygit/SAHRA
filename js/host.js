@@ -319,12 +319,16 @@ const Host = (() => {
     setPill(final ? t('final_results') : t('scores'));
     const sorted = players.slice().sort((a, b) => b.score - a.score);
     const max = Math.max(...sorted.map(p => p.score), 1);
-    // Broadcast leaderboard to every phone (not just host screen)
-    pushMirror({
-      pill: final ? t('final_results') : t('scores'),
-      headline: final ? '🏆 ' + (t('final_results')||'Final Results') : '📊 ' + (t('scores')||'Scores'),
-      scores: sorted.map((p,i) => ({ medal: ['🥇','🥈','🥉'][i]||'', name: p.name, score: p.score })),
-    });
+    // In phones-only, phones see the shared stage (bar chart) directly — no need to mirror scores list
+    if (!net?.phonesOnly) {
+      pushMirror({
+        pill: final ? t('final_results') : t('scores'),
+        headline: final ? '🏆 ' + (t('final_results')||'Final Results') : '📊 ' + (t('scores')||'Scores'),
+        scores: sorted.map((p,i) => ({ medal: ['🥇','🥈','🥉'][i]||'', name: p.name, score: p.score })),
+      });
+    } else {
+      pushMirror({ pill: final ? t('final_results') : t('scores') });
+    }
     scene(`
       <div class="lobby-title display">${final ? esc(t('final_results')) : esc(t('scores'))}</div>
       <div class="score-list">
@@ -1012,25 +1016,8 @@ const Host = (() => {
 
       net.setState({ phase: 'input-split', phaseId: pickPhaseId, deadline: pickDeadline, specs: pickSpecs, mirror: { ...mirror } });
 
-      // TV host buttons only — phones get their UI via net.setState spec
-      const isHotSeatHost = net.hostSelfPid === hotPid;
-      if (isHotSeatHost) {
-        const btnRow = document.createElement('div');
-        btnRow.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-top:14px;width:100%;max-width:700px;';
-        btnRow.innerHTML = answerList.map((a,idx) => {
-          const col = COLS[idx%COLS.length];
-          return `<button id="sia_${idx}" style="padding:12px 18px;border-radius:14px;background:${col}18;border:2px solid ${col}55;color:var(--text);font-family:'Fredoka One',sans-serif;font-size:clamp(13px,1.8vmin,16px);cursor:pointer;text-align:left;transition:all .15s">
-            <span style="color:${col};margin-right:10px;font-size:clamp(15px,2.2vmin,20px)">${String.fromCharCode(65+idx)}</span>${esc(a.text)}
-          </button>`;
-        }).join('');
-        revealStage?.appendChild(btnRow);
-        answerList.forEach((a, idx) => {
-          document.getElementById('sia_'+idx)?.addEventListener('click', async () => {
-            Audio_.sfx.submit(); btnRow.remove();
-            await net.room('inputs/'+pickPhaseId+'/'+hotPid).set({ v: a.pid, t: Date.now() });
-          }, { once: true });
-        });
-      }
+      // In phones-only mode, host phone gets pick buttons via net.setState spec (type:'choice')
+      // No extra DOM buttons needed — the phone controller renders them automatically
 
       // Bot hot seat auto-picks
       const botPids = net.getBotPids ? net.getBotPids() : [];

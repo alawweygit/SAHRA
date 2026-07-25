@@ -1526,7 +1526,13 @@
               },{once:true});
             }
           } else {
-            ctrl.classList.add('hidden');ctrl.innerHTML='';
+            // Non-host players: show waiting for host message
+            ctrl.classList.remove('hidden');
+            if(!ctrl.querySelector('.waiting-for-host')){
+              ctrl.innerHTML=`<div class="waiting-for-host" style="text-align:center;padding:20px 16px;color:var(--text3);font-size:clamp(13px,3.5vw,16px)">
+                ⏳ ${LANG==='ar'?'انتظر المضيف...':'Waiting for host...'}
+              </div>`;
+            }
           }
           return;
         }

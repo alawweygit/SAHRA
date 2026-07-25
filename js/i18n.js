@@ -137,7 +137,7 @@ const I18N = {
     mode_taglines: {
       bluff: 'Spot the lie. Fool your friends.',
       wyr: 'How well do you know them?',
-      interrogation: 'Write it anonymously. Vote for the funniest.',
+      interrogation: 'Each player hits the hot seat. Write the funniest answer.',
       diss: 'Write one line. Crowd picks the winner.',
       quiz: 'Fastest fingers win.',
       trivia: 'Pick a category. Fastest wins.',
@@ -157,7 +157,7 @@ const I18N = {
     mode_rules: {
       bluff: 'A weird fact appears with a blank. Everyone writes a fake answer to fill it. Then vote for what you think is real. Fool them: +1000. Find the truth: +1000.',
       wyr: 'Each player hits the hot seat with 3 questions. Everyone answers at the same time — you about yourself, others predict you. See who knows you best! +500 per correct guess.',
-      interrogation: 'Everyone anonymously answers a spicy question. Then vote on who wrote each answer. Catch someone: +400. Stay hidden: +300 per person you fooled.',
+      interrogation: 'Each player takes the hot seat one by one. A funny statement about them appears. Everyone else writes an anonymous funny answer. Answers reveal one by one — then the hot seat player picks their favourite. Winner gets +1000.',
       diss: 'Two players get the same funny challenge. Write the funniest response. Everyone votes — most votes wins.',
       trivia: 'Pick a category, then answer as fast as you can. Right answer = points. Fastest = more points.',
       pinpoint: 'A city appears. Everyone drops a pin on the world map. Closest pin wins the round. 1st +1000, 2nd +700, 3rd +500.',
@@ -357,7 +357,7 @@ const I18N = {
     mode_taglines: {
       bluff: 'اكتشف الكذبة. اخدع ربعك.',
       wyr: 'شكثر تعرفهم صج؟',
-      interrogation: 'اكتب بشكل مجهول. صوّت للأضحك.',
+      interrogation: 'كل لاعب على الكرسي الساخن. اكتب أضحك إجابة.',
       diss: 'سطر واحد. الجمهور يحكم.',
       quiz: 'أسرع إصبع يفوز.',
       trivia: 'اختر فئة. أسرع واحد يفوز.',
@@ -377,7 +377,7 @@ const I18N = {
     mode_rules: {
       bluff: 'تظهر معلومة غريبة ناقصها جزء. كل واحد يكتب كذبة تكمّل الفراغ، وبعدها الكل يصوّت. خدعت صديق: +٥٠٠. لقيت الحقيقة: +١٠٠٠.',
       wyr: 'كل لاعب يجلس على الكرسي الساخن وعنده ٣ أسئلة. الكل يجاوب في نفس الوقت — أنت عن نفسك، والثاني يتوقعك. شوف مين يعرفك أكثر! +٥٠٠ لكل توقع صح.',
-      interrogation: 'الكل يجاوب على سؤال شخصي بشكل مجهول. بعدها الكل يصوّت منو كاتبها. توقعت صح: +٤٠٠. ما انكشفت: +٣٠٠ عن كل واحد انخدع.',
+      interrogation: 'كل لاعب يجلس على الكرسي الساخن. تظهر جملة عنه والكل يكتب إجابة مضحكة بشكل مجهول. الإجابات تنكشف وحدة وحدة — وصاحب الكرسي يختار الأضحك. الفائز يكسب +١٠٠٠.',
       diss: 'لاعبين يجاوبان على نفس التحدي المضحك. اكتب الأضحك. الكل يصوّت — اللي ياخذ أكثر أصوات يفوز.',
       trivia: 'اختر فئة، وجاوب بأسرع ما تقدر. جواب صح = نقاط. أسرع = أكثر نقاط.',
       pinpoint: 'تظهر مدينة والكل يحط دبوس على خريطة العالم. الأقرب يفوز. الأول +١٠٠٠، الثاني +٧٠٠، الثالث +٥٠٠.',
