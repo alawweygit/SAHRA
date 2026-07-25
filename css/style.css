@@ -1793,8 +1793,10 @@ body.ar .tutorial-bullets { text-align: right; }
   animation:cardIn .4s both;text-align:left;
 }
 .ans-card-win{
-  background:rgba(251,191,36,0.08)!important;
-  border-color:var(--yellow)!important;
+  background:rgba(251,191,36,0.06)!important;
+  border-color:var(--border)!important;
+  border-left-color:var(--yellow)!important;
+  box-shadow:0 0 16px rgba(251,191,36,0.2)!important;
 }
 .ans-letter{
   font-family:'Fredoka One',sans-serif;font-size:clamp(18px,2.5vmin,24px);

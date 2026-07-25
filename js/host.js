@@ -981,8 +981,8 @@ const Host = (() => {
         Audio_.sfx.submit();
         const card = document.createElement('div');
         card.className = 'ans-card';
-        card.style.cssText = `border-color:${col}70;background:linear-gradient(135deg,${col}22,${col}0a);animation:cardIn 0.45s cubic-bezier(0.34,1.56,0.64,1) both`;
-        card.innerHTML = `<span class="ans-letter" style="color:${col};font-size:clamp(18px,2.5vmin,24px)">${String.fromCharCode(65+idx)}</span><span style="font-size:clamp(14px,2vmin,18px);font-weight:600">${esc(a.text)}</span>`;
+        card.style.cssText = `border-left:4px solid ${col};animation:cardIn 0.45s cubic-bezier(0.34,1.56,0.64,1) both`;
+        card.innerHTML = `<span class="ans-letter" style="color:${col}">${String.fromCharCode(65+idx)}</span><span style="font-size:clamp(14px,2vmin,18px);font-weight:600">${esc(a.text)}</span>`;
         listEl?.appendChild(card);
       }
       await sleep(1400);
@@ -1080,22 +1080,19 @@ const Host = (() => {
           const isWin = a.pid === winner.pid;
           const col = COLS[idx%COLS.length];
           const p = safeP(a.pid);
-          // Winner: full color gradient + glow. Losers: dark + thin left border only
-          const bg = isWin
-            ? `linear-gradient(135deg,rgba(251,191,36,0.2),rgba(251,191,36,0.06))`
-            : `rgba(255,255,255,0.03)`;
-          const border = isWin ? 'var(--yellow)' : 'var(--border)';
-          const shadow = isWin ? '0 0 24px rgba(251,191,36,0.35),inset 0 0 0 1px rgba(251,191,36,0.2)' : 'none';
-          const leftAccent = isWin ? '' : `border-left:4px solid ${col}!important;`;
-          return `<div class="ans-card${isWin?' ans-card-win':''}" style="border-color:${border};background:${bg};box-shadow:${shadow};${leftAccent}flex-direction:column;gap:8px;padding:14px 16px;animation-delay:${idx*0.12}s">
+          // Pic 3 style: dark bg + colored left border. Winner gets yellow highlight.
+          return `<div class="ans-card${isWin?' ans-card-win':''}" style="
+            border-left:4px solid ${isWin?'var(--yellow)':col};
+            flex-direction:column;gap:8px;padding:14px 16px;
+            animation-delay:${idx*0.12}s">
             <div style="display:flex;align-items:center;gap:12px">
-              <span style="font-family:'Fredoka One',sans-serif;color:${isWin?'var(--yellow)':col};font-size:clamp(20px,3vmin,28px);min-width:28px">${String.fromCharCode(65+idx)}</span>
-              <span style="flex:1;font-size:clamp(15px,2.2vmin,20px);font-weight:700;color:${isWin?'#fff':'var(--text)'}">${esc(a.text)}</span>
-              ${isWin?`<span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(13px,1.8vmin,16px);white-space:nowrap;background:rgba(251,191,36,0.15);padding:4px 10px;border-radius:20px">🏆 +${WIN_PTS}</span>`:''}
+              <span style="font-family:'Fredoka One',sans-serif;color:${isWin?'var(--yellow)':col};font-size:clamp(18px,2.5vmin,24px);min-width:26px">${String.fromCharCode(65+idx)}</span>
+              <span style="flex:1;font-size:clamp(14px,2vmin,18px);font-weight:700">${esc(a.text)}</span>
+              ${isWin?`<span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(12px,1.6vmin,15px);white-space:nowrap;background:rgba(251,191,36,0.15);padding:3px 10px;border-radius:20px">🏆 +${WIN_PTS}</span>`:''}
             </div>
-            <div style="display:flex;align-items:center;gap:8px;padding-left:40px">
+            <div style="display:flex;align-items:center;gap:8px;padding-left:38px">
               ${avatarHTML(p)}
-              <span style="font-size:clamp(11px,1.5vmin,13px);color:${isWin?'rgba(251,191,36,0.9)':'var(--text3)'}">
+              <span style="font-size:clamp(11px,1.4vmin,13px);color:${isWin?'var(--yellow)':'var(--text3)'}">
                 ${isWin?`${esc(p?.name||'')} · ${LANG==='ar'?'اختاره':'chosen by'} ${esc(hotSeat.name)} 🔥`:`${esc(p?.name||'')}`}
               </span>
             </div>
