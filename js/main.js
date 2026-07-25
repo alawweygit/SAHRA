@@ -1501,15 +1501,11 @@
         ctrl.classList.remove('hidden');
         const _isActiveInput = spec.type==='choice'||spec.type==='higherlow'||spec.type==='text'||spec.type==='number';
         document.body.classList.toggle('phones-player-answering',phonesOnly&&_isActiveInput);
-        if(phonesOnly&&_isActiveInput){
-          // Clear shared stage so ctrl buttons are fully visible and tappable
-          const _sh=document.getElementById('phoneSharedStage');
-          if(_sh){_sh.classList.add('hidden');}
-        }
+
         Controller.render(ctrl,spec,async value=>{
           const result=await net.submitInput(state.phaseId,value,{enforceUnique:spec.enforceUnique===true});
           if(result?.accepted===false)return result;
-          setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';const _sh=document.getElementById('phoneSharedStage');if(_sh)_sh.classList.remove('hidden');}else Controller.waitScreen(ctrl);},600);
+          setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
           return result;
         });
         if(!phonesOnly)resetScrollPositionAfterLayout();
