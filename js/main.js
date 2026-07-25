@@ -1485,7 +1485,19 @@
         lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
         const rawSpec=state.specs?.[myPid]||state.specs?._default;
         if(!rawSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
-        const spec=phonesOnly?{...rawSpec,controlsOnly:true,title:'',context:'',sub:''}:rawSpec;
+        // In phones-only: choice/text types need full UI; wait types hide ctrl
+        const _needsInput = rawSpec.type==='choice'||rawSpec.type==='text'||rawSpec.type==='higherlow'||rawSpec.type==='number';
+        const spec = phonesOnly && _needsInput
+          ? {...rawSpec, controlsOnly:false}
+          : phonesOnly
+            ? {...rawSpec, controlsOnly:true, title:'', context:'', sub:''}
+            : rawSpec;
+        if(phonesOnly && !_needsInput){
+          // wait type — show waiting message, hide ctrl
+          ctrl.classList.remove('hidden');
+          ctrl.innerHTML=`<div style="text-align:center;padding:20px 16px;color:var(--text3);font-size:clamp(13px,3.5vw,16px)">⏳ ${LANG==='ar'?'انتظر...':'Please wait...'}</div>`;
+          return;
+        }
         ctrl.classList.remove('hidden');
         document.body.classList.toggle('phones-player-answering',phonesOnly&&(spec.type==='choice'||spec.type==='higherlow'));
         Controller.render(ctrl,spec,async value=>{
@@ -1494,7 +1506,7 @@
           setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
           return result;
         });
-        resetScrollPositionAfterLayout();
+        if(!phonesOnly)resetScrollPositionAfterLayout();
       }else if(state.phase==='packpicker'){
         // Game ended — host is showing next game picker
         gameActive=false;
