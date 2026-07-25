@@ -941,9 +941,7 @@ const Host = (() => {
         <div class="prompt-card display">${esc(promptText)}</div>
         <div class="pick-sub">${LANG==='ar'?'✍️ اكتب أضحك إجابة — هويتك سرية!':'✍️ Write the funniest answer — stay anonymous!'}</div>
         <div id="statusRow" class="status-row"></div>`);
-      pushMirror({ headline: promptText, sub: LANG==='ar'?'✍️ اكتب إجابتك...':'✍️ Write your answer...' });
       Audio_.sfx.sting(); hostSay('prompt');
-      net.setState({ phase:'wait', msg: LANG==='ar'?'✍️ اكتب إجابتك...':'✍️ Write your answer...' });
 
       const row = $('#statusRow');
       row.innerHTML = writerPids.map(pid => `<div class="mini" id="mini-${pid}">${avatarHTML(safeP(pid))}<div class="check">✓</div></div>`).join('');
@@ -1002,7 +1000,7 @@ const Host = (() => {
         pickSpecs[pid] = { type: 'wait', title: LANG==='ar'?`⏳ ${esc(hotSeat.name)} يختار الأضحك`:`⏳ ${esc(hotSeat.name)} is picking...` };
       }
 
-      scene(`<div class="eyebrow">😂 ${LANG==='ar'?`${esc(hotSeat.name)} يختار الأضحك`:`${esc(hotSeat.name)} picks the funniest`}</div>
+      scene(`<div class="eyebrow" style="text-transform:none;font-size:clamp(11px,1.8vmin,15px)">😂 ${LANG==='ar'?`${esc(hotSeat.name)} يختار الأضحك`:`<span style="text-transform:uppercase;letter-spacing:2px">${esc(hotSeat.name)}</span> PICKS THE FUNNIEST`}</div>
         <div class="prompt-card display" style="font-size:clamp(13px,2vmin,18px)">${esc(promptText)}</div>
         <div class="ans-reveal-list" style="width:100%;max-width:700px">${answerList.map((a,idx)=>{
           const col=COLS[idx%COLS.length];
