@@ -1006,13 +1006,7 @@ const Host = (() => {
 
       scene(`<div class="eyebrow" style="text-transform:none;font-size:clamp(11px,1.8vmin,15px)">😂 ${LANG==='ar'?`${esc(hotSeat.name)} يختار الأضحك`:`<span style="text-transform:uppercase;letter-spacing:2px">${esc(hotSeat.name)}</span> PICKS THE FUNNIEST`}</div>
         <div class="prompt-card display" style="font-size:clamp(13px,2vmin,18px)">${esc(promptText)}</div>
-        <div class="ans-reveal-list" style="width:100%;max-width:700px">${answerList.map((a,idx)=>{
-          const col=COLS[idx%COLS.length];
-          return `<div class="ans-card" style="border-color:${col};background:linear-gradient(135deg,${col}33,${col}11);box-shadow:0 2px 12px ${col}22;animation-delay:${idx*0.08}s">
-            <span class="ans-letter" style="color:${col};font-size:clamp(18px,2.5vmin,24px);text-shadow:0 0 12px ${col}88">${String.fromCharCode(65+idx)}</span>
-            <span style="font-size:clamp(14px,2vmin,18px);font-weight:600">${esc(a.text)}</span>
-          </div>`;}).join('')}</div>
-        <div class="pick-sub" style="margin-top:8px;animation:fadeSlideUp 0.4s 0.6s both">${LANG==='ar'?`🔥 ${esc(hotSeat.name)} يختار الآن...`:`🔥 ${esc(hotSeat.name)} is choosing...`}</div>`);
+        <div class="pick-sub" style="margin-top:12px;animation:fadeSlideUp 0.4s 0.4s both;font-size:clamp(14px,2vmin,18px)">${LANG==='ar'?`🔥 ${esc(hotSeat.name)} يختار الآن...`:`🔥 ${esc(hotSeat.name)} is choosing...`}</div>`);
 
       net.setState({ phase: 'input-split', phaseId: pickPhaseId, deadline: pickDeadline, specs: pickSpecs });
 
