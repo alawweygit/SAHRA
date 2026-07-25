@@ -1004,14 +1004,49 @@ const Host = (() => {
         pickSpecs[pid] = { type: 'wait', title: LANG==='ar'?`⏳ ${esc(hotSeat.name)} يختار الأضحك`:`⏳ ${esc(hotSeat.name)} is picking...` };
       }
 
-      scene(`<div class="eyebrow" style="text-transform:none;font-size:clamp(11px,1.8vmin,15px)">😂 ${LANG==='ar'?`${esc(hotSeat.name)} يختار الأضحك`:`<span style="text-transform:uppercase;letter-spacing:2px">${esc(hotSeat.name)}</span> PICKS THE FUNNIEST`}</div>
-        <div class="prompt-card display" style="font-size:clamp(13px,2vmin,18px)">${esc(promptText)}</div>
-        <div class="pick-sub" style="margin-top:12px;animation:fadeSlideUp 0.4s 0.4s both;font-size:clamp(14px,2vmin,18px)">${LANG==='ar'?`🔥 ${esc(hotSeat.name)} يختار الآن...`:`🔥 ${esc(hotSeat.name)} is choosing...`}</div>`);
+      // Full-screen pick UI — cards ARE the buttons
+      scene(`
+        <div class="eyebrow" style="text-transform:none;font-size:clamp(12px,2vmin,16px)">😂 ${LANG==='ar'?`${esc(hotSeat.name)} يختار الأضحك`:`<span style="text-transform:uppercase;letter-spacing:2px">${esc(hotSeat.name)}</span> PICKS THE FUNNIEST`}</div>
+        <div class="prompt-card display" style="font-size:clamp(14px,2.2vmin,20px);margin-bottom:1.5vmin">${esc(promptText)}</div>
+        <div class="pick-sub" style="font-size:clamp(12px,1.6vmin,15px);margin-bottom:1vmin;opacity:.7">${LANG==='ar'?'👇 اضغط على الأضحك':'👇 Tap the funniest answer'}</div>
+        <div class="ans-reveal-list" id="siaPickList" style="width:100%;max-width:700px">${answerList.map((a,idx)=>{
+          const col=COLS[idx%COLS.length];
+          return `<button class="sia-pick-btn" data-idx="${idx}" style="
+            display:flex;align-items:center;gap:12px;width:100%;
+            padding:clamp(14px,2.4vmin,22px) clamp(16px,2.6vmin,24px);
+            border-radius:16px;border:2px solid ${col};
+            background:linear-gradient(135deg,${col}30,${col}10);
+            box-shadow:0 4px 16px ${col}25;
+            cursor:pointer;text-align:left;
+            font-family:inherit;color:var(--text);
+            transition:transform .15s,box-shadow .15s,border-color .15s;
+            animation:cardIn 0.4s ${idx*0.1}s both">
+            <span style="font-family:'Fredoka One',sans-serif;color:${col};font-size:clamp(22px,3.5vmin,32px);min-width:32px;text-shadow:0 0 14px ${col}88">${String.fromCharCode(65+idx)}</span>
+            <span style="font-size:clamp(15px,2.2vmin,20px);font-weight:700;flex:1">${esc(a.text)}</span>
+          </button>`;}).join('')}</div>
+        <div class="pick-sub" style="margin-top:10px;animation:fadeSlideUp 0.5s 0.6s both;font-size:clamp(13px,1.8vmin,16px)">${LANG==='ar'?`🔥 ${esc(hotSeat.name)} يختار الآن...`:`🔥 ${esc(hotSeat.name)} is choosing...`}</div>`);
 
+      // Wire click handlers on the scene cards — host picks directly
+      const _pickBtns = document.querySelectorAll('.sia-pick-btn');
+      let _picked = false;
+      _pickBtns.forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (_picked) return;
+          _picked = true;
+          const idx = parseInt(btn.dataset.idx);
+          const a = answerList[idx];
+          Audio_.sfx.submit();
+          // Highlight picked card
+          btn.style.transform = 'scale(1.03)';
+          btn.style.boxShadow = '0 0 30px var(--yellow)';
+          btn.style.borderColor = 'var(--yellow)';
+          _pickBtns.forEach(b => { if (b !== btn) { b.style.opacity = '0.4'; b.style.pointerEvents = 'none'; } });
+          await net.room('inputs/'+pickPhaseId+'/'+hotPid).set({ v: a.pid, t: Date.now() });
+        }, { once: true });
+      });
+
+      // Also send specs so phone players see wait/choice UI
       net.setState({ phase: 'input-split', phaseId: pickPhaseId, deadline: pickDeadline, specs: pickSpecs });
-
-      // In phones-only mode, host phone gets pick buttons via net.setState spec (type:'choice')
-      // No extra DOM buttons needed — the phone controller renders them automatically
 
       // Bot hot seat auto-picks
       const botPids = net.getBotPids ? net.getBotPids() : [];
@@ -1024,7 +1059,7 @@ const Host = (() => {
         }, 1500 + Math.random()*2000);
       }
 
-      const picks = await net.collect(pickPhaseId, pickSpecs[hotPid]||null, [hotPid], inputTimeout(30));
+      const picks = await net.collect(pickPhaseId, null, [hotPid], inputTimeout(30));
       net.onEachInput(null);
 
       const chosenPid = val(picks, hotPid);
