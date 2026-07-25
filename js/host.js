@@ -1014,7 +1014,7 @@ const Host = (() => {
           </div>`;}).join('')}</div>
         <div class="pick-sub" style="margin-top:8px;animation:fadeSlideUp 0.4s 0.6s both">${LANG==='ar'?`🔥 ${esc(hotSeat.name)} يختار الآن...`:`🔥 ${esc(hotSeat.name)} is choosing...`}</div>`);
 
-      net.setState({ phase: 'input-split', phaseId: pickPhaseId, deadline: pickDeadline, specs: pickSpecs, mirror: { ...mirror } });
+      net.setState({ phase: 'input-split', phaseId: pickPhaseId, deadline: pickDeadline, specs: pickSpecs });
 
       // In phones-only mode, host phone gets pick buttons via net.setState spec (type:'choice')
       // No extra DOM buttons needed — the phone controller renders them automatically
@@ -1046,15 +1046,23 @@ const Host = (() => {
           const isWin = a.pid === winner.pid;
           const col = COLS[idx%COLS.length];
           const p = safeP(a.pid);
-          const bg = isWin ? `linear-gradient(135deg,rgba(251,191,36,0.18),rgba(251,191,36,0.06))` : `linear-gradient(135deg,${col}20,${col}08)`;
-          const border = isWin ? 'var(--yellow)' : col+'70';
-          return `<div class="ans-card${isWin?' ans-card-win':''}" style="border-color:${border};background:${bg};flex-direction:column;gap:5px;animation-delay:${idx*0.12}s">
-            <div style="display:flex;align-items:center;gap:10px">
-              <span class="ans-letter" style="color:${isWin?'var(--yellow)':col};font-size:clamp(18px,2.5vmin,24px)">${String.fromCharCode(65+idx)}</span>
-              <span style="flex:1;font-size:clamp(14px,2vmin,18px);font-weight:600">${esc(a.text)}</span>
-              ${isWin?`<span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(12px,1.7vmin,15px);white-space:nowrap">🏆 +${WIN_PTS}</span>`:''}
+          const bg = isWin
+            ? `linear-gradient(135deg,rgba(251,191,36,0.22),rgba(251,191,36,0.08))`
+            : `linear-gradient(135deg,${col}28,${col}08)`;
+          const border = isWin ? 'var(--yellow)' : col;
+          const shadow = isWin ? '0 0 20px rgba(251,191,36,0.3)' : `0 0 12px ${col}22`;
+          return `<div class="ans-card${isWin?' ans-card-win':''}" style="border-color:${border};background:${bg};box-shadow:${shadow};flex-direction:column;gap:8px;padding:14px 16px;animation-delay:${idx*0.12}s">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-family:'Fredoka One',sans-serif;color:${isWin?'var(--yellow)':col};font-size:clamp(20px,3vmin,28px);min-width:28px;text-shadow:0 0 10px ${isWin?'rgba(251,191,36,0.6)':col+'88'}">${String.fromCharCode(65+idx)}</span>
+              <span style="flex:1;font-size:clamp(15px,2.2vmin,20px);font-weight:700;color:${isWin?'#fff':'var(--text)'}">${esc(a.text)}</span>
+              ${isWin?`<span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(13px,1.8vmin,16px);white-space:nowrap;background:rgba(251,191,36,0.15);padding:4px 10px;border-radius:20px">🏆 +${WIN_PTS}</span>`:''}
             </div>
-            ${isWin?`<div style="display:flex;align-items:center;gap:6px;padding-left:34px">${avatarHTML(p)}<span style="font-size:clamp(10px,1.4vmin,12px);color:var(--yellow)">${esc(p?.name||'')} ${LANG==='ar'?'اختاره':'was chosen by'} ${esc(hotSeat.name)} 🔥</span></div>`:'<div style="padding-left:34px;font-size:clamp(10px,1.3vmin,12px);color:var(--text3)">'+avatarHTML(p)+'<span style="margin-left:6px">'+esc(p?.name||'')+'</span></div>'}
+            <div style="display:flex;align-items:center;gap:8px;padding-left:40px">
+              ${avatarHTML(p)}
+              <span style="font-size:clamp(11px,1.5vmin,13px);color:${isWin?'rgba(251,191,36,0.9)':'var(--text3)'}">
+                ${isWin?`${esc(p?.name||'')} · ${LANG==='ar'?'اختاره':'chosen by'} ${esc(hotSeat.name)} 🔥`:`${esc(p?.name||'')}`}
+              </span>
+            </div>
           </div>`;
         }).join('')}</div>`);
       await hostSay('reveal');
