@@ -314,7 +314,6 @@ const Host = (() => {
   }
 
   async function showScores(final = false) {
-    await FX.wipe();
     Audio_.startMusic('results');
     setPill(final ? t('final_results') : t('scores'));
     const sorted = players.slice().sort((a, b) => b.score - a.score);
@@ -344,7 +343,6 @@ const Host = (() => {
       </div>`);
     await sleep(300);
     sorted.forEach((p, i) => setTimeout(() => {
-      if(i===0)Audio_.sfx.submit();
       const b = $('#bar-' + p.pid);
       const ptsEl = $('#pts-' + p.pid);
       if (b) b.style.width = p.score > 0 ? Math.max(18, (p.score / max) * 100) + '%' : '0';
@@ -974,18 +972,15 @@ const Host = (() => {
       net.setState({ phase:'wait', msg: LANG==='ar'?'👀 شوف الإجابات...':'👀 Watch the answers...' });
 
       const listEl = document.getElementById('ansRevealList');
-      for (let idx = 0; idx < answerList.length; idx++) {
-        const a = answerList[idx];
+      answerList.forEach((a, idx) => {
         const col = COLS[idx % COLS.length];
-        await sleep(900);
-        Audio_.sfx.submit();
         const card = document.createElement('div');
         card.className = 'ans-card';
-        card.style.cssText = `border-left:4px solid ${col};animation:cardIn 0.45s cubic-bezier(0.34,1.56,0.64,1) both`;
+        card.style.cssText = `border-left:4px solid ${col};animation:cardIn 0.4s ${idx*0.08}s both`;
         card.innerHTML = `<span class="ans-letter" style="color:${col}">${String.fromCharCode(65+idx)}</span><span style="font-size:clamp(14px,2vmin,18px);font-weight:600">${esc(a.text)}</span>`;
         listEl?.appendChild(card);
-      }
-      await sleep(1400);
+      });
+      await sleep(800);
 
       // Phase 4: Hot seat player picks favorite
       await FX.wipe();
@@ -1072,32 +1067,40 @@ const Host = (() => {
       const winnerPlayer = safeP(winner.pid);
       if (winner.pid) addScore(winner.pid, WIN_PTS);
 
-      // Phase 5: Reveal winner with celebration
+      // Phase 5: Reveal winner IN PLACE — highlight chosen card without new page
       Audio_.sfx.reveal(); FX.burst(80);
-      scene(`<div class="eyebrow">🏆 ${LANG==='ar'?'الأضحك':'FUNNIEST ANSWER'}</div>
-        <div class="prompt-card display" style="font-size:clamp(13px,2vmin,18px)">${esc(promptText)}</div>
-        <div class="ans-reveal-list">${answerList.map((a,idx) => {
+      // Update the existing ansRevealList cards to show winner
+      const _listEl = document.getElementById('ansRevealList');
+      if (_listEl) {
+        const _cards = _listEl.querySelectorAll('.ans-card');
+        _cards.forEach((card, idx) => {
+          const a = answerList[idx];
+          if (!a) return;
           const isWin = a.pid === winner.pid;
-          const col = COLS[idx%COLS.length];
+          const col = COLS[idx % COLS.length];
           const p = safeP(a.pid);
-          // Pic 3 style: dark bg + colored left border. Winner gets yellow highlight.
-          return `<div class="ans-card${isWin?' ans-card-win':''}" style="
-            border-left:4px solid ${isWin?'var(--yellow)':col};
-            flex-direction:column;gap:8px;padding:14px 16px;
-            animation-delay:${idx*0.12}s">
-            <div style="display:flex;align-items:center;gap:12px">
-              <span style="font-family:'Fredoka One',sans-serif;color:${isWin?'var(--yellow)':col};font-size:clamp(18px,2.5vmin,24px);min-width:26px">${String.fromCharCode(65+idx)}</span>
-              <span style="flex:1;font-size:clamp(14px,2vmin,18px);font-weight:700">${esc(a.text)}</span>
-              ${isWin?`<span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(12px,1.6vmin,15px);white-space:nowrap;background:rgba(251,191,36,0.15);padding:3px 10px;border-radius:20px">🏆 +${WIN_PTS}</span>`:''}
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;padding-left:38px">
-              ${avatarHTML(p)}
-              <span style="font-size:clamp(11px,1.4vmin,13px);color:${isWin?'var(--yellow)':'var(--text3)'}">
-                ${isWin?`${esc(p?.name||'')} · ${LANG==='ar'?'اختاره':'chosen by'} ${esc(hotSeat.name)} 🔥`:`${esc(p?.name||'')}`}
-              </span>
-            </div>
-          </div>`;
-        }).join('')}</div>`);
+          card.style.borderLeft = `4px solid ${isWin ? 'var(--yellow)' : col}`;
+          if (isWin) {
+            card.style.background = 'rgba(251,191,36,0.06)';
+            card.style.boxShadow = '0 0 16px rgba(251,191,36,0.2)';
+            card.innerHTML = `
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(18px,2.5vmin,24px);min-width:26px">${String.fromCharCode(65+idx)}</span>
+                <span style="flex:1;font-size:clamp(14px,2vmin,18px);font-weight:700">${esc(a.text)}</span>
+                <span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(12px,1.6vmin,15px);white-space:nowrap;background:rgba(251,191,36,0.15);padding:3px 10px;border-radius:20px">🏆 +${WIN_PTS}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding-left:38px">
+                ${avatarHTML(p)}<span style="font-size:clamp(11px,1.4vmin,13px);color:var(--yellow)">${esc(p?.name||'')} · ${LANG==='ar'?'اختاره':'chosen by'} ${esc(hotSeat.name)} 🔥</span>
+              </div>`;
+          } else {
+            card.innerHTML += `<div style="padding-left:38px;margin-top:4px">${avatarHTML(p)}<span style="font-size:clamp(11px,1.4vmin,13px);color:var(--text3);margin-left:6px">${esc(p?.name||'')}</span></div>`;
+          }
+        });
+        // Update eyebrow
+        const _eyebrow = document.querySelector('#hostStage .eyebrow');
+        if (_eyebrow) _eyebrow.textContent = `🏆 ${LANG==='ar'?'الأضحك':'FUNNIEST ANSWER'}`;
+      } else {
+      } // end if _listEl
       await hostSay('reveal');
       await waitNext();
       if (r < shuffledPlayers.length - 1) await showScores();
