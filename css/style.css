@@ -1153,7 +1153,7 @@ html{font-size:17px;}
   padding-bottom:max(30px,env(safe-area-inset-bottom))!important;
   gap:16px!important;-webkit-overflow-scrolling:touch;
 }
-.phones-only-player #phoneSharedStage{display:none!important;}
+.phones-only-player #phoneSharedStage{display:flex!important;overflow-anchor:none;}
 .phones-only-player #phoneSharedStage #statusRow{display:flex;}
 .phones-only-player #ctrlArea{width:min(94vw,780px);margin-bottom:max(26px,env(safe-area-inset-bottom));}.phones-only-player #scr-controller{justify-content:center!important;}
 @media(max-width:600px){
