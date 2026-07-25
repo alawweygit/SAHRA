@@ -1030,7 +1030,7 @@ const Host = (() => {
         }, 1500 + Math.random()*2000);
       }
 
-      const picks = await net.collect(pickPhaseId, null, [hotPid], inputTimeout(30));
+      const picks = await net.collect(pickPhaseId, pickSpecs[hotPid]||null, [hotPid], inputTimeout(30));
       net.onEachInput(null);
 
       const chosenPid = val(picks, hotPid);
