@@ -998,7 +998,8 @@ const Host = (() => {
         color: COLS[idx % COLS.length]
       }));
       const pickSpecs = {};
-      pickSpecs[hotPid] = { type: 'choice', title: LANG==='ar'?'😂 اختار الأضحك':'😂 Pick the funniest', options: pickOptions };
+      // Hot seat picks via the tappable scene cards directly — no ctrl needed
+      pickSpecs[hotPid] = { type: 'wait', title: LANG==='ar'?`😂 اختار الأضحك`:'😂 Pick the funniest' };
       // Everyone else waits
       for (const pid of writerPids) {
         pickSpecs[pid] = { type: 'wait', title: LANG==='ar'?`⏳ ${esc(hotSeat.name)} يختار الأضحك`:`⏳ ${esc(hotSeat.name)} is picking...` };

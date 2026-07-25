@@ -96,6 +96,7 @@ body.theme-light .deco-blob{opacity:0.14;}
 }
 .screen.active{opacity:1;pointer-events:auto;transform:scale(1) translateY(0);}
 #hostStage{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.4vmin;width:100%;height:100%;padding-bottom:0;padding-top:max(70px,6vmin);overflow:visible;}
+#hostStage:has(.ans-reveal-list){overflow-y:auto!important;-webkit-overflow-scrolling:touch;justify-content:flex-start!important;padding-bottom:60px!important;}
 #scr-game:has(.host-input-dock:not(.hidden)) #hostStage{padding-bottom:200px;} /* make room for fixed dock */
 #hostStage.scene-in{animation:sceneIn 0.45s var(--ease-out) both;}
 @keyframes sceneIn{from{opacity:0;transform:scale(0.94) translateY(12px);}to{opacity:1;transform:none;}}
@@ -465,6 +466,7 @@ body.ar .eyebrow{letter-spacing:0;}
 .join-err{color:var(--pink);font-weight:700;font-size:14px;min-height:20px;text-align:center;}
 #ctrlArea{width:min(94vw,420px);}
 .phone-shared-stage{width:min(96vw,920px);pointer-events:none;user-select:none;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.4vmin;}
+.phone-shared-stage .sia-pick-btn{pointer-events:auto!important;user-select:auto!important;}
 .phone-shared-stage>*{max-width:100%;}
 .phone-shared-stage .leaf-map,.phone-shared-stage .map-host{min-height:180px;background:linear-gradient(135deg,#66b7d8,#d8ecb5);border-radius:16px;}
 .shared-lobby{width:100%;background:var(--card);border:1.5px solid var(--border-hi);border-radius:24px;padding:24px 16px;text-align:center;}
