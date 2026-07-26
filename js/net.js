@@ -105,12 +105,9 @@ class FirebaseNet {
     const nameTaken = existingArr.some(p => p.name && p.name.trim().toLowerCase() === name.trim().toLowerCase());
     if (nameTaken) throw new Error('name-taken');
     if (!av) av = AVATARS[n % AVATARS.length];
-    // Check emoji uniqueness — pick a different one if taken
+    // Check emoji uniqueness — reject if taken instead of silently swapping
     const takenEmojis = new Set(existingArr.map(p => p.emoji));
-    if (takenEmojis.has(av.emoji)) {
-      const alt = AVATARS.find(a => !takenEmojis.has(a.emoji));
-      if (alt) av = alt;
-    }
+    if (takenEmojis.has(av.emoji)) throw new Error('avatar-taken');
     this.pid = 'p' + Date.now() + Math.floor(Math.random() * 999);
     const isVip = n === 0;
     await this.room('players/' + this.pid).set({

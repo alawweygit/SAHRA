@@ -52,6 +52,15 @@ const Host = (() => {
         el.setAttribute('disabled', '');
         el.setAttribute('tabindex', '-1');
       }
+      // Strip CSS animations from the mirrored snapshot — this snapshot gets
+      // republished on every small change (e.g. each answer submitted), and
+      // replaying entrance animations on an unchanged screen looks like a
+      // blink/refresh to players. The animation already played once on the host.
+      if (el.style && el.style.animation) el.style.animation = 'none';
+      const styleAttr = el.getAttribute('style');
+      if (styleAttr && /animation\s*:/i.test(styleAttr)) {
+        el.setAttribute('style', styleAttr.replace(/animation\s*:[^;]+;?/gi, 'animation:none;'));
+      }
     });
     return clone.innerHTML;
   }
@@ -1019,7 +1028,7 @@ const Host = (() => {
             border-radius:16px;border:1px solid var(--border);border-left:4px solid ${col};
             background:rgba(255,255,255,0.04);
             box-shadow:none;
-            cursor:pointer;text-align:left;
+            cursor:${net.hostSelfPid === hotPid ? 'pointer' : 'default'};text-align:left;
             font-family:inherit;color:var(--text);
             transition:transform .15s,box-shadow .15s,border-color .15s;
             animation:cardIn 0.4s ${idx*0.1}s both">
@@ -1457,7 +1466,9 @@ const Host = (() => {
       const btn = document.createElement('button');
       btn.className = 'big-btn';
       btn.style.marginTop = '2vmin';
-      const done = () => { window.__hypoxSkip = null; if (timer) clearInterval(timer); btn.remove?.(); res(); };
+      btn.style.marginBottom = 'max(24px,4vmin)';
+      stage?.classList.add('has-next-btn');
+      const done = () => { window.__hypoxSkip = null; if (timer) clearInterval(timer); btn.remove?.(); stage?.classList.remove('has-next-btn'); res(); };
       let timer = null;
       const isAutoplay = window.HYPOX_STATE?.autoplay === true; // explicit check
       if (isAutoplay) {

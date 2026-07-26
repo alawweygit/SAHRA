@@ -451,20 +451,22 @@
     const _ps=JSON.parse(localStorage.getItem('hypox_player_session')||'null');
     const _noSession=!sessionStorage.getItem('hypox_session');
     if(_ps&&_ps.code&&_ps.pid&&_noSession&&FirebaseNet.available()&&!urlCode){
+      // Auto-reconnect immediately — no tap required. Show a small
+      // dismissible toast in case the person actually wants to leave.
       const _pb=document.createElement('div');
       _pb.id='playerRejoinBanner';
-      _pb.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:999;background:var(--card);border:2px solid var(--pink);border-radius:20px;padding:16px 22px;font-family:Fredoka One,sans-serif;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.5);min-width:260px;';
-      _pb.innerHTML='<div style="color:var(--pink);font-size:17px">'+(LANG==='ar'?'تريد ترجع للعبة؟':'Rejoin the game?')+'</div><div style="color:var(--text2);font-size:13px;margin:4px 0 12px">'+(LANG==='ar'?'الغرفة:':'Room:')+'&nbsp;<b style="color:var(--yellow)">'+_ps.code+'</b></div><div style="display:flex;gap:10px;justify-content:center"><button id="rejoinYes" style="background:var(--pink);color:#fff;border:none;border-radius:12px;padding:8px 22px;font-family:Fredoka One,sans-serif;font-size:15px;cursor:pointer">'+(LANG==='ar'?'ارجع ▶':'Rejoin ▶')+'</button><button id="rejoinNo" style="background:var(--card2,#2a2a3e);color:var(--text2);border:1.5px solid var(--border);border-radius:12px;padding:8px 18px;font-family:Fredoka One,sans-serif;font-size:14px;cursor:pointer">'+(LANG==='ar'?'لا':'No')+'</button></div>';
+      _pb.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:999;background:var(--card);border:2px solid var(--pink);border-radius:20px;padding:14px 22px;font-family:Fredoka One,sans-serif;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.5);min-width:220px;';
+      _pb.innerHTML='<div style="color:var(--pink);font-size:15px">'+(LANG==='ar'?'رجعناك للغرفة':'Reconnecting to room')+'&nbsp;<b style="color:var(--yellow)">'+_ps.code+'</b>…</div><button id="rejoinLeave" style="margin-top:8px;background:var(--card2,#2a2a3e);color:var(--text2);border:1.5px solid var(--border);border-radius:10px;padding:5px 14px;font-family:Fredoka One,sans-serif;font-size:12px;cursor:pointer">'+(LANG==='ar'?'لا، اطلع':"No, leave")+'</button>';
       document.body.appendChild(_pb);
-      document.getElementById('rejoinNo').onclick=()=>{localStorage.removeItem('hypox_player_session');_pb.remove();};
-      document.getElementById('rejoinYes').onclick=async()=>{
-        _pb.remove();
+      let _leftOnPurpose=false;
+      document.getElementById('rejoinLeave').onclick=()=>{_leftOnPurpose=true;localStorage.removeItem('hypox_player_session');_pb.remove();show('#scr-title');};
+      (async()=>{
         try{
           sessionStorage.setItem('hypox_session',JSON.stringify(_ps));
           await restoreNavigationState();
-        }catch(e){localStorage.removeItem('hypox_player_session');show('#scr-title');}
-      };
-      setTimeout(()=>_pb?.remove(),20000);
+        }catch(e){localStorage.removeItem('hypox_player_session');if(!_leftOnPurpose)show('#scr-title');}
+        setTimeout(()=>_pb?.remove(),1500);
+      })();
     } else if(!urlCode) restoreNavigationState();
     window.addEventListener('pagehide',()=>saveNavigationState());
     window.addEventListener('beforeunload',()=>saveNavigationState());
@@ -1236,6 +1238,8 @@
     catch(e){
       if(e.message==='name-taken'){
         $('#joinErr').textContent=LANG==='ar'?'❌ هذا الاسم مأخوذ، جرب اسم ثاني':'❌ Name already taken, try a different one';
+      } else if(e.message==='avatar-taken'){
+        $('#joinErr').textContent=LANG==='ar'?'❌ هذا الافتار مأخوذ، اختر افتار ثاني':'❌ That avatar is taken, please choose a different one';
       } else if(e.message==='full'){
         $('#joinErr').textContent=LANG==='ar'?'❌ الغرفة ممتلئة':'❌ Room is full';
       } else if(e.message==='no-room'){
@@ -1546,7 +1550,7 @@
         // Show full game content on phone using mirror data
         if(phonesOnly){
           document.body.classList.remove('phones-player-answering');
-          if(shared.dataset.sharedReady!=='1')renderSharedStatus(state.msg||T.watchScreen(),LANG==='ar'?'اللعبة تبدأ الآن…':'The game is starting…');
+          if(shared.dataset.sharedReady!=='1')renderSharedStatus(state.msg||(LANG==='ar'?'جاري إعادة الاتصال باللعبة…':'Reconnecting to the game…'),LANG==='ar'?'لحظات...':'One moment…');
           // Host phone gets a Next button to advance the game
           if(window._hypoxIsHost&&window.__hypoxSkip){
             ctrl.classList.remove('hidden');
