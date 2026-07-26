@@ -1071,40 +1071,36 @@ const Host = (() => {
       const winnerPlayer = safeP(winner.pid);
       if (winner.pid) addScore(winner.pid, WIN_PTS);
 
-      // Phase 5: Reveal winner IN PLACE — highlight chosen card without new page
+      // Phase 5: Reveal — replace pick scene with full reveal scene
       Audio_.sfx.reveal(); FX.burst(80);
-      // Update the existing ansRevealList cards to show winner
-      const _listEl = document.getElementById('ansRevealList');
-      if (_listEl) {
-        const _cards = _listEl.querySelectorAll('.ans-card');
-        _cards.forEach((card, idx) => {
-          const a = answerList[idx];
-          if (!a) return;
-          const isWin = a.pid === winner.pid;
-          const col = COLS[idx % COLS.length];
-          const p = safeP(a.pid);
-          card.style.borderLeft = `4px solid ${isWin ? 'var(--yellow)' : col}`;
-          if (isWin) {
-            card.style.background = 'rgba(251,191,36,0.06)';
-            card.style.boxShadow = '0 0 16px rgba(251,191,36,0.2)';
-            card.innerHTML = `
+      scene(`
+        <div style="height:max(60px,8vmin)"></div>
+        <div class="eyebrow">🏆 ${LANG==='ar'?'الأضحك':'FUNNIEST ANSWER'}</div>
+        <div class="prompt-card display" style="font-size:clamp(13px,2vmin,18px)">${esc(promptText)}</div>
+        <div class="ans-reveal-list" style="width:100%;max-width:700px">
+          ${answerList.map((a,idx) => {
+            const isWin = a.pid === winner.pid;
+            const col = COLS[idx%COLS.length];
+            const p = safeP(a.pid);
+            return `<div class="ans-card" style="
+              border-left:4px solid ${isWin?'var(--yellow)':col};
+              ${isWin?'background:rgba(251,191,36,0.06);box-shadow:0 0 16px rgba(251,191,36,0.2);':''}
+              flex-direction:column;gap:6px;animation-delay:${idx*0.08}s">
               <div style="display:flex;align-items:center;gap:12px">
-                <span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(18px,2.5vmin,24px);min-width:26px">${String.fromCharCode(65+idx)}</span>
+                <span style="font-family:'Fredoka One',sans-serif;color:${isWin?'var(--yellow)':col};font-size:clamp(18px,2.5vmin,24px);min-width:26px">${String.fromCharCode(65+idx)}</span>
                 <span style="flex:1;font-size:clamp(14px,2vmin,18px);font-weight:700">${esc(a.text)}</span>
-                <span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(12px,1.6vmin,15px);white-space:nowrap;background:rgba(251,191,36,0.15);padding:3px 10px;border-radius:20px">🏆 +${WIN_PTS}</span>
+                ${isWin?`<span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(12px,1.6vmin,15px);white-space:nowrap;background:rgba(251,191,36,0.15);padding:3px 10px;border-radius:20px">🏆 +${WIN_PTS}</span>`:''}
               </div>
               <div style="display:flex;align-items:center;gap:8px;padding-left:38px">
-                ${avatarHTML(p)}<span style="font-size:clamp(11px,1.4vmin,13px);color:var(--yellow)">${esc(p?.name||'')} · ${LANG==='ar'?'اختاره':'chosen by'} ${esc(hotSeat.name)} 🔥</span>
-              </div>`;
-          } else {
-            card.innerHTML += `<div style="padding-left:38px;margin-top:4px">${avatarHTML(p)}<span style="font-size:clamp(11px,1.4vmin,13px);color:var(--text3);margin-left:6px">${esc(p?.name||'')}</span></div>`;
-          }
-        });
-        // Update eyebrow
-        const _eyebrow = document.querySelector('#hostStage .eyebrow');
-        if (_eyebrow) _eyebrow.textContent = `🏆 ${LANG==='ar'?'الأضحك':'FUNNIEST ANSWER'}`;
-      } else {
-      } // end if _listEl
+                ${avatarHTML(p)}
+                <span style="font-size:clamp(11px,1.4vmin,13px);color:${isWin?'var(--yellow)':'var(--text3)'}">
+                  ${isWin?`${esc(p?.name||'')} · ${LANG==='ar'?'اختاره':'chosen by'} ${esc(hotSeat.name)} 🔥`:esc(p?.name||'')}
+                </span>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`);
+      net.setState({ phase:'wait', msg: LANG==='ar'?`🏆 ${esc(winner.pid?safeP(winner.pid)?.name||'':'?')} فاز!`:`🏆 ${esc(winnerPlayer?.name||'')} wins!` });
       await hostSay('reveal');
       await waitNext();
       if (r < shuffledPlayers.length - 1) await showScores();
