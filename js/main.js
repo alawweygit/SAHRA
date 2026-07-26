@@ -1021,7 +1021,7 @@
       </div>
       <button class="bar-btn" id="backToLobbyBtn" style="margin-top:2vmin">${T.backLobby()}</button>`);
     Audio_.unlock();
-    Audio_.startMusic('lobby');net.setState({phase:'packpicker',msg:T.watchScreen()});
+    net.setState({phase:'packpicker',msg:T.watchScreen()});
     $$('.pack-card').forEach(btn=>btn.addEventListener('click',async()=>{
       const mode=btn.dataset.mode,minP=MODE_MIN[mode]||2;
       if(players.length<minP){
@@ -1032,7 +1032,7 @@
       }
       Audio_.sfx.submit();await startDirectGame(mode);
     },{once:true}));
-    document.getElementById('backToLobbyBtn')?.addEventListener('click',()=>{show('#scr-lobby');Audio_.startMusic('lobby');},{once:true});
+    document.getElementById('backToLobbyBtn')?.addEventListener('click',()=>{show('#scr-lobby');},{once:true});
   }
 
   /* ---- MENU ---- */
@@ -1533,6 +1533,14 @@
         ctrl.classList.remove('hidden');
         const _isActiveInput = spec.type==='choice'||spec.type==='higherlow'||spec.type==='text'||spec.type==='number';
         document.body.classList.toggle('phones-player-answering',phonesOnly&&_isActiveInput);
+
+        // The host device already renders its own inline choice UI directly
+        // into the scene (WYR picks, Diss votes, SIA pick-the-funniest) —
+        // rendering the same choice again here would duplicate it.
+        if(window._hypoxIsHost&&(spec.type==='choice'||spec.type==='higherlow')){
+          ctrl.classList.add('hidden');ctrl.innerHTML='';
+          return;
+        }
 
         Controller.render(ctrl,spec,async value=>{
           const result=await net.submitInput(state.phaseId,value,{enforceUnique:spec.enforceUnique===true});

@@ -172,7 +172,6 @@ const Host = (() => {
 
     pushMirror({ headline: spec.context || spec.title || '', sub: spec.title || '' });
     net.setState({ phase: 'input', phaseId, spec, targets: pids, deadline, mirror: { ...mirror } });
-    try { Audio_.startMusic('tension'); } catch(e) {}
 
     // Auto-submit answers for bot players
     const botPids = net.getBotPids ? net.getBotPids() : [];
