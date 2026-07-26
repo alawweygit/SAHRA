@@ -98,9 +98,19 @@ class FirebaseNet {
     if (!snap.exists()) throw new Error('no-room');
     const playersSnap = await this.room('players').get();
     const existing = playersSnap.val() || {};
-    const n = Object.keys(existing).length;
+    const existingArr = Object.values(existing);
+    const n = existingArr.length;
     if (n >= 20) throw new Error('full');
+    // Check name uniqueness (case-insensitive)
+    const nameTaken = existingArr.some(p => p.name && p.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (nameTaken) throw new Error('name-taken');
     if (!av) av = AVATARS[n % AVATARS.length];
+    // Check emoji uniqueness — pick a different one if taken
+    const takenEmojis = new Set(existingArr.map(p => p.emoji));
+    if (takenEmojis.has(av.emoji)) {
+      const alt = AVATARS.find(a => !takenEmojis.has(a.emoji));
+      if (alt) av = alt;
+    }
     this.pid = 'p' + Date.now() + Math.floor(Math.random() * 999);
     const isVip = n === 0;
     await this.room('players/' + this.pid).set({

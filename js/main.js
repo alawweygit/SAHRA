@@ -1233,7 +1233,18 @@
     if(!FirebaseNet.available()){$('#joinErr').textContent=T.noFirebase();return;}
     $('#joinErr').innerHTML='<div class="join-spinner"><div class="spinner-ring"></div><span>'+(LANG==='ar'?'جاري الاتصال...':'Joining...')+'</span></div>';
     try{net=FirebaseNet.create();const res=await net.joinRoom(code,name,selectedAvatar);myPid=res.pid;isVip=res.isVip;window._hypoxMyPid=myPid;currentRoomCode=code;await net.getPlayMode();}
-    catch(e){$('#joinErr').textContent=T.connFail();return;}
+    catch(e){
+      if(e.message==='name-taken'){
+        $('#joinErr').textContent=LANG==='ar'?'❌ هذا الاسم مأخوذ، جرب اسم ثاني':'❌ Name already taken, try a different one';
+      } else if(e.message==='full'){
+        $('#joinErr').textContent=LANG==='ar'?'❌ الغرفة ممتلئة':'❌ Room is full';
+      } else if(e.message==='no-room'){
+        $('#joinErr').textContent=LANG==='ar'?'❌ كود خاطئ':'❌ Wrong code';
+      } else {
+        $('#joinErr').textContent=T.connFail();
+      }
+      return;
+    }
     // Save the stable player id so refresh reconnects this player instead of
     // adding a second copy to the room.
     try{const _sd=JSON.stringify({code,name,pid:myPid,isVip,emoji:selectedAvatar.emoji,color:selectedAvatar.color});sessionStorage.setItem('hypox_session',_sd);localStorage.setItem('hypox_player_session',_sd);}catch(e){}
