@@ -584,7 +584,7 @@
       </div>
 
       <div class="pg-row">
-        ${(mode!=='spy'&&mode!=='wyr')?`<div class="pg-block">
+        ${(mode!=='spy'&&mode!=='wyr'&&mode!=='interrogation')?`<div class="pg-block">
           <div class="pg-label" id="pgRoundsLabel">${T.rounds()}</div>
           <div class="round-btns" id="pgRoundsBtns">
             ${[5,10,15].map(n=>`<button class="round-btn${window.HYPOX_STATE.rounds===n?' selected':''}" data-r="${n}">${n}</button>`).join('')}
