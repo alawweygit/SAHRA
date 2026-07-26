@@ -1031,7 +1031,9 @@ const Host = (() => {
         btn.addEventListener('click', async () => {
           if (_picked) return;
           // Only the hot seat player (host in phones-only) can pick
-          if(net.phonesOnly && !window._hypoxIsHost) return;
+          // Only the hot seat player can pick — check by pid, not host status
+          const _myPid = net.hostSelfPid || window._hypoxMyPid;
+          if(net.phonesOnly && _myPid && _myPid !== hotPid) return;
           _picked = true;
           const idx = parseInt(btn.dataset.idx);
           const a = answerList[idx];

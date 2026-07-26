@@ -792,7 +792,7 @@
     if(playMode==='phones'){
       showAvatarPicker('phones',async(name,av)=>{
         const res=await net.joinRoom(code,name,av);
-        myPid=res.pid;isVip=res.isVip;net.hostSelfPid=myPid;net.promptLocal=phonesHostPrompt;
+        myPid=res.pid;isVip=res.isVip;net.hostSelfPid=myPid;net.promptLocal=phonesHostPrompt;window._hypoxMyPid=myPid;
         show('#scr-lobby');setupLobby(gameMode);
       });return;
     }
@@ -1230,7 +1230,7 @@
     if(!code||!name){Audio_.sfx.buzzer();return;}
     if(!FirebaseNet.available()){$('#joinErr').textContent=T.noFirebase();return;}
     $('#joinErr').innerHTML='<div class="join-spinner"><div class="spinner-ring"></div><span>'+(LANG==='ar'?'جاري الاتصال...':'Joining...')+'</span></div>';
-    try{net=FirebaseNet.create();const res=await net.joinRoom(code,name,selectedAvatar);myPid=res.pid;isVip=res.isVip;currentRoomCode=code;await net.getPlayMode();}
+    try{net=FirebaseNet.create();const res=await net.joinRoom(code,name,selectedAvatar);myPid=res.pid;isVip=res.isVip;window._hypoxMyPid=myPid;currentRoomCode=code;await net.getPlayMode();}
     catch(e){$('#joinErr').textContent=T.connFail();return;}
     // Save the stable player id so refresh reconnects this player instead of
     // adding a second copy to the room.
