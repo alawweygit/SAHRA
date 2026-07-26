@@ -63,7 +63,7 @@ const Host = (() => {
       if (!force && html === lastSharedHTML) return;
       lastSharedHTML = html;
       net.setSharedScreen({ html, pill: $('#roundPill')?.textContent || '', sceneId: sharedSceneId });
-    }, force ? 0 : 120);
+    }, force ? 0 : 400);
   }
   function startSharedScreen() {
     if (!net?.phonesOnly || sharedObserver) return;

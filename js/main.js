@@ -48,6 +48,8 @@
     const active=document.querySelector('.screen.active');
     const SKIP=['scr-pregame','scr-title','scr-games','scr-lobby','scr-join','scr-avatar'];
     if(active&&SKIP.includes(active.id))return;
+    // Never reset during active game input — causes blinking/flashing
+    if(document.querySelector('#ctrlArea .ctrl-wrap'))return;
     const target=scrollTarget(active);
     if(!target)return;
     target.scrollTop=0;
