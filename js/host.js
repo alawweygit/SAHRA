@@ -994,8 +994,12 @@ const Host = (() => {
         color: COLS[idx % COLS.length]
       }));
       const pickSpecs = {};
-      // Hot seat picks via the tappable scene cards directly — no ctrl needed
-      pickSpecs[hotPid] = { type: 'wait', title: LANG==='ar'?`😂 اختار الأضحك`:'😂 Pick the funniest' };
+      // Hot seat gets choice spec — works for both host (scene cards) and regular player (ctrl buttons)
+      pickSpecs[hotPid] = {
+        type: 'choice',
+        title: LANG==='ar'?'😂 اختار الأضحك':'😂 Pick the funniest',
+        options: pickOptions
+      };
       // Everyone else waits
       for (const pid of writerPids) {
         pickSpecs[pid] = { type: 'wait', title: LANG==='ar'?`⏳ ${esc(hotSeat.name)} يختار الأضحك`:`⏳ ${esc(hotSeat.name)} is picking...` };
@@ -1025,29 +1029,27 @@ const Host = (() => {
         <div class="pick-sub" style="margin-top:10px;animation:fadeSlideUp 0.5s 0.6s both;font-size:clamp(13px,1.8vmin,16px)">${LANG==='ar'?`🔥 ${esc(hotSeat.name)} يختار الآن...`:`🔥 ${esc(hotSeat.name)} is choosing...`}</div>`);
 
       // Wire click handlers on the scene cards — host picks directly
-      const _pickBtns = document.querySelectorAll('.sia-pick-btn');
-      let _picked = false;
-      _pickBtns.forEach(btn => {
-        btn.addEventListener('click', async () => {
-          if (_picked) return;
-          // Only the hot seat player (host in phones-only) can pick
-          // Only the hot seat player can pick — check by pid, not host status
-          const _myPid = net.hostSelfPid || window._hypoxMyPid;
-          if(net.phonesOnly && _myPid && _myPid !== hotPid) return;
-          _picked = true;
-          const idx = parseInt(btn.dataset.idx);
-          const a = answerList[idx];
-          Audio_.sfx.submit();
-          // Highlight picked card
-          btn.style.transform = 'scale(1.03)';
-          btn.style.boxShadow = '0 0 30px var(--yellow)';
-          btn.style.borderColor = 'var(--yellow)';
-          _pickBtns.forEach(b => { if (b !== btn) { b.style.opacity = '0.4'; b.style.pointerEvents = 'none'; } });
-          await net.room('inputs/'+pickPhaseId+'/'+hotPid).set({ v: a.pid, t: Date.now() });
-        }, { once: true });
-      });
+      // Only wire scene card clicks if host IS the hot seat player
+      if (net.hostSelfPid === hotPid) {
+        const _pickBtns = document.querySelectorAll('.sia-pick-btn');
+        let _picked = false;
+        _pickBtns.forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (_picked) return;
+            _picked = true;
+            const idx = parseInt(btn.dataset.idx);
+            const a = answerList[idx];
+            Audio_.sfx.submit();
+            btn.style.transform = 'scale(1.03)';
+            btn.style.boxShadow = '0 0 30px var(--yellow)';
+            btn.style.borderColor = 'var(--yellow)';
+            _pickBtns.forEach(b => { if (b !== btn) { b.style.opacity = '0.4'; b.style.pointerEvents = 'none'; } });
+            await net.room('inputs/'+pickPhaseId+'/'+hotPid).set({ v: a.pid, t: Date.now() });
+          }, { once: true });
+        });
+      }
 
-      // Also send specs so phone players see wait/choice UI
+      // Send choice spec — hot seat player gets buttons on their device via controller
       net.setState({ phase: 'input-split', phaseId: pickPhaseId, deadline: pickDeadline, specs: pickSpecs });
 
       // Bot hot seat auto-picks
@@ -1061,7 +1063,7 @@ const Host = (() => {
         }, 1500 + Math.random()*2000);
       }
 
-      const picks = await net.collect(pickPhaseId, null, [hotPid], inputTimeout(30));
+      const picks = await net.collect(pickPhaseId, pickSpecs[hotPid], [hotPid], inputTimeout(30));
       net.onEachInput(null);
 
       const chosenPid = val(picks, hotPid);
