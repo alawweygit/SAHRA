@@ -1076,7 +1076,7 @@
     const dock=$('#hostInputDock');if(dock){dock.classList.add('hidden');dock.innerHTML='';dock.removeAttribute('style');}
     const pp=$('#ppOverlay');if(pp){pp.classList.remove('show');pp.innerHTML='';}
     const ctrl=$('#ctrlArea');if(ctrl){ctrl.classList.add('hidden');ctrl.innerHTML='';}
-    const shared=$('#phoneSharedStage');if(shared){shared.classList.add('hidden');shared.innerHTML='';shared.dataset.sharedReady='';shared.dataset.gameStarted='';shared.dataset.sceneId='';}
+    const shared=$('#phoneSharedStage');if(shared){shared.classList.add('hidden');shared.style.removeProperty('display');shared.innerHTML='';shared.dataset.sharedReady='';shared.dataset.gameStarted='';shared.dataset.sceneId='';}
     const sharedHost=$('#phoneSharedHost');if(sharedHost){sharedHost.className='phone-shared-host hidden';sharedHost.innerHTML='';}
     const mirror=$('#phoneMirror');if(mirror){mirror.classList.add('hidden');mirror.querySelectorAll('#pmPill,#pmHeadline,#pmSpeech').forEach(el=>el.textContent='');}
     const stage=$('#hostStage');if(stage)stage.innerHTML='';
@@ -1454,9 +1454,19 @@
     }
     let lastPhaseId=null;
     let hostLeftTimer=null;
+    // Directly hide/show the shared-stage mirror via inline style. This is
+    // stronger than toggling a CSS class — it can't be silently overridden
+    // by any other CSS rule's specificity or cascade order.
+    function setSharedStageHidden(hidden){
+      const s=document.getElementById('phoneSharedStage');
+      if(!s)return;
+      if(hidden)s.style.setProperty('display','none','important');
+      else s.style.removeProperty('display');
+    }
     net.onState(state=>{
       if(!state||state.phase==='hostLeft'){
         document.body.classList.remove('phones-player-answering');
+        setSharedStageHidden(false);
         // If game is active, don't redirect — show banner and let game finish
         if(gameActive){
           // Show subtle banner that host disconnected but game continues
@@ -1507,15 +1517,17 @@
           if(_rawSpec&&_rawSpec.playerExcludes&&myPid!==undefined&&_rawSpec.playerExcludes[myPid]!==undefined){_rawSpec.excludeId=_rawSpec.playerExcludes[myPid];}
           const phoneSpec=_rawSpec?(phonesOnly?{..._rawSpec,controlsOnly:true,title:'',context:'',sub:''}:_rawSpec):null;
           if(!phoneSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
-          document.body.classList.toggle('phones-player-answering',phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow'));
+          const _pa1=phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow');
+          document.body.classList.toggle('phones-player-answering',_pa1);
+          setSharedStageHidden(_pa1);
           Controller.render(ctrl,phoneSpec,async value=>{
             const result=await net.submitInput(state.phaseId,value,{enforceUnique:phoneSpec.enforceUnique===true});
             if(result?.accepted===false)return result;
-            setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
+            setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
             return result;
           });
           resetScrollPositionAfterLayout();
-        }else if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else{Controller.waitScreen(ctrl,T.watchScreen());resetScrollPositionAfterLayout();}
+        }else if(phonesOnly){document.body.classList.remove('phones-player-answering');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else{Controller.waitScreen(ctrl,T.watchScreen());resetScrollPositionAfterLayout();}
       }else if(state.phase==='input-split'&&state.phaseId!==lastPhaseId){
         lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
         const rawSpec=state.specs?.[myPid]||state.specs?._default;
@@ -1534,7 +1546,9 @@
         }
         ctrl.classList.remove('hidden');
         const _isActiveInput = spec.type==='choice'||spec.type==='higherlow'||spec.type==='text'||spec.type==='number';
-        document.body.classList.toggle('phones-player-answering',phonesOnly&&_isActiveInput);
+        const _pa2=phonesOnly&&_isActiveInput;
+        document.body.classList.toggle('phones-player-answering',_pa2);
+        setSharedStageHidden(_pa2);
 
         // The host device already renders its own inline choice UI directly
         // into the scene (WYR picks, Diss votes, SIA pick-the-funniest) —
@@ -1547,7 +1561,7 @@
         Controller.render(ctrl,spec,async value=>{
           const result=await net.submitInput(state.phaseId,value,{enforceUnique:spec.enforceUnique===true});
           if(result?.accepted===false)return result;
-          setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
+          setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
           return result;
         });
         if(!phonesOnly)resetScrollPositionAfterLayout();
@@ -1566,6 +1580,7 @@
         // Show full game content on phone using mirror data
         if(phonesOnly){
           document.body.classList.remove('phones-player-answering');
+          setSharedStageHidden(false);
           if(shared.dataset.sharedReady!=='1')renderSharedStatus(state.msg||(LANG==='ar'?'جاري إعادة الاتصال باللعبة…':'Reconnecting to the game…'),LANG==='ar'?'لحظات...':'One moment…');
           // Host phone gets a Next button to advance the game
           if(window._hypoxIsHost&&window.__hypoxSkip){
