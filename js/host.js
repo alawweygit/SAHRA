@@ -993,6 +993,7 @@ const Host = (() => {
       pickSpecs[hotPid] = {
         type: 'choice',
         title: LANG==='ar'?'😂 اختار الأضحك':'😂 Pick the funniest',
+        context: promptText,
         options: pickOptions
       };
       // Everyone else waits
