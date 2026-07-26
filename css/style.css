@@ -1125,7 +1125,7 @@ html{font-size:17px;}
 
 /* ============ HOST STAGE ============ */
 #scr-game{padding:0!important;}
-#hostStage{width:100%!important;max-width:100%!important;padding:2vmin 4vmin!important;}
+#hostStage{width:100%!important;max-width:100%!important;padding-left:4vmin!important;padding-right:4vmin!important;}
 #scr-game.pack-picker-active{
   justify-content:flex-start!important;
   overflow-y:auto!important;

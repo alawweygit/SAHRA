@@ -1540,7 +1540,12 @@
             ? {...rawSpec, controlsOnly:true, title:'', context:'', sub:''}
             : rawSpec;
         if(!_needsInput){
-          // wait type — hide ctrl on all devices
+          // wait type — this device is just watching, not picking. Make sure
+          // the shared-stage mirror is visible (they should see it read-only),
+          // clearing any leftover hidden state from an earlier round where
+          // this device might have been the picker itself.
+          document.body.classList.remove('phones-player-answering');
+          setSharedStageHidden(false);
           ctrl.classList.add('hidden');ctrl.innerHTML='';
           return;
         }
