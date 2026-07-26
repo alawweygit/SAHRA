@@ -3,7 +3,7 @@
    (prompt → submit → vote → reveal → score), content & art are ours. */
 
 const Host = (() => {
-  let net = null, players = [], phaseCounter = 0, skipResolve = null;
+  let net = null, players = [], phaseCounter = Date.now(), skipResolve = null;
   let currentHost = null;
 
   /* Pick a random host persona for this game and repaint the blob */
@@ -325,6 +325,7 @@ const Host = (() => {
   }
 
   async function showScores(final = false) {
+    await FX.wipe();
     setPill(final ? t('final_results') : t('scores'));
     const sorted = players.slice().sort((a, b) => b.score - a.score);
     const max = Math.max(...sorted.map(p => p.score), 1);
@@ -1005,7 +1006,7 @@ const Host = (() => {
         <div class="eyebrow" style="text-transform:none;font-size:clamp(12px,2vmin,16px)">😂 ${LANG==='ar'?`${esc(hotSeat.name)} يختار الأضحك`:`<span style="text-transform:uppercase;letter-spacing:2px">${esc(hotSeat.name)}</span> PICKS THE FUNNIEST`}</div>
         <div class="prompt-card display" style="font-size:clamp(14px,2.2vmin,20px);margin-bottom:1.5vmin">${esc(promptText)}</div>
         <div class="pick-sub" style="font-size:clamp(12px,1.6vmin,15px);margin-bottom:1vmin;opacity:.7">${LANG==='ar'?'👇 اضغط على الأضحك':'👇 Tap the funniest answer'}</div>
-        <div class="ans-reveal-list" id="siaPickList" style="width:100%;max-width:700px">${answerList.map((a,idx)=>{
+        <div class="ans-reveal-list host-only-ui" id="siaPickList" style="width:100%;max-width:700px">${answerList.map((a,idx)=>{
           const col=COLS[idx%COLS.length];
           return `<button class="sia-pick-btn" data-idx="${idx}" style="
             display:flex;align-items:center;gap:12px;width:100%;
