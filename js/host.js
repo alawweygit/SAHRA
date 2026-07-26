@@ -326,7 +326,6 @@ const Host = (() => {
   }
 
   async function showScores(final = false) {
-    Audio_.startMusic('results');
     setPill(final ? t('final_results') : t('scores'));
     const sorted = players.slice().sort((a, b) => b.score - a.score);
     const max = Math.max(...sorted.map(p => p.score), 1);
@@ -976,25 +975,9 @@ const Host = (() => {
       if (answerList.length < 1) continue;
       net.onEachInput(null);
 
-      // Phase 3: Reveal answers ONE BY ONE with animation
-      await FX.wipe();
-      scene(`<div class="eyebrow">👀 ${LANG==='ar'?'الإجابات':'THE ANSWERS'}</div>
-        <div class="prompt-card display" style="font-size:clamp(13px,2vmin,18px)">${esc(promptText)}</div>
-        <div class="ans-reveal-list" id="ansRevealList" style="width:100%;max-width:700px"></div>`);
-      net.setState({ phase:'wait', msg: LANG==='ar'?'👀 شوف الإجابات...':'👀 Watch the answers...' });
-
-      const listEl = document.getElementById('ansRevealList');
-      answerList.forEach((a, idx) => {
-        const col = COLS[idx % COLS.length];
-        const card = document.createElement('div');
-        card.className = 'ans-card';
-        card.style.cssText = `border-left:4px solid ${col};animation:cardIn 0.4s ${idx*0.08}s both`;
-        card.innerHTML = `<span class="ans-letter" style="color:${col}">${String.fromCharCode(65+idx)}</span><span style="font-size:clamp(14px,2vmin,18px);font-weight:600">${esc(a.text)}</span>`;
-        listEl?.appendChild(card);
-      });
-      await sleep(800);
-
-      // Phase 4: Hot seat player picks favorite
+      // Phase 4: Hot seat player picks favorite (goes straight here from
+      // writing — no separate "watch the answers" screen in between; the
+      // pick screen itself already shows every answer)
       await FX.wipe();
       const pickPhaseId = 'ph' + (++phaseCounter);
       const pickDeadline = inputDeadline(30);
@@ -1083,34 +1066,29 @@ const Host = (() => {
       const winnerPlayer = safeP(winner.pid);
       if (winner.pid) addScore(winner.pid, WIN_PTS);
 
-      // Phase 5: Reveal — replace pick scene with full reveal scene
+      // Phase 5: Reveal — show ONLY the winning answer, no scrolling list
       Audio_.sfx.reveal(); FX.burst(80);
       scene(`
         <div style="height:max(60px,8vmin)"></div>
         <div class="eyebrow">🏆 ${LANG==='ar'?'الأضحك':'FUNNIEST ANSWER'}</div>
-        <div class="prompt-card display" style="font-size:clamp(13px,2vmin,18px)">${esc(promptText)}</div>
-        <div class="ans-reveal-list" style="width:100%;max-width:700px">
-          ${answerList.map((a,idx) => {
-            const isWin = a.pid === winner.pid;
-            const col = COLS[idx%COLS.length];
-            const p = safeP(a.pid);
-            return `<div class="ans-card" style="
-              border-left:${isWin?'6px':'4px'} solid ${isWin?'var(--yellow)':col};border:${isWin?'2px solid var(--yellow)':'1px solid var(--border)'};border-left:${isWin?'6px':'4px'} solid ${isWin?'var(--yellow)':col};
-              ${isWin?'background:linear-gradient(135deg,rgba(251,191,36,0.28),rgba(251,191,36,0.10));box-shadow:0 0 28px rgba(251,191,36,0.45),inset 0 0 0 2px rgba(251,191,36,0.5);transform:scale(1.02);':''}
-              flex-direction:column;gap:6px;animation-delay:${idx*0.08}s">
-              <div style="display:flex;align-items:center;gap:12px">
-                <span style="font-family:'Fredoka One',sans-serif;color:${isWin?'var(--yellow)':col};font-size:clamp(18px,2.5vmin,24px);min-width:26px">${String.fromCharCode(65+idx)}</span>
-                <span style="flex:1;font-size:clamp(14px,2vmin,18px);font-weight:700">${esc(a.text)}</span>
-                ${isWin?`<span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(12px,1.6vmin,15px);white-space:nowrap;background:rgba(251,191,36,0.15);padding:3px 10px;border-radius:20px">🏆 +${WIN_PTS}</span>`:''}
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;padding-left:38px">
-                ${avatarHTML(p)}
-                <span style="font-size:clamp(11px,1.4vmin,13px);color:${isWin?'var(--yellow)':'var(--text3)'}">
-                  ${isWin?`${esc(p?.name||'')} · ${LANG==='ar'?'اختاره':'chosen by'} ${esc(hotSeat.name)} 🔥`:esc(p?.name||'')}
-                </span>
-              </div>
-            </div>`;
-          }).join('')}
+        <div class="prompt-card display" style="font-size:clamp(14px,2.2vmin,20px);margin-bottom:1vmin">${esc(promptText)}</div>
+        <div style="width:100%;max-width:700px">
+          <div class="ans-card" style="
+            border:2px solid var(--yellow);border-left:6px solid var(--yellow);
+            background:linear-gradient(135deg,rgba(251,191,36,0.28),rgba(251,191,36,0.10));
+            box-shadow:0 0 28px rgba(251,191,36,0.45),inset 0 0 0 2px rgba(251,191,36,0.5);
+            flex-direction:column;gap:10px;padding:clamp(18px,2.6vmin,26px) clamp(18px,2.6vmin,26px);animation:cardIn 0.4s both">
+            <div style="display:flex;align-items:center;gap:14px">
+              <span style="flex:1;font-size:clamp(18px,2.6vmin,24px);font-weight:700">${esc(winner.text)}</span>
+              <span style="font-family:'Fredoka One',sans-serif;color:var(--yellow);font-size:clamp(13px,1.7vmin,16px);white-space:nowrap;background:rgba(251,191,36,0.15);padding:4px 12px;border-radius:20px">🏆 +${WIN_PTS}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              ${avatarHTML(winnerPlayer)}
+              <span style="font-size:clamp(12px,1.6vmin,15px);color:var(--yellow)">
+                ${esc(winnerPlayer?.name||'')} · ${LANG==='ar'?'اختاره':'chosen by'} ${esc(hotSeat.name)} 🔥
+              </span>
+            </div>
+          </div>
         </div>`);
       net.setState({ phase:'wait', msg: LANG==='ar'?`🏆 ${esc(winner.pid?safeP(winner.pid)?.name||'':'?')} فاز!`:`🏆 ${esc(winnerPlayer?.name||'')} wins!` });
       await hostSay('reveal');
