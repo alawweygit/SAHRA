@@ -1372,6 +1372,11 @@
       if(!html.trim())return false;
       const nextSceneId=String(view.sceneId??'');
       const sceneChanged=nextSceneId!==''&&shared.dataset.sceneId!==nextSceneId;
+      // Preserve scroll position across re-renders within the same scene —
+      // replacing innerHTML always resets scrollTop to 0, which breaks
+      // scrolling on any screen that updates repeatedly (bar-fill counters,
+      // avatar ticks, etc). Only jump to top when the scene actually changed.
+      const _prevScroll = sceneChanged ? 0 : shared.scrollTop;
       shared.innerHTML=html;
       shared.dataset.sharedReady='1';
       shared.dataset.gameStarted='1';
@@ -1379,7 +1384,12 @@
       if(view.pill!==undefined)$('#roundPill').textContent=view.pill||'';
       // Mutation updates inside one scene (avatars, scores, timers) must not
       // yank a player who is choosing below. Only a new game scene goes top.
-      if(sceneChanged)resetScrollPositionAfterLayout();
+      if(sceneChanged){
+        resetScrollPositionAfterLayout();
+      } else if(_prevScroll>0){
+        shared.scrollTop=_prevScroll;
+        requestAnimationFrame(()=>{shared.scrollTop=_prevScroll;});
+      }
       return true;
     }
     function renderSharedLobby(list){

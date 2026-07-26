@@ -1083,8 +1083,8 @@ const Host = (() => {
             const col = COLS[idx%COLS.length];
             const p = safeP(a.pid);
             return `<div class="ans-card" style="
-              border-left:4px solid ${isWin?'var(--yellow)':col};
-              ${isWin?'background:rgba(251,191,36,0.06);box-shadow:0 0 16px rgba(251,191,36,0.2);':''}
+              border-left:${isWin?'6px':'4px'} solid ${isWin?'var(--yellow)':col};border:${isWin?'2px solid var(--yellow)':'1px solid var(--border)'};border-left:${isWin?'6px':'4px'} solid ${isWin?'var(--yellow)':col};
+              ${isWin?'background:linear-gradient(135deg,rgba(251,191,36,0.28),rgba(251,191,36,0.10));box-shadow:0 0 28px rgba(251,191,36,0.45),inset 0 0 0 2px rgba(251,191,36,0.5);transform:scale(1.02);':''}
               flex-direction:column;gap:6px;animation-delay:${idx*0.08}s">
               <div style="display:flex;align-items:center;gap:12px">
                 <span style="font-family:'Fredoka One',sans-serif;color:${isWin?'var(--yellow)':col};font-size:clamp(18px,2.5vmin,24px);min-width:26px">${String.fromCharCode(65+idx)}</span>
