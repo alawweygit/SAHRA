@@ -464,6 +464,12 @@
         try{
           sessionStorage.setItem('hypox_session',JSON.stringify(_ps));
           await restoreNavigationState();
+          if(_leftOnPurpose){
+            // User chose to leave while restore was in flight — honor that,
+            // don't let the completed restore silently drop them into the game.
+            try{sessionStorage.removeItem('hypox_session');}catch(e){}
+            net=null;currentRoomCode=null;show('#scr-title');
+          }
         }catch(e){localStorage.removeItem('hypox_player_session');if(!_leftOnPurpose)show('#scr-title');}
         setTimeout(()=>_pb?.remove(),1500);
       })();

@@ -38,7 +38,7 @@ const Host = (() => {
      snapshot is published independently of input state, so timers, revealed
      hints, avatars and score animations stay live without interrupting forms. */
   let sharedObserver = null, sharedTimer = null, lastSharedHTML = '', sharedSceneId = 0;
-  function sharedHTML() {
+  function sharedHTML(stripAnimations) {
     const source = stage();
     if (!source) return '';
     const clone = source.cloneNode(true);
@@ -52,14 +52,17 @@ const Host = (() => {
         el.setAttribute('disabled', '');
         el.setAttribute('tabindex', '-1');
       }
-      // Strip CSS animations from the mirrored snapshot — this snapshot gets
-      // republished on every small change (e.g. each answer submitted), and
-      // replaying entrance animations on an unchanged screen looks like a
-      // blink/refresh to players. The animation already played once on the host.
-      if (el.style && el.style.animation) el.style.animation = 'none';
-      const styleAttr = el.getAttribute('style');
-      if (styleAttr && /animation\s*:/i.test(styleAttr)) {
-        el.setAttribute('style', styleAttr.replace(/animation\s*:[^;]+;?/gi, 'animation:none;'));
+      // Strip CSS animations only on incremental republishes of the SAME scene
+      // (e.g. one per answer submitted, timer ticks). The scene-establishing
+      // publish keeps its entrance animation so players still see cards deal
+      // in etc — it's the repeat republishes of an already-seen scene that
+      // caused the blink, since a full innerHTML replace restarts animations.
+      if (stripAnimations) {
+        if (el.style && el.style.animation) el.style.animation = 'none';
+        const styleAttr = el.getAttribute('style');
+        if (styleAttr && /animation\s*:/i.test(styleAttr)) {
+          el.setAttribute('style', styleAttr.replace(/animation\s*:[^;]+;?/gi, 'animation:none;'));
+        }
       }
     });
     return clone.innerHTML;
@@ -68,7 +71,7 @@ const Host = (() => {
     if (!net?.phonesOnly || !net.setSharedScreen) return;
     clearTimeout(sharedTimer);
     sharedTimer = setTimeout(() => {
-      const html = sharedHTML();
+      const html = sharedHTML(!force);
       if (!force && html === lastSharedHTML) return;
       lastSharedHTML = html;
       net.setSharedScreen({ html, pill: $('#roundPill')?.textContent || '', sceneId: sharedSceneId });
