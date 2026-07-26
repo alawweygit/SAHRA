@@ -1827,6 +1827,7 @@ body.ar .tutorial-bullets { text-align: right; }
 
 .host-only-ui{display:flex!important;}
 #phoneSharedStage .host-only-ui{display:none!important;}
+#phoneSharedStage button:disabled,#phoneSharedStage input:disabled,#phoneSharedStage textarea:disabled,#phoneSharedStage select:disabled{cursor:default!important;pointer-events:none!important;}
 
 /* WYR Multi-question host display */
 .wyr-multi-host{width:100%;max-width:680px;display:flex;flex-direction:column;gap:8px;margin-top:10px;}

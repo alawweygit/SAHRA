@@ -1227,6 +1227,7 @@ const Host = (() => {
         const votableOpts=myOpt?voteOpts.filter(o=>o.id!==myOpt):voteOpts;
         if (votableOpts.length) {
           const btnRow=document.createElement('div');
+          btnRow.className='host-only-ui';
           btnRow.style.cssText='display:flex;gap:12px;justify-content:center;margin-top:14px;width:100%;max-width:700px;align-items:stretch;';
           btnRow.innerHTML=votableOpts.map(o=>`<button id="diss_${o.id}" style="flex:1;max-width:320px;padding:14px;border-radius:14px;background:${o.color}22;border:2px solid ${o.color}60;color:var(--text);font-family:'Fredoka One',sans-serif;font-size:clamp(13px,1.8vmin,16px);cursor:pointer;line-height:1.4;text-align:left">${esc(o.id==='a'?lineA:lineB)}</button>`).join('<div style="font-family:Fredoka One;font-size:18px;color:var(--text3);display:flex;align-items:center">VS</div>');
           document.getElementById('hostStage')?.appendChild(btnRow);
