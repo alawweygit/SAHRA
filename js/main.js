@@ -1508,11 +1508,11 @@
       if(state.takenAnswers) window._hypoxTakenAnswers=state.takenAnswers;
       else if(state.phase==='input') window._hypoxTakenAnswers=[];
       if(state.mirror)renderMirror(state.mirror);
-      if(state.phase==='input'&&state.phaseId!==lastPhaseId){
-        _lastMirrorKey=''; // clear mirror when input starts
+      if(state.phase==='input'){
+        const _isNewPhase1 = state.phaseId!==lastPhaseId;
+        if(_isNewPhase1)_lastMirrorKey=''; // clear mirror when input starts
         if(!state.targets||state.targets.includes(myPid)){
-          lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
-          ctrl.classList.remove('hidden');
+          if(_isNewPhase1){lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);}
           const _rawSpec=state.spec?{...state.spec}:null;
           if(_rawSpec&&_rawSpec.playerExcludes&&myPid!==undefined&&_rawSpec.playerExcludes[myPid]!==undefined){_rawSpec.excludeId=_rawSpec.playerExcludes[myPid];}
           const phoneSpec=_rawSpec?(phonesOnly?{..._rawSpec,controlsOnly:true,title:'',context:'',sub:''}:_rawSpec):null;
@@ -1520,6 +1520,8 @@
           const _pa1=phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow');
           document.body.classList.toggle('phones-player-answering',_pa1);
           setSharedStageHidden(_pa1);
+          if(!_isNewPhase1)return; // avoid rebuilding the tappable buttons on a replayed event
+          ctrl.classList.remove('hidden');
           Controller.render(ctrl,phoneSpec,async value=>{
             const result=await net.submitInput(state.phaseId,value,{enforceUnique:phoneSpec.enforceUnique===true});
             if(result?.accepted===false)return result;
@@ -1528,8 +1530,9 @@
           });
           resetScrollPositionAfterLayout();
         }else if(phonesOnly){document.body.classList.remove('phones-player-answering');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else{Controller.waitScreen(ctrl,T.watchScreen());resetScrollPositionAfterLayout();}
-      }else if(state.phase==='input-split'&&state.phaseId!==lastPhaseId){
-        lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);
+      }else if(state.phase==='input-split'){
+        const _isNewPhase = state.phaseId!==lastPhaseId;
+        if(_isNewPhase){lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);}
         const rawSpec=state.specs?.[myPid]||state.specs?._default;
         if(!rawSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
         // In phones-only: choice/text types need full UI; wait types hide ctrl
@@ -1543,13 +1546,14 @@
           // wait type — this device is just watching, not picking. Make sure
           // the shared-stage mirror is visible (they should see it read-only),
           // clearing any leftover hidden state from an earlier round where
-          // this device might have been the picker itself.
+          // this device might have been the picker itself. This runs on
+          // EVERY state event (not just new phases) so a replayed/duplicate
+          // event after a reconnect can't leave stale visual state behind.
           document.body.classList.remove('phones-player-answering');
           setSharedStageHidden(false);
           ctrl.classList.add('hidden');ctrl.innerHTML='';
           return;
         }
-        ctrl.classList.remove('hidden');
         const _isActiveInput = spec.type==='choice'||spec.type==='higherlow'||spec.type==='text'||spec.type==='number';
         const _pa2=phonesOnly&&_isActiveInput;
         document.body.classList.toggle('phones-player-answering',_pa2);
@@ -1563,6 +1567,8 @@
           return;
         }
 
+        if(!_isNewPhase)return; // avoid rebuilding the tappable buttons on a replayed event
+        ctrl.classList.remove('hidden');
         Controller.render(ctrl,spec,async value=>{
           const result=await net.submitInput(state.phaseId,value,{enforceUnique:spec.enforceUnique===true});
           if(result?.accepted===false)return result;
