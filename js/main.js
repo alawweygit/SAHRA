@@ -188,6 +188,7 @@
       try{
         net=FirebaseNet.create();
         const resumed=await net.resumeHost(saved.roomCode,saved.hostSelfPid||null);
+        window._hypoxIsHost=true;
         players=resumed.players||[];hostMode=resumed.playMode||saved.playMode||'tv';
         net.phonesOnly=hostMode==='phones';net.hostSelfPid=saved.hostSelfPid||null;
         myPid=saved.hostSelfPid||null;currentRoomCode=saved.roomCode;
@@ -369,6 +370,7 @@
           try{
             net=FirebaseNet.create();
             const resumed=await net.resumeHost(_resume.code,_resume.hostSelfPid||null);
+            window._hypoxIsHost=true;
             players=resumed.players||[];
             hostMode=resumed.playMode||'tv';
             net.phonesOnly=hostMode==='phones';
