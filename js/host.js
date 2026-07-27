@@ -1015,6 +1015,12 @@ const Host = (() => {
             const col=COLS[idx%COLS.length];
             return `<button class="choice-btn sia-pick-btn" data-idx="${idx}" style="--cb:${col};text-align:left;animation-delay:${idx*0.07}s">${esc(a.text)}</button>`;
           }).join('')}</div>`);
+        // Defensive cleanup: make absolutely sure no leftover content from any
+        // other rendering surface can appear alongside this clean view.
+        const _extraCtrl = document.getElementById('ctrlArea');
+        if (_extraCtrl) { _extraCtrl.innerHTML = ''; _extraCtrl.classList.add('hidden'); }
+        const _extraShared = document.getElementById('phoneSharedStage');
+        if (_extraShared) _extraShared.style.setProperty('display', 'none', 'important');
       } else {
         scene(`
           <div style="height:max(60px,8vmin)"></div>
@@ -1459,7 +1465,7 @@ const Host = (() => {
     return new Promise(res => {
       const stage = document.getElementById('hostStage');
       const btn = document.createElement('button');
-      btn.className = 'big-btn';
+      btn.className = 'big-btn host-only-ui';
       btn.style.marginTop = '2vmin';
       btn.style.marginBottom = 'max(24px,4vmin)';
       stage?.classList.add('has-next-btn');
