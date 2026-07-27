@@ -1009,11 +1009,11 @@ const Host = (() => {
       if (net.hostSelfPid === hotPid) {
         scene(`
           <div style="height:max(60px,8vmin)"></div>
-          <div class="ctrl-title display" style="font-size:clamp(16px,2.4vmin,22px)">😂 ${LANG==='ar'?'اختار الأضحك':'Pick the funniest'}</div>
-          <div class="ctrl-context" style="max-width:700px;width:100%">${esc(promptText)}</div>
-          <div class="ctrl-choices" id="siaPickList" style="width:100%;max-width:700px;display:flex;flex-direction:column;gap:10px;margin-top:6px">${answerList.map((a,idx)=>{
+          <div class="ctrl-title display">😂 ${LANG==='ar'?'اختار الأضحك':'Pick the funniest'}</div>
+          <div class="ctrl-context">${esc(promptText)}</div>
+          <div class="ctrl-choices" id="siaPickList">${answerList.map((a,idx)=>{
             const col=COLS[idx%COLS.length];
-            return `<button class="choice-btn sia-pick-btn" data-idx="${idx}" style="--cb:${col};text-align:left;animation-delay:${idx*0.07}s">${esc(a.text)}</button>`;
+            return `<button class="choice-btn sia-pick-btn" data-idx="${idx}" style="--cb:${col};animation-delay:${idx*0.07}s">${esc(String.fromCharCode(65+idx)+'. '+a.text)}</button>`;
           }).join('')}</div>`);
         // Defensive cleanup: make absolutely sure no leftover content from any
         // other rendering surface can appear alongside this clean view.
