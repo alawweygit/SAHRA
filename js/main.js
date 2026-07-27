@@ -1559,19 +1559,6 @@
         document.body.classList.toggle('phones-player-answering',_pa2);
         setSharedStageHidden(_pa2);
 
-        // TEMPORARY DEBUG — remove once the host/player mismatch is found.
-        // Shows the live values this check depends on, directly on screen.
-        if(spec.type==='choice'){
-          let _dbg=document.getElementById('_hypoxDebug');
-          if(!_dbg){
-            _dbg=document.createElement('div');
-            _dbg.id='_hypoxDebug';
-            _dbg.style.cssText='position:fixed;top:2px;right:4px;font-size:9px;color:#ff0;z-index:99999;background:rgba(0,0,0,0.7);padding:2px 6px;border-radius:4px;font-family:monospace;pointer-events:none;text-align:right;line-height:1.4;';
-            document.body.appendChild(_dbg);
-          }
-          _dbg.innerHTML=`hostSelfPid: ${net.hostSelfPid}<br>myPid: ${myPid}<br>match: ${net.hostSelfPid===myPid}<br>isHostFlag: ${window._hypoxIsHost}`;
-        }
-
         // The host device already renders its own inline choice UI directly
         // into the scene (WYR picks, Diss votes, SIA pick-the-funniest) —
         // rendering the same choice again here would duplicate it. Check
