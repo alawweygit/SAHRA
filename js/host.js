@@ -956,10 +956,11 @@ const Host = (() => {
 
       // Phase 2: Show prompt, collect answers from everyone except hot seat
       await FX.wipe();
-      scene(`<div class="eyebrow">😂 ${LANG==='ar'?'قولها أنون':'SAY IT ANON'}</div>
-        <div class="prompt-card display">${esc(promptText)}</div>
-        <div class="pick-sub">${LANG==='ar'?'✍️ اكتب أضحك إجابة — هويتك سرية!':'✍️ Write the funniest answer — stay anonymous!'}</div>
-        <div id="statusRow" class="status-row"></div>`);
+      scene(`<div style="height:max(20px,3vmin)"></div>
+        <div class="eyebrow">😂 ${LANG==='ar'?'قولها أنون':'SAY IT ANON'}</div>
+        <div class="prompt-card display" style="margin-top:1vmin">${esc(promptText)}</div>
+        <div class="pick-sub" style="margin-top:1.5vmin">${LANG==='ar'?'✍️ اكتب أضحك إجابة — هويتك سرية!':'✍️ Write the funniest answer — stay anonymous!'}</div>
+        <div id="statusRow" class="status-row" style="margin-top:1vmin"></div>`);
       Audio_.sfx.sting(); hostSay('prompt');
 
       const row = $('#statusRow');
