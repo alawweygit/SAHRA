@@ -1561,8 +1561,11 @@
 
         // The host device already renders its own inline choice UI directly
         // into the scene (WYR picks, Diss votes, SIA pick-the-funniest) —
-        // rendering the same choice again here would duplicate it.
-        if(window._hypoxIsHost&&(spec.type==='choice'||spec.type==='higherlow')){
+        // rendering the same choice again here would duplicate it. Check
+        // net.hostSelfPid directly (the same value host.js uses for this
+        // exact decision) rather than the separate window._hypoxIsHost flag,
+        // which has code paths that can leave it out of sync.
+        if(net.hostSelfPid&&net.hostSelfPid===myPid&&(spec.type==='choice'||spec.type==='higherlow')){
           ctrl.classList.add('hidden');ctrl.innerHTML='';
           return;
         }
@@ -1594,7 +1597,7 @@
           setSharedStageHidden(false);
           if(shared.dataset.sharedReady!=='1')renderSharedStatus(state.msg||(LANG==='ar'?'جاري إعادة الاتصال باللعبة…':'Reconnecting to the game…'),LANG==='ar'?'لحظات...':'One moment…');
           // Host phone gets a Next button to advance the game
-          if(window._hypoxIsHost&&window.__hypoxSkip){
+          if(net.hostSelfPid&&net.hostSelfPid===myPid&&window.__hypoxSkip){
             ctrl.classList.remove('hidden');
             if(!ctrl.querySelector('#phonesNextBtn')){
               ctrl.innerHTML=`<div style="padding:12px 16px">
@@ -1678,7 +1681,7 @@
         resetScrollPositionAfterLayout();
       }else if(state.phase==='winner'){
         ctrl.classList.remove('hidden');
-        const _isHostPhone=window._hypoxIsHost&&net?.phonesOnly;
+        const _isHostPhone=(net.hostSelfPid&&net.hostSelfPid===myPid)&&net?.phonesOnly;
         ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center">
           <div class="crown">👑</div>
           <div class="ctrl-title display">${state.emoji} ${esc(state.name)}</div>
