@@ -744,12 +744,17 @@ const Host = (() => {
       // Online players already received the split-input state above. One
       // Device mode has no remote controller, so it still needs the complete
       // WYR spec to render each pass-the-phone answer sheet.
+      // The host's own inline buttons above already handle their input when
+      // phones-only, so skip the redundant auto-triggered overlay for them.
+      const _savedPromptLocalWyr = net.promptLocal;
+      if (net.hostSelfPid && !net.isOffline) net.promptLocal = null;
       const all = await net.collect(
         phaseId,
         net.isOffline ? phoneWyrSpec : null,
         players.map(p => p.pid),
         inputTimeout(45)
       );
+      net.promptLocal = _savedPromptLocalWyr;
       net.onEachInput(null);
       net.setState({ phase: 'wait', msg: t('watch_screen') });
 
@@ -1077,7 +1082,14 @@ const Host = (() => {
         }, 1500 + Math.random()*2000);
       }
 
+      // The host's own scene already has working click handlers for this pick
+      // (wired above, when net.hostSelfPid===hotPid) — so the generic
+      // "host answers via bottom overlay" auto-trigger inside net.collect()
+      // would just duplicate it. Temporarily disable it for this one call.
+      const _savedPromptLocal = net.promptLocal;
+      if (net.hostSelfPid === hotPid) net.promptLocal = null;
       const picks = await net.collect(pickPhaseId, pickSpecs[hotPid], [hotPid], inputTimeout(30));
+      net.promptLocal = _savedPromptLocal;
       net.onEachInput(null);
 
       const chosenPid = val(picks, hotPid);
@@ -1237,7 +1249,10 @@ const Host = (() => {
         }
       }
 
+      const _savedPromptLocalDiss = net.promptLocal;
+      if (net.hostSelfPid) net.promptLocal = null;
       const votes = await net.collect(votePhaseId, null, allPids, inputTimeout(20));
+      net.promptLocal = _savedPromptLocalDiss;
       net.onEachInput(null);
 
       // Count votes
