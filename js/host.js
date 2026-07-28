@@ -79,7 +79,19 @@ const Host = (() => {
   }
   function startSharedScreen() {
     if (!net?.phonesOnly || sharedObserver) return;
-    sharedObserver = new MutationObserver(() => publishSharedScreen());
+    sharedObserver = new MutationObserver((records) => {
+      // Ignore mutations confined entirely to .host-only-ui subtrees (e.g. the
+      // waitNext countdown button's text ticking every second) — those are
+      // already hidden from players via CSS, so republishing the whole clone
+      // for them just causes a full DOM replace ~once/sec with nothing new
+      // for the player to actually see. That repeated replace is what reads
+      // as "blinking" throughout every reveal/scores countdown.
+      const meaningful = records.some(r => {
+        const n = r.target.nodeType === 1 ? r.target : r.target.parentElement;
+        return !n?.closest?.('.host-only-ui');
+      });
+      if (meaningful) publishSharedScreen();
+    });
     sharedObserver.observe(stage(), { childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:['class','style'] });
     publishSharedScreen(true);
   }
