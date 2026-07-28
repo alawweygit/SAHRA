@@ -1519,7 +1519,7 @@ body.ar .hint-display { direction: ltr !important; text-align: center !important
 }
 
 /* ===== LOADING STATE ===== */
-.big-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+/* .big-btn:disabled legibility rule lives with the other big-btn states above — removed duplicate here that was overriding it with plain opacity:0.6 (no contrast compensation), causing unreadable disabled-button text */
 
 /* ===== GAME SCREEN MOBILE ===== */
 @media(max-width:600px){
