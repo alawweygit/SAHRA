@@ -1455,7 +1455,8 @@ const Host = (() => {
         <div class="eyebrow">📍 ${esc(t('mode_names').pinpoint || 'PIN POINT')}</div>
         ${city.img ? `<img class="pp-photo" src="${city.img}" alt="" onerror="this.style.display='none'"/>` : ''}
         <div class="prompt-card">${esc(cityName)}</div>
-        <div class="pick-sub">${LANG==='ar'?'وين هالمدينة؟ حط دبوسك على الخريطة!':'Where is this city? Drop your pin on the map!'}</div>`);
+        <div class="pick-sub">${LANG==='ar'?'وين هالمدينة؟ حط دبوسك على الخريطة!':'Where is this city? Drop your pin on the map!'}</div>
+        <div id="statusRow" class="status-row"></div>`);
       pushMirror({ headline: cityName, pill: `${r+1}/${pool.length}` });
       Audio_.sfx.sting();
 
@@ -1513,7 +1514,12 @@ const Host = (() => {
           L.polyline([[city.lat, city.lon], [r2.guess.lat, r2.guess.lon]], { color: r2.p.color, weight: 2, opacity: .55, dashArray: '6 6' }).addTo(rm);
           bounds.push([r2.guess.lat, r2.guess.lon]);
         });
-        if (bounds.length > 1) rm.fitBounds(bounds, { padding: [45, 45], maxZoom: 6 });
+        if (bounds.length > 1) {
+          requestAnimationFrame(() => {
+            rm.invalidateSize();
+            rm.fitBounds(bounds, { padding: [45, 45], maxZoom: 6 });
+          });
+        }
       } catch(e) { console.error('reveal map failed', e); }
       pushMirror({ headline: results.slice(0,3).map((r2,i)=>`${i+1}. ${r2.p.name} ${r2.guessed?r2.km+'km':'—'}`).join(' · ') });
       await waitNext();
