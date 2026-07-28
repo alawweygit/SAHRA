@@ -1355,8 +1355,12 @@
         sharedHost.innerHTML=`<div class="psh-face"><span class="psh-eye">•</span><span class="psh-eye">•</span><span class="psh-smile">⌣</span><span class="psh-bow">◆</span></div><div class="psh-speech"><div class="psh-name">${esc(m.hostName||'')}</div>${esc(m.speech)}</div>`;
       }else if(phonesOnly&&m.hostVisible===false){sharedHost.classList.add('hidden');}
       // Full-screen mirror: skip re-render if content unchanged (prevents emoji/score blinking)
+      // Phones-only: #ctrlArea is owned by the phase handlers (input UI / Next
+      // button / waiting message) — never let the mirror listener (which fires
+      // independently of phase/state changes) overwrite it, or stale sub/quote
+      // text and forced scroll resets leak into the reveal/scores screens.
       const mirrorKey = JSON.stringify({h:m.headline,s:m.sub,sc:m.scores?m.scores.length:0});
-      if(!isInputActive() && (m.headline||m.scores) && mirrorKey !== _lastMirrorKey){
+      if(!phonesOnly && !isInputActive() && (m.headline||m.scores) && mirrorKey !== _lastMirrorKey){
         _lastMirrorKey = mirrorKey;
         ctrl.innerHTML=buildMirrorHTML(m);
         const _sc=document.getElementById('scr-controller');

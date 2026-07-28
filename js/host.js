@@ -1361,14 +1361,6 @@ const Host = (() => {
         addScore(pid, CORRECT_PTS);
       });
       const names = right.map(pid => players.find(p => p.pid === pid)?.name).filter(Boolean).join(', ');
-      // Per-round score list (who got it right + points), same pattern as trueorlie/flaghunt/higherlow
-      const scoreListHTML = `<div class="score-list" style="margin-top:1.5vmin">${pids.map((pid, idx) => {
-        const p = safeP(pid); if (!p) return '';
-        const got = right.includes(pid);
-        return `<div class="score-row" style="animation-delay:${idx*.1}s">${avatarHTML(p)}<div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}"><span class="bar-name">${esc(p.name)}</span><span class="bar-pts">${got?'✓ +'+CORRECT_PTS:'✗ 0'}</span></div></div></div>`;
-      }).join('')}</div>`;
-      const stage = document.getElementById('hostStage');
-      if (stage) stage.insertAdjacentHTML('beforeend', scoreListHTML);
       pushMirror({ headline: `✓ ${Q.options[Q.correct]}` + (right.length ? ` — ${names}` : '') });
       await say(right.length
         ? `${names} ${t('got_it_right')}!`
