@@ -1519,7 +1519,7 @@
           if(_isNewPhase1){lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);}
           const _rawSpec=state.spec?{...state.spec}:null;
           if(_rawSpec&&_rawSpec.playerExcludes&&myPid!==undefined&&_rawSpec.playerExcludes[myPid]!==undefined){_rawSpec.excludeId=_rawSpec.playerExcludes[myPid];}
-          const phoneSpec=_rawSpec?(phonesOnly?{..._rawSpec,controlsOnly:true,title:'',context:'',sub:''}:_rawSpec):null;
+          const phoneSpec=_rawSpec?(phonesOnly?{..._rawSpec,controlsOnly:false}:_rawSpec):null;
           if(!phoneSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
           const _pa1=phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow');
           document.body.classList.toggle('phones-player-answering',_pa1);
