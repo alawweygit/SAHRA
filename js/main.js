@@ -1382,6 +1382,50 @@
       shared.innerHTML=`<div class="shared-status ctrl-wrap"><div class="ctrl-title display">${esc(title)}</div>${sub?`<div class="ctrl-sub">${esc(sub)}</div>`:''}</div>`;
       resetScrollPositionAfterLayout();
     }
+    // Morph `container`'s children to match `newHTML` instead of a full
+    // innerHTML teardown-and-rebuild. A full replace is what caused every
+    // instance of the player-side "blink": a countdown tick, one avatar
+    // getting a checkmark, or a score bar animating would nuke and rebuild
+    // the ENTIRE subtree (all buttons, all avatars) on every republish, even
+    // though only one small thing changed. Morphing walks both trees by
+    // position and only patches nodes whose tag/attrs/text actually differ —
+    // untouched siblings are never removed from the DOM, so nothing flashes.
+    function morphInto(container, newHTML){
+      const tmp = document.createElement('div');
+      tmp.innerHTML = newHTML;
+      morphChildren(container, tmp);
+    }
+    function morphChildren(oldParent, newParent){
+      const oldNodes = Array.from(oldParent.childNodes);
+      const newNodes = Array.from(newParent.childNodes);
+      const max = Math.max(oldNodes.length, newNodes.length);
+      for(let i=0;i<max;i++){
+        const o = oldNodes[i], n = newNodes[i];
+        if(!n){ if(o) oldParent.removeChild(o); continue; }
+        if(!o){ oldParent.appendChild(n.cloneNode(true)); continue; }
+        if(o.nodeType!==n.nodeType || (o.nodeType===1 && o.tagName!==n.tagName)){
+          oldParent.replaceChild(n.cloneNode(true), o);
+          continue;
+        }
+        if(o.nodeType===3){ // text node
+          if(o.textContent!==n.textContent) o.textContent=n.textContent;
+          continue;
+        }
+        if(o.nodeType!==1) continue; // skip comments etc.
+        // Sync attributes
+        const oldAttrs = o.attributes ? Array.from(o.attributes) : [];
+        const newAttrs = n.attributes ? Array.from(n.attributes) : [];
+        oldAttrs.forEach(a=>{ if(!n.hasAttribute(a.name)) o.removeAttribute(a.name); });
+        newAttrs.forEach(a=>{ if(o.getAttribute(a.name)!==a.value) o.setAttribute(a.name,a.value); });
+        // Leaf nodes with no element children: sync text directly (avoids
+        // clobbering nodes that only ever hold text, e.g. score numbers)
+        if(!n.children.length && !o.children.length){
+          if(o.textContent!==n.textContent) o.textContent=n.textContent;
+        } else {
+          morphChildren(o, n);
+        }
+      }
+    }
     function renderShared(view){
       if(!phonesOnly||!view?.html||!String(view.html).trim())return false;
       const html=safeSharedHTML(view.html);
@@ -1396,7 +1440,11 @@
       // itself does not scroll — see CSS), so track/restore scroll there.
       const _scEl = document.getElementById('scr-controller');
       const _prevScroll = sceneChanged ? 0 : (_scEl?.scrollTop || 0);
-      shared.innerHTML=html;
+      if(sceneChanged || !shared.dataset.sharedReady){
+        shared.innerHTML=html; // first paint / genuinely new scene: full mount
+      } else {
+        morphInto(shared, html); // same scene updating: patch only what changed
+      }
       shared.dataset.sharedReady='1';
       shared.dataset.gameStarted='1';
       if(nextSceneId!=='')shared.dataset.sceneId=nextSceneId;
