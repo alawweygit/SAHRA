@@ -67,11 +67,12 @@ const Host = (() => {
     });
     return clone.innerHTML;
   }
-  function publishSharedScreen(force = false) {
+  function publishSharedScreen(force = false, opts = {}) {
     if (!net?.phonesOnly || !net.setSharedScreen) return;
     clearTimeout(sharedTimer);
+    const strip = opts.strip !== undefined ? opts.strip : !force;
     sharedTimer = setTimeout(() => {
-      const html = sharedHTML(!force);
+      const html = sharedHTML(strip);
       if (!force && html === lastSharedHTML) return;
       lastSharedHTML = html;
       net.setSharedScreen({ html, pill: $('#roundPill')?.textContent || '', sceneId: sharedSceneId });
@@ -109,7 +110,23 @@ const Host = (() => {
     if (!net?.phonesOnly) return;
     sharedObserver?.disconnect(); sharedObserver = null;
     clearTimeout(sharedTimer); sharedTimer = null;
-    setTimeout(() => { if (net?.phonesOnly) startSharedScreen(); }, ms);
+    setTimeout(() => {
+      if (!net?.phonesOnly) return;
+      // Settled-state publish: force through immediately (no 400ms debounce)
+      // but WITH animations stripped, so it doesn't replay the entrance
+      // animation a second time on top of the one scene() already sent.
+      publishSharedScreen(true, { strip: true });
+      if (!sharedObserver) {
+        sharedObserver = new MutationObserver((records) => {
+          const meaningful = records.some(r => {
+            const n = r.target.nodeType === 1 ? r.target : r.target.parentElement;
+            return !n?.closest?.('.host-only-ui');
+          });
+          if (meaningful) publishSharedScreen();
+        });
+        sharedObserver.observe(stage(), { childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:['class','style'] });
+      }
+    }, ms);
   }
 
   /* Mirror: in phones-only mode there is no shared TV, so we broadcast a
