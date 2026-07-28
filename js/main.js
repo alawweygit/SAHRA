@@ -1392,7 +1392,10 @@
       // replacing innerHTML always resets scrollTop to 0, which breaks
       // scrolling on any screen that updates repeatedly (bar-fill counters,
       // avatar ticks, etc). Only jump to top when the scene actually changed.
-      const _prevScroll = sceneChanged ? 0 : shared.scrollTop;
+      // #scr-controller is the single scroll container (phoneSharedStage
+      // itself does not scroll — see CSS), so track/restore scroll there.
+      const _scEl = document.getElementById('scr-controller');
+      const _prevScroll = sceneChanged ? 0 : (_scEl?.scrollTop || 0);
       shared.innerHTML=html;
       shared.dataset.sharedReady='1';
       shared.dataset.gameStarted='1';
@@ -1402,9 +1405,9 @@
       // yank a player who is choosing below. Only a new game scene goes top.
       if(sceneChanged){
         resetScrollPositionAfterLayout();
-      } else if(_prevScroll>0){
-        shared.scrollTop=_prevScroll;
-        requestAnimationFrame(()=>{shared.scrollTop=_prevScroll;});
+      } else if(_prevScroll>0&&_scEl){
+        _scEl.scrollTop=_prevScroll;
+        requestAnimationFrame(()=>{_scEl.scrollTop=_prevScroll;});
       }
       return true;
     }
