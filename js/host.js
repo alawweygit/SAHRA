@@ -87,6 +87,18 @@ const Host = (() => {
     sharedObserver?.disconnect(); sharedObserver = null;
     clearTimeout(sharedTimer); sharedTimer = null; lastSharedHTML = '';
   }
+  // Pause the DOM-clone broadcast for a known animation window (e.g. the
+  // score bar-fill + count-up in showScores()), then publish once cleanly
+  // once everything has settled. Without this, the observer's debounce can
+  // fire WHILE bars/counters are still mid-animation (staggered per player),
+  // shipping players a half-finished snapshot that looks like a blink/jump
+  // compared to the host's own live CSS transition.
+  function suspendSharedScreen(ms) {
+    if (!net?.phonesOnly) return;
+    sharedObserver?.disconnect(); sharedObserver = null;
+    clearTimeout(sharedTimer); sharedTimer = null;
+    setTimeout(() => { if (net?.phonesOnly) startSharedScreen(); }, ms);
+  }
 
   /* Mirror: in phones-only mode there is no shared TV, so we broadcast a
      lightweight text mirror of the stage to every player's phone. Harmless
@@ -352,6 +364,10 @@ const Host = (() => {
             </div>
           </div>`).join('')}
       </div>`);
+    // Pause the DOM-clone broadcast for the full animation window (staggered
+    // start + count-up duration + buffer), then it auto-resumes and publishes
+    // the settled end-state once — see suspendSharedScreen().
+    suspendSharedScreen(300 + Math.max(0, sorted.length - 1) * 80 + 900 + 250);
     await sleep(300);
     sorted.forEach((p, i) => setTimeout(() => {
       const b = $('#bar-' + p.pid);
