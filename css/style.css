@@ -288,7 +288,7 @@ body.ar .room-code{letter-spacing:1px;}
 .big-btn.ghost{background:var(--btn-secondary-bg);border:2px solid var(--border-hi);color:var(--text);box-shadow:none;}
 .big-btn.ghost::after{display:none;}
 .big-btn.ghost:hover{background:var(--card);}
-.big-btn.dim{opacity:0.75;filter:saturate(0.35) brightness(0.8);cursor:not-allowed;}
+.big-btn.dim{opacity:0.9;filter:saturate(0.35);cursor:not-allowed;}
 .big-btn:disabled{opacity:0.75;filter:saturate(0.35) brightness(0.8);cursor:default;}
 
 /* ============ AVATAR PICKER ============ */
