@@ -1459,7 +1459,6 @@ const Host = (() => {
       setPill(`${t('round')} ${r+1} ${t('of')} ${pool.length}`);
       scene(`
         <div class="eyebrow">📍 ${esc(t('mode_names').pinpoint || 'PIN POINT')}</div>
-        ${city.img ? `<img class="pp-photo" src="${city.img}" alt="" onerror="this.style.display='none'"/>` : ''}
         <div class="prompt-card">${esc(cityName)}</div>
         <div class="pick-sub">${LANG==='ar'?'وين هالمدينة؟ حط دبوسك على الخريطة!':'Where is this city? Drop your pin on the map!'}</div>
         <div id="statusRow" class="status-row"></div>`);
