@@ -1498,7 +1498,7 @@ const Host = (() => {
             <div class="score-row" style="animation-delay:${i*.12}s">
               <div class="medal">${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
               <div class="avatar" style="background:${r2.p.color}">${r2.p.emoji}</div>
-              <div class="bar-track"><div class="bar-fill" style="width:${Math.max(15,100-i*20)}%;background:linear-gradient(90deg,var(--blue),var(--green))">
+              <div class="bar-track"><div class="bar-fill" style="width:${r2.guessed ? Math.max(15,100-i*20) : 4}%;background:${r2.guessed ? 'linear-gradient(90deg,var(--blue),var(--green))' : 'rgba(255,255,255,.08)'}">
                 ${esc(r2.p.name)} · ${r2.guessed ? r2.km.toLocaleString()+' km' : (LANG==='ar'?'ما جاوب':'no pin')}
               </div></div>
             </div>`).join('')}
@@ -1507,8 +1507,9 @@ const Host = (() => {
         const rm = L.map(document.getElementById('revealMap'), {
           center: [city.lat, city.lon], zoom: 3, zoomControl: false, attributionControl: false,
           dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
+          worldCopyJump: false, maxBounds: [[-90,-180],[90,180]], maxBoundsViscosity: 1.0,
         });
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 10 }).addTo(rm);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 10, noWrap: true }).addTo(rm);
         L.circleMarker([city.lat, city.lon], { radius: 13, color: '#fff', weight: 3, fillColor: '#facc15', fillOpacity: 1 })
           .addTo(rm).bindTooltip('⭐ ' + cityName, { permanent: true, direction: 'top' });
         const bounds = [[city.lat, city.lon]];
