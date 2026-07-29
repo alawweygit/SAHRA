@@ -56,11 +56,11 @@ body.theme-light {
 /* ============ BASE ============ */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
 html,body{height:100%;overflow:hidden;position:fixed;width:100%;}
-#scr-title,#scr-lobby,#scr-join,#scr-avatar{overflow-y:scroll!important;-webkit-overflow-scrolling:touch!important;height:100vh;padding-bottom:120px!important;scroll-behavior:auto;overscroll-behavior-y:contain;will-change:scroll-position;}
+#scr-title,#scr-lobby,#scr-join,#scr-avatar{overflow-y:scroll!important;-webkit-overflow-scrolling:touch!important;height:100vh;height:100dvh;padding-bottom:120px!important;scroll-behavior:auto;overscroll-behavior-y:contain;will-change:scroll-position;}
 #scr-lobby{justify-content:flex-start!important;padding-top:max(70px,9vmin)!important;}
 #startGameBtn{margin-top:3.5vmin!important;position:relative;z-index:2;}
 /* scr-pregame scroll rules consolidated below in PREGAME V3 */
-#scr-games{overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;scroll-behavior:auto;overscroll-behavior-y:contain;will-change:scroll-position;height:100vh;}
+#scr-games{overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;scroll-behavior:auto;overscroll-behavior-y:contain;will-change:scroll-position;height:100vh;height:100dvh;}
 html,body,#app,.screen,#hostStage,#scr-controller,#phoneSharedStage,#ctrlArea{overflow-anchor:none;}
 body{
   font-family:'Space Grotesk',system-ui,sans-serif;
@@ -75,7 +75,7 @@ body.ar{font-family:'Tajawal','Space Grotesk',sans-serif;}
 body.ar .display{font-family:'Lalezar','Tajawal',sans-serif;}
 
 /* ============ APP SHELL ============ */
-#app{position:relative;width:100vw;height:100vh;overflow:hidden;}
+#app{position:relative;width:100vw;height:100vh;height:100dvh;overflow:hidden;}
 
 /* Background decoration */
 #bg-deco{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
@@ -751,7 +751,7 @@ body.phones-player-answering #phoneSharedStage{display:none!important;}
 
 /* ============ PRE-GAME SCREEN ============ */
 /* scr-pregame layout consolidated below in PREGAME V3 */
-#pregameContent{overflow-y:auto;max-height:calc(100vh - 14vmin);padding-bottom:1vmin;}
+#pregameContent{overflow-y:auto;max-height:calc(100vh - 14vmin);max-height:calc(100dvh - 14vmin);padding-bottom:1vmin;}
 .pregame-sticky-bottom{
   position:sticky;bottom:0;left:0;right:0;
   background:var(--bg);
@@ -1204,7 +1204,9 @@ html{font-size:17px;}
 #scr-game.rebus-input-active #hostStage{height:auto!important;min-height:0!important;flex:0 0 auto!important;padding-bottom:6px!important;}
 #scr-game.rebus-input-active .host-input-dock{flex:0 0 auto!important;margin-top:4px!important;}
 @media(min-width:601px){
-  .phones-only-player #scr-controller{position:absolute!important;inset:0!important;min-height:100vh!important;height:100vh!important;overflow-y:auto!important;justify-content:flex-start!important;padding-top:92px!important;padding-bottom:30px!important;}
+  /* .phones-only-player #scr-controller height rule lives earlier in the file
+     (with dvh) — removed duplicate here that lacked dvh and would have won
+     the cascade on wider phones/tablets in landscape. */
   .phones-only-player #scr-controller:has(#ctrlArea:not(.hidden)){justify-content:flex-start!important;}
   .phones-only-player #phoneSharedStage:has(.rebus-live){flex:0 0 auto;margin-top:0;}
   .phones-only-player #phoneSharedStage .score-list{margin-left:auto;margin-right:auto;}
