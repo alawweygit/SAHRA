@@ -1505,11 +1505,11 @@ const Host = (() => {
         </div>`);
       try {
         const rm = L.map(document.getElementById('revealMap'), {
-          center: [city.lat, city.lon], zoom: 3, zoomControl: false, attributionControl: false,
+          center: [city.lat, city.lon], zoom: 3, minZoom: 2, zoomControl: false, attributionControl: false,
           dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
           worldCopyJump: false, maxBounds: [[-90,-180],[90,180]], maxBoundsViscosity: 1.0,
         });
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 10, noWrap: true }).addTo(rm);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 10, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]] }).addTo(rm);
         L.circleMarker([city.lat, city.lon], { radius: 13, color: '#fff', weight: 3, fillColor: '#facc15', fillOpacity: 1 })
           .addTo(rm).bindTooltip('⭐ ' + cityName, { permanent: true, direction: 'top' });
         const bounds = [[city.lat, city.lon]];
