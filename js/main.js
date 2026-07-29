@@ -1563,6 +1563,9 @@
       if(state.takenAnswers) window._hypoxTakenAnswers=state.takenAnswers;
       else if(state.phase==='input') window._hypoxTakenAnswers=[];
       if(state.mirror)renderMirror(state.mirror);
+      // Default to undocked; only the wait/scores branch below re-engages it.
+      document.getElementById('playerDock')?.classList.remove('docked');
+      document.getElementById('scr-controller')?.classList.remove('has-docked-footer');
       if(state.phase==='input'){
         const _isNewPhase1 = state.phaseId!==lastPhaseId;
         if(_isNewPhase1)_lastMirrorKey=''; // clear mirror when input starts
@@ -1650,6 +1653,8 @@
         if(phonesOnly){
           document.body.classList.remove('phones-player-answering');
           setSharedStageHidden(false);
+          document.getElementById('playerDock')?.classList.add('docked');
+          document.getElementById('scr-controller')?.classList.add('has-docked-footer');
           if(shared.dataset.sharedReady!=='1')renderSharedStatus(state.msg||(LANG==='ar'?'جاري إعادة الاتصال باللعبة…':'Reconnecting to the game…'),LANG==='ar'?'لحظات...':'One moment…');
           // Host phone gets a Next button to advance the game
           if(net.hostSelfPid&&net.hostSelfPid===myPid&&window.__hypoxSkip){

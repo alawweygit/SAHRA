@@ -485,6 +485,14 @@ body.ar .eyebrow{letter-spacing:0;}
   width:100%;
 }
 .host-input-dock .ctrl-wrap{max-width:700px;margin:0 auto;}
+/* Player-side sticky footer (avatar + Next Round/waiting text) — only
+   engaged during the wait/scores phase via .docked, so the score list can
+   scroll independently above it without burying the action row. */
+#playerDock.docked{position:fixed;left:0;right:0;bottom:0;z-index:400;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:8px;background:linear-gradient(to top,var(--bg) 75%,transparent);width:100%;}
+#playerDock.docked .phone-shared-host{margin:0;}
+#scr-controller.has-docked-footer{padding-bottom:max(160px,22vh)!important;}
+/* Keep the host's own avatar bubble clear of the fixed Next Round dock */
+body:has(#hostInputDock:not(.hidden)) #host{bottom:calc(3vmin + 78px);}
 /* Choice controls are the only interactive answer set. While a Phones Only
    player is answering, suppress the stage's display-only copy of those same
    cards; restore it immediately for the reveal animation. */

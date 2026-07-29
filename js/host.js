@@ -175,19 +175,25 @@ const Host = (() => {
 
   function setPill(text) { $('#roundPill').textContent = text; pushMirror({ pill: text }); publishSharedScreen(); }
 
+  let _sayToken = 0;
   async function say(text, { speed = 24, autoHide = 4000 } = {}) {
+    const myToken = ++_sayToken; // invalidates any in-flight say() call below
     const host = $('#host'), out = $('#speechText');
     pushMirror({ speech: text, hostVisible: true, hostName: currentHost ? `${currentHost.nameEn} · ${currentHost.nameAr}` : '', hostColor: currentHost?.color || 'host-purple' });
     host.classList.add('show', 'talking'); out.textContent = '';
     for (const ch of text) {
+      if (myToken !== _sayToken) return; // a newer say() call has taken over — stop writing
       out.textContent += ch;
       if (ch !== ' ' && Math.random() > .55) Audio_.sfx.blip();
       await sleep(speed);
     }
+    if (myToken !== _sayToken) return;
     host.classList.remove('talking');
     await sleep(600);
+    if (myToken !== _sayToken) return;
     // Auto-dismiss after display time
     setTimeout(() => {
+      if (myToken !== _sayToken) return;
       host.classList.remove('show');
       pushMirror({ speech: '', hostVisible: false });
     }, autoHide);
@@ -1531,13 +1537,13 @@ const Host = (() => {
   /* Wait for Next press, or auto-advance if autoplay is on */
   function waitNext(autoSeconds = 6) {
     return new Promise(res => {
-      const stage = document.getElementById('hostStage');
+      const dock = document.getElementById('hostInputDock');
       const btn = document.createElement('button');
       btn.className = 'big-btn host-only-ui';
-      btn.style.marginTop = '2vmin';
-      btn.style.marginBottom = 'max(24px,4vmin)';
-      stage?.classList.add('has-next-btn');
-      const done = () => { window.__hypoxSkip = null; if (timer) clearInterval(timer); btn.remove?.(); stage?.classList.remove('has-next-btn'); res(); };
+      dock.innerHTML = '';
+      dock.appendChild(btn);
+      dock.classList.remove('hidden');
+      const done = () => { window.__hypoxSkip = null; if (timer) clearInterval(timer); dock.classList.add('hidden'); dock.innerHTML = ''; res(); };
       let timer = null;
       const isAutoplay = window.HYPOX_STATE?.autoplay === true; // explicit check
       if (isAutoplay) {
@@ -1552,7 +1558,6 @@ const Host = (() => {
         btn.textContent = t('next_round'); // manual: no timer ever
       }
       btn.addEventListener('click', done, { once: true });
-      stage?.appendChild(btn);
       window.__hypoxSkip = done;
     });
   }
