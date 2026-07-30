@@ -99,7 +99,8 @@ body.theme-light .deco-blob{opacity:0.14;}
 .screen.active{opacity:1;pointer-events:auto;transform:scale(1) translateY(0);}
 #hostStage{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2.4vmin;width:100%;min-height:100%;padding-bottom:40px;padding-top:max(80px,8vmin);overflow-x:hidden;-webkit-transform:translateZ(0);transform:translateZ(0);}
 #hostStage:has(.ans-reveal-list){overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;justify-content:flex-start!important;padding-top:max(80px,8vmin)!important;padding-bottom:100px!important;overscroll-behavior-y:contain;will-change:scroll-position;}
-#scr-game:has(.host-input-dock:not(.hidden)) #hostStage{padding-bottom:200px;} /* make room for fixed dock */
+#scr-game:has(.host-input-dock:has(#host.show)) #hostStage,
+#scr-game:has(.host-input-dock:has(#hostDockAction:not(:empty))) #hostStage{padding-bottom:200px;} /* make room for fixed dock */
 #hostStage.has-next-btn{padding-bottom:max(60px,10vmin)!important;}
 #hostStage.scene-in{animation:sceneIn 0.45s var(--ease-out) both;}
 .screen:not(.active){display:none!important;}
@@ -485,7 +486,13 @@ body.ar .eyebrow{letter-spacing:0;}
   border-top:1px solid rgba(255,255,255,.12);
   box-shadow:0 -8px 24px rgba(0,0,0,.35);
   width:100%;
+  display:none;
+  align-items:flex-end;justify-content:space-between;gap:12px;
 }
+.host-input-dock:has(#host.show),
+.host-input-dock:has(#hostDockAction:not(:empty)){display:flex;}
+#hostDockAction{flex:0 0 auto;}
+#hostDockAction .big-btn{margin:0;}
 .host-input-dock .ctrl-wrap{max-width:700px;margin:0 auto;}
 /* Player-side sticky footer (avatar + Next Round/waiting text) — only
    engaged during the wait/scores phase via .docked, so the score list can
@@ -494,7 +501,8 @@ body.ar .eyebrow{letter-spacing:0;}
 #playerDock.docked .phone-shared-host{margin:0;}
 #scr-controller.has-docked-footer{padding-bottom:max(160px,22vh)!important;}
 /* Keep the host's own avatar bubble clear of the fixed Next Round dock */
-body:has(#hostInputDock:not(.hidden)) #host{bottom:calc(3vmin + 78px);}
+/* #host now lives inside .host-input-dock as a flex child (see index.html) —
+   no separate absolute positioning to reconcile with the dock anymore. */
 /* Choice controls are the only interactive answer set. While a Phones Only
    player is answering, suppress the stage's display-only copy of those same
    cards; restore it immediately for the reveal animation. */
@@ -604,7 +612,8 @@ body.phones-player-answering #phoneSharedStage{display:none!important;}
 #ppCtrl{width:100%;}
 
 /* ============ HOST CHARACTER ============ */
-#host{position:absolute;left:3vmin;bottom:3vmin;z-index:40;display:flex;align-items:flex-end;gap:1.4vmin;opacity:0;transform:translateY(130%);transition:transform 0.55s var(--ease-out),opacity 0.4s;}
+#host{display:flex;align-items:flex-end;gap:1.4vmin;opacity:0;transform:translateY(30%);transition:transform 0.55s var(--ease-out),opacity 0.4s;pointer-events:none;}
+#host.show{pointer-events:auto;}
 [dir="rtl"] #host{left:auto;right:3vmin;flex-direction:row-reverse;}
 #host.show{opacity:1;transform:translateY(0);}
 .host-body{width:clamp(76px,12vmin,128px);height:clamp(76px,12vmin,128px);flex-shrink:0;background:linear-gradient(160deg,#a855f7,#6d28d9);border-radius:40% 44% 46% 42%;position:relative;box-shadow:inset 0 -10px 0 rgba(0,0,0,0.22);animation:hostIdle 3s ease-in-out infinite;}
@@ -1881,3 +1890,12 @@ body.ar .tutorial-bullets { text-align: right; }
 .anon-guess-chip.wrong{opacity:0.75;}
 .anon-guess-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .anon-guess-chip b{color:var(--yellow);font-weight:900;}
+/* PinPoint reveal map: distance badges on each player's guess pin (replaces
+   the old dashed connecting lines, which read as cluttered/confusing) */
+.pinpoint-guess-label{
+  background:rgba(15,15,25,.92)!important;color:#fff!important;
+  border:none!important;box-shadow:0 2px 8px rgba(0,0,0,.4)!important;
+  font-family:'Fredoka One',sans-serif;font-size:11px;padding:3px 8px!important;
+  border-radius:20px;font-weight:700;
+}
+.pinpoint-guess-label::before{border-top-color:rgba(15,15,25,.92)!important;}

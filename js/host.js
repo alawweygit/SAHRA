@@ -1516,8 +1516,7 @@ const Host = (() => {
         results.forEach(r2 => {
           if (!r2.guess) return;
           L.circleMarker([r2.guess.lat, r2.guess.lon], { radius: 9, color: '#fff', weight: 2, fillColor: r2.p.color, fillOpacity: 1 })
-            .addTo(rm).bindTooltip(r2.p.name, { direction: 'top' });
-          L.polyline([[city.lat, city.lon], [r2.guess.lat, r2.guess.lon]], { color: r2.p.color, weight: 2, opacity: .55, dashArray: '6 6' }).addTo(rm);
+            .addTo(rm).bindTooltip(`${esc(r2.p.name)} · ${r2.km.toLocaleString()} km`, { permanent: true, direction: 'top', className: 'pinpoint-guess-label' });
           bounds.push([r2.guess.lat, r2.guess.lon]);
         });
         if (bounds.length > 1) {
@@ -1537,13 +1536,12 @@ const Host = (() => {
   /* Wait for Next press, or auto-advance if autoplay is on */
   function waitNext(autoSeconds = 6) {
     return new Promise(res => {
-      const dock = document.getElementById('hostInputDock');
+      const action = document.getElementById('hostDockAction');
       const btn = document.createElement('button');
       btn.className = 'big-btn host-only-ui';
-      dock.innerHTML = '';
-      dock.appendChild(btn);
-      dock.classList.remove('hidden');
-      const done = () => { window.__hypoxSkip = null; if (timer) clearInterval(timer); dock.classList.add('hidden'); dock.innerHTML = ''; res(); };
+      action.innerHTML = '';
+      action.appendChild(btn);
+      const done = () => { window.__hypoxSkip = null; if (timer) clearInterval(timer); action.innerHTML = ''; res(); };
       let timer = null;
       const isAutoplay = window.HYPOX_STATE?.autoplay === true; // explicit check
       if (isAutoplay) {

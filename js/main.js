@@ -1073,7 +1073,7 @@
     if(_ppDismiss)try{_ppDismiss();}catch(e){}
     _ppDismiss=null;window.__hypoxDismissPP=null;
     document.querySelectorAll('.phones-host-input-overlay').forEach(overlay=>overlay.remove());
-    const dock=$('#hostInputDock');if(dock){dock.classList.add('hidden');dock.innerHTML='';dock.removeAttribute('style');}
+    const dock=$('#hostInputDock');if(dock){dock.removeAttribute('style');const action=$('#hostDockAction');if(action)action.innerHTML='';const hostEl=$('#host');if(hostEl)hostEl.classList.remove('show','talking');}
     const pp=$('#ppOverlay');if(pp){pp.classList.remove('show');pp.innerHTML='';}
     const ctrl=$('#ctrlArea');if(ctrl){ctrl.classList.add('hidden');ctrl.innerHTML='';}
     const shared=$('#phoneSharedStage');if(shared){shared.classList.add('hidden');shared.style.removeProperty('display');shared.innerHTML='';shared.dataset.sharedReady='';shared.dataset.gameStarted='';shared.dataset.sceneId='';}
