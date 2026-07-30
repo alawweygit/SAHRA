@@ -57,8 +57,9 @@ body.theme-light {
 *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
 html,body{height:100%;overflow:hidden;position:fixed;width:100%;}
 #scr-title,#scr-lobby,#scr-join,#scr-avatar{overflow-y:scroll!important;-webkit-overflow-scrolling:touch!important;height:100vh;height:100dvh;padding-bottom:120px!important;scroll-behavior:auto;overscroll-behavior-y:contain;will-change:scroll-position;}
-#scr-lobby{justify-content:flex-start!important;padding-top:max(70px,9vmin)!important;}
-#startGameBtn{margin-top:3.5vmin!important;position:relative;z-index:2;}
+#scr-lobby{justify-content:flex-start!important;padding-top:max(70px,9vmin)!important;padding-bottom:calc(120px + 14vmin)!important;}
+.lobby-dock{position:fixed;left:0;right:0;bottom:0;z-index:20;background:linear-gradient(0deg,var(--bg) 60%,rgba(10,10,20,0));padding:2vmin 4vw max(16px,env(safe-area-inset-bottom,16px));display:flex;flex-direction:column;align-items:center;}
+.lobby-dock #startGameBtn{width:min(90vw,400px);margin-top:0!important;}
 /* scr-pregame scroll rules consolidated below in PREGAME V3 */
 #scr-games{overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;scroll-behavior:auto;overscroll-behavior-y:contain;will-change:scroll-position;height:100vh;height:100dvh;}
 html,body,#app,.screen,#hostStage,#scr-controller,#phoneSharedStage,#ctrlArea{overflow-anchor:none;}
@@ -1899,3 +1900,10 @@ body.ar .tutorial-bullets { text-align: right; }
   border-radius:20px;font-weight:700;
 }
 .pinpoint-guess-label::before{border-top-color:rgba(15,15,25,.92)!important;}
+.pp-city-label{
+  background:rgba(250,204,21,.95);color:#000;
+  font-family:'Fredoka One',sans-serif;font-size:12px;font-weight:900;
+  padding:4px 10px;border-radius:20px;white-space:nowrap;
+  box-shadow:0 2px 10px rgba(0,0,0,.5);transform:translate(-50%,-130%);
+  border:2px solid #fff;
+}

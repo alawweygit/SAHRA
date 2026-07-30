@@ -338,6 +338,8 @@ const Controller = (() => {
       setTimeout(() => {
         mainMap = initMap(mapWrap.querySelector('.leaf-map'));
         if (!mainMap) return;
+        // Force correct tile layout once the container has settled its final dimensions
+        setTimeout(() => { if (mainMap) mainMap.invalidateSize(); }, 150);
         mainMap.on('click', e => {
           const lat = e.latlng.lat;
           const lon = ((e.latlng.lng+180)%360+360)-180;

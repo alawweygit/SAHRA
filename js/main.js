@@ -75,6 +75,9 @@
     const _clean=id.replace(/^#/,'');
     $$('.screen').forEach(s=>s.classList.remove('active'));
     const _sel=$(id);if(_sel)_sel.classList.add('active');
+    // #lobbyDock lives outside .screen (fixed position) so it isn't covered by
+    // the .screen show/hide above — toggle it explicitly with the lobby screen.
+    document.getElementById('lobbyDock')?.classList.toggle('hidden',_clean!=='scr-lobby');
     if(id==='#scr-title')currentViewKind='title';
     else if(id==='#scr-games')currentViewKind='games';
     else if(id==='#scr-join')currentViewKind='join';
@@ -1190,13 +1193,19 @@
   function phonesHostPrompt(spec,player,submitInput){
     return new Promise(resolve=>{
       const hidesStageAnswers=spec?.type==='choice'||spec?.type==='higherlow';
+      const isMapInput=spec?.type==='map';
       if(hidesStageAnswers)document.body.classList.add('phones-host-answering');
-      // Use a body-level modal overlay — avoids all overflow/stacking context issues
+      // Use a body-level modal overlay — avoids all overflow/stacking context issues.
+      // Map input goes full-screen so the host gets the same clean layout as player phones.
       const overlay=document.createElement('div');
       overlay.className='phones-host-input-overlay';
-      overlay.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none;';
+      overlay.style.cssText=isMapInput
+        ?'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;pointer-events:none;'
+        :'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none;';
       const panel=document.createElement('div');
-      panel.style.cssText='pointer-events:auto;background:var(--bg);border-top:2px solid var(--border-hi);padding:16px 16px max(20px,env(safe-area-inset-bottom));width:100%;max-height:60vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.6);';
+      panel.style.cssText=isMapInput
+        ?'pointer-events:auto;background:var(--bg);width:100%;flex:1;overflow-y:auto;padding:max(60px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom));'
+        :'pointer-events:auto;background:var(--bg);border-top:2px solid var(--border-hi);padding:16px 16px max(20px,env(safe-area-inset-bottom));width:100%;max-height:60vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.6);';
       overlay.appendChild(panel);
       document.body.appendChild(overlay);
       let settled=false;
@@ -1209,7 +1218,13 @@
       _ppDismiss=()=>done(null);
       window.__hypoxDismissPP=()=>{if(_ppDismiss)_ppDismiss();};
       const _hExclude=spec?.playerExcludes?.[net?.hostSelfPid];
-      const hostSpec={...spec,controlsOnly:true,title:LANG==='ar'?'👆 اختيارك':'👆 Your pick',context:'',sub:'',...(_hExclude!==undefined?{excludeId:_hExclude}:{})};
+      // Map: show city name + subtitle just like the player controller (full-screen layout).
+      // Other types: controlsOnly + generic title since host sees the question on hostStage.
+      const hostSpec=isMapInput
+        ?{...spec,controlsOnly:false,context:'',sub:spec.sub||'',title:spec.title||'',
+          ...(_hExclude!==undefined?{excludeId:_hExclude}:{})}
+        :{...spec,controlsOnly:true,title:LANG==='ar'?'👆 اختيارك':'👆 Your pick',context:'',sub:'',
+          ...(_hExclude!==undefined?{excludeId:_hExclude}:{})};
 
       Controller.render(panel,hostSpec,async value=>{
         const result=submitInput?await submitInput(value):{accepted:true};
@@ -1505,7 +1520,43 @@
       // Always show a useful state while Firebase delivers the lobby/game.
       renderSharedStatus(LANG==='ar'?'تم الاتصال!':'YOU\'RE IN!',LANG==='ar'?'جاري تحميل الصالة…':'Loading the lobby…');
       net.onPlayers(renderSharedLobby);
-      net.onSharedScreen(view=>renderShared(view));
+      // After each shared-screen render, check if a PinPoint reveal map placeholder
+      // landed in the DOM. If so, initialize a local Leaflet map using the coords
+      // pushed via net.setState (window._pinpointReveal). The DOM-clone broadcast
+      // always strips .leaflet-pane, so the host's own map never reaches players.
+      function tryInitRevealMap() {
+        const mapEl = shared.querySelector('.pinpoint-reveal-map');
+        if (!mapEl || !window._pinpointReveal || mapEl.dataset.leafletInited) return;
+        mapEl.dataset.leafletInited = '1';
+        const { city, guesses } = window._pinpointReveal;
+        try {
+          const rm = L.map(mapEl, {
+            center: [city.lat, city.lon], zoom: 3, minZoom: 2,
+            zoomControl: false, attributionControl: false,
+            dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
+            worldCopyJump: false, maxBounds: [[-90,-180],[90,180]], maxBoundsViscosity: 1.0,
+          });
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd', maxZoom: 10, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]]
+          }).addTo(rm);
+          L.circleMarker([city.lat, city.lon], { radius: 13, color: '#fff', weight: 3, fillColor: '#facc15', fillOpacity: 1 }).addTo(rm);
+          L.marker([city.lat, city.lon], {
+            icon: L.divIcon({ html: '<div class="pp-city-label">⭐ ' + esc(city.name) + '</div>', className: '', iconSize: [0,0], iconAnchor: [0,0] }),
+            interactive: false
+          }).addTo(rm);
+          const bounds = [[city.lat, city.lon]];
+          guesses.forEach(g => {
+            L.circleMarker([g.lat, g.lon], { radius: 9, color: '#fff', weight: 2, fillColor: g.color, fillOpacity: 1 })
+              .addTo(rm).bindTooltip(esc(g.name) + ' · ' + g.km.toLocaleString() + ' km', { permanent: true, direction: 'top', className: 'pinpoint-guess-label' });
+            bounds.push([g.lat, g.lon]);
+          });
+          setTimeout(() => {
+            rm.invalidateSize();
+            if (bounds.length > 1) rm.fitBounds(bounds, { padding: [55, 70], maxZoom: 6 });
+          }, 100);
+        } catch(e) { console.error('player reveal map failed', e); }
+      }
+      net.onSharedScreen(view=>{ renderShared(view); tryInitRevealMap(); });
     }
     let lastPhaseId=null;
     let hostLeftTimer=null;
@@ -1563,6 +1614,15 @@
       if(state.takenAnswers) window._hypoxTakenAnswers=state.takenAnswers;
       else if(state.phase==='input') window._hypoxTakenAnswers=[];
       if(state.mirror)renderMirror(state.mirror);
+      // Cache PinPoint reveal coords so the player-side Leaflet map can be inited
+      // after the DOM clone arrives (the clone has .leaflet-pane stripped out).
+      if(state.pinpointReveal) {
+        window._pinpointReveal = state.pinpointReveal;
+        // Shared screen may have already arrived before this state update —
+        // try to init the reveal map now (tryInitRevealMap guards against double-init).
+        setTimeout(tryInitRevealMap, 150);
+      }
+      else if(state.phase==='input') window._pinpointReveal = null;
       // Default to undocked; only the wait/scores branch below re-engages it.
       document.getElementById('playerDock')?.classList.remove('docked');
       document.getElementById('scr-controller')?.classList.remove('has-docked-footer');
@@ -1573,7 +1633,11 @@
           if(_isNewPhase1){lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);}
           const _rawSpec=state.spec?{...state.spec}:null;
           if(_rawSpec&&_rawSpec.playerExcludes&&myPid!==undefined&&_rawSpec.playerExcludes[myPid]!==undefined){_rawSpec.excludeId=_rawSpec.playerExcludes[myPid];}
-          const phoneSpec=_rawSpec?(phonesOnly?{..._rawSpec,controlsOnly:false}:_rawSpec):null;
+          // Map input in phones-only: the shared stage already shows the city name
+          // and mode header from the host scene clone — set controlsOnly so the
+          // controller shows only the map+button without a duplicate city name card.
+          const _mapPhoneOnly = phonesOnly && _rawSpec?.type === 'map';
+          const phoneSpec=_rawSpec?(phonesOnly?{..._rawSpec,controlsOnly:_mapPhoneOnly}:_rawSpec):null;
           if(!phoneSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
           const _pa1=phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow');
           document.body.classList.toggle('phones-player-answering',_pa1);

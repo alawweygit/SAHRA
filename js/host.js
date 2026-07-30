@@ -1490,9 +1490,24 @@ const Host = (() => {
       });
 
       Audio_.sfx.reveal();
+      // Push reveal coords to Firebase so player phones can init their own Leaflet map.
+      // The DOM-clone broadcast (sharedHTML) strips .leaflet-pane elements, leaving the
+      // #revealMap div empty on player devices. This state push is the fix for that.
+      net.setState({
+        phase: 'wait',
+        msg: LANG === 'ar' ? '👆 تابع الشاشة' : '👆 Watch the screen',
+        mirror: { ...mirror },
+        pinpointReveal: {
+          city: { lat: city.lat, lon: city.lon, name: cityName },
+          guesses: results.filter(r2 => r2.guess).map(r2 => ({
+            lat: r2.guess.lat, lon: r2.guess.lon,
+            name: r2.p.name, color: r2.p.color, km: r2.km
+          }))
+        }
+      });
       scene(`
         <div class="eyebrow">${esc(cityName)}</div>
-        <div id="revealMap" style="height:36vh;min-height:220px;border-radius:16px;overflow:hidden;margin:1vmin auto 2vmin;max-width:900px;background:#0e1626"></div>
+        <div id="revealMap" class="pinpoint-reveal-map" style="height:36vh;min-height:220px;border-radius:16px;overflow:hidden;margin:1vmin auto 2vmin;max-width:900px;background:#0e1626"></div>
         <div class="score-list">
           ${results.map((r2, i) => `
             <div class="score-row" style="animation-delay:${i*.12}s">
@@ -1510,8 +1525,11 @@ const Host = (() => {
           worldCopyJump: false, maxBounds: [[-90,-180],[90,180]], maxBoundsViscosity: 1.0,
         });
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 10, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]] }).addTo(rm);
-        L.circleMarker([city.lat, city.lon], { radius: 13, color: '#fff', weight: 3, fillColor: '#facc15', fillOpacity: 1 })
-          .addTo(rm).bindTooltip('⭐ ' + cityName, { permanent: true, direction: 'top' });
+        L.circleMarker([city.lat, city.lon], { radius: 13, color: '#fff', weight: 3, fillColor: '#facc15', fillOpacity: 1 }).addTo(rm);
+        L.marker([city.lat, city.lon], {
+          icon: L.divIcon({ html: `<div class="pp-city-label">⭐ ${esc(cityName)}</div>`, className: '', iconSize: [0,0], iconAnchor: [0,0] }),
+          interactive: false
+        }).addTo(rm);
         const bounds = [[city.lat, city.lon]];
         results.forEach(r2 => {
           if (!r2.guess) return;
@@ -1522,7 +1540,7 @@ const Host = (() => {
         if (bounds.length > 1) {
           requestAnimationFrame(() => {
             rm.invalidateSize();
-            rm.fitBounds(bounds, { padding: [45, 45], maxZoom: 6 });
+            rm.fitBounds(bounds, { padding: [55, 70], maxZoom: 6 });
           });
         }
       } catch(e) { console.error('reveal map failed', e); }
