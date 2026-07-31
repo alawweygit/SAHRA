@@ -1481,20 +1481,17 @@ const Host = (() => {
         const km = guess ? haversine(guess, city) : 99999;
         return { p, km, guessed: !!guess, guess };
       }).sort((a,b) => a.km - b.km);
-      // TEMP DEBUG — remove once the pin-placement bug is confirmed/found.
-      // Compares the raw stored guess coordinate against city coordinate and
-      // the displayed distance, to isolate whether the bug is in what got
-      // submitted/stored (controller.js pin drop) or in the reveal map
-      // rendering (host.js/main.js marker placement) — they use the same
-      // r2.guess object, so if the map shows the pin in the wrong place while
-      // the km distance is correct, this log will make that contradiction visible.
-      console.log('[PP_DEBUG] city:', JSON.stringify(city), 'results:', JSON.stringify(results.map(r=>({name:r.p.name, guess:r.guess, km:r.km}))));
 
-      const AWARD = [1000, 700, 500];
+      // Hybrid scoring: distance decides most of the score (precision-based,
+      // GeoGuessr-style exponential decay), with a small rank bonus on top so
+      // 1st/2nd/3rd still feels rewarded. Previously this was pure rank-based
+      // (1000/700/500/300 flat) — a wildly-off guess in 1st place scored the
+      // same as a precise one, and two very different distances could tie.
       results.forEach((r2, i) => {
         if (!r2.guessed) return;
-        const pts = AWARD[i] !== undefined ? AWARD[i] : 300;
-        addScore(r2.p.pid, pts);
+        const base = Math.round(1000 * Math.exp(-r2.km / 2000)); // ~1000 at 0km, ~368 at 2000km, ~7 at 10000km
+        const rankBonus = i === 0 ? 200 : i === 1 ? 100 : i === 2 ? 50 : 0;
+        addScore(r2.p.pid, base + rankBonus);
       });
 
       Audio_.sfx.reveal();

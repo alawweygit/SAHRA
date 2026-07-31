@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#131020">
 <title>HYPOX — Party Games</title>
-<link rel="stylesheet" href="css/style.css?v=20260728-fixes-44">
+<link rel="stylesheet" href="css/style.css?v=20260728-fixes-45">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎉</text></svg>"/>
-<script src="firebase-config.js?v=20260728-fixes-44"></script>
+<script src="firebase-config.js?v=20260728-fixes-45"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
@@ -144,11 +144,6 @@
       <button class="big-btn" id="addLocalBtn" style="font-size:clamp(14px,2.2vmin,19px);padding:1.4vmin 3vmin;">+ Add Player</button>
     </div>
   </div>
-  <!-- Lobby action dock: fixed bottom strip, separate from scrollable avatar grid -->
-  <div id="lobbyDock" class="lobby-dock hidden">
-    <div id="lobbyHint" style="font-size:clamp(11px,1.7vmin,14px);color:var(--text3);font-weight:700;"></div>
-    <button class="big-btn dim" id="startGameBtn">START GAME</button>
-  </div>
 
   <!-- SCREEN 5: JOIN -->
   <div class="screen" id="scr-join">
@@ -192,21 +187,28 @@
       <div class="speech"><div class="host-name">LAITH · ليث</div><span id="speechText"></span></div>
     </div>
     <div id="hostDockAction"></div>
+    <!-- Lobby's Start Game action lives in the SAME dock as Laith's avatar
+         (not a separate fixed element), so it can never be hidden behind him
+         when he speaks — matches the Next Round dock used during gameplay. -->
+    <div id="lobbyDockAction" class="hidden">
+      <div id="lobbyHint" style="font-size:clamp(11px,1.7vmin,14px);color:var(--text3);font-weight:700;"></div>
+      <button class="big-btn dim" id="startGameBtn">START GAME</button>
+    </div>
   </div>
 
   <div id="ppOverlay"></div>
   <canvas id="confetti"></canvas>
   <div id="wipe"></div>
 </div>
-<script src="js/i18n.js?v=20260728-fixes-44"></script>
-<script src="js/audio.js?v=20260728-fixes-44"></script>
+<script src="js/i18n.js?v=20260728-fixes-45"></script>
+<script src="js/audio.js?v=20260728-fixes-45"></script>
 <script src="js/fx.js"></script>
 <script src="js/regions.js"></script>
 <script src="js/content.js"></script>
-<script src="js/net.js?v=20260728-fixes-44"></script>
-<script src="js/controller.js?v=20260728-fixes-44"></script>
-<script src="js/host.js?v=20260728-fixes-44"></script>
-<script src="js/main.js?v=20260728-fixes-44"></script>
-<div style="position:fixed;bottom:2px;left:6px;font-size:9px;color:rgba(255,255,255,0.25);z-index:99999;pointer-events:none;font-family:monospace">v20260728-fixes-44</div>
+<script src="js/net.js?v=20260728-fixes-45"></script>
+<script src="js/controller.js?v=20260728-fixes-45"></script>
+<script src="js/host.js?v=20260728-fixes-45"></script>
+<script src="js/main.js?v=20260728-fixes-45"></script>
+<div style="position:fixed;bottom:2px;left:6px;font-size:9px;color:rgba(255,255,255,0.25);z-index:99999;pointer-events:none;font-family:monospace">v20260728-fixes-45</div>
 </body>
 </html>

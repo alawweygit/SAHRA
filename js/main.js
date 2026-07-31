@@ -75,9 +75,10 @@
     const _clean=id.replace(/^#/,'');
     $$('.screen').forEach(s=>s.classList.remove('active'));
     const _sel=$(id);if(_sel)_sel.classList.add('active');
-    // #lobbyDock lives outside .screen (fixed position) so it isn't covered by
-    // the .screen show/hide above — toggle it explicitly with the lobby screen.
-    document.getElementById('lobbyDock')?.classList.toggle('hidden',_clean!=='scr-lobby');
+    // #lobbyDockAction lives inside the shared host-input-dock (outside
+    // .screen), so it isn't covered by the .screen show/hide above — toggle
+    // it explicitly with the lobby screen, same as before.
+    document.getElementById('lobbyDockAction')?.classList.toggle('hidden',_clean!=='scr-lobby');
     if(id==='#scr-title')currentViewKind='title';
     else if(id==='#scr-games')currentViewKind='games';
     else if(id==='#scr-join')currentViewKind='join';

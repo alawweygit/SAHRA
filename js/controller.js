@@ -342,7 +342,12 @@ const Controller = (() => {
         setTimeout(() => { if (mainMap) mainMap.invalidateSize(); }, 150);
         mainMap.on('click', e => {
           const lat = e.latlng.lat;
-          const lon = ((e.latlng.lng+180)%360+360)-180;
+          // Normalize longitude to [-180,180). The old formula was missing a
+          // final %360, so wrapping could leave values like 362 instead of 2 —
+          // distance math (sin/cos) doesn't care since it's periodic, but
+          // Leaflet's marker projection does, so the pin rendered in the wrong
+          // spot on the reveal map even though the recorded distance was correct.
+          const lon = (((e.latlng.lng+180)%360)+360)%360-180;
           if (marker) { marker.setLatLng(e.latlng); } 
           else { marker = L.marker(e.latlng, { icon: pinIcon }).addTo(mainMap); }
           guess = { lat, lon };
@@ -373,7 +378,7 @@ const Controller = (() => {
         if (fsMap) {
           fsMap.on('click', e => {
             const lat = e.latlng.lat;
-            const lon = ((e.latlng.lng+180)%360+360)-180;
+            const lon = (((e.latlng.lng+180)%360)+360)%360-180;
             if (fsMarker) { fsMarker.setLatLng(e.latlng); }
             else { fsMarker = L.marker(e.latlng, { icon: pinIcon }).addTo(fsMap); }
             guess = { lat, lon };
