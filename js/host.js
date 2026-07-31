@@ -1481,6 +1481,14 @@ const Host = (() => {
         const km = guess ? haversine(guess, city) : 99999;
         return { p, km, guessed: !!guess, guess };
       }).sort((a,b) => a.km - b.km);
+      // TEMP DEBUG — remove once the pin-placement bug is confirmed/found.
+      // Compares the raw stored guess coordinate against city coordinate and
+      // the displayed distance, to isolate whether the bug is in what got
+      // submitted/stored (controller.js pin drop) or in the reveal map
+      // rendering (host.js/main.js marker placement) — they use the same
+      // r2.guess object, so if the map shows the pin in the wrong place while
+      // the km distance is correct, this log will make that contradiction visible.
+      console.log('[PP_DEBUG] city:', JSON.stringify(city), 'results:', JSON.stringify(results.map(r=>({name:r.p.name, guess:r.guess, km:r.km}))));
 
       const AWARD = [1000, 700, 500];
       results.forEach((r2, i) => {
