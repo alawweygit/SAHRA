@@ -1750,10 +1750,12 @@
           // varies, and a hardcoded guess was too short, hiding the last
           // score row(s) behind the dock.
           if(_pd&&_sc){
-            requestAnimationFrame(()=>{
+            const _measureDock=()=>{
               const h=_pd.offsetHeight;
-              if(h>0)_sc.style.setProperty('--docked-footer-h',(h+24)+'px');
-            });
+              if(h>0)_sc.style.setProperty('--docked-footer-h',(h+16)+'px');
+            };
+            requestAnimationFrame(_measureDock);
+            setTimeout(_measureDock,250); // re-measure once more in case fonts/layout settle late
           }
           if(shared.dataset.sharedReady!=='1')renderSharedStatus(state.msg||(LANG==='ar'?'جاري إعادة الاتصال باللعبة…':'Reconnecting to the game…'),LANG==='ar'?'لحظات...':'One moment…');
           // Host phone gets a Next button to advance the game

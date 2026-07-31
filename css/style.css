@@ -494,15 +494,20 @@ body.ar .eyebrow{letter-spacing:0;}
   box-shadow:0 -8px 24px rgba(0,0,0,.35);
   width:100%;
   display:none;
-  align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  align-items:flex-end;gap:12px;flex-wrap:wrap;
 }
 .host-input-dock:has(#host.show),
 .host-input-dock:has(#hostDockAction:not(:empty)),
 .host-input-dock:has(#lobbyDockAction:not(.hidden)){display:flex;}
-#hostDockAction{flex:0 1 auto;min-width:0;}
+/* margin-left:auto (not justify-content:space-between) — space-between
+   defaults a lone item on a wrapped line to the START, not the end, which
+   was pushing Next Round/Start Game to the left whenever it wrapped to its
+   own row on a narrow screen. margin-left:auto always pushes it to the
+   right regardless of wrapping. */
+#hostDockAction{flex:0 1 auto;min-width:0;margin-left:auto;}
 #hostDockAction:empty{display:none;}
 #hostDockAction .big-btn{margin:0;max-width:100%;}
-#lobbyDockAction{flex:0 1 auto;min-width:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+#lobbyDockAction{flex:0 1 auto;min-width:0;margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
 #lobbyDockAction.hidden{display:none;}
 #lobbyDockAction #startGameBtn{margin:0;width:auto;max-width:100%;}
 #lobbyHint{white-space:normal;text-align:right;max-width:40vw;}
