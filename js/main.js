@@ -1541,8 +1541,10 @@
         mapEl.dataset.leafletInited = '1';
         const { city, guesses } = window._pinpointReveal;
         try {
+          const REVEAL_ZOOM = 6;
+          const REVEAL_VISIBLE_KM = 700;
           const rm = L.map(mapEl, {
-            center: [city.lat, city.lon], zoom: 3, minZoom: 2,
+            center: [city.lat, city.lon], zoom: 2, minZoom: 2,
             zoomControl: false, attributionControl: false,
             dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
             worldCopyJump: false, maxBounds: [[-90,-180],[90,180]], maxBoundsViscosity: 1.0,
@@ -1550,29 +1552,31 @@
           L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
             subdomains: 'abcd', maxZoom: 10, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]]
           }).addTo(rm);
-          L.circleMarker([city.lat, city.lon], { radius: 13, color: '#fff', weight: 3, fillColor: '#facc15', fillOpacity: 1 }).addTo(rm);
+          // Single city marker — star-in-a-dot with its name attached
+          // directly below it, so it reads as one mark instead of a plain
+          // circle plus a separately-floating text label.
           L.marker([city.lat, city.lon], {
-            icon: L.divIcon({ html: '<div class="pp-city-label">⭐ ' + esc(city.name) + '</div>', className: '', iconSize: [0,0], iconAnchor: [0,0] }),
+            icon: L.divIcon({
+              html: '<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name">' + esc(city.name) + '</div></div>',
+              className: '', iconSize: [160, 70], iconAnchor: [80, 15]
+            }),
             interactive: false
           }).addTo(rm);
           // Numbered pins in rank order — guesses[] arrives already sorted
           // closest-first (host filters the pre-sorted results array), so the
-          // array index IS the rank. Names/distances live in the score-list
-          // below; the map only needs to show shape/spread, not text.
-          let maxKm = 0;
+          // array index IS the rank. Guesses too far away to usefully show at
+          // REVEAL_ZOOM are skipped on the map (still in the score list below).
           guesses.forEach((g, i) => {
-            maxKm = Math.max(maxKm, g.km);
+            if (g.km > REVEAL_VISIBLE_KM) return;
             L.marker([g.lat, g.lon], {
               icon: L.divIcon({ html: '<div class="pp-guess-num" style="background:' + g.color + '">' + (i+1) + '</div>', className: '', iconSize: [26,26], iconAnchor: [13,13] }),
             }).addTo(rm);
           });
-          // Deterministic center-on-city + distance-based zoom — see host.js
-          // for why this replaces fitBounds()/invalidateSize() (container-size
-          // timing was the root cause of the zoomed-way-out bug).
-          const revealZoom = maxKm <= 50 ? 8 : maxKm <= 150 ? 7 : maxKm <= 400 ? 6 : maxKm <= 800 ? 5 : maxKm <= 2000 ? 4 : maxKm <= 6000 ? 3 : 2;
+          // Animated reveal: world view first, then fly into the city at the
+          // fixed close zoom.
           setTimeout(() => {
             rm.invalidateSize();
-            rm.setView([city.lat, city.lon], revealZoom, { animate: false });
+            rm.flyTo([city.lat, city.lon], REVEAL_ZOOM, { duration: 1.2 });
           }, 60);
         } catch(e) { console.error('player reveal map failed', e); }
       }

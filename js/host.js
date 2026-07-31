@@ -1524,37 +1524,48 @@ const Host = (() => {
             </div>`).join('')}
         </div>`);
       try {
+        // Fixed close zoom for every reveal — no longer computed from the
+        // farthest guess, so one wildly-off guess can't force the whole map
+        // to zoom out and make everything else tiny/illegible.
+        const REVEAL_ZOOM = 6;
+        // Guesses farther than this aren't plotted on the map (they'd land
+        // off-frame at REVEAL_ZOOM anyway) — they're still fully visible in
+        // the score list below with their name and distance.
+        const REVEAL_VISIBLE_KM = 700;
         const rm = L.map(document.getElementById('revealMap'), {
-          center: [city.lat, city.lon], zoom: 3, minZoom: 2, zoomControl: false, attributionControl: false,
+          center: [city.lat, city.lon], zoom: 2, minZoom: 2, zoomControl: false, attributionControl: false,
           dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
           worldCopyJump: false, maxBounds: [[-90,-180],[90,180]], maxBoundsViscosity: 1.0,
         });
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 10, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]] }).addTo(rm);
-        L.circleMarker([city.lat, city.lon], { radius: 13, color: '#fff', weight: 3, fillColor: '#facc15', fillOpacity: 1 }).addTo(rm);
+        // Single city marker — a star-in-a-dot with its name label attached
+        // directly beneath it, so it reads as ONE unmistakable mark instead
+        // of a plain circle plus a separately-floating text label.
         L.marker([city.lat, city.lon], {
-          icon: L.divIcon({ html: `<div class="pp-city-label">⭐ ${esc(cityName)}</div>`, className: '', iconSize: [0,0], iconAnchor: [0,0] }),
+          icon: L.divIcon({
+            html: `<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name">${esc(cityName)}</div></div>`,
+            className: '', iconSize: [160, 70], iconAnchor: [80, 15]
+          }),
           interactive: false
         }).addTo(rm);
         // Numbered pins in rank order (results is already sorted closest-first).
         // Names/distances live in the score-list below — the map only needs shape.
         let rank = 0;
-        let maxKm = 0;
         results.forEach(r2 => {
           if (!r2.guess) return;
           rank++;
-          maxKm = Math.max(maxKm, r2.km);
+          if (r2.km > REVEAL_VISIBLE_KM) return; // too far to usefully show at this zoom
           L.marker([r2.guess.lat, r2.guess.lon], {
             icon: L.divIcon({ html: `<div class="pp-guess-num" style="background:${r2.p.color}">${rank}</div>`, className: '', iconSize: [26,26], iconAnchor: [13,13] }),
           }).addTo(rm);
         });
-        // Deterministic center-on-city + distance-based zoom: always keeps the
-        // actual city pin dead-center so it's unmistakable, and never depends
-        // on container-size timing the way fitBounds()/invalidateSize() did
-        // (that timing dependency was the root cause of the zoomed-way-out bug).
-        const revealZoom = maxKm <= 50 ? 8 : maxKm <= 150 ? 7 : maxKm <= 400 ? 6 : maxKm <= 800 ? 5 : maxKm <= 2000 ? 4 : maxKm <= 6000 ? 3 : 2;
+        // Animated reveal: start at a world view, then fly into the city at
+        // the fixed close zoom — a bit of drama instead of an instant cut,
+        // and the city is always dead-center so it's obvious what's being
+        // measured against.
         setTimeout(() => {
           rm.invalidateSize();
-          rm.setView([city.lat, city.lon], revealZoom, { animate: false });
+          rm.flyTo([city.lat, city.lon], REVEAL_ZOOM, { duration: 1.2 });
         }, 60);
       } catch(e) { console.error('reveal map failed', e); }
       pushMirror({ headline: results.slice(0,3).map((r2,i)=>`${i+1}. ${r2.p.name} ${r2.guessed?r2.km+'km':'—'}`).join(' · ') });
