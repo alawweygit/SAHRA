@@ -1562,14 +1562,14 @@
             }),
             interactive: false
           }).addTo(rm);
-          // Numbered pins in rank order — guesses[] arrives already sorted
-          // closest-first (host filters the pre-sorted results array), so the
-          // array index IS the rank. Guesses too far away to usefully show at
+          // Avatar-emoji pins — since players can't pick duplicate avatars,
+          // showing the actual emoji is instantly recognizable without a
+          // number lookup. Guesses too far away to usefully show at
           // REVEAL_ZOOM are skipped on the map (still in the score list below).
-          guesses.forEach((g, i) => {
+          guesses.forEach(g => {
             if (g.km > REVEAL_VISIBLE_KM) return;
             L.marker([g.lat, g.lon], {
-              icon: L.divIcon({ html: '<div class="pp-guess-num" style="background:' + g.color + '">' + (i+1) + '</div>', className: '', iconSize: [26,26], iconAnchor: [13,13] }),
+              icon: L.divIcon({ html: '<div class="pp-guess-avatar" style="background:' + g.color + '">' + (g.emoji||'📍') + '</div>', className: '', iconSize: [30,30], iconAnchor: [15,15] }),
             }).addTo(rm);
           });
           // Animated reveal: world view first, then fly into the city at the

@@ -4,6 +4,13 @@
 
 const Host = (() => {
   let net = null, players = [], phaseCounter = Date.now(), skipResolve = null;
+  // Host (Laith) should only speak before a mode's rounds begin and after
+  // its final results — never mid-round. Rather than edit the ~25 scattered
+  // say()/hostSay() call sites across every game mode individually (risky,
+  // inconsistent call signatures), say() itself checks this single flag.
+  // Toggled off right as rounds begin (end of modeTitleCard) and back on
+  // right at final results (showScores(true)).
+  let hostSpeechEnabled = true;
   let currentHost = null;
 
   /* Pick a random host persona for this game and repaint the blob */
@@ -177,6 +184,7 @@ const Host = (() => {
 
   let _sayToken = 0;
   async function say(text, { speed = 24, autoHide = 4000 } = {}) {
+    if (!hostSpeechEnabled) return; // muted mid-round — see flag comment above
     const myToken = ++_sayToken; // invalidates any in-flight say() call below
     const host = $('#host'), out = $('#speechText');
     pushMirror({ speech: text, hostVisible: true, hostName: currentHost ? `${currentHost.nameEn} · ${currentHost.nameAr}` : '', hostColor: currentHost?.color || 'host-purple' });
@@ -315,6 +323,7 @@ const Host = (() => {
     if (window.__hypoxSkipTutorial) {
       const contentMode = mode === 'trivia' ? 'quiz' : mode;
       Content.preload(contentMode, LANG, window.HYPOX_STATE?.rounds||5).catch(()=>{});
+      hostSpeechEnabled = false;
       return;
     }
     await FX.wipe();
@@ -369,9 +378,11 @@ const Host = (() => {
       }
       window.__hypoxSkip = onStart;
     });
+    hostSpeechEnabled = false; // rounds begin now — no more mid-game speech until final results
   }
 
   async function showScores(final = false) {
+    if (final) hostSpeechEnabled = true; // final results — speech allowed again
     await FX.wipe();
     setPill(final ? t('final_results') : t('scores'));
     const sorted = players.slice().sort((a, b) => b.score - a.score);
@@ -1514,7 +1525,7 @@ const Host = (() => {
           city: { lat: city.lat, lon: city.lon, name: cityName },
           guesses: results.filter(r2 => r2.guess).map(r2 => ({
             lat: r2.guess.lat, lon: r2.guess.lon,
-            name: r2.p.name, color: r2.p.color, km: r2.km
+            name: r2.p.name, color: r2.p.color, emoji: r2.p.emoji, km: r2.km
           }))
         }
       });
@@ -1556,15 +1567,14 @@ const Host = (() => {
           }),
           interactive: false
         }).addTo(rm);
-        // Numbered pins in rank order (results is already sorted closest-first).
-        // Names/distances live in the score-list below — the map only needs shape.
-        let rank = 0;
+        // Avatar-emoji pins — since players can't pick duplicate avatars,
+        // showing the actual emoji is instantly recognizable without needing
+        // to cross-reference a number against the score list below.
         results.forEach(r2 => {
           if (!r2.guess) return;
-          rank++;
           if (r2.km > REVEAL_VISIBLE_KM) return; // too far to usefully show at this zoom
           L.marker([r2.guess.lat, r2.guess.lon], {
-            icon: L.divIcon({ html: `<div class="pp-guess-num" style="background:${r2.p.color}">${rank}</div>`, className: '', iconSize: [26,26], iconAnchor: [13,13] }),
+            icon: L.divIcon({ html: `<div class="pp-guess-avatar" style="background:${r2.p.color}">${r2.p.emoji}</div>`, className: '', iconSize: [30,30], iconAnchor: [15,15] }),
           }).addTo(rm);
         });
         // Animated reveal: start at a world view, then fly into the city at
