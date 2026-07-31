@@ -1021,7 +1021,10 @@ const Host = (() => {
       const answers = await collectWithTimer({
         type: 'text',
         title: LANG==='ar' ? '✍️ اكتب إجابتك' : '✍️ Write your answer',
-        context: promptText, maxLen: 80,
+        // No 'context' here — the prompt is already fully visible on the
+        // shared display above (eyebrow + prompt-card); repeating it here
+        // showed the exact same question text twice on screen.
+        maxLen: 80,
       }, writerPids, 40);
 
       const answerList = writerPids
@@ -1058,53 +1061,57 @@ const Host = (() => {
         pickSpecs[pid] = { type: 'wait', title: LANG==='ar'?`⏳ ${esc(hotSeat.name)} يختار الأضحك`:`⏳ ${esc(hotSeat.name)} is picking...` };
       }
 
-      // Full-screen pick UI. If the host IS the hot-seat picker, show them the
-      // exact same clean layout a player would see (small title, small
-      // context box, plain button list) instead of the bigger eyebrow/card
-      // display — those two were visually different before, which is
-      // confusing when the host is the one actually picking.
+      // Broadcast-safe view goes into hostStage/scene() always — this is what
+      // every phone's shared-stage mirror clones, so it must be the generic
+      // spectator view regardless of who's picking. Confirmed bug: this used
+      // to branch on `net.hostSelfPid===hotPid` and write the picker's own
+      // personalized "Pick the funniest" UI directly into hostStage — since
+      // sharedHTML() clones hostStage indiscriminately to every other
+      // player's phone, that personal UI was appearing on everyone's screen,
+      // not just the host's own, whenever the host happened to be hot seat.
+      scene(`
+        <div style="height:max(60px,8vmin)"></div>
+        <div class="eyebrow" style="text-transform:none;font-size:clamp(12px,2vmin,16px)">😂 ${LANG==='ar'?`${esc(hotSeat.name)} يختار الأضحك`:`<span style="text-transform:uppercase;letter-spacing:2px">${esc(hotSeat.name)}</span> PICKS THE FUNNIEST`}</div>
+        <div class="prompt-card display" style="font-size:clamp(14px,2.2vmin,20px);margin-bottom:1.5vmin">${esc(promptText)}</div>
+        <div class="ans-reveal-list" id="siaPickList" style="width:100%;max-width:700px">${answerList.map((a,idx)=>{
+          const col=COLS[idx%COLS.length];
+          return `<button class="sia-pick-btn" data-idx="${idx}" style="
+            display:flex;align-items:center;gap:12px;width:100%;
+            padding:clamp(14px,2.4vmin,22px) clamp(16px,2.6vmin,24px);
+            border-radius:16px;border:1px solid var(--border);border-left:4px solid ${col};
+            background:rgba(255,255,255,0.04);
+            box-shadow:none;
+            cursor:default;text-align:left;
+            font-family:inherit;color:var(--text);
+            transition:transform .15s,box-shadow .15s,border-color .15s;
+            animation:cardIn 0.4s ${idx*0.1}s both">
+            <span style="font-family:'Fredoka One',sans-serif;color:${col};font-size:clamp(22px,3.5vmin,32px);min-width:32px;text-shadow:0 0 14px ${col}88">${String.fromCharCode(65+idx)}</span>
+            <span style="font-size:clamp(15px,2.2vmin,20px);font-weight:700;flex:1">${esc(a.text)}</span>
+          </button>`;}).join('')}</div>
+        <div class="pick-sub" style="margin-top:10px;animation:fadeSlideUp 0.5s 0.6s both;font-size:clamp(13px,1.8vmin,16px)">${LANG==='ar'?`🔥 ${esc(hotSeat.name)} يختار الآن...`:`🔥 ${esc(hotSeat.name)} is choosing...`}</div>`);
+
+      // If the host IS the hot-seat picker, add their actual clickable UI as
+      // a .host-only-ui overlay — this class is already excluded from the
+      // DOM-clone broadcast (see sharedHTML()/mutation observer), so it stays
+      // strictly local to the host's own screen.
       if (net.hostSelfPid === hotPid) {
-        scene(`
+        const _hostPickWrap = document.createElement('div');
+        _hostPickWrap.className = 'host-only-ui';
+        _hostPickWrap.style.cssText = 'position:fixed;inset:0;z-index:600;background:var(--bg);display:flex;flex-direction:column;align-items:center;padding:0 4vw;overflow-y:auto;';
+        _hostPickWrap.innerHTML = `
           <div style="height:max(60px,8vmin)"></div>
           <div class="ctrl-title display">😂 ${LANG==='ar'?'اختار الأضحك':'Pick the funniest'}</div>
           <div class="ctrl-context">${esc(promptText)}</div>
-          <div class="ctrl-choices" id="siaPickList">${answerList.map((a,idx)=>{
+          <div class="ctrl-choices" id="siaHostPickList">${answerList.map((a,idx)=>{
             const col=COLS[idx%COLS.length];
-            return `<button class="choice-btn sia-pick-btn" data-idx="${idx}" style="--cb:${col};animation-delay:${idx*0.07}s">${esc(String.fromCharCode(65+idx)+'. '+a.text)}</button>`;
-          }).join('')}</div>`);
-        // Defensive cleanup: make absolutely sure no leftover content from any
-        // other rendering surface can appear alongside this clean view.
+            return `<button class="choice-btn sia-host-pick-btn" data-idx="${idx}" style="--cb:${col};animation-delay:${idx*0.07}s">${esc(String.fromCharCode(65+idx)+'. '+a.text)}</button>`;
+          }).join('')}</div>`;
+        document.body.appendChild(_hostPickWrap);
         const _extraCtrl = document.getElementById('ctrlArea');
         if (_extraCtrl) { _extraCtrl.innerHTML = ''; _extraCtrl.classList.add('hidden'); }
         const _extraShared = document.getElementById('phoneSharedStage');
         if (_extraShared) _extraShared.style.setProperty('display', 'none', 'important');
-      } else {
-        scene(`
-          <div style="height:max(60px,8vmin)"></div>
-          <div class="eyebrow" style="text-transform:none;font-size:clamp(12px,2vmin,16px)">😂 ${LANG==='ar'?`${esc(hotSeat.name)} يختار الأضحك`:`<span style="text-transform:uppercase;letter-spacing:2px">${esc(hotSeat.name)}</span> PICKS THE FUNNIEST`}</div>
-          <div class="prompt-card display" style="font-size:clamp(14px,2.2vmin,20px);margin-bottom:1.5vmin">${esc(promptText)}</div>
-          <div class="ans-reveal-list" id="siaPickList" style="width:100%;max-width:700px">${answerList.map((a,idx)=>{
-            const col=COLS[idx%COLS.length];
-            return `<button class="sia-pick-btn" data-idx="${idx}" style="
-              display:flex;align-items:center;gap:12px;width:100%;
-              padding:clamp(14px,2.4vmin,22px) clamp(16px,2.6vmin,24px);
-              border-radius:16px;border:1px solid var(--border);border-left:4px solid ${col};
-              background:rgba(255,255,255,0.04);
-              box-shadow:none;
-              cursor:default;text-align:left;
-              font-family:inherit;color:var(--text);
-              transition:transform .15s,box-shadow .15s,border-color .15s;
-              animation:cardIn 0.4s ${idx*0.1}s both">
-              <span style="font-family:'Fredoka One',sans-serif;color:${col};font-size:clamp(22px,3.5vmin,32px);min-width:32px;text-shadow:0 0 14px ${col}88">${String.fromCharCode(65+idx)}</span>
-              <span style="font-size:clamp(15px,2.2vmin,20px);font-weight:700;flex:1">${esc(a.text)}</span>
-            </button>`;}).join('')}</div>
-          <div class="pick-sub" style="margin-top:10px;animation:fadeSlideUp 0.5s 0.6s both;font-size:clamp(13px,1.8vmin,16px)">${LANG==='ar'?`🔥 ${esc(hotSeat.name)} يختار الآن...`:`🔥 ${esc(hotSeat.name)} is choosing...`}</div>`);
-      }
-
-      // Wire click handlers on the scene cards — host picks directly
-      // Only wire scene card clicks if host IS the hot seat player
-      if (net.hostSelfPid === hotPid) {
-        const _pickBtns = document.querySelectorAll('.sia-pick-btn');
+        const _pickBtns = _hostPickWrap.querySelectorAll('.sia-host-pick-btn');
         let _picked = false;
         _pickBtns.forEach(btn => {
           btn.addEventListener('click', async () => {
@@ -1116,6 +1123,7 @@ const Host = (() => {
             btn.classList.add('picked');
             _pickBtns.forEach(b => { if (b !== btn) { b.style.opacity = '0.4'; b.style.pointerEvents = 'none'; } });
             await net.room('inputs/'+pickPhaseId+'/'+hotPid).set({ v: a.pid, t: Date.now() });
+            setTimeout(() => _hostPickWrap.remove(), 600);
           }, { once: true });
         });
       }
