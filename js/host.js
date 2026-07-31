@@ -1530,19 +1530,27 @@ const Host = (() => {
           icon: L.divIcon({ html: `<div class="pp-city-label">⭐ ${esc(cityName)}</div>`, className: '', iconSize: [0,0], iconAnchor: [0,0] }),
           interactive: false
         }).addTo(rm);
-        const bounds = [[city.lat, city.lon]];
+        // Numbered pins in rank order (results is already sorted closest-first).
+        // Names/distances live in the score-list below — the map only needs shape.
+        let rank = 0;
+        let maxKm = 0;
         results.forEach(r2 => {
           if (!r2.guess) return;
-          L.circleMarker([r2.guess.lat, r2.guess.lon], { radius: 9, color: '#fff', weight: 2, fillColor: r2.p.color, fillOpacity: 1 })
-            .addTo(rm).bindTooltip(`${esc(r2.p.name)} · ${r2.km.toLocaleString()} km`, { permanent: true, direction: 'top', className: 'pinpoint-guess-label' });
-          bounds.push([r2.guess.lat, r2.guess.lon]);
+          rank++;
+          maxKm = Math.max(maxKm, r2.km);
+          L.marker([r2.guess.lat, r2.guess.lon], {
+            icon: L.divIcon({ html: `<div class="pp-guess-num" style="background:${r2.p.color}">${rank}</div>`, className: '', iconSize: [26,26], iconAnchor: [13,13] }),
+          }).addTo(rm);
         });
-        if (bounds.length > 1) {
-          requestAnimationFrame(() => {
-            rm.invalidateSize();
-            rm.fitBounds(bounds, { padding: [55, 70], maxZoom: 6 });
-          });
-        }
+        // Deterministic center-on-city + distance-based zoom: always keeps the
+        // actual city pin dead-center so it's unmistakable, and never depends
+        // on container-size timing the way fitBounds()/invalidateSize() did
+        // (that timing dependency was the root cause of the zoomed-way-out bug).
+        const revealZoom = maxKm <= 50 ? 8 : maxKm <= 150 ? 7 : maxKm <= 400 ? 6 : maxKm <= 800 ? 5 : maxKm <= 2000 ? 4 : maxKm <= 6000 ? 3 : 2;
+        setTimeout(() => {
+          rm.invalidateSize();
+          rm.setView([city.lat, city.lon], revealZoom, { animate: false });
+        }, 60);
       } catch(e) { console.error('reveal map failed', e); }
       pushMirror({ headline: results.slice(0,3).map((r2,i)=>`${i+1}. ${r2.p.name} ${r2.guessed?r2.km+'km':'—'}`).join(' · ') });
       await waitNext();

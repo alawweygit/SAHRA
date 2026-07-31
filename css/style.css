@@ -1899,15 +1899,16 @@ body.ar .tutorial-bullets { text-align: right; }
 .anon-guess-chip.wrong{opacity:0.75;}
 .anon-guess-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .anon-guess-chip b{color:var(--yellow);font-weight:900;}
-/* PinPoint reveal map: distance badges on each player's guess pin (replaces
-   the old dashed connecting lines, which read as cluttered/confusing) */
-.pinpoint-guess-label{
-  background:rgba(15,15,25,.92)!important;color:#fff!important;
-  border:none!important;box-shadow:0 2px 8px rgba(0,0,0,.4)!important;
-  font-family:'Fredoka One',sans-serif;font-size:11px;padding:3px 8px!important;
-  border-radius:20px;font-weight:700;
+/* PinPoint reveal map: numbered pins for each guess (Option 3) — the name
+   and distance already live in the score-list rank order right below the
+   map, so the map itself only needs to show WHERE, not WHO. Fixed-size
+   number circles never collide with each other the way text badges did. */
+.pp-guess-num{
+  width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fredoka One',sans-serif;font-size:13px;font-weight:900;color:#fff;
+  border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5);
 }
-.pinpoint-guess-label::before{border-top-color:rgba(15,15,25,.92)!important;}
 .pp-city-label{
   background:rgba(250,204,21,.95);color:#000;
   font-family:'Fredoka One',sans-serif;font-size:12px;font-weight:900;

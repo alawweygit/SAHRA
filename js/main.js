@@ -1544,16 +1544,25 @@
             icon: L.divIcon({ html: '<div class="pp-city-label">⭐ ' + esc(city.name) + '</div>', className: '', iconSize: [0,0], iconAnchor: [0,0] }),
             interactive: false
           }).addTo(rm);
-          const bounds = [[city.lat, city.lon]];
-          guesses.forEach(g => {
-            L.circleMarker([g.lat, g.lon], { radius: 9, color: '#fff', weight: 2, fillColor: g.color, fillOpacity: 1 })
-              .addTo(rm).bindTooltip(esc(g.name) + ' · ' + g.km.toLocaleString() + ' km', { permanent: true, direction: 'top', className: 'pinpoint-guess-label' });
-            bounds.push([g.lat, g.lon]);
+          // Numbered pins in rank order — guesses[] arrives already sorted
+          // closest-first (host filters the pre-sorted results array), so the
+          // array index IS the rank. Names/distances live in the score-list
+          // below; the map only needs to show shape/spread, not text.
+          let maxKm = 0;
+          guesses.forEach((g, i) => {
+            maxKm = Math.max(maxKm, g.km);
+            L.marker([g.lat, g.lon], {
+              icon: L.divIcon({ html: '<div class="pp-guess-num" style="background:' + g.color + '">' + (i+1) + '</div>', className: '', iconSize: [26,26], iconAnchor: [13,13] }),
+            }).addTo(rm);
           });
+          // Deterministic center-on-city + distance-based zoom — see host.js
+          // for why this replaces fitBounds()/invalidateSize() (container-size
+          // timing was the root cause of the zoomed-way-out bug).
+          const revealZoom = maxKm <= 50 ? 8 : maxKm <= 150 ? 7 : maxKm <= 400 ? 6 : maxKm <= 800 ? 5 : maxKm <= 2000 ? 4 : maxKm <= 6000 ? 3 : 2;
           setTimeout(() => {
             rm.invalidateSize();
-            if (bounds.length > 1) rm.fitBounds(bounds, { padding: [55, 70], maxZoom: 6 });
-          }, 100);
+            rm.setView([city.lat, city.lon], revealZoom, { animate: false });
+          }, 60);
         } catch(e) { console.error('player reveal map failed', e); }
       }
       net.onSharedScreen(view=>{ renderShared(view); tryInitRevealMap(); });
