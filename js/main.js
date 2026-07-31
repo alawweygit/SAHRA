@@ -1741,8 +1741,20 @@
         if(phonesOnly){
           document.body.classList.remove('phones-player-answering');
           setSharedStageHidden(false);
-          document.getElementById('playerDock')?.classList.add('docked');
-          document.getElementById('scr-controller')?.classList.add('has-docked-footer');
+          const _pd=document.getElementById('playerDock');
+          _pd?.classList.add('docked');
+          const _sc=document.getElementById('scr-controller');
+          _sc?.classList.add('has-docked-footer');
+          // Measure the dock's real rendered height instead of guessing a
+          // fixed padding value — the dock's content (avatar+speech+button)
+          // varies, and a hardcoded guess was too short, hiding the last
+          // score row(s) behind the dock.
+          if(_pd&&_sc){
+            requestAnimationFrame(()=>{
+              const h=_pd.offsetHeight;
+              if(h>0)_sc.style.setProperty('--docked-footer-h',(h+24)+'px');
+            });
+          }
           if(shared.dataset.sharedReady!=='1')renderSharedStatus(state.msg||(LANG==='ar'?'جاري إعادة الاتصال باللعبة…':'Reconnecting to the game…'),LANG==='ar'?'لحظات...':'One moment…');
           // Host phone gets a Next button to advance the game
           if(net.hostSelfPid&&net.hostSelfPid===myPid&&window.__hypoxSkip){

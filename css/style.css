@@ -494,24 +494,25 @@ body.ar .eyebrow{letter-spacing:0;}
   box-shadow:0 -8px 24px rgba(0,0,0,.35);
   width:100%;
   display:none;
-  align-items:flex-end;justify-content:space-between;gap:12px;
+  align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;
 }
 .host-input-dock:has(#host.show),
 .host-input-dock:has(#hostDockAction:not(:empty)),
 .host-input-dock:has(#lobbyDockAction:not(.hidden)){display:flex;}
-#hostDockAction{flex:0 0 auto;}
+#hostDockAction{flex:0 1 auto;min-width:0;}
 #hostDockAction:empty{display:none;}
-#hostDockAction .big-btn{margin:0;}
-#lobbyDockAction{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+#hostDockAction .big-btn{margin:0;max-width:100%;}
+#lobbyDockAction{flex:0 1 auto;min-width:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
 #lobbyDockAction.hidden{display:none;}
-#lobbyDockAction #startGameBtn{margin:0;width:auto;min-width:min(50vw,200px);}
+#lobbyDockAction #startGameBtn{margin:0;width:auto;max-width:100%;}
+#lobbyHint{white-space:normal;text-align:right;max-width:40vw;}
 .host-input-dock .ctrl-wrap{max-width:700px;margin:0 auto;}
 /* Player-side sticky footer (avatar + Next Round/waiting text) — only
    engaged during the wait/scores phase via .docked, so the score list can
    scroll independently above it without burying the action row. */
 #playerDock.docked{position:fixed;left:0;right:0;bottom:0;z-index:400;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:10px;background:var(--card);border-top:1px solid rgba(255,255,255,.12);box-shadow:0 -8px 24px rgba(0,0,0,.35);width:100%;}
 #playerDock.docked .phone-shared-host{margin:0;}
-#scr-controller.has-docked-footer{padding-bottom:max(160px,22vh)!important;}
+#scr-controller.has-docked-footer{padding-bottom:var(--docked-footer-h,max(160px,22vh))!important;}
 /* Keep the host's own avatar bubble clear of the fixed Next Round dock */
 /* #host now lives inside .host-input-dock as a flex child (see index.html) —
    no separate absolute positioning to reconcile with the dock anymore. */
@@ -680,6 +681,7 @@ body.phones-player-answering #phoneSharedStage{display:none!important;}
   display:flex;flex-direction:column;align-items:center;gap:1.4vmin;
   width:min(90vw,360px);box-shadow:0 24px 60px rgba(0,0,0,0.6);
   animation:popIn 0.3s var(--ease-out);
+  max-height:min(85vh,85dvh);overflow-y:auto;
 }
 .menu-title{font-size:clamp(28px,5vmin,42px);color:var(--yellow);margin-bottom:0.8vmin;}
 .menu-item{
