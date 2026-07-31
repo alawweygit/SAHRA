@@ -4,7 +4,7 @@
    SFX: warm pluck synth (no harsh bleeps). */
 
 const Audio_ = (() => {
-  let AC = null, soundOn = true;
+  let AC = null, soundOn = false;
   let currentMusic = null, currentMusicName = null, musicGain = null;
   let master = null;
 

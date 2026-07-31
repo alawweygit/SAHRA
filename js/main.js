@@ -476,7 +476,7 @@
             try{sessionStorage.removeItem('hypox_session');}catch(e){}
             net=null;currentRoomCode=null;show('#scr-title');
           }
-        }catch(e){localStorage.removeItem('hypox_player_session');if(!_leftOnPurpose)show('#scr-title');}
+        }catch(e){localStorage.removeItem('hypox_player_session');if(!_leftOnPurpose){$('#topbar').classList.remove('show');$('#roundPill').innerHTML='HYPOX';$('#roundPill').style.cssText='';show('#scr-title');}}
         setTimeout(()=>_pb?.remove(),1500);
       })();
     } else if(!urlCode) restoreNavigationState();
@@ -1116,7 +1116,17 @@
       }));}catch(e){}
     }
     try{sessionStorage.removeItem('hypox_session');localStorage.removeItem('hypox_player_session');}catch(e){}
-    if(leavingNet)try{await leavingNet.close();}catch(e){}
+    // Race close() against a timeout — on a connection that's been open for
+    // hours, Firebase's onDisconnect/remove calls can hang indefinitely on a
+    // stale socket. Without this, the await below never resolves and the
+    // navigation on the next line never runs, leaving the spinner stuck
+    // forever (only a manual refresh recovers).
+    if(leavingNet){
+      await Promise.race([
+        leavingNet.close().catch(()=>{}),
+        new Promise(res=>setTimeout(res,3000))
+      ]);
+    }
     window.location.href=window.location.origin+window.location.pathname+'?t='+Date.now();
   }
 
