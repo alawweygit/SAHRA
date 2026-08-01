@@ -512,6 +512,18 @@ body.ar .eyebrow{letter-spacing:0;}
 #lobbyDockAction #startGameBtn{margin:0;width:auto;max-width:100%;}
 #lobbyHint{white-space:normal;text-align:right;max-width:40vw;}
 .host-input-dock .ctrl-wrap{max-width:700px;margin:0 auto;}
+/* Lobby-only: Laith's avatar+speech bubble is the tallest thing in the
+   fixed dock, and align-items:flex-end means the dock's total height is
+   driven entirely by his size — pushing the Start Game button/hint far
+   below him with empty space in between. Shrink Laith specifically while
+   #lobbyDockAction is active (lobby screen) so the whole dock comes down
+   closer to button height, without touching his size during actual
+   gameplay (mid-round host speech uses the same #host element).
+   Scoped via :has() so this never affects the in-game dock. */
+.host-input-dock:has(#lobbyDockAction:not(.hidden)) .host-body{width:clamp(48px,7vmin,72px);height:clamp(48px,7vmin,72px);}
+.host-input-dock:has(#lobbyDockAction:not(.hidden)) .speech{min-height:3.2vmin;padding:1vmin 1.6vmin;margin-bottom:0.6vmin;font-size:clamp(11px,1.6vmin,15px);max-width:min(48vw,420px);}
+.host-input-dock:has(#lobbyDockAction:not(.hidden)) .host-name{top:-11px;font-size:9px;padding:2px 9px;}
+.host-input-dock:has(#lobbyDockAction:not(.hidden)) #host{gap:1vmin;}
 /* Player-side sticky footer (avatar + Next Round/waiting text) — only
    engaged during the wait/scores phase via .docked, so the score list can
    scroll independently above it without burying the action row. */
