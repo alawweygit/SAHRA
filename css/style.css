@@ -57,7 +57,7 @@ body.theme-light {
 *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased;}
 html,body{height:100%;overflow:hidden;position:fixed;width:100%;}
 #scr-title,#scr-lobby,#scr-join,#scr-avatar{overflow-y:scroll!important;-webkit-overflow-scrolling:touch!important;height:100vh;height:100dvh;padding-bottom:120px!important;scroll-behavior:auto;overscroll-behavior-y:contain;will-change:scroll-position;}
-#scr-lobby{justify-content:flex-start!important;padding-top:max(70px,9vmin)!important;padding-bottom:calc(120px + 14vmin)!important;}
+#scr-lobby{justify-content:flex-start!important;padding-top:max(70px,9vmin)!important;padding-bottom:var(--lobby-dock-h,calc(120px + 14vmin))!important;}
 /* scr-pregame scroll rules consolidated below in PREGAME V3 */
 #scr-games{overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;scroll-behavior:auto;overscroll-behavior-y:contain;will-change:scroll-position;height:100vh;height:100dvh;}
 html,body,#app,.screen,#hostStage,#scr-controller,#phoneSharedStage,#ctrlArea{overflow-anchor:none;}

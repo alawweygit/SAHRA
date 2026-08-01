@@ -318,6 +318,23 @@
     }catch(e){}
     // Expose show() globally for host.js to use
     window.__hypoxShowScreen = show;
+    // Dynamically track the fixed dock's actual height so #scr-lobby's
+    // reserved bottom padding matches reality instead of a static guess.
+    // The dock's height varies a lot depending on whether Laith is showing
+    // (lobby greeting, tall) or just the compact Start Game button (short) —
+    // a hardcoded padding-bottom sized for the worst case left a big empty
+    // gap whenever the dock was actually shorter.
+    (function(){
+      const _dock=document.getElementById('hostInputDock');
+      if(_dock&&window.ResizeObserver){
+        const _setDockH=()=>{
+          const h=_dock.offsetHeight;
+          if(h>0)document.documentElement.style.setProperty('--lobby-dock-h',(h+24)+'px');
+        };
+        new ResizeObserver(_setDockH).observe(_dock);
+        _setDockH();
+      }
+    })();
     window.__hypoxShowPackPicker = showPackPicker;
     applyTheme();
     applyLang();
