@@ -379,6 +379,12 @@ const Host = (() => {
       window.__hypoxSkip = onStart;
     });
     hostSpeechEnabled = false; // rounds begin now — no more mid-game speech until final results
+    // Force-hide immediately: the pre-round hostSay('gamestart') call above
+    // has its own independent 4s auto-hide timeout running. If START is
+    // tapped before that timer finishes, the flag only blocks *new* speech —
+    // the still-running bubble stays visible into round 1 until its own
+    // timer fires. hideHost() clears it the instant rounds begin instead.
+    hideHost();
   }
 
   async function showScores(final = false) {
