@@ -520,23 +520,23 @@ body.ar .eyebrow{letter-spacing:0;}
    closer to button height, without touching his size during actual
    gameplay (mid-round host speech uses the same #host element).
    Scoped via :has() so this never affects the in-game dock. */
-.host-input-dock:has(#lobbyDockAction:not(.hidden)) .host-body{width:clamp(36px,5.5vmin,52px);height:clamp(36px,5.5vmin,52px);}
-.host-input-dock:has(#lobbyDockAction:not(.hidden)) .speech{min-height:0;padding:4px 8px;margin-bottom:0;font-size:clamp(10px,1.4vmin,13px);max-width:min(42vw,360px);}
-.host-input-dock:has(#lobbyDockAction:not(.hidden)) .host-name{top:-9px;font-size:8px;padding:1px 6px;}
-.host-input-dock:has(#lobbyDockAction:not(.hidden)) #host{gap:2px;}
+.host-input-dock:has(#lobbyDockAction:not(.hidden)) .host-body{width:clamp(32px,5vmin,44px);height:clamp(32px,5vmin,44px);}
+.host-input-dock:has(#lobbyDockAction:not(.hidden)) .speech{min-height:0;padding:3px 6px;margin-bottom:0;font-size:clamp(9px,1.3vmin,12px);max-width:min(36vw,280px);}
+.host-input-dock:has(#lobbyDockAction:not(.hidden)) .host-name{top:-8px;font-size:7px;padding:1px 5px;}
+.host-input-dock:has(#lobbyDockAction:not(.hidden)) #host{gap:1px;flex-shrink:1;min-width:0;}
+/* Prevent wrapping in the lobby dock so Laith + Start Game stay on
+   one line (matching the compact single-row look of pic 3's dock). */
+.host-input-dock:has(#lobbyDockAction:not(.hidden)){flex-wrap:nowrap!important;}
 /* Player-side sticky footer (avatar + Next Round/waiting text) — only
    engaged during the wait/scores phase via .docked, so the score list can
    scroll independently above it without burying the action row. */
 #playerDock.docked{position:fixed;left:0;right:0;bottom:0;z-index:400;display:flex;flex-direction:column;align-items:center;gap:0;padding-top:4px;background:var(--card);border-top:1px solid rgba(255,255,255,.12);box-shadow:0 -8px 24px rgba(0,0,0,.35);width:100%;}
 #playerDock.docked .phone-shared-host{margin:0;}
 #scr-controller.has-docked-footer{padding-bottom:0!important;}
-/* Cap the scroll container's height so it ends above the fixed dock,
-   rather than extending behind it with padding-bottom compensation.
-   The old padding-bottom approach left visible dead space when the
-   score list was short (e.g. 2 rows in PinPoint reveal). With a
-   height cap, the container simply stops above the dock — no padding
-   hack needed, works correctly whether content is short or long. */
-#scr-controller.has-docked-footer #phoneSharedStage{max-height:calc(100dvh - var(--docked-footer-h,90px) - 60px)!important;}
+/* Fill from header to dock — height (not max-height) so the box always
+   extends right up to the dock even when content is short, eliminating
+   the visible gap that max-height left. */
+#scr-controller.has-docked-footer #phoneSharedStage{height:calc(100dvh - var(--docked-footer-h,90px) - 60px)!important;max-height:none!important;}
 /* Keep the host's own avatar bubble clear of the fixed Next Round dock */
 /* #host now lives inside .host-input-dock as a flex child (see index.html) —
    no separate absolute positioning to reconcile with the dock anymore. */
