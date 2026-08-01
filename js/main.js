@@ -1779,7 +1779,7 @@
           if(net.hostSelfPid&&net.hostSelfPid===myPid&&window.__hypoxSkip){
             ctrl.classList.remove('hidden');
             if(!ctrl.querySelector('#phonesNextBtn')){
-              ctrl.innerHTML=`<div style="padding:12px 16px">
+              ctrl.innerHTML=`<div style="padding:4px 16px">
                 <button id="phonesNextBtn" class="big-btn" style="width:100%;max-width:400px;margin:0 auto;display:block">
                   ▶ ${t('next_round')||'Next Round'}
                 </button>

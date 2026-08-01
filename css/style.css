@@ -510,11 +510,6 @@ body.ar .eyebrow{letter-spacing:0;}
 #lobbyDockAction{flex:0 1 auto;min-width:0;margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
 #lobbyDockAction.hidden{display:none;}
 #lobbyDockAction #startGameBtn{margin:0;width:auto;max-width:100%;}
-/* Compact button sizing inside both docks — full .big-btn padding
-   (1.8vmin 5.5vmin + min-height:46px) is sized for hero CTAs on the
-   title screen, not for a fixed footer where every pixel of height
-   matters. */
-.host-input-dock .big-btn,#playerDock.docked .big-btn{padding:1.2vmin 4vmin;min-height:0;font-size:clamp(15px,2.4vmin,22px);box-shadow:0 4px 0 var(--btn-primary-shadow),0 8px 20px var(--btn-primary-shadow);}
 #lobbyHint{white-space:normal;text-align:right;max-width:40vw;}
 .host-input-dock .ctrl-wrap{max-width:700px;margin:0 auto;}
 /* Lobby-only: Laith's avatar+speech bubble is the tallest thing in the
