@@ -329,7 +329,7 @@
       if(_dock&&window.ResizeObserver){
         const _setDockH=()=>{
           const h=_dock.offsetHeight;
-          if(h>0)document.documentElement.style.setProperty('--lobby-dock-h',(h+24)+'px');
+          if(h>0)document.documentElement.style.setProperty('--lobby-dock-h',(h+8)+'px');
         };
         new ResizeObserver(_setDockH).observe(_dock);
         _setDockH();

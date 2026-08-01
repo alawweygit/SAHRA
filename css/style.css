@@ -488,13 +488,13 @@ body.ar .eyebrow{letter-spacing:0;}
   position:fixed;
   bottom:0;left:0;right:0;
   z-index:400;
-  padding:12px 16px max(16px,env(safe-area-inset-bottom));
+  padding:4px 12px max(12px,env(safe-area-inset-bottom));
   background:var(--card);
   border-top:1px solid rgba(255,255,255,.12);
   box-shadow:0 -8px 24px rgba(0,0,0,.35);
   width:100%;
   display:none;
-  align-items:flex-end;gap:12px;flex-wrap:wrap;
+  align-items:flex-end;gap:6px;flex-wrap:wrap;
 }
 .host-input-dock:has(#host.show),
 .host-input-dock:has(#hostDockAction:not(:empty)),
@@ -520,10 +520,10 @@ body.ar .eyebrow{letter-spacing:0;}
    closer to button height, without touching his size during actual
    gameplay (mid-round host speech uses the same #host element).
    Scoped via :has() so this never affects the in-game dock. */
-.host-input-dock:has(#lobbyDockAction:not(.hidden)) .host-body{width:clamp(48px,7vmin,72px);height:clamp(48px,7vmin,72px);}
-.host-input-dock:has(#lobbyDockAction:not(.hidden)) .speech{min-height:3.2vmin;padding:1vmin 1.6vmin;margin-bottom:0.6vmin;font-size:clamp(11px,1.6vmin,15px);max-width:min(48vw,420px);}
-.host-input-dock:has(#lobbyDockAction:not(.hidden)) .host-name{top:-11px;font-size:9px;padding:2px 9px;}
-.host-input-dock:has(#lobbyDockAction:not(.hidden)) #host{gap:1vmin;}
+.host-input-dock:has(#lobbyDockAction:not(.hidden)) .host-body{width:clamp(36px,5.5vmin,52px);height:clamp(36px,5.5vmin,52px);}
+.host-input-dock:has(#lobbyDockAction:not(.hidden)) .speech{min-height:0;padding:4px 8px;margin-bottom:0;font-size:clamp(10px,1.4vmin,13px);max-width:min(42vw,360px);}
+.host-input-dock:has(#lobbyDockAction:not(.hidden)) .host-name{top:-9px;font-size:8px;padding:1px 6px;}
+.host-input-dock:has(#lobbyDockAction:not(.hidden)) #host{gap:2px;}
 /* Player-side sticky footer (avatar + Next Round/waiting text) — only
    engaged during the wait/scores phase via .docked, so the score list can
    scroll independently above it without burying the action row. */
