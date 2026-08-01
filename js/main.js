@@ -1691,18 +1691,29 @@
           const phoneSpec=_rawSpec?(phonesOnly?{..._rawSpec,controlsOnly:_mapPhoneOnly,...(_stripContextPhoneOnly?{context:''}:{})}:_rawSpec):null;
           if(!phoneSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
           const _pa1=phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow');
+          // Choice/higherlow hide the ENTIRE shared stage while answering
+          // (their own input form repeats the question). Text/number inputs
+          // can't do that — the shared-stage headline is often the ONLY
+          // place showing the actual question (e.g. Time Machine, since we
+          // strip its duplicate context above) — so hiding the whole stage
+          // would hide the question itself. Instead, hide just the
+          // submission tracker (#statusRow) via a body class, so the
+          // question stays visible but the ticks only appear once THIS
+          // player has submitted, matching choice-type behavior.
+          const _hideTrackerOnly = phonesOnly && !_pa1 && (phoneSpec.type==='text'||phoneSpec.type==='number');
           document.body.classList.toggle('phones-player-answering',_pa1);
+          document.body.classList.toggle('phones-hide-tracker',_hideTrackerOnly);
           setSharedStageHidden(_pa1);
           if(!_isNewPhase1)return; // avoid rebuilding the tappable buttons on a replayed event
           ctrl.classList.remove('hidden');
           Controller.render(ctrl,phoneSpec,async value=>{
             const result=await net.submitInput(state.phaseId,value,{enforceUnique:phoneSpec.enforceUnique===true});
             if(result?.accepted===false)return result;
-            setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
+            setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');document.body.classList.remove('phones-hide-tracker');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
             return result;
           });
           resetScrollPositionAfterLayout();
-        }else if(phonesOnly){document.body.classList.remove('phones-player-answering');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else{Controller.waitScreen(ctrl,T.watchScreen());resetScrollPositionAfterLayout();}
+        }else if(phonesOnly){document.body.classList.remove('phones-player-answering');document.body.classList.remove('phones-hide-tracker');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else{Controller.waitScreen(ctrl,T.watchScreen());resetScrollPositionAfterLayout();}
       }else if(state.phase==='input-split'){
         const _isNewPhase = state.phaseId!==lastPhaseId;
         if(_isNewPhase){lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);}
@@ -1803,8 +1814,10 @@
             // Non-host players: show waiting for host message
             ctrl.classList.remove('hidden');
             if(!ctrl.querySelector('.waiting-for-host')){
-              ctrl.innerHTML=`<div class="waiting-for-host" style="text-align:center;padding:8px 16px;color:var(--text3);font-size:clamp(13px,3.5vw,16px)">
-                ⏳ ${LANG==='ar'?'انتظر المضيف...':'Waiting for host...'}
+              ctrl.innerHTML=`<div style="padding:4px 16px">
+                <div class="waiting-for-host" style="text-align:center;padding:12px 16px;color:var(--text3);font-size:clamp(13px,3.5vw,16px);background:var(--bg2);border:1.5px solid var(--border);border-radius:20px;max-width:400px;margin:0 auto">
+                  ⏳ ${LANG==='ar'?'انتظر المضيف...':'Waiting for host...'}
+                </div>
               </div>`;
             }
           }
