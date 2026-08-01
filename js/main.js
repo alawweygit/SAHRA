@@ -328,8 +328,14 @@
       const _dock=document.getElementById('hostInputDock');
       if(_dock&&window.ResizeObserver){
         const _setDockH=()=>{
-          const h=_dock.offsetHeight;
-          if(h>0)document.documentElement.style.setProperty('--lobby-dock-h',(h+8)+'px');
+          // offsetHeight is 0 when the dock is display:none (no host speech
+          // and no action button). Publish 0 in that case so neither the
+          // lobby nor the game screen reserves a strip of empty space for a
+          // dock that isn't actually on screen.
+          const h=_dock.offsetHeight||0;
+          const v=(h>0?(h+8):0)+'px';
+          document.documentElement.style.setProperty('--lobby-dock-h',v);
+          document.documentElement.style.setProperty('--host-dock-h',v);
         };
         new ResizeObserver(_setDockH).observe(_dock);
         _setDockH();

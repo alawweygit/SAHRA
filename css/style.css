@@ -2015,3 +2015,58 @@ body.ar .tutorial-bullets { text-align: right; }
    submitted its own answer — armed per-device via a body class so the
    DOM-clone broadcast can't leak one device's state to everyone else. */
 body.hide-tracker #statusRow{display:none!important;}
+
+/* =====================================================================
+   v66 — HOST SCREEN gets the same real header/main/footer treatment
+   =====================================================================
+   #scr-game had a HARDCODED "padding-bottom:200px" on #hostStage (see the
+   ':has(#hostDockAction:not(:empty))' rule earlier in this file, commented
+   "make room for fixed dock"). Exactly the same class of bug as the lobby's
+   static padding fixed in v56: a fixed 200px guess that has nothing to do
+   with the dock's real height, so it renders as a large empty gap above the
+   Next Round button, and because #hostStage has min-height:100% the whole
+   screen scrolled as one unit under the fixed dock — hiding the last rows.
+
+   Now: #scr-game reserves exactly the MEASURED dock height as padding, and
+   #hostStage is flex:1 with its own scrollbar inside that area. The fixed
+   dock sits precisely over the reserved strip, so it can never cover a row
+   and there is no leftover empty space. Pack-picker / rebus modes keep
+   their own bespoke layouts and are excluded.                            */
+#scr-game.active:not(.pack-picker-active):not(.rebus-input-active){
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+  padding-bottom:var(--host-dock-h,0px)!important;
+}
+#scr-game.active:not(.pack-picker-active):not(.rebus-input-active) #hostStage{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  height:auto!important;
+  padding-bottom:12px!important;   /* kills the hardcoded 200px */
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+}
+
+/* ---------------------------------------------------------------------
+   SCROLL REGRESSION FIX (Mac/desktop player, introduced in v65).
+   .phone-shared-stage carries pointer-events:none so players can't
+   interact with the mirrored host UI. That was harmless while the SCREEN
+   was the scroll container, but v65 moved scrolling INTO this element —
+   and an element with pointer-events:none is not a hit target, so the
+   wheel/touch never finds the scroll container and nothing scrolls.
+   Re-enable pointer events on the container itself (needed purely to
+   receive scroll) while keeping every descendant non-interactive, so the
+   read-only behaviour of the mirror is exactly preserved.              */
+#scr-controller #phoneSharedStage{pointer-events:auto!important;}
+#scr-controller #phoneSharedStage *{pointer-events:none!important;}
+
+/* ---------------------------------------------------------------------
+   Tracker hiding: also target the CLASS, not just the id. The shared-screen
+   broadcast clones the host DOM into the player's mirror, and the id does
+   not survive intact there — which is why body.hide-tracker was correctly
+   applied on the player (confirmed in devtools) yet the avatars still
+   showed. The class is preserved, so match both.                        */
+body.hide-tracker #statusRow,
+body.hide-tracker .status-row{display:none!important;}
