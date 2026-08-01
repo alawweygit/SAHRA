@@ -173,6 +173,11 @@ const Host = (() => {
 
   function scene(html) {
     const s = stage();
+    // Every new scene clears the tracker-hiding state. collectWithTimer()
+    // always runs AFTER the scene that shows the question, so it re-arms
+    // per round; reveal/score scenes simply stay unaffected. This also
+    // covers the timeout path where the host never submitted an answer.
+    document.body.classList.remove('hide-tracker');
     sharedSceneId++;
     s.innerHTML = html;
     s.classList.remove('scene-in'); void s.offsetWidth; s.classList.add('scene-in');
@@ -255,6 +260,15 @@ const Host = (() => {
         }, delay);
       });
     }
+    // Hide the tracker on THIS (host) device until the host has submitted
+    // their own answer. Previously the row was populated the instant
+    // collection began, so the host could see who had/hadn't answered while
+    // still typing their own guess. Armed only when the host is actually a
+    // participant — if they're just watching a hot-seat round, the tracker
+    // should show immediately as before. Uses a body class (not inline
+    // styles) so the DOM-clone broadcast can't leak host state to players.
+    const _hostIsPlaying = net.hostSelfPid && pids.includes(net.hostSelfPid);
+    if (_hostIsPlaying) document.body.classList.add('hide-tracker');
     // status row of mini avatars
     const row = $('#statusRow');
     if (row) {
@@ -269,6 +283,8 @@ const Host = (() => {
       Audio_.sfx.submit();
       const el = $('#mini-' + pid);
       if (el) el.classList.add('done');
+      // Host just answered — reveal the tracker from here on.
+      if (net.hostSelfPid && pid === net.hostSelfPid) document.body.classList.remove('hide-tracker');
     });
 
     // countdown (online only — offline is turn-based, no global clock)

@@ -1279,7 +1279,10 @@ html{font-size:17px;}
 
 /* Menu button always on top, visible during game */
 #topbar { z-index: 100 !important; }
-#menuOverlay { z-index: 200 !important; }
+/* Must sit ABOVE the docks (#playerDock.docked / .host-input-dock are z-index
+   400). At 200 the dock painted over the menu, clipping Leave Game and the
+   lower half of the card — the menu is a modal and must beat everything. */
+#menuOverlay { z-index: 9999 !important; }
 #menuBtn.hidden { display: none !important; }
 
 /* ===== LANDING PAGE ===== */
@@ -1957,3 +1960,58 @@ body.ar .tutorial-bullets { text-align: right; }
   padding:3px 10px;border-radius:20px;white-space:nowrap;
   box-shadow:0 2px 10px rgba(0,0,0,.5);border:2px solid #fff;
 }
+
+/* =====================================================================
+   TRUE HEADER / MAIN / FOOTER LAYOUT  (controller screen)
+   =====================================================================
+   Previously #scr-controller was ONE scrolling column with the dock
+   layered on top via fixed (then sticky) positioning. That is why the
+   dock kept overlapping the last score row, why the gap above it varied
+   per game mode, and why there was only one shared scrollbar.
+
+   Now it is a real 3-region layout:
+     header  -> #topbar (already position:fixed, outside this screen)
+     main    -> #phoneSharedStage : flex:1, scrolls INDEPENDENTLY
+     footer  -> #playerDock       : normal flow, never overlaps main
+
+   Because the footer is a normal flex child (not fixed/sticky), main can
+   never render underneath it — the last player is always reachable — and
+   there is no reserved padding to leave an empty gap when content is
+   short. No per-screen height/padding compensation is needed anywhere.  */
+#scr-controller.active{
+  overflow:hidden!important;          /* the screen itself never scrolls */
+  justify-content:flex-start!important;
+  padding-bottom:0!important;
+  gap:0!important;
+}
+#scr-controller #phoneSharedStage{
+  flex:1 1 auto!important;            /* main fills the space above footer */
+  min-height:0!important;             /* required or flex refuses to shrink */
+  overflow-y:auto!important;          /* main gets its OWN scrollbar */
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+  width:100%;
+}
+/* Footer, docked state (Next Round / Waiting for host): fixed height,
+   never scrolls — per Ali: "bottom is fixed, always shown, no scrolling". */
+#scr-controller #playerDock.docked{
+  position:static!important;
+  flex:0 0 auto!important;
+  width:100%;
+  overflow:visible!important;
+}
+/* Footer, input state (the answer form): may be tall, so allow it to
+   shrink and scroll internally rather than pushing main off-screen. */
+#scr-controller #playerDock:not(.docked){
+  flex:0 1 auto;
+  min-height:0;
+  max-height:72%;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  width:100%;
+}
+/* Submission tracker (avatars + ticks) stays hidden until THIS device has
+   submitted its own answer — armed per-device via a body class so the
+   DOM-clone broadcast can't leak one device's state to everyone else. */
+body.hide-tracker #statusRow{display:none!important;}

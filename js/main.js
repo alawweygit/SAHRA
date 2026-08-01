@@ -1110,6 +1110,16 @@
     window.__hypoxAbort = true;
     window.__hypoxPlayAgain=false;
     gameActive=false;
+    // Reset the topbar mode pill straight away. leaveGame ends in a full page
+    // reload, but close() is raced against a 3s timeout first — during that
+    // window the spinner is up while the topbar behind it still showed the
+    // mode name of the game just left (e.g. "TIME MACHINE"), which looked
+    // like a stale/lagging UI until the reload finally landed.
+    try{
+      const _rp=$('#roundPill');
+      if(_rp){_rp.innerHTML='HYPOX';_rp.style.cssText='';}
+      $('#topbar')?.classList.remove('show');
+    }catch(e){}
     Host.stopSharedScreen?.();
     if(window.__hypoxSkip)window.__hypoxSkip();
     window.__hypoxSkip=null;
@@ -1248,7 +1258,13 @@
       const _hExclude=spec?.playerExcludes?.[net?.hostSelfPid];
       // Map: show city name + subtitle just like the player controller (full-screen layout).
       // Other types: controlsOnly + generic title since host sees the question on hostStage.
-      const hostSpec=isMapInput
+      // Text/number inputs keep their real title (e.g. "Type the year") on the
+      // host too — controlsOnly:true suppresses the title entirely (see
+      // controller.js), which is why the host saw a bare input box while
+      // players saw the instruction. Context is still stripped on host since
+      // hostStage already shows the question above.
+      const _titledInput = spec?.type==='text' || spec?.type==='number';
+      const hostSpec=(isMapInput||_titledInput)
         ?{...spec,controlsOnly:false,context:'',sub:spec.sub||'',title:spec.title||'',
           ...(_hExclude!==undefined?{excludeId:_hExclude}:{})}
         :{...spec,controlsOnly:true,title:LANG==='ar'?'👆 اختيارك':'👆 Your pick',context:'',sub:'',
@@ -1700,20 +1716,20 @@
           // submission tracker (#statusRow) via a body class, so the
           // question stays visible but the ticks only appear once THIS
           // player has submitted, matching choice-type behavior.
-          const _hideTrackerOnly = phonesOnly && !_pa1 && (phoneSpec.type==='text'||phoneSpec.type==='number');
+          const _hideTrackerOnly = phonesOnly && !_pa1;
           document.body.classList.toggle('phones-player-answering',_pa1);
-          document.body.classList.toggle('phones-hide-tracker',_hideTrackerOnly);
+          document.body.classList.toggle('hide-tracker',_hideTrackerOnly);
           setSharedStageHidden(_pa1);
           if(!_isNewPhase1)return; // avoid rebuilding the tappable buttons on a replayed event
           ctrl.classList.remove('hidden');
           Controller.render(ctrl,phoneSpec,async value=>{
             const result=await net.submitInput(state.phaseId,value,{enforceUnique:phoneSpec.enforceUnique===true});
             if(result?.accepted===false)return result;
-            setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');document.body.classList.remove('phones-hide-tracker');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
+            setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');document.body.classList.remove('hide-tracker');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
             return result;
           });
           resetScrollPositionAfterLayout();
-        }else if(phonesOnly){document.body.classList.remove('phones-player-answering');document.body.classList.remove('phones-hide-tracker');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else{Controller.waitScreen(ctrl,T.watchScreen());resetScrollPositionAfterLayout();}
+        }else if(phonesOnly){document.body.classList.remove('phones-player-answering');document.body.classList.remove('hide-tracker');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else{Controller.waitScreen(ctrl,T.watchScreen());resetScrollPositionAfterLayout();}
       }else if(state.phase==='input-split'){
         const _isNewPhase = state.phaseId!==lastPhaseId;
         if(_isNewPhase){lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);}
