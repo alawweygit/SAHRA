@@ -1678,7 +1678,17 @@
           // and mode header from the host scene clone — set controlsOnly so the
           // controller shows only the map+button without a duplicate city name card.
           const _mapPhoneOnly = phonesOnly && _rawSpec?.type === 'map';
-          const phoneSpec=_rawSpec?(phonesOnly?{..._rawSpec,controlsOnly:_mapPhoneOnly}:_rawSpec):null;
+          // Some text inputs (e.g. Time Machine) pass the exact same statement
+          // as both the shared-stage mirrored headline AND the input form's
+          // own `context` field. Unlike choice/higherlow, text inputs don't
+          // hide the shared stage during input (see _pa1 below), so both
+          // would render on screen at once — a visible duplicate. Modes opt
+          // in explicitly via hideContextOnPhone (rather than a blanket
+          // type==='text' check) because other text inputs — like 2 Truths
+          // 1 Lie's hotseat writing prompts — have genuinely different,
+          // non-duplicate context text that must stay visible.
+          const _stripContextPhoneOnly = phonesOnly && _rawSpec?.hideContextOnPhone === true;
+          const phoneSpec=_rawSpec?(phonesOnly?{..._rawSpec,controlsOnly:_mapPhoneOnly,...(_stripContextPhoneOnly?{context:''}:{})}:_rawSpec):null;
           if(!phoneSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
           const _pa1=phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow');
           document.body.classList.toggle('phones-player-answering',_pa1);

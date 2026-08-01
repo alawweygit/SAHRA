@@ -1781,11 +1781,12 @@ const Host = (() => {
       scene(`
         <div class="eyebrow">⏳ ${esc(t('mode_names').year || 'TIME MACHINE')}</div>
         <div class="prompt-card display">${esc(Q.q)}</div>
-        <div class="pick-sub">${LANG==='ar'?'أي سنة صارت؟ اكتب تخمينك!':'What year did this happen? Type your guess!'}</div>`);
+        <div class="pick-sub">${LANG==='ar'?'أي سنة صارت؟ اكتب تخمينك!':'What year did this happen? Type your guess!'}</div>
+        <div id="statusRow" class="status-row"></div>`);
       pushMirror({ headline: Q.q, pill: `${i+1}/${qs.length}` });
       Audio_.sfx.sting();
       const answers = await collectWithTimer({
-        type: 'text', title: LANG==='ar'?'اكتب السنة':'Type the year', context: Q.q, translateContext: Q.q, maxLen: 4, numeric: true, seconds: 20,
+        type: 'text', title: LANG==='ar'?'اكتب السنة':'Type the year', context: Q.q, translateContext: Q.q, maxLen: 4, numeric: true, seconds: 20, hideContextOnPhone: true,
       }, players.map(p => p.pid), 20);
       const results = players.map(p => {
         let raw = answers[p.pid] ? String(answers[p.pid].value || '').trim() : '';
@@ -1796,9 +1797,10 @@ const Host = (() => {
       }).sort((a, b) => a.diff - b.diff);
       const AWARD = [1000, 700, 500];
       results.forEach((r2, idx) => {
-        if (r2.yr === null) return;
+        if (r2.yr === null) { r2.pts = 0; return; }
         let pts = AWARD[idx] !== undefined ? AWARD[idx] : 300;
         if (r2.diff === 0) pts += 500;
+        r2.pts = pts;
         addScore(r2.p.pid, pts);
       });
       Audio_.sfx.reveal(); FX.burst(60);
@@ -1810,8 +1812,8 @@ const Host = (() => {
             <div class="score-row" style="animation-delay:${idx*.12}s">
               <div class="medal">${idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':''}</div>
               <div class="avatar" style="background:${r2.p.color}">${r2.p.emoji}</div>
-              <div class="bar-track"><div class="bar-fill" style="width:${Math.max(15,100-idx*20)}%;background:linear-gradient(90deg,var(--purple),var(--pink))">
-                ${esc(r2.p.name)} · ${r2.yr !== null ? r2.yr + (r2.diff===0 ? ' 🎯' : ' (±'+r2.diff+')') : (LANG==='ar'?'ما جاوب':'no guess')}
+              <div class="bar-track"><div class="bar-fill" style="width:${r2.yr!==null?Math.max(15,(r2.pts/1500)*100):0}%;background:linear-gradient(90deg,var(--purple),var(--pink))">
+                ${esc(r2.p.name)} · ${r2.yr !== null ? r2.yr + (r2.diff===0 ? ' 🎯' : ' (±'+r2.diff+')') + ' · ' + r2.pts + ' pts' : (LANG==='ar'?'ما جاوب':'no guess')}
               </div></div>
             </div>`).join('')}
         </div>`);
