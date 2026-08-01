@@ -530,13 +530,19 @@ body.ar .eyebrow{letter-spacing:0;}
 /* Player-side sticky footer (avatar + Next Round/waiting text) — only
    engaged during the wait/scores phase via .docked, so the score list can
    scroll independently above it without burying the action row. */
-#playerDock.docked{position:fixed;left:0;right:0;bottom:0;z-index:400;display:flex;flex-direction:column;align-items:center;gap:0;padding-top:4px;background:var(--card);border-top:1px solid rgba(255,255,255,.12);box-shadow:0 -8px 24px rgba(0,0,0,.35);width:100%;}
+/* position:sticky instead of fixed: with fixed, the dock always glues to
+   the true bottom of the screen regardless of content length, leaving
+   visible dead space above it whenever the score list is short (varies
+   game to game depending on how many players guessed / how long the
+   list is). sticky naturally sits right after the content when content
+   is short, and only "sticks" to the viewport bottom once there's
+   enough content to scroll past it — solving the gap for every screen
+   uniformly instead of needing per-screen padding/height compensation. */
+#playerDock.docked{position:sticky;bottom:0;left:0;right:0;z-index:400;display:flex;flex-direction:column;align-items:center;gap:0;padding-top:4px;background:var(--card);border-top:1px solid rgba(255,255,255,.12);box-shadow:0 -8px 24px rgba(0,0,0,.35);width:100%;}
 #playerDock.docked .phone-shared-host{margin:0;}
-#scr-controller.has-docked-footer{padding-bottom:0!important;}
-/* Fill from header to dock — height (not max-height) so the box always
-   extends right up to the dock even when content is short, eliminating
-   the visible gap that max-height left. */
-#scr-controller.has-docked-footer #phoneSharedStage{height:calc(100dvh - var(--docked-footer-h,90px) - 60px)!important;max-height:none!important;}
+/* No more padding-bottom/height compensation needed on #scr-controller or
+   #phoneSharedStage — sticky positioning (above) means the dock naturally
+   sits after the content, whether that content is short or long. */
 /* Keep the host's own avatar bubble clear of the fixed Next Round dock */
 /* #host now lives inside .host-input-dock as a flex child (see index.html) —
    no separate absolute positioning to reconcile with the dock anymore. */
