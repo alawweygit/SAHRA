@@ -1752,7 +1752,7 @@
           if(_pd&&_sc){
             const _measureDock=()=>{
               const h=_pd.offsetHeight;
-              if(h>0)_sc.style.setProperty('--docked-footer-h',(h+16)+'px');
+              if(h>0)_sc.style.setProperty('--docked-footer-h',(h+8)+'px');
             };
             requestAnimationFrame(_measureDock);
             setTimeout(_measureDock,250); // re-measure once more in case fonts/layout settle late
