@@ -15,7 +15,11 @@ expect(css, 'display:grid;', 'Time Machine must use non-shrinking grid rows');
 expect(css, 'min-block-size:64px', 'Statement card needs a physical block-size floor');
 expect(css, '#scr-game.active:has(#hostStage .tm-wrap)', 'Time Machine host scene needs its isolated top-aligned layout');
 expect(main, "spec?.customRenderer==='timeMachine')renderTimeMachineInput(ppCtrl", 'One Device must use the Time Machine renderer');
-expect(main, "spec?.customRenderer==='timeMachine'?renderTimeMachineInput:Controller.render", 'Phones host must use the Time Machine renderer');
+expect(main, "renderTimeMachineInput(panel,spec,finishHostInput,{showStatement:false})", 'Phones host must use the compact Time Machine renderer');
+expect(main, "renderTimeMachineInput(ctrl,phoneSpec,_tmSubmit)", 'A player phone must retain the full Time Machine question renderer');
+expect(main, "const showStatement=options.showStatement!==false", 'Time Machine renderer must support hiding duplicated statement rows');
+expect(css, '.tm-host-input-panel{overflow:hidden!important;}', 'Compact host input must not create its own scrollbar');
+expect(main, "if(!hasActiveInput())return", 'Visual viewport resizing must use the page-level input detector');
 
 if (/outline[^;]*6px solid #ff0000/i.test(host)) {
   throw new Error('Time Machine debug outline must not ship');
