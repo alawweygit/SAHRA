@@ -1794,10 +1794,21 @@ const Host = (() => {
       const Q = qs[i];
       await FX.wipe();
       setPill(`${i + 1} / ${qs.length}`);
+      // Diagnostic: Ali's video showed .tm-statement-card rendering with
+      // zero visible height while every sibling in the same scene renders
+      // fine, and static analysis of the CSS/data found no cause. Logging
+      // the actual runtime value here rather than guessing again — if Q.q
+      // is ever empty/malformed this will show it immediately in the
+      // console, and the fallback text ensures the card is never silently
+      // blank regardless of the cause.
+      if (!Q || !Q.q) {
+        console.error('[HYPOX][TimeMachine] Q.q missing at render time:', JSON.stringify(Q));
+      }
+      const _qText = (Q && Q.q) ? Q.q : (LANG==='ar'?'⚠️ تعذّر تحميل السؤال':'⚠️ Question failed to load');
       scene(`
         <div class="tm-wrap">
           <div class="tm-eyebrow">⏳ ${esc(t('mode_names').year || 'TIME MACHINE')}</div>
-          <div class="tm-statement-card"><div class="tm-statement-text">${esc(Q.q)}</div></div>
+          <div class="tm-statement-card"><div class="tm-statement-text">${esc(_qText)}</div></div>
           <div class="tm-prompt">${LANG==='ar'?'أي سنة صارت؟ اكتب تخمينك!':'What year did this happen? Type your guess!'}</div>
           <div id="statusRow" class="status-row"></div>
         </div>`);
@@ -1824,7 +1835,7 @@ const Host = (() => {
       Audio_.sfx.reveal(); FX.burst(60);
       scene(`
         <div class="tm-wrap">
-          <div class="tm-reveal-statement">${esc(Q.q)}</div>
+          <div class="tm-reveal-statement">${esc(_qText)}</div>
           <div class="tm-reveal-year-card">
             <div class="tm-reveal-year-label">${LANG==='ar'?'السنة الصحيحة':'The Year Was'}</div>
             <div class="tm-reveal-year">${Q.y}</div>

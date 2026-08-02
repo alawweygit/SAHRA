@@ -62,6 +62,11 @@
       const stCard=document.createElement('div');
       stCard.className='tm-statement-card';
       stCard.innerHTML=`<div class="tm-statement-text"></div>`;
+      // Same diagnostic as host.js's scene() — log if this ever comes
+      // through empty/whitespace-only despite the truthy check above.
+      if(!String(spec.context).trim()){
+        console.error('[HYPOX][TimeMachine] spec.context empty at input render:', JSON.stringify(spec));
+      }
       stCard.firstChild.textContent=spec.context;
       wrap.appendChild(stCard);
     }

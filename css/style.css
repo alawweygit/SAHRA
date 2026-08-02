@@ -2135,7 +2135,7 @@ body.hide-tracker .status-row{display:none!important;}
 
 /* ---- question phase ---- */
 .tm-eyebrow{display:flex;align-items:center;gap:8px;font-family:'Fredoka One',sans-serif;font-size:clamp(13px,2.4vmin,17px);letter-spacing:2px;color:var(--yellow);text-transform:uppercase;}
-.tm-statement-card{width:100%;background:linear-gradient(160deg,var(--card),var(--bg2));border:1.5px solid rgba(250,204,21,0.25);border-radius:24px;padding:clamp(20px,4vmin,32px) clamp(18px,4vmin,28px);box-shadow:0 8px 28px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.06);text-align:center;}
+.tm-statement-card{width:100%;min-height:64px;background:linear-gradient(160deg,var(--card),var(--bg2));border:1.5px solid rgba(250,204,21,0.25);border-radius:24px;padding:clamp(20px,4vmin,32px) clamp(18px,4vmin,28px);box-shadow:0 8px 28px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.06);text-align:center;}
 .tm-statement-text{font-family:'Fredoka One',sans-serif;font-size:clamp(19px,4.4vmin,30px);line-height:1.35;color:#fff;}
 .tm-prompt{font-size:clamp(13px,2.6vmin,16px);color:var(--text2);text-align:center;}
 
