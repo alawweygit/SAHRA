@@ -1795,14 +1795,16 @@ const Host = (() => {
       await FX.wipe();
       setPill(`${i + 1} / ${qs.length}`);
       scene(`
-        <div class="eyebrow">⏳ ${esc(t('mode_names').year || 'TIME MACHINE')}</div>
-        <div class="prompt-card display">${esc(Q.q)}</div>
-        <div class="pick-sub">${LANG==='ar'?'أي سنة صارت؟ اكتب تخمينك!':'What year did this happen? Type your guess!'}</div>
-        <div id="statusRow" class="status-row"></div>`);
+        <div class="tm-wrap">
+          <div class="tm-eyebrow">⏳ ${esc(t('mode_names').year || 'TIME MACHINE')}</div>
+          <div class="tm-statement-card"><div class="tm-statement-text">${esc(Q.q)}</div></div>
+          <div class="tm-prompt">${LANG==='ar'?'أي سنة صارت؟ اكتب تخمينك!':'What year did this happen? Type your guess!'}</div>
+          <div id="statusRow" class="status-row"></div>
+        </div>`);
       pushMirror({ headline: Q.q, pill: `${i+1}/${qs.length}` });
       Audio_.sfx.sting();
       const answers = await collectWithTimer({
-        type: 'text', title: LANG==='ar'?'اكتب السنة':'Type the year', context: Q.q, translateContext: Q.q, maxLen: 4, numeric: true, seconds: 20, hideContextOnPhone: true,
+        type: 'text', title: LANG==='ar'?'اكتب السنة':'Type the year', context: Q.q, translateContext: Q.q, maxLen: 4, numeric: true, seconds: 20, hideContextOnPhone: true, customRenderer: 'timeMachine',
       }, players.map(p => p.pid), 20);
       const results = players.map(p => {
         let raw = answers[p.pid] ? String(answers[p.pid].value || '').trim() : '';
@@ -1821,17 +1823,24 @@ const Host = (() => {
       });
       Audio_.sfx.reveal(); FX.burst(60);
       scene(`
-        <div class="eyebrow">${esc(Q.q)}</div>
-        <div class="prompt-card display year-reveal">${Q.y}</div>
-        <div class="score-list">
-          ${results.map((r2, idx) => `
-            <div class="score-row" style="animation-delay:${idx*.12}s">
-              <div class="medal">${idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':''}</div>
-              <div class="avatar" style="background:${r2.p.color}">${r2.p.emoji}</div>
-              <div class="bar-track"><div class="bar-fill" style="width:${r2.yr!==null?Math.max(15,(r2.pts/1500)*100):0}%;background:linear-gradient(90deg,var(--purple),var(--pink))">
-                ${esc(r2.p.name)} · ${r2.yr !== null ? r2.yr + (r2.diff===0 ? ' 🎯' : ' (±'+r2.diff+')') + ' · ' + r2.pts + ' pts' : (LANG==='ar'?'ما جاوب':'no guess')}
-              </div></div>
-            </div>`).join('')}
+        <div class="tm-wrap">
+          <div class="tm-reveal-statement">${esc(Q.q)}</div>
+          <div class="tm-reveal-year-card">
+            <div class="tm-reveal-year-label">${LANG==='ar'?'السنة الصحيحة':'The Year Was'}</div>
+            <div class="tm-reveal-year">${Q.y}</div>
+          </div>
+          <div class="tm-score-list">
+            ${results.map((r2, idx) => `
+              <div class="tm-score-row${idx===0?' tm-rank-1':''}" style="animation-delay:${idx*.08}s">
+                <div class="tm-score-rank">${idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':''}</div>
+                <div class="tm-score-avatar" style="background:${r2.p.color}">${r2.p.emoji}</div>
+                <div class="tm-score-info">
+                  <div class="tm-score-name">${esc(r2.p.name)}</div>
+                  <div class="tm-score-guess">${r2.yr !== null ? r2.yr + (r2.diff===0 ? ' 🎯 '+(LANG==='ar'?'بالضبط!':'Exact!') : ' (±'+r2.diff+')') : (LANG==='ar'?'ما جاوب':'No guess')}</div>
+                </div>
+                <div class="tm-score-pts${r2.pts===0?' tm-zero':''}">${r2.pts} ${LANG==='ar'?'نقطة':'pts'}</div>
+              </div>`).join('')}
+          </div>
         </div>`);
       pushMirror({ headline: `${Q.y}` });
       await waitNext();

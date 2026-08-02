@@ -39,6 +39,90 @@
   let _menuScrollY=0;
   if('scrollRestoration' in history)history.scrollRestoration='manual';
 
+  // Dedicated Time Machine input renderer — completely separate from the
+  // shared Controller.render, so this structural rebuild can never affect
+  // any other game mode's input UI.
+  function renderTimeMachineInput(container, spec, onSubmit){
+    if(!container)return;
+    const wrap=document.createElement('div');
+    wrap.className='ctrl-wrap tm-input-card';
+
+    const label=document.createElement('div');
+    label.className='tm-input-label';
+    label.textContent=spec.title||(LANG==='ar'?'اكتب السنة':'Type the year');
+    wrap.appendChild(label);
+
+    const _txCtx=spec.translateContext||spec.context;
+    if(_txCtx && LANG!=='ar'){
+      const txBtn=document.createElement('button');
+      txBtn.className='tm-translate-btn';
+      txBtn.textContent='🌐 ترجم';
+      const txDiv=document.createElement('div');
+      txDiv.className='tm-translate-box';
+      txDiv.style.display='none';
+      let txDone=false;
+      txBtn.addEventListener('click',async()=>{
+        if(txDone){txDiv.style.display='none';txBtn.textContent='🌐 ترجم';txDone=false;return;}
+        txBtn.textContent='...';
+        try{
+          const r=await fetch('https://hypox-ai-backend-production.up.railway.app/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:_txCtx,to:'ar'})});
+          const d=await r.json();
+          if(d.translation){txDiv.textContent=d.translation;txDiv.style.display='block';txBtn.textContent='🔤 English';txDone=true;}
+          else txBtn.textContent='🌐 ترجم';
+        }catch(e){txBtn.textContent='🌐 ترجم';}
+      });
+      wrap.appendChild(txBtn);
+      wrap.appendChild(txDiv);
+    }
+
+    const input=document.createElement('input');
+    input.type='text';
+    input.inputMode='numeric';
+    input.autocomplete='off';
+    input.className='tm-year-input';
+    input.maxLength=spec.maxLen||4;
+    input.placeholder=LANG==='ar'?'مثال: ٢٠٠٧':'e.g. 2007';
+    input.addEventListener('input',()=>{input.value=input.value.replace(/[^0-9٠-٩]/g,'');updateCount();});
+    wrap.appendChild(input);
+
+    const count=document.createElement('div');
+    count.className='tm-char-count';
+    const updateCount=()=>count.textContent=`${input.value.length}/${input.maxLength}`;
+    updateCount();
+    wrap.appendChild(count);
+
+    const btn=document.createElement('button');
+    btn.className='big-btn tm-submit-btn';
+    btn.textContent=t('submit');
+    let submitting=false;
+    btn.addEventListener('click',async()=>{
+      if(submitting)return;
+      const v=input.value.trim();
+      if(!v){input.classList.add('tm-shake');setTimeout(()=>input.classList.remove('tm-shake'),500);return;}
+      submitting=true;btn.disabled=true;wrap.setAttribute('aria-busy','true');
+      try{
+        const result=await onSubmit(v);
+        if(result?.accepted===false){
+          submitting=false;btn.disabled=false;wrap.removeAttribute('aria-busy');
+          let hint=wrap.querySelector('.tm-hint');
+          if(!hint){hint=document.createElement('div');hint.className='tm-hint';wrap.appendChild(hint);}
+          hint.textContent=LANG==='ar'?'تعذر الإرسال — حاول مرة ثانية.':'Could not submit — try again.';
+          return;
+        }
+        Audio_.sfx.submit();
+        wrap.innerHTML=`<div style="text-align:center;padding:20px 0;color:var(--text2);font-family:'Fredoka One',sans-serif">${LANG==='ar'?'✅ تم الإرسال! انتظر البقية...':'✅ Sent! Waiting for others...'}</div>`;
+      }catch(error){
+        submitting=false;btn.disabled=false;wrap.removeAttribute('aria-busy');
+        let hint=wrap.querySelector('.tm-hint');
+        if(!hint){hint=document.createElement('div');hint.className='tm-hint';wrap.appendChild(hint);}
+        hint.textContent=LANG==='ar'?'تعذر الإرسال — حاول مرة ثانية.':'Could not submit — please try again.';
+      }
+    });
+    wrap.appendChild(btn);
+    container.innerHTML='';
+    container.appendChild(wrap);
+  }
+
   const DOCUMENT_SCROLL_SCREENS=new Set(['scr-title','scr-games','scr-pregame','scr-game','scr-lobby','scr-join','scr-avatar']);
   const usesDocumentScroll=screen=>window.matchMedia('(max-width: 600px)').matches&&DOCUMENT_SCROLL_SCREENS.has(screen?.id);
   function scrollTarget(screen=document.querySelector('.screen.active')){
@@ -1779,12 +1863,14 @@
           setSharedStageHidden(_pa1);
           if(!_isNewPhase1)return; // avoid rebuilding the tappable buttons on a replayed event
           ctrl.classList.remove('hidden');
-          Controller.render(ctrl,phoneSpec,async value=>{
+          const _tmSubmit=async value=>{
             const result=await net.submitInput(state.phaseId,value,{enforceUnique:phoneSpec.enforceUnique===true});
             if(result?.accepted===false)return result;
             setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');document.body.classList.remove('hide-tracker');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
             return result;
-          });
+          };
+          if(phoneSpec.customRenderer==='timeMachine'){renderTimeMachineInput(ctrl,phoneSpec,_tmSubmit);}
+          else{Controller.render(ctrl,phoneSpec,_tmSubmit);}
           resetScrollPositionAfterLayout();
         }else if(phonesOnly){document.body.classList.remove('phones-player-answering');document.body.classList.remove('hide-tracker');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else{Controller.waitScreen(ctrl,T.watchScreen());resetScrollPositionAfterLayout();}
       }else if(state.phase==='input-split'){
