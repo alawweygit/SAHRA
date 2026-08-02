@@ -1360,7 +1360,9 @@
       Audio_.sfx.sting();
       $('#ppReady').addEventListener('click',()=>{
         Audio_.sfx.pop();ov.innerHTML=`<div class="pp-card"><div id="ppCtrl"></div></div>`;
-        Controller.render($('#ppCtrl'),spec,value=>done(value));
+        const ppCtrl=$('#ppCtrl');
+        if(spec?.customRenderer==='timeMachine')renderTimeMachineInput(ppCtrl,spec,value=>done(value));
+        else Controller.render(ppCtrl,spec,value=>done(value));
       },{once:true});
     });
   }
@@ -1409,7 +1411,9 @@
         :{...spec,controlsOnly:true,title:LANG==='ar'?'👆 اختيارك':'👆 Your pick',context:'',sub:'',
           ...(_hExclude!==undefined?{excludeId:_hExclude}:{})};
 
-      Controller.render(panel,hostSpec,async value=>{
+      const renderHostInput=spec?.customRenderer==='timeMachine'?renderTimeMachineInput:Controller.render;
+      const renderedSpec=spec?.customRenderer==='timeMachine'?spec:hostSpec;
+      renderHostInput(panel,renderedSpec,async value=>{
         const result=submitInput?await submitInput(value):{accepted:true};
         if(result?.accepted===false)return result;
         done(value);
