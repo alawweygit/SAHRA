@@ -167,7 +167,12 @@ const Controller = (() => {
         }
       });
       wrap.appendChild(btn);
-      setTimeout(() => ta.focus(), 250);
+      // No auto-focus here on purpose: focusing immediately pops the
+      // keyboard, and iOS Safari's native "scroll focused input into
+      // view" behavior then scrolls the question/statement above the
+      // input out of view before the player has even read it — they'd
+      // have to manually scroll back up to see what they're guessing
+      // the year for. Let them tap the field themselves when ready.
     }
 
     else if (spec.type === 'higherlow') {
