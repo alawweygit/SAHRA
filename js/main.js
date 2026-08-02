@@ -39,13 +39,19 @@
   let _menuScrollY=0;
   if('scrollRestoration' in history)history.scrollRestoration='manual';
 
+  function hasActiveInput(container=document.getElementById('ctrlArea')){
+    // Active = has enabled (not locked) interactive elements.
+    return !!container?.querySelector('textarea:not([disabled]),input:not([disabled]),.ctrl-map,.choice-btn:not(.picked),.ctrl-choices');
+  }
+
   // Dedicated Time Machine input renderer — completely separate from the
   // shared Controller.render, so this structural rebuild can never affect
   // any other game mode's input UI.
-  function renderTimeMachineInput(container, spec, onSubmit){
+  function renderTimeMachineInput(container, spec, onSubmit, options={}){
     if(!container)return;
     const wrap=document.createElement('div');
-    wrap.className='ctrl-wrap tm-input-card';
+    const showStatement=options.showStatement!==false;
+    wrap.className='ctrl-wrap tm-input-card'+(showStatement?'':' tm-input-card-compact');
 
     // The question itself is rendered HERE, from spec.context — which
     // arrives on the exact same state update that triggers this render.
@@ -54,7 +60,7 @@
     // arrive a moment AFTER the input form on round 1 specifically —
     // rendering here instead means there is nothing to wait for and
     // nothing that can race.
-    if(spec.context){
+    if(showStatement&&spec.context){
       const eyebrow=document.createElement('div');
       eyebrow.className='tm-eyebrow';
       eyebrow.textContent='⏳ '+(LANG==='ar'?'رحلة عبر الزمن':'TIME MACHINE');
@@ -443,7 +449,7 @@
     // reset whenever the visual viewport itself changes size.
     if(window.visualViewport){
       window.visualViewport.addEventListener('resize',()=>{
-        if(!isInputActive())return; // don't yank scroll on long score lists etc.
+        if(!hasActiveInput())return; // don't yank scroll on long score lists etc.
         const _sh=document.getElementById('phoneSharedStage');
         const _pd=document.getElementById('playerDock');
         if(_sh)_sh.scrollTop=0;
@@ -1411,14 +1417,21 @@
         :{...spec,controlsOnly:true,title:LANG==='ar'?'👆 اختيارك':'👆 Your pick',context:'',sub:'',
           ...(_hExclude!==undefined?{excludeId:_hExclude}:{})};
 
-      const renderHostInput=spec?.customRenderer==='timeMachine'?renderTimeMachineInput:Controller.render;
-      const renderedSpec=spec?.customRenderer==='timeMachine'?spec:hostSpec;
-      renderHostInput(panel,renderedSpec,async value=>{
+      const finishHostInput=async value=>{
         const result=submitInput?await submitInput(value):{accepted:true};
         if(result?.accepted===false)return result;
         done(value);
         return result;
-      });
+      };
+      if(spec?.customRenderer==='timeMachine'){
+        // The host already has the Time Machine title and statement directly
+        // above this bottom panel. Render controls only here so the lower
+        // section never repeats either row or needs its own scrollbar.
+        panel.classList.add('tm-host-input-panel');
+        renderTimeMachineInput(panel,spec,finishHostInput,{showStatement:false});
+      }else{
+        Controller.render(panel,hostSpec,finishHostInput);
+      }
     });
   }
 
@@ -1681,9 +1694,7 @@
       </div>`;
     }
     function isInputActive() {
-      // Active = has enabled (not locked) interactive elements
-      const el = ctrl.querySelector('textarea:not([disabled]),input:not([disabled]),.ctrl-map,.choice-btn:not(.picked),.ctrl-choices');
-      return !!el;
+      return hasActiveInput(ctrl);
     }
     net.onMirror(renderMirror);
     // Re-render input when phone comes back from lock screen
