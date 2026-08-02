@@ -1985,9 +1985,10 @@ body.ar .tutorial-bullets { text-align: right; }
   gap:0!important;
 }
 #scr-controller #phoneSharedStage{
-  flex:1 1 auto!important;            /* main fills the space above footer */
-  min-height:0!important;             /* required or flex refuses to shrink */
-  overflow-y:auto!important;          /* main gets its OWN scrollbar */
+  flex:0 1 auto!important;            /* size to CONTENT, don't stretch-fill */
+  min-height:0!important;             /* still allowed to shrink for long lists */
+  max-height:100%!important;          /* ceiling so it never pushes past the screen */
+  overflow-y:auto!important;          /* scrolls internally only if content is long */
   overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
   overscroll-behavior-y:contain;
@@ -2039,8 +2040,9 @@ body.hide-tracker #statusRow{display:none!important;}
   padding-bottom:var(--host-dock-h,0px)!important;
 }
 #scr-game.active:not(.pack-picker-active):not(.rebus-input-active) #hostStage{
-  flex:1 1 auto!important;
+  flex:0 1 auto!important;         /* size to CONTENT, don't stretch-fill */
   min-height:0!important;
+  max-height:100%!important;
   height:auto!important;
   padding-bottom:12px!important;   /* kills the hardcoded 200px */
   overflow-y:auto!important;
