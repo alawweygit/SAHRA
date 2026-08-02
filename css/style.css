@@ -1219,12 +1219,22 @@ html{font-size:17px;}
 }
 .phones-only-player #scr-controller{
   position:absolute!important;inset:0!important;justify-content:flex-start!important;
-  min-height:0!important;height:100vh!important;height:100dvh!important;overflow-y:auto!important;
+  min-height:0!important;height:100vh!important;height:100dvh!important;
+  /* overflow-y:auto and gap:16px used to live here, directly fighting the
+     v65+ restructure's overflow:hidden/gap:0 on #scr-controller.active —
+     both rules have IDENTICAL specificity (0,1,1) with !important, so which
+     one won came down to source order, and mobile Safari's dvh recalculation
+     timing made that resolve differently than desktop Chrome (this rule
+     predates the restructure and was never updated to match it). Removed
+     the conflicting overflow-y/gap entirely so there is one single source
+     of truth for scrolling: #phoneSharedStage/#hostStage scroll internally,
+     #scr-controller itself never does, on every browser identically. */
   padding-top:max(100px,calc(env(safe-area-inset-top) + 76px))!important;
-  padding-bottom:max(30px,env(safe-area-inset-bottom))!important;
-  gap:16px!important;-webkit-overflow-scrolling:touch;
+  padding-bottom:0!important;
+  overflow:hidden!important;
+  gap:0!important;-webkit-overflow-scrolling:touch;
 }
-.phones-only-player #phoneSharedStage{display:flex!important;overflow-anchor:none;overflow:visible;will-change:scroll-position;-webkit-transform:translateZ(0);transform:translateZ(0);}
+.phones-only-player #phoneSharedStage{display:flex!important;overflow-anchor:none;overflow-y:auto!important;will-change:scroll-position;-webkit-transform:translateZ(0);transform:translateZ(0);}
 .phones-only-player #phoneSharedStage #statusRow{display:flex;}
 .phones-only-player #ctrlArea{width:min(94vw,780px);margin-bottom:max(26px,env(safe-area-inset-bottom));}.phones-only-player #scr-controller{justify-content:flex-start!important;}
 @media(max-width:600px){
