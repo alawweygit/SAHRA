@@ -1812,6 +1812,23 @@ const Host = (() => {
           <div class="tm-prompt">${LANG==='ar'?'أي سنة صارت؟ اكتب تخمينك!':'What year did this happen? Type your guess!'}</div>
           <div id="statusRow" class="status-row"></div>
         </div>`);
+      // Definitive diagnostic: an ACTUAL measured box (not a CSS rule that
+      // may or may not be winning) — this cannot be ambiguous the way
+      // DevTools screenshots have been across several attempts.
+      setTimeout(()=>{
+        const _card=document.querySelector('#hostStage .tm-statement-card');
+        if(_card){
+          const _r=_card.getBoundingClientRect();
+          const _cs=getComputedStyle(_card);
+          console.error('[HYPOX][TimeMachine] tm-statement-card measured:',
+            JSON.stringify({width:_r.width,height:_r.height,top:_r.top,left:_r.left,
+              display:_cs.display,visibility:_cs.visibility,opacity:_cs.opacity,
+              overflow:_cs.overflow,textContent:_card.textContent}));
+          _card.style.setProperty('outline','6px solid #ff0000','important');
+        } else {
+          console.error('[HYPOX][TimeMachine] .tm-statement-card NOT FOUND in DOM at all');
+        }
+      },300);
       pushMirror({ headline: Q.q, pill: `${i+1}/${qs.length}` });
       Audio_.sfx.sting();
       const answers = await collectWithTimer({
