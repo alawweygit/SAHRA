@@ -2085,6 +2085,36 @@ body.hide-tracker #statusRow{display:none!important;}
 #scr-controller #phoneSharedStage{pointer-events:auto!important;}
 #scr-controller #phoneSharedStage *{pointer-events:none!important;}
 
+/* =====================================================================
+   INPUT PHASE: revert to the simpler, proven-working single-scroll-
+   column model instead of the flex-shrink-competition rules above.
+   Those rules exist to solve a specific problem — a FIXED/DOCKED footer
+   (Next Round button) overlapping scrollable content underneath it.
+   The input form (question + answer box) isn't a dock at all, and
+   forcing it into the same "two siblings fight over height, with a
+   min-height floor on one side and a max-height cap on the other"
+   model is what kept collapsing the question on round 1 no matter how
+   the numbers were tuned. Input just needs one scrolling column,
+   exactly like it worked before this restructure ever touched it. */
+#scr-controller.active:has(#playerDock:not(.docked):not(:empty)){
+  display:block!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch;
+}
+#scr-controller.active:has(#playerDock:not(.docked):not(:empty)) #phoneSharedStage{
+  display:block!important;
+  flex:none!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+#scr-controller.active:has(#playerDock:not(.docked):not(:empty)) #playerDock{
+  display:block!important;
+  flex:none!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+
 /* ---------------------------------------------------------------------
    Tracker hiding: also target the CLASS, not just the id. The shared-screen
    broadcast clones the host DOM into the player's mirror, and the id does
