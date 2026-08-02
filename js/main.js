@@ -1702,7 +1702,20 @@
       document.getElementById('scr-controller')?.classList.remove('has-docked-footer');
       if(state.phase==='input'){
         const _isNewPhase1 = state.phaseId!==lastPhaseId;
-        if(_isNewPhase1)_lastMirrorKey=''; // clear mirror when input starts
+        if(_isNewPhase1){
+          _lastMirrorKey=''; // clear mirror when input starts
+          // Guaranteed reset, independent of renderShared's own sceneChanged
+          // logic: whatever scroll position either the headline or the input
+          // form was left at from a PREVIOUS round, a genuinely new phaseId
+          // always means both start again from their own top. Multiple
+          // rAF passes since layout (fonts, translate button, etc.) can
+          // still be settling for a frame or two after this fires.
+          const _sh=document.getElementById('phoneSharedStage');
+          const _pd=document.getElementById('playerDock');
+          const _resetBoth=()=>{if(_sh)_sh.scrollTop=0;if(_pd)_pd.scrollTop=0;};
+          _resetBoth();
+          requestAnimationFrame(()=>{_resetBoth();requestAnimationFrame(()=>{_resetBoth();requestAnimationFrame(_resetBoth);});});
+        }
         if(!state.targets||state.targets.includes(myPid)){
           if(_isNewPhase1){lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);}
           const _rawSpec=state.spec?{...state.spec}:null;
