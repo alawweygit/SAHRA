@@ -47,6 +47,25 @@
     const wrap=document.createElement('div');
     wrap.className='ctrl-wrap tm-input-card';
 
+    // The question itself is rendered HERE, from spec.context — which
+    // arrives on the exact same state update that triggers this render.
+    // It used to rely on the separately-broadcast shared-stage headline
+    // (a different Firebase path, delivered independently), which could
+    // arrive a moment AFTER the input form on round 1 specifically —
+    // rendering here instead means there is nothing to wait for and
+    // nothing that can race.
+    if(spec.context){
+      const eyebrow=document.createElement('div');
+      eyebrow.className='tm-eyebrow';
+      eyebrow.textContent='⏳ '+(LANG==='ar'?'رحلة عبر الزمن':'TIME MACHINE');
+      wrap.appendChild(eyebrow);
+      const stCard=document.createElement('div');
+      stCard.className='tm-statement-card';
+      stCard.innerHTML=`<div class="tm-statement-text"></div>`;
+      stCard.firstChild.textContent=spec.context;
+      wrap.appendChild(stCard);
+    }
+
     const label=document.createElement('div');
     label.className='tm-input-label';
     label.textContent=spec.title||(LANG==='ar'?'اكتب السنة':'Type the year');
@@ -1847,7 +1866,7 @@
           const _stripContextPhoneOnly = phonesOnly && _rawSpec?.hideContextOnPhone === true;
           const phoneSpec=_rawSpec?(phonesOnly?{..._rawSpec,controlsOnly:_mapPhoneOnly,...(_stripContextPhoneOnly?{context:''}:{})}:_rawSpec):null;
           if(!phoneSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
-          const _pa1=phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow');
+          const _pa1=phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow'||phoneSpec.customRenderer==='timeMachine');
           // Choice/higherlow hide the ENTIRE shared stage while answering
           // (their own input form repeats the question). Text/number inputs
           // can't do that — the shared-stage headline is often the ONLY

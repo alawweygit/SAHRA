@@ -1804,7 +1804,7 @@ const Host = (() => {
       pushMirror({ headline: Q.q, pill: `${i+1}/${qs.length}` });
       Audio_.sfx.sting();
       const answers = await collectWithTimer({
-        type: 'text', title: LANG==='ar'?'اكتب السنة':'Type the year', context: Q.q, translateContext: Q.q, maxLen: 4, numeric: true, seconds: 20, hideContextOnPhone: true, customRenderer: 'timeMachine',
+        type: 'text', title: LANG==='ar'?'اكتب السنة':'Type the year', context: Q.q, translateContext: Q.q, maxLen: 4, numeric: true, seconds: 20, customRenderer: 'timeMachine',
       }, players.map(p => p.pid), 20);
       const results = players.map(p => {
         let raw = answers[p.pid] ? String(answers[p.pid].value || '').trim() : '';
