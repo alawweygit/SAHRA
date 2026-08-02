@@ -2130,17 +2130,41 @@ body.hide-tracker .status-row{display:none!important;}
    other game, so this cannot regress anything else).
    ===================================================================== */
 
-/* ---- shared wrapper for both question & reveal scenes ---- */
-.tm-wrap{width:min(94vw,560px);margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:2vmin;padding:2vmin 0;}
+/* ---- shared wrapper for both question & reveal scenes ----
+   Time Machine used to inherit two nested flex columns: #hostStage and
+   .tm-wrap. On constrained WebKit layouts that let the middle statement
+   participate in main-axis shrinking, even though the card had a min-height.
+   Keep the screen scrollable, but make the Time Machine content itself normal
+   grid rows so none of its rows can be flex-compressed. */
+#scr-game.active:has(#hostStage .tm-wrap){justify-content:flex-start!important;}
+#scr-game.active:has(#hostStage .tm-wrap) #hostStage{
+  flex:1 1 auto!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:100%!important;
+  justify-content:flex-start!important;
+}
+.tm-wrap{
+  width:min(94vw,560px);
+  margin:0 auto;
+  display:grid;
+  grid-auto-rows:max-content;
+  justify-items:center;
+  row-gap:2vmin;
+  padding:2vmin 0;
+  flex:none;
+}
 
 /* ---- question phase ---- */
 .tm-eyebrow{display:flex;align-items:center;gap:8px;font-family:'Fredoka One',sans-serif;font-size:clamp(13px,2.4vmin,17px);letter-spacing:2px;color:var(--yellow);text-transform:uppercase;}
-.tm-statement-card{width:100%;min-height:64px;background:linear-gradient(160deg,var(--card),var(--bg2));border:1.5px solid rgba(250,204,21,0.25);border-radius:24px;padding:clamp(20px,4vmin,32px) clamp(18px,4vmin,28px);box-shadow:0 8px 28px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.06);text-align:center;}
+.tm-statement-card{display:block;box-sizing:border-box;width:100%;height:auto;min-height:64px;min-block-size:64px;flex:none;background:linear-gradient(160deg,var(--card),var(--bg2));border:1.5px solid rgba(250,204,21,0.25);border-radius:24px;padding:clamp(20px,4vmin,32px) clamp(18px,4vmin,28px);box-shadow:0 8px 28px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.06);text-align:center;overflow:visible;}
 .tm-statement-text{font-family:'Fredoka One',sans-serif;font-size:clamp(19px,4.4vmin,30px);line-height:1.35;color:#fff;}
 .tm-prompt{font-size:clamp(13px,2.6vmin,16px);color:var(--text2);text-align:center;}
 
 /* ---- input card (dedicated renderer, no shared Controller.render) ---- */
-.tm-input-card{width:100%;background:var(--card);border:1.5px solid var(--border);border-radius:24px;padding:clamp(18px,4vmin,26px) clamp(16px,4vmin,24px);display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 6px 20px rgba(0,0,0,0.22);}
+.tm-input-card{width:100%;background:var(--card);border:1.5px solid var(--border);border-radius:24px;padding:clamp(18px,4vmin,26px) clamp(16px,4vmin,24px);display:grid;grid-auto-rows:max-content;justify-items:center;gap:14px;box-shadow:0 6px 20px rgba(0,0,0,0.22);flex:none;}
+.tm-input-card>*{min-width:0;}
+.tm-input-card>.tm-statement-card{flex:none;min-height:64px;min-block-size:64px;}
 .tm-input-label{font-family:'Fredoka One',sans-serif;font-size:clamp(16px,3.2vmin,22px);color:var(--yellow);}
 .tm-translate-btn{background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(96,165,250,0.15));border:1.5px solid rgba(167,139,250,0.4);border-radius:20px;color:var(--purple);font-size:13px;padding:6px 16px;cursor:pointer;font-family:'Fredoka One',sans-serif;}
 .tm-translate-box{width:100%;font-weight:700;font-size:13px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;line-height:1.5;direction:rtl;text-align:right;}
