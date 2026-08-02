@@ -327,6 +327,22 @@
     }catch(e){}
     // Expose show() globally for host.js to use
     window.__hypoxShowScreen = show;
+    // iOS Safari's address bar/chrome can collapse or expand AFTER a new
+    // input phase has already rendered and been scroll-reset once — this
+    // resizes the visual viewport independent of any element scrollTop,
+    // and can re-introduce exactly the "question hidden until you scroll"
+    // symptom a moment after our own reset already ran. Re-run the same
+    // reset whenever the visual viewport itself changes size.
+    if(window.visualViewport){
+      window.visualViewport.addEventListener('resize',()=>{
+        if(!isInputActive())return; // don't yank scroll on long score lists etc.
+        const _sh=document.getElementById('phoneSharedStage');
+        const _pd=document.getElementById('playerDock');
+        if(_sh)_sh.scrollTop=0;
+        if(_pd)_pd.scrollTop=0;
+        window.scrollTo(0,0);
+      });
+    }
     // Dynamically track the fixed dock's actual height so #scr-lobby's
     // reserved bottom padding matches reality instead of a static guess.
     // The dock's height varies a lot depending on whether Laith is showing
@@ -1712,7 +1728,18 @@
           // still be settling for a frame or two after this fires.
           const _sh=document.getElementById('phoneSharedStage');
           const _pd=document.getElementById('playerDock');
-          const _resetBoth=()=>{if(_sh)_sh.scrollTop=0;if(_pd)_pd.scrollTop=0;};
+          const _resetBoth=()=>{
+            if(_sh)_sh.scrollTop=0;
+            if(_pd)_pd.scrollTop=0;
+            // Also reset window/document-level scroll: on iOS Safari the
+            // WHOLE viewport can shift (dvh recalculating as the browser
+            // chrome/address bar collapses or expands) independent of any
+            // inner div's own overflow — element-level resets alone don't
+            // cover that case.
+            window.scrollTo(0,0);
+            document.documentElement.scrollTop=0;
+            document.body.scrollTop=0;
+          };
           _resetBoth();
           requestAnimationFrame(()=>{_resetBoth();requestAnimationFrame(()=>{_resetBoth();requestAnimationFrame(_resetBoth);});});
         }
