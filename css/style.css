@@ -1996,7 +1996,15 @@ body.ar .tutorial-bullets { text-align: right; }
 }
 #scr-controller #phoneSharedStage{
   flex:0 1 auto!important;            /* size to CONTENT, don't stretch-fill */
-  min-height:0!important;             /* still allowed to shrink for long lists */
+  /* min-height:0 (removed) let this shrink all the way to ZERO whenever it
+     competes for space with a tall sibling (e.g. the input form below it,
+     capped separately at max-height:72%) — with no floor, flexbox's shrink
+     math could squeeze the header down to an invisible sliver on shorter
+     screens where topbar padding + a tall input form already eat most of
+     the available height. A real floor guarantees the question is always
+     at least partially visible; it can still scroll internally past that
+     if genuinely long (e.g. a big score list). */
+  min-height:22vh!important;
   max-height:100%!important;          /* ceiling so it never pushes past the screen */
   overflow-y:auto!important;          /* scrolls internally only if content is long */
   overflow-x:hidden;
@@ -2013,11 +2021,14 @@ body.ar .tutorial-bullets { text-align: right; }
   overflow:visible!important;
 }
 /* Footer, input state (the answer form): may be tall, so allow it to
-   shrink and scroll internally rather than pushing main off-screen. */
+   shrink and scroll internally rather than pushing main off-screen.
+   Capped at 68% (was 72%) so it can never eat into phoneSharedStage's
+   guaranteed 22vh minimum above — 68% + 22vh + topbar padding fits
+   within 100% with room to spare on every phone size we support. */
 #scr-controller #playerDock:not(.docked){
   flex:0 1 auto;
   min-height:0;
-  max-height:72%;
+  max-height:68%;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   width:100%;
