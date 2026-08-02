@@ -42,7 +42,16 @@
   const DOCUMENT_SCROLL_SCREENS=new Set(['scr-title','scr-games','scr-pregame','scr-game','scr-lobby','scr-join','scr-avatar']);
   const usesDocumentScroll=screen=>window.matchMedia('(max-width: 600px)').matches&&DOCUMENT_SCROLL_SCREENS.has(screen?.id);
   function scrollTarget(screen=document.querySelector('.screen.active')){
-    return usesDocumentScroll(screen)?(document.scrollingElement||document.documentElement):screen;
+    if(usesDocumentScroll(screen))return document.scrollingElement||document.documentElement;
+    // Since the v65 header/main/footer restructure, #scr-controller and
+    // #scr-game no longer scroll themselves — their content area does
+    // (#phoneSharedStage / #hostStage). Resetting the outer screen's
+    // scrollTop was a no-op, leaving a new scene's real scroll container
+    // stuck at whatever position the PREVIOUS (often longer) scene left
+    // it at — which made new short scenes look blank, scrolled out of view.
+    if(screen?.id==='scr-controller')return screen.querySelector('#phoneSharedStage')||screen;
+    if(screen?.id==='scr-game')return screen.querySelector('#hostStage')||screen;
+    return screen;
   }
   function resetScrollPosition(){
     const active=document.querySelector('.screen.active');
@@ -1501,12 +1510,15 @@
       // replacing innerHTML always resets scrollTop to 0, which breaks
       // scrolling on any screen that updates repeatedly (bar-fill counters,
       // avatar ticks, etc). Only jump to top when the scene actually changed.
-      // #scr-controller is the single scroll container (phoneSharedStage
-      // itself does not scroll — see CSS), so track/restore scroll there.
-      const _scEl = document.getElementById('scr-controller');
-      const _prevScroll = sceneChanged ? 0 : (_scEl?.scrollTop || 0);
+      // #phoneSharedStage is the scroll container itself (since the v65
+      // restructure — #scr-controller no longer scrolls), so track/restore
+      // scroll directly on it, not the outer screen.
+      const _prevScroll = sceneChanged ? 0 : (shared.scrollTop || 0);
       if(sceneChanged || !shared.dataset.sharedReady){
         shared.innerHTML=html; // first paint / genuinely new scene: full mount
+        shared.scrollTop=0; // guaranteed floor: a new scene always starts at
+                             // its own top, regardless of whether the generic
+                             // reset below gets skipped (e.g. input active)
       } else {
         morphInto(shared, html); // same scene updating: patch only what changed
       }
@@ -1518,17 +1530,16 @@
       // yank a player who is choosing below. Only a new game scene goes top.
       if(sceneChanged){
         resetScrollPositionAfterLayout();
-      } else if(_prevScroll>0&&_scEl){
-        _scEl.scrollTop=_prevScroll;
-        requestAnimationFrame(()=>{_scEl.scrollTop=_prevScroll;});
+      } else if(_prevScroll>0){
+        shared.scrollTop=_prevScroll;
+        requestAnimationFrame(()=>{shared.scrollTop=_prevScroll;});
       }
       return true;
     }
     function renderSharedLobby(list){
       if(!phonesOnly||shared.dataset.sharedReady==='1')return;
       shared.innerHTML=`<div class="shared-lobby"><div class="lobby-title display">${LANG==='ar'?'اللاعبون':'PLAYERS'}</div><div class="shared-player-row">${list.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('')}</div><div class="shared-lobby-count">${list.length}/20</div></div>`;
-      const _sc=document.getElementById('scr-controller');
-      if(_sc){_sc.scrollTop=0;requestAnimationFrame(()=>{_sc.scrollTop=0;requestAnimationFrame(()=>{_sc.scrollTop=0;});});}
+      shared.scrollTop=0;requestAnimationFrame(()=>{shared.scrollTop=0;requestAnimationFrame(()=>{shared.scrollTop=0;});});
     }
     function buildMirrorHTML(m){
       return `<div class="ctrl-mirror">
