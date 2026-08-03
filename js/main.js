@@ -1206,7 +1206,7 @@
   /* ---- MENU ---- */
   function updateMenu(){
     const m=$('#menuOverlay .menu-card');
-    const _mo=$('#menuOverlay');if(_mo)_mo.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;';
+    const _mo=$('#menuOverlay');if(_mo)_mo.style.cssText='position:fixed;inset:0;z-index:30000;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;';
     if(!m)return;
     m.querySelector('.menu-title').textContent=T.menu();
     m.querySelector('#menuResume').textContent=T.resume();

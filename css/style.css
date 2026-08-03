@@ -1289,10 +1289,10 @@ html{font-size:17px;}
 
 /* Menu button always on top, visible during game */
 #topbar { z-index: 100 !important; }
-/* Must sit ABOVE the docks (#playerDock.docked / .host-input-dock are z-index
-   400). At 200 the dock painted over the menu, clipping Leave Game and the
-   lower half of the card — the menu is a modal and must beat everything. */
-#menuOverlay { z-index: 9999 !important; }
+/* Must sit above every game-input layer. Phones Only creates its answer layer
+   later in <body> at z-index 9999, so an equal menu z-index lets that newer
+   layer paint over Leave Game. Keep the menu on a dedicated modal tier. */
+#menuOverlay { z-index: 30000 !important; }
 #menuBtn.hidden { display: none !important; }
 
 /* ===== LANDING PAGE ===== */
