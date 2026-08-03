@@ -1242,6 +1242,37 @@ html{font-size:17px;}
   .phone-shared-stage .prompt-card{font-size:clamp(20px,6vw,34px);}
   .phone-shared-stage .score-list{width:100%;}
   .host-input-dock{padding:0 3vw;}
+  /* On a phone, Laith plus Next Round cannot fit on one row. The dock then
+     wraps into two rows and leaves a large empty strip above the action.
+     Results already show the full game content, so keep the phone host dock
+     action-only; larger host/TV layouts still retain Laith and his speech. */
+  #scr-game.active ~ .host-input-dock:has(#hostDockAction:not(:empty)){
+    min-height:0!important;
+    padding:6px 12px max(8px,env(safe-area-inset-bottom,0px))!important;
+    align-items:center!important;
+    flex-wrap:nowrap!important;
+  }
+  #scr-game.active ~ .host-input-dock:has(#hostDockAction:not(:empty)) #host{
+    display:none!important;
+  }
+  #scr-game.active ~ .host-input-dock:has(#hostDockAction:not(:empty)) #hostDockAction{
+    width:auto;
+    margin-left:auto;
+  }
+  /* Player phones use a separate footer. Remove the generic controller
+     offset/margin there too so Waiting for host never creates a tall dock. */
+  body.phones-only-player #scr-controller #playerDock.docked{
+    min-height:0!important;
+    padding:6px 12px max(8px,env(safe-area-inset-bottom,0px))!important;
+  }
+  body.phones-only-player #playerDock.docked #ctrlArea{
+    position:static!important;
+    top:auto!important;
+    margin:0!important;
+  }
+  body.phones-only-player #playerDock.docked #ctrlArea>div{
+    padding:0!important;
+  }
   .phone-shared-stage:has(.rebus-live){gap:5px;}
   .phone-shared-stage .rebus-live{gap:5px;padding:0 3vw;}
   .phone-shared-stage .rebus-emojis{margin:2px 0!important;}
