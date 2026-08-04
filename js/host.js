@@ -427,7 +427,7 @@ const Host = (() => {
             <div class="medal">${['🥇','🥈','🥉'][i] || ''}</div>
             ${avatarHTML(p)}
             <div class="bar-track${p.score===0?' zero-track':''}">
-              <div class="bar-fill" id="bar-${p.pid}" style="background:${p.color};width:0"><span class="bar-name">${esc(p.name)}</span><span class="bar-pts" id="pts-${p.pid}">${p.score===0?'':'0'}</span></div>
+              <div class="bar-fill" id="bar-${p.pid}" style="background:${p.color};width:0"><span class="bar-name">${p.score===0?'':esc(p.name)}</span><span class="bar-pts" id="pts-${p.pid}">${p.score===0?'':'0'}</span></div>
               ${p.score===0?`<div class="bar-zero"><span>${esc(p.name)}</span><span>0</span></div>`:''}
             </div>
           </div>`).join('')}
@@ -1893,6 +1893,23 @@ const Host = (() => {
             <div style="position:absolute;inset:-4px;border-radius:50%;border:3px solid ${wp.color||'#facc15'};animation:wyrRingPulse 1.5s ease-in-out infinite;"></div>
           </div>`).join('');
       const spotlightNames = winnerPlayers.map(wp => esc(wp.name)).join(' & ');
+      // v92 — show who actually voted for the winner, right on the spotlight
+      // screen, so it's not just a name in isolation. Shows EVERY voter who
+      // picked the winner, including a self-vote if the winner voted for
+      // themselves (that voter just doesn't score — see correctVoters above
+      // — but they still count as having "called it").
+      const voterPlayers = pids.filter(pid => winners.includes(val(votes, pid))).map(pid => players.find(p => p.pid === pid)).filter(Boolean);
+      const votersRow = voterPlayers.length ? `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0.8vmin;animation:fadeSlideUp 0.5s 1s both;margin-top:0.5vmin">
+            <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(10px,1.5vmin,13px);color:var(--text3);letter-spacing:2px;text-transform:uppercase">${LANG==='ar'?'صوّتوا له':'VOTED BY'}</div>
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:1vmin;max-width:90vw">
+              ${voterPlayers.map(vp => `
+                <div style="display:flex;flex-direction:column;align-items:center;gap:0.3vmin">
+                  <div style="width:clamp(34px,5.5vmin,50px);height:clamp(34px,5.5vmin,50px);border-radius:50%;background:${vp.color};display:flex;align-items:center;justify-content:center;font-size:clamp(16px,2.6vmin,24px)">${vp.emoji||'😊'}</div>
+                  <div style="font-size:clamp(9px,1.3vmin,11px);color:var(--text2);max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(vp.name)}</div>
+                </div>`).join('')}
+            </div>
+          </div>` : '';
       scene(`
         <div style="text-align:center;padding:3vmin 2vmin;display:flex;flex-direction:column;align-items:center;gap:1.5vmin">
           <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(12px,2vmin,16px);color:var(--text2);letter-spacing:3px;text-transform:uppercase;animation:fadeSlideUp 0.4s both">🏆 ${LANG==='ar'?'الأرجح':'MOST LIKELY TO'}</div>
@@ -1902,6 +1919,7 @@ const Host = (() => {
             <span style="font-size:clamp(14px,2vmin,18px)">👑</span>
             <span style="font-family:'Fredoka One',sans-serif;font-size:clamp(13px,2vmin,17px);color:#facc15">${LANG==='ar'?'الكل يشوف كذا':'the crowd has spoken'}</span>
           </div>
+          ${votersRow}
         </div>`);
       await waitNext(8, LANG==='ar' ? 'التالي' : 'Next');
       await FX.wipe();
