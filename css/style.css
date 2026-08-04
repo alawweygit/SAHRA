@@ -226,7 +226,7 @@ body.ar .room-code{letter-spacing:1px;}
   color:var(--text);
   text-align:center;
 }
-.pick-sub{font-size:clamp(12px,2vmin,16px);font-weight:600;color:var(--text2);text-align:center;max-width:80vw;}
+.pick-sub{font-size:clamp(12px,2vmin,16px);font-weight:600;color:var(--text2);text-align:center;max-width:80vw;flex-shrink:0;}
 .lang-choices{display:flex;gap:3vmin;flex-wrap:wrap;justify-content:center;}
 .lang-card{
   display:flex;flex-direction:column;align-items:center;gap:1.4vmin;
@@ -349,7 +349,7 @@ body.ar .room-code{letter-spacing:1px;}
 .text-input::placeholder{color:var(--text3);}
 
 /* ============ PROMPTS / TIMER / STATUS ============ */
-.eyebrow{font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--yellow);font-size:clamp(10px,1.7vmin,15px);text-align:center;}
+.eyebrow{font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--yellow);font-size:clamp(10px,1.7vmin,15px);text-align:center;flex-shrink:0;}
 body.ar .eyebrow{letter-spacing:0;}
 .prompt-card{
   position:relative;
@@ -359,6 +359,16 @@ body.ar .eyebrow{letter-spacing:0;}
   border:2px solid var(--border-hi);
   box-shadow:0 12px 40px var(--shadow);
   animation:promptIn 0.55s var(--ease-out) both;
+  /* flex-shrink:0 — this is the actual root cause found (via ChatGPT,
+     after extensive investigation) behind the Time Machine statement-card
+     bug: on WebKit, a flex COLUMN can compress a middle child's main-axis
+     size below its min-height in certain constrained-height scenarios,
+     even though min-height is set. Time Machine got a full grid-based
+     rewrite to sidestep this; this class is shared by every OTHER mode's
+     question card (Most Likely To, Trivia, etc.) via #hostStage's own
+     flex-column layout, so the same protective flex-shrink:0 applies here
+     too rather than rebuilding every mode's markup individually. */
+  flex-shrink:0;
 }
 .prompt-card.small{font-size:clamp(14px,2.6vmin,26px);padding:2.4vmin 3.2vmin;}
 @keyframes promptIn{from{transform:scale(0.4) rotate(-10deg);opacity:0;}to{transform:scale(1) rotate(-0.5deg);opacity:1;}}
