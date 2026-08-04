@@ -1872,9 +1872,40 @@ const Host = (() => {
       pids.forEach(pid => { const v = val(votes, pid); if (v) tally[v] = (tally[v]||0)+1; });
       const maxV = Math.max(0, ...Object.values(tally));
       const winners = Object.entries(tally).filter(([,c])=>c===maxV).map(([pid])=>pid);
-      winners.forEach(pid => addScore(pid, 1000));
+      // v88 — scoring redesign per Ali's spec: the person voted "most likely"
+      // did nothing themselves (they didn't vote), so they earn 0. Only the
+      // voters who correctly called the group's pick score, flat 200 each —
+      // no curve by group size, no reward/penalty either way for landslide
+      // vs close votes (explicitly rejected during design discussion).
+      const correctVoters = pids.filter(pid => !winners.includes(pid) && winners.includes(val(votes, pid)));
+      correctVoters.forEach(pid => addScore(pid, 200));
       Audio_.sfx.reveal(); FX.burst(80);
-      scene(`<div class="eyebrow">${esc(Q.q)}</div><div class="score-list">${players.slice().sort((a,b)=>(tally[b.pid]||0)-(tally[a.pid]||0)).map((p,idx)=>`<div class="score-row" style="animation-delay:${idx*.1}s"><div class="medal">${winners.includes(p.pid)?'👑':''}</div><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(10,((tally[p.pid]||0)/pids.length)*100)}%;background:linear-gradient(90deg,var(--pink),var(--purple))">${esc(p.name)} · ${tally[p.pid]||0} ${LANG==='ar'?'أصوات':'votes'}</div></div></div>`).join('')}</div>`);
+
+      // v88 — spotlight reveal (reuses Know Your Crew's glowing-ring hot-seat
+      // presentation, see wyrTrophyPop/wyrRingPulse) shown BEFORE the vote
+      // bar chart, so the winner gets a real "moment" instead of just
+      // appearing as the top bar in a stats screen.
+      const winnerPlayers = winners.map(pid => players.find(p => p.pid === pid)).filter(Boolean);
+      const spotlightAvatars = winnerPlayers.map(wp => `
+          <div style="position:relative;margin:1vmin;animation:wyrTrophyPop 0.7s 0.2s both cubic-bezier(0.34,1.56,0.64,1)">
+            <div style="width:clamp(90px,14vmin,130px);height:clamp(90px,14vmin,130px);border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.15),transparent);box-shadow:0 0 40px ${wp.color||'#facc15'}88,0 0 80px ${wp.color||'#facc15'}44;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:clamp(46px,8vmin,72px);">${wp.emoji||'😊'}</div>
+            <div style="position:absolute;inset:-4px;border-radius:50%;border:3px solid ${wp.color||'#facc15'};animation:wyrRingPulse 1.5s ease-in-out infinite;"></div>
+          </div>`).join('');
+      const spotlightNames = winnerPlayers.map(wp => esc(wp.name)).join(' & ');
+      scene(`
+        <div style="text-align:center;padding:3vmin 2vmin;display:flex;flex-direction:column;align-items:center;gap:1.5vmin">
+          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(12px,2vmin,16px);color:var(--text2);letter-spacing:3px;text-transform:uppercase;animation:fadeSlideUp 0.4s both">🏆 ${LANG==='ar'?'الأرجح':'MOST LIKELY TO'}</div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:center">${spotlightAvatars}</div>
+          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(28px,5.6vmin,56px);color:var(--text);animation:fadeSlideUp 0.5s 0.6s both;line-height:1.15">${spotlightNames}</div>
+          <div style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#facc1533,#facc1511);border:1.5px solid #facc1566;border-radius:30px;padding:6px 20px;animation:fadeSlideUp 0.5s 0.8s both">
+            <span style="font-size:clamp(14px,2vmin,18px)">👑</span>
+            <span style="font-family:'Fredoka One',sans-serif;font-size:clamp(13px,2vmin,17px);color:#facc15">${LANG==='ar'?'الكل يشوف كذا':'the crowd has spoken'}</span>
+          </div>
+        </div>`);
+      await sleep(2200);
+      await FX.wipe();
+
+      scene(`<div class="eyebrow">${esc(Q.q)}</div><div class="score-list">${players.slice().sort((a,b)=>(tally[b.pid]||0)-(tally[a.pid]||0)).map((p,idx)=>`<div class="score-row" style="animation-delay:${idx*.1}s"><div class="medal">${winners.includes(p.pid)?'👑':''}</div><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(10,((tally[p.pid]||0)/pids.length)*100)}%;background:linear-gradient(90deg,var(--pink),var(--purple))">${esc(p.name)} · ${tally[p.pid]||0} ${LANG==='ar'?'أصوات':'votes'}${correctVoters.includes(p.pid)?' · +200':''}</div></div></div>`).join('')}</div>`);
       const wNames = winners.map(pid=>players.find(p=>p.pid===pid)?.name).join(' & ');
       pushMirror({ headline: `👑 ${wNames}` });
       await say(LANG==='ar'?`${wNames} — الكل يشوف كذا!`:`${wNames} — the crowd has spoken!`);
