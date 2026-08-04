@@ -1680,11 +1680,17 @@ body.ar .hint-display { direction: ltr !important; text-align: center !important
 }
 body.ar .tutorial-bullets { text-align: right; }
 
-/* ===== SCORE BARS - prevent overflow ===== */
+/* ===== SCORE BARS — v90: this rule used to clip the vote-count label with
+   overflow:hidden + ellipsis, directly contradicting (and, being later in
+   the file, overriding) the overflow:visible fix higher up in this file.
+   With few votes the bar itself is narrow, so "2 votes" was getting cut to
+   "2 vot" mid-word. Give the bar a floor width based on its own text
+   content instead of clipping it — the colored fill can be narrower than
+   its label, the label just won't get cut off anymore. ===== */
 .bar-fill {
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  min-width: fit-content;
 }
 
 /* ===== SCROLL SPACER — forces browser to allow scrolling past last button ===== */
