@@ -1616,26 +1616,27 @@ const Host = (() => {
   }
 
   /* Wait for Next press, or auto-advance if autoplay is on */
-  function waitNext(autoSeconds = 6) {
+  function waitNext(autoSeconds = 6, label = null) {
     return new Promise(res => {
       const action = document.getElementById('hostDockAction');
       const btn = document.createElement('button');
       btn.className = 'big-btn host-only-ui';
       action.innerHTML = '';
       action.appendChild(btn);
+      const baseLabel = label || t('next_round');
       const done = () => { window.__hypoxSkip = null; if (timer) clearInterval(timer); action.innerHTML = ''; res(); };
       let timer = null;
       const isAutoplay = window.HYPOX_STATE?.autoplay === true; // explicit check
       if (isAutoplay) {
         let left = autoSeconds;
-        btn.textContent = `${t('next_round')} (${left})`;
+        btn.textContent = `${baseLabel} (${left})`;
         timer = setInterval(() => {
           left--;
           if (left <= 0) { done(); return; }
-          btn.textContent = `${t('next_round')} (${left})`;
+          btn.textContent = `${baseLabel} (${left})`;
         }, 1000);
       } else {
-        btn.textContent = t('next_round'); // manual: no timer ever
+        btn.textContent = baseLabel; // manual: no timer ever
       }
       btn.addEventListener('click', done, { once: true });
       window.__hypoxSkip = done;
@@ -1902,7 +1903,7 @@ const Host = (() => {
             <span style="font-family:'Fredoka One',sans-serif;font-size:clamp(13px,2vmin,17px);color:#facc15">${LANG==='ar'?'الكل يشوف كذا':'the crowd has spoken'}</span>
           </div>
         </div>`);
-      await sleep(2200);
+      await waitNext(8, LANG==='ar' ? 'التالي' : 'Next');
       await FX.wipe();
 
       scene(`<div class="eyebrow">${esc(Q.q)}</div><div class="score-list">${players.slice().sort((a,b)=>(tally[b.pid]||0)-(tally[a.pid]||0)).map((p,idx)=>`<div class="score-row" style="animation-delay:${idx*.1}s"><div class="medal">${winners.includes(p.pid)?'👑':''}</div><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(10,((tally[p.pid]||0)/pids.length)*100)}%;background:linear-gradient(90deg,var(--pink),var(--purple))">${esc(p.name)} · ${tally[p.pid]||0} ${LANG==='ar'?'أصوات':'votes'}${correctVoters.includes(p.pid)?' · +200':''}</div></div></div>`).join('')}</div>`);
