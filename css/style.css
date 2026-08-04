@@ -102,7 +102,15 @@ body.theme-light .deco-blob{opacity:0.14;}
    the viewport/scroll-port. #playerDock.docked (sticky) and other fixed
    elements rely on this rule staying in place. */
 #scr-controller.active{transform:none!important;}
-#hostStage{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2.4vmin;width:100%;min-height:100%;padding-bottom:40px;padding-top:max(80px,8vmin);overflow-x:hidden;-webkit-transform:translateZ(0);transform:translateZ(0);}
+/* display:grid instead of flex — flexbox columns can compress a middle
+   child below its own min-height on WebKit in constrained-height
+   scenarios (confirmed root cause of the Time Machine statement-card
+   bug). grid-auto-rows:max-content sizes every row to its content and
+   is not subject to that shrink behavior. This is the same fix that
+   worked for Time Machine's .tm-wrap, applied here at the source so
+   EVERY mode's question card (all direct children of #hostStage) is
+   protected in one place instead of needing a per-mode patch. */
+#hostStage{display:grid;grid-auto-rows:max-content;justify-items:center;align-content:start;row-gap:2.4vmin;width:100%;min-height:100%;padding-bottom:40px;padding-top:max(80px,8vmin);overflow-x:hidden;-webkit-transform:translateZ(0);transform:translateZ(0);}
 #hostStage:has(.ans-reveal-list){overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;justify-content:flex-start!important;padding-top:max(80px,8vmin)!important;padding-bottom:100px!important;overscroll-behavior-y:contain;will-change:scroll-position;}
 #scr-game:has(.host-input-dock:has(#host.show)) #hostStage,
 #scr-game:has(.host-input-dock:has(#hostDockAction:not(:empty))) #hostStage{padding-bottom:200px;} /* make room for fixed dock */
