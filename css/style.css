@@ -2139,6 +2139,24 @@ body.phones-host-answering #scr-game.active:not(.pack-picker-active):not(.rebus-
   align-self:stretch!important;
 }
 
+/* v87 — the v86 fix repositioned the SCREEN, but the real overlap cause is
+   that .host-input-dock (the fixed bottom sheet holding the Most Likely To /
+   choice buttons) has no height cap: with 6-7+ player choices stacked in a
+   column it can genuinely grow past 55-60% of a phone's viewport, and
+   #hostStage's own fixed padding-top pushes the question's 2nd line straight
+   into that uncapped zone. Cap the dock and let it scroll internally instead
+   of growing indefinitely, and pull the question's top padding in during
+   this state so it clears the capped dock with room to spare. */
+body.phones-host-answering #scr-game.active:not(.pack-picker-active):not(.rebus-input-active) #hostStage{
+  padding-top:max(20px,2.4vmin)!important;
+}
+body.phones-host-answering .host-input-dock{
+  max-height:52vh;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+}
+
 /* ---------------------------------------------------------------------
    SCROLL REGRESSION FIX (Mac/desktop player, introduced in v65).
    .phone-shared-stage carries pointer-events:none so players can't
