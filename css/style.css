@@ -2121,6 +2121,24 @@ body.hide-tracker #statusRow{display:none!important;}
   overscroll-behavior-y:contain;
 }
 
+/* =====================================================================
+   v86 — PHONES ONLY choice input: keep the host question above the dock
+
+   The host's choice panel is a fixed bottom sheet capped at 60vh.  With a
+   short player list it appeared harmless, but once the list reached that
+   cap it covered #hostStage because the game screen vertically centred its
+   content.  Pin the stage to the top while that sheet is open so the mode
+   title/question always occupy the unobscured upper 40% on desktop and
+   mobile.  The bottom sheet keeps its own scrolling for long player lists.
+   ===================================================================== */
+body.phones-host-answering #scr-game.active:not(.pack-picker-active):not(.rebus-input-active){
+  justify-content:flex-start!important;
+}
+body.phones-host-answering #scr-game.active:not(.pack-picker-active):not(.rebus-input-active) #hostStage{
+  margin-top:0!important;
+  align-self:stretch!important;
+}
+
 /* ---------------------------------------------------------------------
    SCROLL REGRESSION FIX (Mac/desktop player, introduced in v65).
    .phone-shared-stage carries pointer-events:none so players can't
