@@ -2161,14 +2161,25 @@ body.phones-host-answering #scr-game.active:not(.pack-picker-active):not(.rebus-
    into that uncapped zone. Cap the dock and let it scroll internally instead
    of growing indefinitely, and pull the question's top padding in during
    this state so it clears the capped dock with room to spare. */
-body.phones-host-answering #scr-game.active:not(.pack-picker-active):not(.rebus-input-active) #hostStage{
+body.phones-host-answering #scr-game.active:not(.pack-picker-active):not(.rebus-input-active) #hostStage,
+body.phones-host-docked #scr-game.active:not(.pack-picker-active):not(.rebus-input-active) #hostStage{
   padding-top:max(20px,2.4vmin)!important;
+  justify-content:flex-start!important;
 }
-body.phones-host-answering .host-input-dock{
+body.phones-host-answering .host-input-dock,
+body.phones-host-docked .host-input-dock{
   max-height:52vh;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   overscroll-behavior-y:contain;
+}
+/* v96 — the host's input dock is a fixed overlay pinned to the bottom of the
+   viewport, so #hostStage has to be told how much room it actually has;
+   otherwise tall stage content (Flag Hunt's flag) just runs underneath it and
+   gets visually clipped with no way to scroll to it. */
+body.phones-host-docked #scr-game.active:not(.pack-picker-active):not(.rebus-input-active) #hostStage{
+  max-height:calc(100vh - 52vh - 60px);
+  overflow-y:auto;
 }
 
 /* v95 — Flag Hunt's flag was inline-styled up to 150px tall, which pushed
@@ -2183,7 +2194,8 @@ body.phones-host-answering .host-input-dock{
   margin:2vmin 0;
   line-height:1;
 }
-body.phones-host-answering .flag-display{
+body.phones-host-answering .flag-display,
+body.phones-host-docked .flag-display{
   font-size:clamp(56px,9vw,86px);
   margin:1vmin 0;
 }

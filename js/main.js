@@ -1247,7 +1247,7 @@
     const mirror=$('#phoneMirror');if(mirror){mirror.classList.add('hidden');mirror.querySelectorAll('#pmPill,#pmHeadline,#pmSpeech').forEach(el=>el.textContent='');}
     const stage=$('#hostStage');if(stage)stage.innerHTML='';
     $('#scr-game')?.classList.remove('rebus-input-active','pack-picker-active');
-    document.body.classList.remove('phones-only-player','phones-host-answering','phones-player-answering');
+    document.body.classList.remove('phones-only-player','phones-host-answering','phones-host-docked','phones-player-answering');
     Host.hideHost?.();
     const speech=$('#speechText');if(speech)speech.textContent='';
   }
@@ -1380,6 +1380,16 @@
       const hidesStageAnswers=spec?.type==='choice'||spec?.type==='higherlow';
       const isMapInput=spec?.type==='map';
       if(hidesStageAnswers)document.body.classList.add('phones-host-answering');
+      // v96 — 'phones-host-answering' means "hide the answers on stage", and
+      // only choice/higherlow set it. But the layout rules that keep
+      // #hostStage clear of the host's bottom input dock (v87 dock cap +
+      // padding, v95 flag scaling) were hung off that same class, so they
+      // silently did nothing for text/number inputs like Flag Hunt — which
+      // is why its flag kept rendering clipped behind the dock. This second
+      // class tracks the thing those rules actually care about: the host's
+      // own input dock is on screen, whatever the input type.
+      const usesBottomDock=!isMapInput;
+      if(usesBottomDock)document.body.classList.add('phones-host-docked');
       // Use a body-level modal overlay — avoids all overflow/stacking context issues.
       // Map input goes full-screen so the host gets the same clean layout as player phones.
       const overlay=document.createElement('div');
@@ -1398,6 +1408,7 @@
         if(settled)return;settled=true;_ppDismiss=null;
         overlay.remove();
         if(hidesStageAnswers)document.body.classList.remove('phones-host-answering');
+        if(usesBottomDock)document.body.classList.remove('phones-host-docked');
         resolve(value);
       };
       _ppDismiss=()=>done(null);
