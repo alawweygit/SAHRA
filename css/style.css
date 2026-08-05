@@ -2186,8 +2186,13 @@ body.phones-host-docked .host-input-dock{
    otherwise tall stage content (Flag Hunt's flag) just runs underneath it and
    gets visually clipped with no way to scroll to it. */
 body.phones-host-docked #scr-game.active:not(.pack-picker-active):not(.rebus-input-active) #hostStage{
-  max-height:calc(100vh - 52vh - 60px);
-  overflow-y:auto;
+  /* v103 — these were being overridden (shown struck-through in DevTools),
+     so #hostStage never got its height cap and just clipped behind the dock
+     instead of shrinking and scrolling. !important to match the surrounding
+     rules in this file, which are themselves !important-heavy. */
+  max-height:calc(100vh - 52vh - 60px)!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch;
 }
 
 /* v95 — Flag Hunt's flag was inline-styled up to 150px tall, which pushed

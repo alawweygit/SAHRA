@@ -2223,7 +2223,13 @@ const Host = (() => {
       const mtSpec = {
         type: 'multitext',
         title: LANG==='ar' ? '✍️ اكتب ٣ إجابات' : '✍️ Write your 3 answers',
-        context: LANG==='ar' ? 'وحدة منها لازم تكون كذبة' : 'One of them must be a LIE',
+        // v103 — the question goes IN the card. v101 removed it to avoid
+        // duplication, but with the 3-field card taking ~half the screen the
+        // stage above is squeezed to just the avatar and name, so the
+        // question was invisible exactly when the player needs it. Being
+        // able to read the question beats not repeating it.
+        context: QC.q,
+        sub: LANG==='ar' ? 'وحدة منها لازم تكون كذبة' : 'One of them must be a LIE',
         maxLen: 80,
         seconds: 90,
         fields: [
