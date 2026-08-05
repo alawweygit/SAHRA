@@ -1692,6 +1692,14 @@ body.ar .tutorial-bullets { text-align: right; }
   overflow: visible;
   min-width: fit-content;
 }
+/* v93 — but a zero-score bar is meant to be genuinely invisible (width:0),
+   and min-width:fit-content above was overriding that: the colored pill
+   re-appeared sized to its own content and sat underneath .bar-zero's
+   absolutely-positioned name/0 overlay, which is what produced the
+   "letters merged with numbers" look on the SCORES screen. */
+.zero-track .bar-fill {
+  min-width: 0;
+}
 
 /* ===== SCROLL SPACER — forces browser to allow scrolling past last button ===== */
 .scroll-spacer{

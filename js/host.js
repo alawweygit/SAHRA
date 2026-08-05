@@ -451,7 +451,10 @@ const Host = (() => {
           if (n >= steps) clearInterval(iv);
         }, dur / steps);
       } else if (ptsEl) {
-        ptsEl.textContent = '0';
+        // v93 — leave this empty: zero-score rows render their name and 0
+        // via the separate .bar-zero overlay, so writing '0' here just
+        // double-rendered it inside the (meant-to-be-invisible) fill.
+        ptsEl.textContent = '';
       }
     }, i * 80));
     await sleep(800);
