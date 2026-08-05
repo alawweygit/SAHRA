@@ -1030,7 +1030,13 @@
       net.onPresence(status=>{
         window._hypoxPresence=status;
         // re-render player row with new status (reuses existing list)
-        if(net._players){
+        // v105 — `net` itself can be null here: the Firebase presence
+        // listener stays attached after the room is closed / the player
+        // leaves, so this callback still fires and threw
+        // "Cannot read properties of null (reading '_players')".
+        // Errors thrown inside a Firebase callback can silently kill
+        // later listener updates, so guard rather than let it throw.
+        if(net && net._players){
           const _ls=document.getElementById('scr-lobby');
           const _prevScroll=_ls?_ls.scrollTop:0;
           const _pStatus=status||{};
