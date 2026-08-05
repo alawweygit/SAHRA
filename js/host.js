@@ -2038,10 +2038,41 @@ const Host = (() => {
       }).sort((a,b)=>answers[a].order-answers[b].order);
       right.forEach(pid=>addScore(pid,CORRECT_PTS));
       Audio_.sfx.reveal(); FX.burst(80);
-      scene(`<div class="eyebrow">🚩 FLAG HUNT</div>
-        <div style="font-size:clamp(70px,12vw,110px);text-align:center;margin:1vmin 0;line-height:1">${Q.flag}</div>
-        <div class="prompt-card display" style="color:var(--yellow);font-size:clamp(24px,4vw,42px);margin:1vmin 0">${esc(answer)}</div>
-        <div class="score-list">${pids.map((pid,idx)=>{const p=safeP(pid);if(!p)return '';const got=right.includes(pid);const pts=got?CORRECT_PTS:0;const typed=(val(answers,pid)||'').trim()||'—';return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:10}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+pts:'✗ '+esc(typed)}</div></div></div>`;}).join('')}</div>`);
+      // v99 — same reveal layout as True or Lie (v94) / Higher or Lower
+      // (v97): every piece gets its own column instead of a bar whose
+      // width varied by correctness. Flag Hunt is free-text rather than a
+      // fixed set of choices, so instead of "Said Higher/Lower" each row
+      // shows what the player actually typed (or 'No answer').
+      const fhRows = pids.map(pid => {
+        const p = safeP(pid);
+        if (!p) return null;
+        const typed = (val(answers, pid) || '').trim();
+        return { p, got: right.includes(pid), typed, order: answers[pid]?.order ?? Infinity };
+      }).filter(Boolean).sort((a, b) => (b.got - a.got) || (a.order - b.order));
+      const fhSaid = r => !r.typed
+        ? (LANG==='ar' ? 'ما جاوب' : 'No answer')
+        : (r.got ? esc(r.typed) : (LANG==='ar' ? `كتب: ${esc(r.typed)}` : `Typed: ${esc(r.typed)}`));
+      scene(`
+        <div class="tm-wrap">
+          <div class="tm-reveal-statement">🚩 ${LANG==='ar'?'عرّف العلم':'FLAG HUNT'}</div>
+          <div class="tm-reveal-year-card">
+            <div class="flag-display" style="font-size:clamp(50px,8vw,80px);margin:0 0 0.5vmin 0">${Q.flag}</div>
+            <div class="tm-reveal-year-label">${LANG==='ar'?'الجواب':'The Answer'}</div>
+            <div class="tm-reveal-year">${esc(answer)}</div>
+          </div>
+          <div class="tm-score-list">
+            ${fhRows.map((r, idx) => `
+              <div class="tm-score-row${r.got && idx===0 ? ' tm-rank-1' : ''}" style="animation-delay:${idx*.08}s">
+                <div class="tm-score-rank">${r.got ? '✅' : '❌'}</div>
+                <div class="tm-score-avatar" style="background:${r.p.color}">${r.p.emoji}</div>
+                <div class="tm-score-info">
+                  <div class="tm-score-name">${esc(r.p.name)}</div>
+                  <div class="tm-score-guess">${fhSaid(r)}</div>
+                </div>
+                <div class="tm-score-pts${r.got?'':' tm-zero'}">${r.got?'+'+CORRECT_PTS:'0'} ${LANG==='ar'?'نقطة':'pts'}</div>
+              </div>`).join('')}
+          </div>
+        </div>`);
       pushMirror({ headline: `${Q.flag} = ${answer}` });
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?`ولا واحد! هو ${answer}`:`Nobody! It was ${answer}.`));
       hideHost(); await waitNext();
