@@ -10,6 +10,24 @@
 
 const Controller = (() => {
 
+  // v102 — after an input renders, scroll it into view and flag that there
+  // is content below, so the player never sits on a screen not realising
+  // the input card exists further down.
+  function scrollInputIntoView(wrap) {
+    if (!wrap || !wrap.isConnected) return;
+    const run = () => {
+      try {
+        const r = wrap.getBoundingClientRect();
+        const vh = window.innerHeight || document.documentElement.clientHeight;
+        // Only act when the card actually starts below the visible area.
+        if (r.top > vh * 0.75) {
+          wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } catch (e) { /* non-fatal: scrolling is a nicety, never break input */ }
+    };
+    requestAnimationFrame(() => requestAnimationFrame(run));
+  }
+
   function render(container, spec, onSubmit) {
     if (!container) return;
     const wrap = document.createElement('div');
@@ -68,6 +86,87 @@ const Controller = (() => {
     }
 
 
+
+    // v102 — 'multitext': several labelled fields on ONE card with a single
+    // submit. Added for 2 Truths 1 Lie, which previously fired three
+    // separate sequential input phases: the player couldn't see how many
+    // answers were wanted, couldn't revise before committing (the whole
+    // game is deciding WHICH of your three should be the lie), and any
+    // hiccup in the phase hand-off left them stuck after answer one.
+    // Submits a JSON array string; the host parses it back.
+    if (spec.type === 'multitext') {
+      const fields = Array.isArray(spec.fields) ? spec.fields : [];
+      const tas = [];
+      fields.forEach((f, i) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'width:100%;margin-bottom:12px';
+        const lab = document.createElement('div');
+        lab.style.cssText = `display:flex;align-items:center;gap:6px;font-family:'Fredoka One',sans-serif;font-size:14px;letter-spacing:1px;margin-bottom:6px;color:${f.lie ? 'var(--pink)' : 'var(--green)'}`;
+        lab.textContent = f.label || '';
+        row.appendChild(lab);
+        const ta = document.createElement('textarea');
+        ta.className = 'ctrl-input';
+        ta.placeholder = f.placeholder || '…';
+        ta.maxLength = spec.maxLen || 80;
+        ta.rows = 2;
+        ta.autocomplete = 'off';
+        ta.style.borderColor = f.lie ? 'var(--pink)' : 'var(--green)';
+        ta.style.borderWidth = '2px';
+        row.appendChild(ta);
+        tas.push(ta);
+        wrap.appendChild(row);
+      });
+
+      const count = document.createElement('div');
+      count.className = 'ctrl-count';
+      wrap.appendChild(count);
+
+      const btn = document.createElement('button');
+      btn.className = 'big-btn ctrl-submit';
+      wrap.appendChild(btn);
+
+      const filled = () => tas.filter(x => x.value.trim()).length;
+      const refresh = () => {
+        const n = filled();
+        const all = n === tas.length;
+        count.textContent = LANG==='ar' ? `${n} من ${tas.length} تعبّت` : `${n} of ${tas.length} filled`;
+        btn.disabled = !all;
+        btn.style.opacity = all ? '1' : '.5';
+        btn.textContent = all ? t('submit') : (LANG==='ar' ? `عبّي ${tas.length} عشان ترسل` : `Fill all ${tas.length} to send`);
+      };
+      tas.forEach(ta => ta.addEventListener('input', refresh));
+      refresh();
+
+      let submitting = false;
+      btn.addEventListener('click', async () => {
+        if (submitting) return;
+        const vals = tas.map(x => x.value.trim());
+        const emptyIdx = vals.findIndex(v => !v);
+        if (emptyIdx !== -1) {
+          tas[emptyIdx].classList.add('shake');
+          setTimeout(() => tas[emptyIdx].classList.remove('shake'), 500);
+          tas[emptyIdx].focus();
+          return;
+        }
+        submitting = true;
+        btn.disabled = true;
+        wrap.setAttribute('aria-busy', 'true');
+        try {
+          await onSubmit(JSON.stringify(vals));
+        } catch (e) {
+          submitting = false;
+          btn.disabled = false;
+          wrap.removeAttribute('aria-busy');
+          refresh();
+        }
+      });
+      // NOTE: must attach here rather than `return`-ing — render()'s single
+      // container.replaceChildren(wrap) lives at the end of the function, so
+      // an early return would render nothing at all.
+      container.replaceChildren(wrap);
+      scrollInputIntoView(wrap);
+      return;
+    }
 
     if (spec.type === 'text') {
       const ta = document.createElement('textarea');
@@ -408,6 +507,10 @@ const Controller = (() => {
     // Firebase snapshots replace the old question instead of appending another
     // copy while buttons remain wired to the current phase callback.
     container.replaceChildren(wrap);
+    // v102 — bring the input into view. Players were landing on the stage
+    // with the input card entirely below the fold and no indication it was
+    // there, so they didn't know they were meant to do anything.
+    scrollInputIntoView(wrap);
   }
 
   function lock(wrap) {
