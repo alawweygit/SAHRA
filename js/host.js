@@ -2067,9 +2067,13 @@ const Host = (() => {
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
       const opts = [{id:'higher',label:LANG==='ar'?'⬆️ أكثر':'⬆️ Higher',color:'#34d399'},{id:'lower',label:LANG==='ar'?'⬇️ أقل':'⬇️ Lower',color:'#f472b6'}];
+      // v97 — hint sizing moved out of an inline style into .hl-hint so it can
+      // be scaled down while the host's input dock is on screen, same as
+      // .flag-display (v95/v96). Inline styles can't be overridden by the
+      // dock-clearance rules, which is what left tall stage content clipped.
       scene(`<div class="eyebrow">📊 ${LANG==='ar'?'فوق ولا تحت؟':'HIGHER OR LOWER?'}</div>
         <div class="prompt-card display">${esc(Q.q)}</div>
-        <div class="pick-sub" style="font-size:clamp(28px,5vw,52px);color:var(--yellow);font-family:'Fredoka One',sans-serif;margin:1vmin 0">${hint.toLocaleString()} ${Q.unit}</div>
+        <div class="pick-sub hl-hint">${hint.toLocaleString()} ${esc(Q.unit||'')}</div>
         <div class="pick-sub" style="opacity:.7">${LANG==='ar'?'الرقم الحقيقي فوق ولا تحت؟':'Is the real answer higher or lower?'}</div>
         <div id="statusRow" class="status-row"></div>`);
       // Send to phone as separate fields so controller renders cleanly
@@ -2092,9 +2096,41 @@ const Host = (() => {
       Audio_.sfx.reveal(); FX.burst(60);
       const arrow = correctId==='higher'?'⬆️':'⬇️';
       const ansLabel = `${arrow} ${LANG==='ar'?'الجواب':'Answer'}: ${Q.n.toLocaleString()} ${Q.unit}`;
-      scene(`<div class="eyebrow">${esc(Q.q)}</div>
-        <div class="prompt-card display" style="color:var(--yellow);font-size:clamp(20px,3.5vmin,36px)">${ansLabel}</div>
-        <div class="score-list" style="margin-top:1.5vmin">${pids.map((pid,idx2)=>{const p=safeP(pid);const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx2*.1}s">${avatarHTML(p)}<div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}"><span class="bar-name">${esc(p.name)}</span><span class="bar-pts">${got?'✓ +'+(CORRECT_PTS):'✗ 0'}</span></div></div></div>`;}).join('')}</div>`);
+      // v97 — same reveal layout as True or Lie (v94) / Time Machine: every
+      // piece gets its own column instead of being crammed into a bar whose
+      // width varied by correctness. Both modes are two-option guesses, so
+      // Ali wants them visually identical apart from the wording.
+      const hlRows = pids.map(pid => {
+        const p = safeP(pid);
+        if (!p) return null;
+        const a = val(answers, pid);
+        return { p, got: a === correctId, answered: a === 'higher' || a === 'lower', said: a, order: answers[pid]?.order ?? Infinity };
+      }).filter(Boolean).sort((a, b) => (b.got - a.got) || (a.order - b.order));
+      const hlSaid = r => !r.answered
+        ? (LANG==='ar' ? 'ما جاوب' : 'No answer')
+        : (LANG==='ar'
+            ? (r.said==='higher' ? 'قال أكثر' : 'قال أقل')
+            : (r.said==='higher' ? 'Said Higher' : 'Said Lower'));
+      scene(`
+        <div class="tm-wrap">
+          <div class="tm-reveal-statement">${esc(Q.q)}</div>
+          <div class="tm-reveal-year-card">
+            <div class="tm-reveal-year-label">${LANG==='ar'?'الجواب':'The Answer'}</div>
+            <div class="tm-reveal-year">${arrow} ${Q.n.toLocaleString()} ${esc(Q.unit||'')}</div>
+          </div>
+          <div class="tm-score-list">
+            ${hlRows.map((r, idx2) => `
+              <div class="tm-score-row${r.got && idx2===0 ? ' tm-rank-1' : ''}" style="animation-delay:${idx2*.08}s">
+                <div class="tm-score-rank">${r.got ? '✅' : '❌'}</div>
+                <div class="tm-score-avatar" style="background:${r.p.color}">${r.p.emoji}</div>
+                <div class="tm-score-info">
+                  <div class="tm-score-name">${esc(r.p.name)}</div>
+                  <div class="tm-score-guess">${hlSaid(r)}</div>
+                </div>
+                <div class="tm-score-pts${r.got?'':' tm-zero'}">${r.got?'+'+CORRECT_PTS:'0'} ${LANG==='ar'?'نقطة':'pts'}</div>
+              </div>`).join('')}
+          </div>
+        </div>`);
       pushMirror({ headline: ansLabel });
       await hostSay('reveal');
       await waitNext();

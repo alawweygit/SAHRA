@@ -2199,6 +2199,19 @@ body.phones-host-docked .flag-display{
   font-size:clamp(56px,9vw,86px);
   margin:1vmin 0;
 }
+/* v97 — Higher or Lower's reference number, same treatment as .flag-display:
+   sized here rather than inline so it can shrink while the host dock is up. */
+.hl-hint{
+  font-size:clamp(28px,5vw,52px);
+  color:var(--yellow);
+  font-family:'Fredoka One',sans-serif;
+  margin:1vmin 0;
+}
+body.phones-host-answering .hl-hint,
+body.phones-host-docked .hl-hint{
+  font-size:clamp(22px,3.6vw,36px);
+  margin:0.5vmin 0;
+}
 
 /* ---------------------------------------------------------------------
    SCROLL REGRESSION FIX (Mac/desktop player, introduced in v65).
