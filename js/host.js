@@ -2215,12 +2215,18 @@ const Host = (() => {
       // easy to misread; a player mixing up which box is the lie ruins the
       // whole round, so make it loud: explicit TRUTH/LIE wording, the
       // question repeated as context, and 'x of 3' progress.
+      // v101 — do NOT repeat QC.q here. The question is already displayed
+      // in the statement card on the stage above, and collectWithTimer also
+      // pushes spec.context as the mirror headline, so including it here
+      // rendered the same question up to three times on one screen. Same
+      // dedup rule as Flag Hunt's flag (v95): stage keeps it, input panel
+      // carries only the short instruction.
       const truthCtx = n => LANG==='ar'
-        ? `✅ اكتب إجابة صحيحة — ${QC.q} (${n} من ٣)`
-        : `✅ TRUE answer — ${QC.q} (${n} of 3)`;
+        ? `✅ اكتب إجابة صحيحة (${n} من ٣)`
+        : `✅ Write a TRUE answer (${n} of 3)`;
       const i1 = await collectWithTimer({ type:'text', title:LANG==='ar'?'✅ حقيقة ١ من ٣':'✅ TRUTH — 1 of 3', context:truthCtx(1), maxLen:80, seconds:60 }, [target.pid], 60);
       const i2 = await collectWithTimer({ type:'text', title:LANG==='ar'?'✅ حقيقة ٢ من ٣':'✅ TRUTH — 2 of 3', context:truthCtx(2), maxLen:80, seconds:60 }, [target.pid], 60);
-      const i3 = await collectWithTimer({ type:'text', title:LANG==='ar'?'❌ الكذبة ٣ من ٣':'❌ THE LIE — 3 of 3', context:LANG==='ar'?`❌ الحين اكتب كذبة مقنعة — ${QC.q} (٣ من ٣)`:`❌ Now write a convincing LIE — ${QC.q} (3 of 3)`, maxLen:80, seconds:60 }, [target.pid], 60);
+      const i3 = await collectWithTimer({ type:'text', title:LANG==='ar'?'❌ الكذبة ٣ من ٣':'❌ THE LIE — 3 of 3', context:LANG==='ar'?'❌ الحين اكتب كذبة مقنعة (٣ من ٣)':'❌ Now write a convincing LIE (3 of 3)', maxLen:80, seconds:60 }, [target.pid], 60);
       const s1=val(i1,target.pid)||'...', s2=val(i2,target.pid)||'...', s3=val(i3,target.pid)||'...';
       const stmts = shuffle([{text:s1,truth:true},{text:s2,truth:true},{text:s3,truth:false}]);
       const lieIdx = stmts.findIndex(s=>!s.truth);
