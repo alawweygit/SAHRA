@@ -2145,10 +2145,12 @@ body.hide-tracker #statusRow{display:none!important;}
    title/question always occupy the unobscured upper 40% on desktop and
    mobile.  The bottom sheet keeps its own scrolling for long player lists.
    ===================================================================== */
-body.phones-host-answering #scr-game.active:not(.pack-picker-active):not(.rebus-input-active){
+body.phones-host-answering #scr-game.active:not(.pack-picker-active):not(.rebus-input-active),
+body.phones-host-docked #scr-game.active:not(.pack-picker-active):not(.rebus-input-active){
   justify-content:flex-start!important;
 }
-body.phones-host-answering #scr-game.active:not(.pack-picker-active):not(.rebus-input-active) #hostStage{
+body.phones-host-answering #scr-game.active:not(.pack-picker-active):not(.rebus-input-active) #hostStage,
+body.phones-host-docked #scr-game.active:not(.pack-picker-active):not(.rebus-input-active) #hostStage{
   margin-top:0!important;
   align-self:stretch!important;
 }

@@ -31,8 +31,8 @@ if (/outline[^;]*6px solid #ff0000/i.test(host)) {
 // A full Phones Only choice list must not cover the host question. The
 // bottom sheet may occupy 60vh, so the host stage has to start at the top
 // instead of inheriting the screen's default vertical centering.
-if (!/body\.phones-host-answering\s+#scr-game\.active:not\(\.pack-picker-active\):not\(\.rebus-input-active\)\s*\{[^}]*justify-content\s*:\s*flex-start\s*!important/s.test(css)) {
-  throw new Error('Phones Only host choice mode must top-align the question above the bottom sheet');
+if (!/body\.phones-host-answering\s+#scr-game\.active:not\(\.pack-picker-active\):not\(\.rebus-input-active\)\s*,\s*body\.phones-host-docked\s+#scr-game\.active:not\(\.pack-picker-active\):not\(\.rebus-input-active\)\s*\{[^}]*justify-content\s*:\s*flex-start\s*!important/s.test(css)) {
+  throw new Error('All Phones Only host input modes must top-align stage content above the bottom dock');
 }
 
 console.log('Time Machine layout regression checks: ✓');
