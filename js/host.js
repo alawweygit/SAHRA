@@ -252,6 +252,18 @@ const Host = (() => {
               botVal = fakes[Math.floor(Math.random() * fakes.length)];
             } else if (spec.type === 'number') {
               botVal = String(Math.floor(Math.random() * 9000) + 1000);
+            } else if (spec.type === 'multitext') {
+              // v104 — multitext was added in v102 but never taught to the
+              // bots, so bot players submitted nothing and every statement
+              // fell back to the '...' placeholder. Must be a JSON array of
+              // one string per field, matching what the controller sends.
+              const nF = Array.isArray(spec.fields) ? spec.fields.length : 3;
+              const botLines = LANG==='ar'
+                ? ['أكلت شي غريب','سافرت لبلد بعيد','قابلت مشهور','خسرت جوالي','نمت في المطار','تعلمت لغة']
+                : ['I ate something weird','I travelled somewhere far','I met someone famous','I lost my phone','I slept at an airport','I learned a language'];
+              const picked = botLines.slice().sort(() => Math.random() - 0.5).slice(0, nF);
+              while (picked.length < nF) picked.push(botLines[Math.floor(Math.random()*botLines.length)]);
+              botVal = JSON.stringify(picked);
             } else {
               botVal = 'bot';
             }
@@ -2247,9 +2259,12 @@ const Host = (() => {
       const lieIdx = stmts.findIndex(s=>!s.truth);
       const colors = ['#2de1fc','#ff3d8a','#ffd23f'];
       await FX.wipe();
-      scene(`<div class="eyebrow">${esc(target.name)} — ${LANG==='ar'?'أيها الكذبة؟':'which is the lie?'}</div><div class="quiz-grid" style="grid-template-columns:1fr">${stmts.map((st,j)=>`<div class="quiz-opt" id="stmt-${j}" style="--qc:${colors[j]};font-size:clamp(15px,2vw,18px)"><span class="q-letter display">${'ABC'[j]}</span> ${esc(st.text)}</div>`).join('')}</div>`);
+      // v104 — show the original question here as well. Voters were seeing
+      // three bare statements with no idea what question they answered.
+      scene(`<div class="eyebrow">${esc(target.name)} — ${LANG==='ar'?'أيها الكذبة؟':'which is the lie?'}</div>
+        <div class="tm-statement-card" style="margin-bottom:1vmin"><div class="tm-statement-text" style="font-size:clamp(15px,2.8vmin,22px)">${esc(QC.q)}</div></div><div class="quiz-grid" style="grid-template-columns:1fr">${stmts.map((st,j)=>`<div class="quiz-opt" id="stmt-${j}" style="--qc:${colors[j]};font-size:clamp(15px,2vw,18px)"><span class="q-letter display">${'ABC'[j]}</span> ${esc(st.text)}</div>`).join('')}</div>`);
       const others = players.filter(p=>p.pid!==target.pid).map(p=>p.pid);
-      const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'أيها الكذبة؟':'Which is the lie?', options:stmts.map((st,j)=>({id:j,label:`${'ABC'[j]} · ${st.text}`,color:colors[j]})), seconds:20 }, others, 20);
+      const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'أيها الكذبة؟':'Which is the lie?', context:QC.q, options:stmts.map((st,j)=>({id:j,label:`${'ABC'[j]} · ${st.text}`,color:colors[j]})), seconds:20 }, others, 20);
       Audio_.sfx.drum(); await sleep(900);
       document.getElementById('stmt-'+lieIdx)?.classList.add('q-correct');
       stmts.forEach((_,j)=>{if(j!==lieIdx)document.getElementById('stmt-'+j)?.classList.add('q-dim');});
