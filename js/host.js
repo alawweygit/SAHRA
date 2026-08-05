@@ -1959,7 +1959,44 @@ const Host = (() => {
       right.forEach(pid=>addScore(pid,CORRECT_PTS));
       Audio_.sfx.reveal();
       const resultLabel = Q.truth?(LANG==='ar'?'✅ حقيقة!':'✅ TRUE!'):(LANG==='ar'?'❌ خطأ!':'❌ FALSE!');
-      scene(`<div class="eyebrow">${esc(Q.s)}</div><div class="prompt-card display" style="color:${Q.truth?'var(--green)':'var(--pink)'}">${resultLabel}</div><div class="score-list">${pids.map((pid,idx)=>{const p=safeP(pid);if(!p)return '';const got=val(answers,pid)===correctId;return `<div class="score-row" style="animation-delay:${idx*.1}s"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="bar-track"><div class="bar-fill" style="width:${got?80:20}%;background:${got?'var(--green)':'rgba(255,255,255,.1)'}">${esc(p.name.length>12?p.name.slice(0,11)+"…":p.name)} ${got?'✓ +'+( CORRECT_PTS):'✗ 0'}</div></div></div>`;}).join('')}</div>`);
+      // v94 — rebuilt to match Time Machine's reveal layout (Ali's request).
+      // The old version crammed the name AND the result AND the points inside
+      // the colored bar, and varied that bar's width by correctness (80%/20%),
+      // so wrong answers got a short bar with squeezed, truncated text. Now
+      // every piece gets its own column, exactly like .tm-score-row. Scoring
+      // itself is deliberately UNCHANGED — flat CORRECT_PTS for right, 0 for
+      // wrong (Ali reviewed the alternatives and chose to keep it as-is).
+      const tlRows = pids.map(pid => {
+        const p = safeP(pid);
+        if (!p) return null;
+        const a = val(answers, pid);
+        return { p, got: a === correctId, answered: a === 'true' || a === 'false', said: a, order: answers[pid]?.order ?? Infinity };
+      }).filter(Boolean).sort((a, b) => (b.got - a.got) || (a.order - b.order));
+      const saidLabel = r => !r.answered
+        ? (LANG==='ar' ? 'ما جاوب' : 'No answer')
+        : (LANG==='ar'
+            ? (r.said==='true' ? 'قال حقيقة' : 'قال خطأ')
+            : (r.said==='true' ? 'Said TRUE' : 'Said FALSE'));
+      scene(`
+        <div class="tm-wrap">
+          <div class="tm-reveal-statement">${esc(Q.s)}</div>
+          <div class="tm-reveal-year-card">
+            <div class="tm-reveal-year-label">${LANG==='ar'?'الجواب':'The Answer'}</div>
+            <div class="tm-reveal-year" style="color:${Q.truth?'var(--green)':'var(--pink)'}">${resultLabel}</div>
+          </div>
+          <div class="tm-score-list">
+            ${tlRows.map((r, idx) => `
+              <div class="tm-score-row${r.got && idx===0 ? ' tm-rank-1' : ''}" style="animation-delay:${idx*.08}s">
+                <div class="tm-score-rank">${r.got ? '✅' : '❌'}</div>
+                <div class="tm-score-avatar" style="background:${r.p.color}">${r.p.emoji}</div>
+                <div class="tm-score-info">
+                  <div class="tm-score-name">${esc(r.p.name)}</div>
+                  <div class="tm-score-guess">${saidLabel(r)}</div>
+                </div>
+                <div class="tm-score-pts${r.got?'':' tm-zero'}">${r.got?'+'+CORRECT_PTS:'0'} ${LANG==='ar'?'نقطة':'pts'}</div>
+              </div>`).join('')}
+          </div>
+        </div>`);
       pushMirror({ headline: resultLabel });
       FX.burst(60);
       await say(right.length?`${right.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ')} ${t('got_it_right')}!`:(LANG==='ar'?'ولا واحد عرفها!':'Nobody got it!'));
