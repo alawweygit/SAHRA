@@ -2020,12 +2020,18 @@ const Host = (() => {
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
       scene(`<div class="eyebrow">🚩 ${LANG==='ar'?'عرّف العلم':'FLAG HUNT'}</div>
-        <div style="font-size:clamp(90px,16vw,150px);text-align:center;margin:2vmin 0;line-height:1">${Q.flag}</div>
+        <div class="flag-display">${Q.flag}</div>
         <div class="pick-sub">${LANG==='ar'?'اكتب اسم الدولة':'Type the country name'}</div>
         <div id="statusRow" class="status-row"></div>`);
       pushMirror({ headline: Q.flag });
       Audio_.sfx.sting();
-      const answers = await collectWithTimer({ type:'text', title:LANG==='ar'?'اسم الدولة؟':'Country name?', context:Q.flag, maxLen:40, seconds:15 }, pids, 15);
+      // v95 — no `context` here on purpose. The flag is already displayed
+      // large on the stage directly above (and mirrored to every phone in
+      // phones-only), so passing it as input context rendered it a SECOND
+      // time inside the input card. Same pattern ChatGPT used for Time
+      // Machine (07c7150): keep the copy on the stage, drop the one in the
+      // lower input panel.
+      const answers = await collectWithTimer({ type:'text', title:LANG==='ar'?'اسم الدولة؟':'Country name?', maxLen:40, seconds:15 }, pids, 15);
       const right = pids.filter(pid=>{
         const v=(val(answers,pid)||'').trim().toUpperCase();
         return v===ansUp||(ansUp.includes(v)&&v.length>2);
