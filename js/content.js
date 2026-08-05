@@ -836,8 +836,54 @@ PACKS.higherlow = {
   ],
 };
 
-/* ===== 2 TRUTHS 1 LIE ===== */
-PACKS['2t1l'] = { en: [], ar: [] };
+/* ===== 2 TRUTHS 1 LIE =====
+   Each entry is a CATEGORY (flavour/tone) plus ONE specific question that
+   all three of the player's statements must answer. One shared question is
+   deliberate: the whole game is comparing the three answers against each
+   other, which only works if they're on the same footing. Three unrelated
+   questions would leave nothing to compare. */
+PACKS['2t1l'] = {
+  en: [
+    { cat:'EMBARRASSING', emoji:'\uD83D\uDE33', q:"Name 3 embarrassing things that have happened to you in public." },
+    { cat:'TRAVEL', emoji:'\u2708\uFE0F', q:'Name 3 places you have travelled to.' },
+    { cat:'CHILDHOOD', emoji:'\uD83E\uDDF8', q:'Name 3 things you believed as a kid.' },
+    { cat:'SECRETS', emoji:'\uD83E\uDD2B', q:'Name 3 things nobody in this room knows about you.' },
+    { cat:'SKILLS', emoji:'\uD83D\uDCAA', q:'Name 3 things you are weirdly good at.' },
+    { cat:'FEARS', emoji:'\uD83D\uDE31', q:'Name 3 things that genuinely scare you.' },
+    { cat:'FOOD', emoji:'\uD83C\uDF54', q:'Name 3 foods you have eaten that most people have not.' },
+    { cat:'TROUBLE', emoji:'\uD83D\uDE08', q:'Name 3 times you got in trouble.' },
+    { cat:'SCHOOL DAYS', emoji:'\uD83C\uDF93', q:'Name 3 things you did at school or university.' },
+    { cat:'FIRSTS', emoji:'\u2B50', q:'Name 3 memorable firsts in your life.' },
+    { cat:'MONEY', emoji:'\uD83D\uDCB8', q:'Name 3 of the worst things you have spent money on.' },
+    { cat:'FAMILY', emoji:'\uD83D\uDC6A', q:'Name 3 things about your family most people would not guess.' },
+    { cat:'HABITS', emoji:'\uD83D\uDD7A', q:'Name 3 strange habits you have.' },
+    { cat:'CELEBRITY', emoji:'\uD83C\uDF1F', q:'Name 3 famous people you have met or almost met.' },
+    { cat:'SPORTS', emoji:'\u26BD', q:'Name 3 sports or games you have actually played.' },
+    { cat:'TECH', emoji:'\uD83D\uDCF1', q:'Name 3 things you have broken or lost.' },
+    { cat:'LATE NIGHT', emoji:'\uD83C\uDF19', q:'Name 3 things you have done after midnight.' },
+    { cat:'WORK', emoji:'\uD83D\uDCBC', q:'Name 3 jobs you have had or almost had.' },
+  ],
+  ar: [
+    { cat:'\u0645\u062D\u0631\u062C', emoji:'\uD83D\uDE33', q:'\u0627\u0630\u0643\u0631 \u0663 \u0645\u0648\u0627\u0642\u0641 \u0645\u062D\u0631\u062C\u0629 \u0635\u0627\u0631\u062A \u0644\u0643 \u0642\u062F\u0627\u0645 \u0627\u0644\u0646\u0627\u0633.' },
+    { cat:'\u0633\u0641\u0631', emoji:'\u2708\uFE0F', q:'\u0627\u0630\u0643\u0631 \u0663 \u0623\u0645\u0627\u0643\u0646 \u0633\u0627\u0641\u0631\u062A \u0644\u0647\u0627.' },
+    { cat:'\u0637\u0641\u0648\u0644\u0629', emoji:'\uD83E\uDDF8', q:'\u0627\u0630\u0643\u0631 \u0663 \u0623\u0634\u064A\u0627\u0621 \u0643\u0646\u062A \u062A\u0635\u062F\u0642\u0647\u0627 \u0648\u0627\u0646\u062A \u0635\u063A\u064A\u0631.' },
+    { cat:'\u0623\u0633\u0631\u0627\u0631', emoji:'\uD83E\uDD2B', q:'\u0627\u0630\u0643\u0631 \u0663 \u0623\u0634\u064A\u0627\u0621 \u0645\u0627 \u064A\u0639\u0631\u0641\u0647\u0627 \u0623\u062D\u062F \u0647\u0646\u0627 \u0639\u0646\u0643.' },
+    { cat:'\u0645\u0647\u0627\u0631\u0627\u062A', emoji:'\uD83D\uDCAA', q:'\u0627\u0630\u0643\u0631 \u0663 \u0623\u0634\u064A\u0627\u0621 \u0623\u0646\u062A \u0634\u0627\u0637\u0631 \u0641\u064A\u0647\u0627 \u0628\u0634\u0643\u0644 \u063A\u0631\u064A\u0628.' },
+    { cat:'\u0645\u062E\u0627\u0648\u0641', emoji:'\uD83D\uDE31', q:'\u0627\u0630\u0643\u0631 \u0663 \u0623\u0634\u064A\u0627\u0621 \u062A\u062E\u0648\u0641\u0643 \u0641\u0639\u0644\u0627\u064B.' },
+    { cat:'\u0623\u0643\u0644', emoji:'\uD83C\uDF54', q:'\u0627\u0630\u0643\u0631 \u0663 \u0623\u0643\u0644\u0627\u062A \u062C\u0631\u0628\u062A\u0647\u0627 \u0648\u0645\u0639\u0638\u0645 \u0627\u0644\u0646\u0627\u0633 \u0645\u0627 \u062C\u0631\u0628\u0648\u0647\u0627.' },
+    { cat:'\u0645\u0634\u0627\u0643\u0644', emoji:'\uD83D\uDE08', q:'\u0627\u0630\u0643\u0631 \u0663 \u0645\u0631\u0627\u062A \u0648\u0642\u0639\u062A \u0641\u064A\u0647\u0627 \u0641\u064A \u0645\u0634\u0643\u0644\u0629.' },
+    { cat:'\u0623\u064A\u0627\u0645 \u0627\u0644\u062F\u0631\u0627\u0633\u0629', emoji:'\uD83C\uDF93', q:'\u0627\u0630\u0643\u0631 \u0663 \u0623\u0634\u064A\u0627\u0621 \u0633\u0648\u064A\u062A\u0647\u0627 \u0641\u064A \u0627\u0644\u0645\u062F\u0631\u0633\u0629 \u0623\u0648 \u0627\u0644\u062C\u0627\u0645\u0639\u0629.' },
+    { cat:'\u0623\u0648\u0644 \u0645\u0631\u0629', emoji:'\u2B50', q:'\u0627\u0630\u0643\u0631 \u0663 \u0623\u0634\u064A\u0627\u0621 \u0633\u0648\u064A\u062A\u0647\u0627 \u0644\u0623\u0648\u0644 \u0645\u0631\u0629 \u0648\u062A\u0630\u0643\u0631\u0647\u0627.' },
+    { cat:'\u0641\u0644\u0648\u0633', emoji:'\uD83D\uDCB8', q:'\u0627\u0630\u0643\u0631 \u0663 \u0623\u0633\u0648\u0623 \u0623\u0634\u064A\u0627\u0621 \u0635\u0631\u0641\u062A \u0639\u0644\u064A\u0647\u0627 \u0641\u0644\u0648\u0633.' },
+    { cat:'\u0639\u0627\u0626\u0644\u0629', emoji:'\uD83D\uDC6A', q:'\u0627\u0630\u0643\u0631 \u0663 \u0623\u0634\u064A\u0627\u0621 \u0639\u0646 \u0639\u0627\u0626\u0644\u062A\u0643 \u0645\u0627 \u064A\u062A\u0648\u0642\u0639\u0647\u0627 \u0623\u062D\u062F.' },
+    { cat:'\u0639\u0627\u062F\u0627\u062A', emoji:'\uD83D\uDD7A', q:'\u0627\u0630\u0643\u0631 \u0663 \u0639\u0627\u062F\u0627\u062A \u063A\u0631\u064A\u0628\u0629 \u0639\u0646\u062F\u0643.' },
+    { cat:'\u0645\u0634\u0627\u0647\u064A\u0631', emoji:'\uD83C\uDF1F', q:'\u0627\u0630\u0643\u0631 \u0663 \u0645\u0634\u0627\u0647\u064A\u0631 \u0642\u0627\u0628\u0644\u062A\u0647\u0645 \u0623\u0648 \u0643\u062F\u062A \u062A\u0642\u0627\u0628\u0644\u0647\u0645.' },
+    { cat:'\u0631\u064A\u0627\u0636\u0629', emoji:'\u26BD', q:'\u0627\u0630\u0643\u0631 \u0663 \u0623\u0644\u0639\u0627\u0628 \u0623\u0648 \u0631\u064A\u0627\u0636\u0627\u062A \u0644\u0639\u0628\u062A\u0647\u0627 \u0641\u0639\u0644\u0627\u064B.' },
+    { cat:'\u0623\u063A\u0631\u0627\u0636', emoji:'\uD83D\uDCF1', q:'\u0627\u0630\u0643\u0631 \u0663 \u0623\u0634\u064A\u0627\u0621 \u0643\u0633\u0631\u062A\u0647\u0627 \u0623\u0648 \u0636\u064A\u0639\u062A\u0647\u0627.' },
+    { cat:'\u0628\u0639\u062F \u0645\u0646\u062A\u0635\u0641 \u0627\u0644\u0644\u064A\u0644', emoji:'\uD83C\uDF19', q:'\u0627\u0630\u0643\u0631 \u0663 \u0623\u0634\u064A\u0627\u0621 \u0633\u0648\u064A\u062A\u0647\u0627 \u0628\u0639\u062F \u0645\u0646\u062A\u0635\u0641 \u0627\u0644\u0644\u064A\u0644.' },
+    { cat:'\u0634\u063A\u0644', emoji:'\uD83D\uDCBC', q:'\u0627\u0630\u0643\u0631 \u0663 \u0648\u0638\u0627\u0626\u0641 \u0627\u0634\u062A\u063A\u0644\u062A \u0641\u064A\u0647\u0627 \u0623\u0648 \u0643\u062F\u062A \u062A\u0634\u062A\u063A\u0644.' },
+  ],
+};
 
 /* ===== EMOJI PHRASE ===== */
 PACKS.emojiphrase = {

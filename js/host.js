@@ -2175,16 +2175,52 @@ const Host = (() => {
     const count = window.HYPOX_STATE?.rounds||3;
     const allSeats = players.slice().sort(()=>Math.random()-.5);
     const seats = Array.from({length:count},(_,i)=>allSeats[i%allSeats.length]);
+    // v100 — the mode now uses a themed question bank (PACKS['2t1l']).
+    // Defensive: if the AI endpoint returns rows in an unexpected shape,
+    // drop anything without a .q so a bad payload can't break the round.
+    let qbank = [];
+    try { qbank = (await Content.get('2t1l', LANG, seats.length) || []).filter(x => x && typeof x.q === 'string' && x.q.trim()); }
+    catch (e) { console.error('[HYPOX] 2t1l content failed:', e.message); }
+    const DEFAULT_Q = LANG==='ar'
+      ? { cat:'عنك', emoji:'🤥', q:'اذكر ٣ أشياء عنك.' }
+      : { cat:'ABOUT YOU', emoji:'🤥', q:'Name 3 things about yourself.' };
     for (let r = 0; r < seats.length; r++) {
       const target = seats[r];
+      const QC = qbank[r % (qbank.length || 1)] || DEFAULT_Q;
       await FX.wipe();
       setPill(`${t('round')} ${r+1} ${t('of')} ${seats.length}`);
-      scene(`<div class="eyebrow">🤥 ${LANG==='ar'?'اثنين صح وكذبة':'2 TRUTHS 1 LIE'}</div><div class="hotseat">${avatarHTML(target)}<div class="pname">${esc(target.name)}</div></div><div class="pick-sub">${LANG==='ar'?`${target.name} يكتب الثلاث جمل على جواله`:`${target.name} — write your 3 statements on your phone`}</div><div id="statusRow" class="status-row"></div>`);
+      // v100 — proper hot-seat spotlight, matching Know Your Crew / Say It
+      // Anon / Most Likely To. Previously this mode just showed a small
+      // avatar and name, which made the call-up feel like nothing.
+      scene(`
+        <div style="text-align:center;padding:3vmin 2vmin;display:flex;flex-direction:column;align-items:center;gap:1.5vmin">
+          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(12px,2vmin,16px);color:var(--text2);letter-spacing:3px;text-transform:uppercase;animation:fadeSlideUp 0.4s both">🤥 ${LANG==='ar'?'اثنين صح وكذبة':'2 TRUTHS 1 LIE'}</div>
+          <div style="position:relative;margin:1vmin;animation:wyrTrophyPop 0.7s 0.2s both cubic-bezier(0.34,1.56,0.64,1)">
+            <div style="width:clamp(90px,14vmin,130px);height:clamp(90px,14vmin,130px);border-radius:50%;background:${target.color};box-shadow:0 0 40px ${target.color}88,0 0 80px ${target.color}44;display:flex;align-items:center;justify-content:center;font-size:clamp(46px,8vmin,72px)">${target.emoji||'😊'}</div>
+            <div style="position:absolute;inset:-4px;border-radius:50%;border:3px solid ${target.color};animation:wyrRingPulse 1.5s ease-in-out infinite"></div>
+          </div>
+          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(28px,5.6vmin,56px);color:var(--text);animation:fadeSlideUp 0.5s 0.6s both;line-height:1.15">${esc(target.name)}</div>
+          <div style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#facc1533,#facc1511);border:1.5px solid #facc1566;border-radius:30px;padding:6px 20px;animation:fadeSlideUp 0.5s 0.8s both">
+            <span style="font-family:'Fredoka One',sans-serif;font-size:clamp(13px,2vmin,17px);color:#facc15">${QC.emoji||'🤥'} ${esc(QC.cat||'')}</span>
+          </div>
+          <div class="tm-statement-card" style="margin-top:1vmin;animation:fadeSlideUp 0.5s 1s both">
+            <div class="tm-statement-text">${esc(QC.q)}</div>
+          </div>
+          <div class="pick-sub">${LANG==='ar'?`${target.name} يكتب ٣ إجابات — وحدة منها كذبة`:`${target.name} — write 3 answers on your phone. One must be a LIE.`}</div>
+          <div id="statusRow" class="status-row"></div>
+        </div>`);
       pushMirror({ headline: LANG==='ar'?`دور ${target.name}!`:`${target.name}'s turn!` });
       Audio_.sfx.sting();
-      const i1 = await collectWithTimer({ type:'text', title:LANG==='ar'?'حقيقة أولى':'Truth #1', context:LANG==='ar'?'اكتب حقيقة عنك':'Write a truth about yourself', maxLen:80, seconds:60 }, [target.pid], 60);
-      const i2 = await collectWithTimer({ type:'text', title:LANG==='ar'?'حقيقة ثانية':'Truth #2', context:LANG==='ar'?'حقيقة ثانية':'Another truth', maxLen:80, seconds:60 }, [target.pid], 60);
-      const i3 = await collectWithTimer({ type:'text', title:LANG==='ar'?'الكذبة':'The Lie', context:LANG==='ar'?'اكتب كذبة مقنعة':'Write a convincing lie', maxLen:80, seconds:60 }, [target.pid], 60);
+      // v100 — the old labels ("Truth #1" / "The Lie") were small titles and
+      // easy to misread; a player mixing up which box is the lie ruins the
+      // whole round, so make it loud: explicit TRUTH/LIE wording, the
+      // question repeated as context, and 'x of 3' progress.
+      const truthCtx = n => LANG==='ar'
+        ? `✅ اكتب إجابة صحيحة — ${QC.q} (${n} من ٣)`
+        : `✅ TRUE answer — ${QC.q} (${n} of 3)`;
+      const i1 = await collectWithTimer({ type:'text', title:LANG==='ar'?'✅ حقيقة ١ من ٣':'✅ TRUTH — 1 of 3', context:truthCtx(1), maxLen:80, seconds:60 }, [target.pid], 60);
+      const i2 = await collectWithTimer({ type:'text', title:LANG==='ar'?'✅ حقيقة ٢ من ٣':'✅ TRUTH — 2 of 3', context:truthCtx(2), maxLen:80, seconds:60 }, [target.pid], 60);
+      const i3 = await collectWithTimer({ type:'text', title:LANG==='ar'?'❌ الكذبة ٣ من ٣':'❌ THE LIE — 3 of 3', context:LANG==='ar'?`❌ الحين اكتب كذبة مقنعة — ${QC.q} (٣ من ٣)`:`❌ Now write a convincing LIE — ${QC.q} (3 of 3)`, maxLen:80, seconds:60 }, [target.pid], 60);
       const s1=val(i1,target.pid)||'...', s2=val(i2,target.pid)||'...', s3=val(i3,target.pid)||'...';
       const stmts = shuffle([{text:s1,truth:true},{text:s2,truth:true},{text:s3,truth:false}]);
       const lieIdx = stmts.findIndex(s=>!s.truth);
@@ -2198,10 +2234,63 @@ const Host = (() => {
       stmts.forEach((_,j)=>{if(j!==lieIdx)document.getElementById('stmt-'+j)?.classList.add('q-dim');});
       Audio_.sfx.correct(); FX.burst(80);
       const finders = others.filter(pid=>val(votes,pid)===lieIdx);
-      finders.forEach(pid=>addScore(pid,1000));
-      if(finders.length===0) addScore(target.pid,1000);
+      // v100 — scoring reworked. Finders still get a flat 1000 (consistent
+      // with True or Lie / Higher or Lower, deliberately kept flat). The
+      // target used to get 1000 ONLY if literally nobody found the lie —
+      // a cliff edge where fooling 5 of 6 players scored exactly the same
+      // as fooling nobody: zero. Now they earn per person fooled, so a
+      // nearly-perfect lie beats a bad one. Unlike Most Likely To (where
+      // the voted person did nothing), the target here actively WROTE the
+      // lie, so rewarding them is earned rather than luck.
+      const FIND_PTS = 1000, FOOL_PTS = 300;
+      finders.forEach(pid=>addScore(pid,FIND_PTS));
+      const fooled = others.filter(pid=>!finders.includes(pid));
+      const targetPts = fooled.length * FOOL_PTS;
+      if (targetPts > 0) addScore(target.pid, targetPts);
       const fNames = finders.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ');
       pushMirror({ headline: LANG==='ar'?`الكذبة: ${stmts[lieIdx].text}`:`The lie: ${stmts[lieIdx].text}` });
+      // v100 — row-by-row breakdown, matching True or Lie (v94), Higher or
+      // Lower (v97) and Flag Hunt (v99). This mode previously showed no
+      // per-player result at all — just a highlighted statement and a
+      // spoken line — so nobody could see who voted what or who scored.
+      await waitNext(8, LANG==='ar' ? 'التالي' : 'Next');
+      await FX.wipe();
+      const t2Rows = others.map(pid => {
+        const p = safeP(pid);
+        if (!p) return null;
+        const v = val(votes, pid);
+        const picked = (typeof v === 'number' && stmts[v]) ? stmts[v].text : null;
+        return { p, got: finders.includes(pid), picked, order: votes[pid]?.order ?? Infinity };
+      }).filter(Boolean).sort((a, b) => (b.got - a.got) || (a.order - b.order));
+      scene(`
+        <div class="tm-wrap">
+          <div class="tm-reveal-statement">${esc(target.name)} — ${LANG==='ar'?'الكذبة كانت':'the lie was'}</div>
+          <div class="tm-reveal-year-card">
+            <div class="tm-reveal-year-label">${LANG==='ar'?'❌ الكذبة':'❌ The Lie'}</div>
+            <div class="tm-reveal-year" style="font-size:clamp(18px,3.4vmin,28px)">${esc(stmts[lieIdx].text)}</div>
+          </div>
+          <div class="tm-score-list">
+            ${t2Rows.map((r, idx) => `
+              <div class="tm-score-row${r.got && idx===0 ? ' tm-rank-1' : ''}" style="animation-delay:${idx*.08}s">
+                <div class="tm-score-rank">${r.got ? '✅' : '❌'}</div>
+                <div class="tm-score-avatar" style="background:${r.p.color}">${r.p.emoji}</div>
+                <div class="tm-score-info">
+                  <div class="tm-score-name">${esc(r.p.name)}</div>
+                  <div class="tm-score-guess">${r.picked ? (LANG==='ar'?`اختار: ${esc(r.picked)}`:`Picked: ${esc(r.picked)}`) : (LANG==='ar'?'ما صوّت':'No vote')}</div>
+                </div>
+                <div class="tm-score-pts${r.got?'':' tm-zero'}">${r.got?'+'+FIND_PTS:'0'} ${LANG==='ar'?'نقطة':'pts'}</div>
+              </div>`).join('')}
+            <div class="tm-score-row" style="animation-delay:${t2Rows.length*.08}s;border:1.5px solid #facc1566">
+              <div class="tm-score-rank">🤥</div>
+              <div class="tm-score-avatar" style="background:${target.color}">${target.emoji}</div>
+              <div class="tm-score-info">
+                <div class="tm-score-name">${esc(target.name)}</div>
+                <div class="tm-score-guess">${fooled.length ? (LANG==='ar'?`ضحك على ${fooled.length}`:`Fooled ${fooled.length}`) : (LANG==='ar'?'ما ضحك على أحد':'Fooled nobody')}</div>
+              </div>
+              <div class="tm-score-pts${targetPts?'':' tm-zero'}">${targetPts?'+'+targetPts:'0'} ${LANG==='ar'?'نقطة':'pts'}</div>
+            </div>
+          </div>
+        </div>`);
       await say(finders.length===0?(LANG==='ar'?`ولا واحد اكتشف! ${target.name} فاز!`:`Nobody caught ${target.name}! They win!`):(LANG==='ar'?`${fNames} اكتشفوا الكذبة!`:`${fNames} found the lie!`));
       hideHost(); await waitNext();
       if (r < seats.length - 1) await showScores();
