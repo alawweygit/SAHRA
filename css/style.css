@@ -111,7 +111,7 @@ body.theme-light .deco-blob{opacity:0.14;}
    EVERY mode's question card (all direct children of #hostStage) is
    protected in one place instead of needing a per-mode patch. */
 #hostStage{display:grid;grid-auto-rows:max-content;justify-items:center;align-content:start;row-gap:2.4vmin;width:100%;min-height:100%;padding-bottom:40px;padding-top:max(80px,8vmin);overflow-x:hidden;-webkit-transform:translateZ(0);transform:translateZ(0);}
-#hostStage:has(.ans-reveal-list){overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;justify-content:flex-start!important;padding-top:max(80px,8vmin)!important;padding-bottom:100px!important;overscroll-behavior-y:contain;will-change:scroll-position;}
+#hostStage:has(.ans-reveal-list){overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;align-content:start!important;padding-top:max(80px,8vmin)!important;padding-bottom:100px!important;overscroll-behavior-y:contain;will-change:scroll-position;} /* v98: was justify-content:flex-start — on a grid that pushes rows LEFT, not up; align-content is the vertical axis */
 #scr-game:has(.host-input-dock:has(#host.show)) #hostStage,
 #scr-game:has(.host-input-dock:has(#hostDockAction:not(:empty))) #hostStage{padding-bottom:200px;} /* make room for fixed dock */
 #hostStage.has-next-btn{padding-bottom:max(60px,10vmin)!important;}
@@ -2163,8 +2163,14 @@ body.phones-host-answering #scr-game.active:not(.pack-picker-active):not(.rebus-
    this state so it clears the capped dock with room to spare. */
 body.phones-host-answering #scr-game.active:not(.pack-picker-active):not(.rebus-input-active) #hostStage,
 body.phones-host-docked #scr-game.active:not(.pack-picker-active):not(.rebus-input-active) #hostStage{
-  padding-top:max(20px,2.4vmin)!important;
-  justify-content:flex-start!important;
+  /* v98 — was padding-top:max(20px,2.4vmin) + justify-content:flex-start.
+     Two problems with that: (a) #hostStage is a GRID, where
+     justify-content controls the HORIZONTAL axis, so 'flex-start' shoved
+     every row to the left and produced the off-centre look — vertical
+     stacking is already handled by align-content:start in the base rule,
+     so the declaration was never needed; (b) 20px was tight enough to jam
+     content against the top bar. */
+  padding-top:max(44px,5vmin)!important;
 }
 body.phones-host-answering .host-input-dock,
 body.phones-host-docked .host-input-dock{
