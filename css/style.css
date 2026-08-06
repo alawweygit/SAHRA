@@ -572,6 +572,39 @@ body.phones-player-answering #phoneSharedStage{display:none!important;}
    answering, but hide just the submission tracker until this player
    has submitted — see phones-hide-tracker toggle in main.js. */
 body.phones-hide-tracker #statusRow{display:none!important;}
+
+/* Two Truths One Lie: waiting players see a concise status and the prompt.
+   The active writer gets the dedicated full-screen form below instead. */
+.t2l-wait-stage{width:min(94vw,720px);margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:clamp(10px,2vmin,18px);padding:max(44px,5vmin) 0 18px;text-align:center;}
+.t2l-mode-label{font-family:'Fredoka One',sans-serif;font-size:clamp(14px,2.4vmin,20px);color:var(--text2);letter-spacing:3px;text-transform:uppercase;}
+.t2l-answering{display:flex;align-items:center;justify-content:center;gap:10px;font-family:'Fredoka One',sans-serif;font-size:clamp(20px,4vmin,34px);color:var(--yellow);}
+.t2l-answering-avatar{width:clamp(38px,6vmin,54px);height:clamp(38px,6vmin,54px);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(22px,4vmin,34px);box-shadow:0 0 20px rgba(255,255,255,.12);}
+.t2l-question-card{margin:0!important;}
+
+/* Dedicated one-screen writer form. Its dimensions are viewport-based so
+   title + prompt + all three fields + submit remain visible without scroll
+   on desktop and phone. */
+.ctrl-wrap.ctrl-multitext{height:100%;max-height:100%;min-height:0;justify-content:flex-start;gap:clamp(5px,1vh,9px);padding:clamp(10px,1.6vh,16px)!important;overflow:hidden;}
+.ctrl-multitext .ctrl-title{font-size:clamp(19px,3vh,28px)!important;line-height:1.1;}
+.ctrl-multitext .ctrl-context{width:100%;font-size:clamp(13px,2vh,18px);padding:clamp(7px,1.2vh,10px) 12px;line-height:1.3;}
+.ctrl-multitext .ctrl-sub{font-size:clamp(12px,1.8vh,16px)!important;line-height:1.2;}
+.ctrl-multitext-row{width:100%;margin:0;min-height:0;}
+.ctrl-multitext-label{display:flex;align-items:center;gap:6px;font-family:'Fredoka One',sans-serif;font-size:clamp(12px,1.8vh,15px);letter-spacing:1px;margin-bottom:4px;line-height:1.1;}
+.ctrl-multitext-row.is-truth .ctrl-multitext-label{color:var(--green);}
+.ctrl-multitext-row.is-lie .ctrl-multitext-label{color:var(--pink);}
+.ctrl-multitext-input{height:clamp(46px,8vh,70px)!important;min-height:0!important;padding:9px 11px!important;border-radius:14px!important;line-height:1.25;}
+.ctrl-multitext .ctrl-count{line-height:1;margin:0;}
+.ctrl-multitext .ctrl-submit{min-height:44px!important;padding:9px 12px!important;margin:0;}
+.ctrl-multitext>button:not(.ctrl-submit){margin:0!important;padding:4px 12px!important;font-size:12px!important;}
+.phones-host-fullscreen-input-panel{display:flex;align-items:stretch;justify-content:center;}
+.phones-host-fullscreen-input-panel>.ctrl-multitext{width:min(94vw,780px)!important;}
+
+@media(max-width:600px){
+  .t2l-wait-stage{padding-top:24px;gap:10px;}
+  .t2l-wait-stage .tm-statement-text{font-size:clamp(18px,5.5vw,27px);}
+  .ctrl-wrap.ctrl-multitext{border-radius:18px!important;}
+  .ctrl-multitext-input{font-size:16px!important;}
+}
 .phone-shared-host{width:min(94vw,720px);display:flex;align-items:flex-end;justify-content:center;gap:8px;margin:2px auto max(8px,env(safe-area-inset-bottom));}
 .phone-shared-host.hidden{display:none!important;}
 .psh-face{position:relative;width:76px;height:72px;flex:0 0 76px;border-radius:46% 46% 42% 42%;background:linear-gradient(160deg,#a855f7,#6d28d9);box-shadow:0 10px 28px rgba(0,0,0,.3);display:flex;justify-content:center;gap:17px;padding-top:20px;font-size:18px;color:#111;}
@@ -2268,6 +2301,15 @@ body.phones-host-docked .hl-hint{
   max-height:none!important;
   overflow:visible!important;
 }
+
+/* Multitext is the deliberate exception to the generic input-phase scroll
+   model above. The writer must see the prompt, all three answers and Send
+   together, so this selector includes #playerDock to outrank that model. */
+#scr-controller.active:has(#playerDock .ctrl-multitext){display:flex!important;flex-direction:column!important;overflow:hidden!important;}
+#scr-controller.active:has(#playerDock .ctrl-multitext) #phoneSharedStage{display:none!important;}
+#scr-controller.active:has(#playerDock .ctrl-multitext) #playerDock{display:flex!important;flex:1 1 auto!important;min-height:0!important;max-height:none!important;overflow:hidden!important;width:100%;}
+#scr-controller.active:has(#playerDock .ctrl-multitext) #ctrlArea{top:0!important;display:flex;height:100%;min-height:0;width:100%;padding:8px 12px max(10px,env(safe-area-inset-bottom));}
+#scr-controller.active:has(#playerDock .ctrl-multitext) #ctrlArea>.ctrl-multitext{width:min(94vw,780px)!important;}
 
 /* ---------------------------------------------------------------------
    Tracker hiding: also target the CLASS, not just the id. The shared-screen

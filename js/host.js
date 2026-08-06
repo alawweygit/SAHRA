@@ -2201,24 +2201,18 @@ const Host = (() => {
       const QC = qbank[r % (qbank.length || 1)] || DEFAULT_Q;
       await FX.wipe();
       setPill(`${t('round')} ${r+1} ${t('of')} ${seats.length}`);
-      // v100 — proper hot-seat spotlight, matching Know Your Crew / Say It
-      // Anon / Most Likely To. Previously this mode just showed a small
-      // avatar and name, which made the call-up feel like nothing.
+      // The shared screen is for everyone who is WAITING. The active writer
+      // gets a dedicated full-screen input card (below), so showing the same
+      // oversized avatar/name/category here only duplicated content and
+      // pushed their actual fields below the fold.
       scene(`
-        <div style="text-align:center;padding:3vmin 2vmin;display:flex;flex-direction:column;align-items:center;gap:1.5vmin">
-          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(12px,2vmin,16px);color:var(--text2);letter-spacing:3px;text-transform:uppercase;animation:fadeSlideUp 0.4s both">🤥 ${LANG==='ar'?'اثنين صح وكذبة':'2 TRUTHS 1 LIE'}</div>
-          <div style="position:relative;margin:1vmin;animation:wyrTrophyPop 0.7s 0.2s both cubic-bezier(0.34,1.56,0.64,1)">
-            <div style="width:clamp(90px,14vmin,130px);height:clamp(90px,14vmin,130px);border-radius:50%;background:${target.color};box-shadow:0 0 40px ${target.color}88,0 0 80px ${target.color}44;display:flex;align-items:center;justify-content:center;font-size:clamp(46px,8vmin,72px)">${target.emoji||'😊'}</div>
-            <div style="position:absolute;inset:-4px;border-radius:50%;border:3px solid ${target.color};animation:wyrRingPulse 1.5s ease-in-out infinite"></div>
-          </div>
-          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(28px,5.6vmin,56px);color:var(--text);animation:fadeSlideUp 0.5s 0.6s both;line-height:1.15">${esc(target.name)}</div>
-          <div style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#facc1533,#facc1511);border:1.5px solid #facc1566;border-radius:30px;padding:6px 20px;animation:fadeSlideUp 0.5s 0.8s both">
-            <span style="font-family:'Fredoka One',sans-serif;font-size:clamp(13px,2vmin,17px);color:#facc15">${QC.emoji||'🤥'} ${esc(QC.cat||'')}</span>
-          </div>
-          <div class="tm-statement-card" style="margin-top:1vmin;animation:fadeSlideUp 0.5s 1s both">
+        <div class="t2l-wait-stage">
+          <div class="t2l-mode-label">🤥 ${LANG==='ar'?'اثنين صح وكذبة':'2 TRUTHS 1 LIE'}</div>
+          <div class="t2l-answering"><span class="t2l-answering-avatar" style="background:${target.color}">${target.emoji||'😊'}</span><span>${LANG==='ar'?`${target.name} يكتب إجاباته الآن…`:`${target.name} is answering…`}</span></div>
+          <div class="tm-statement-card t2l-question-card">
             <div class="tm-statement-text">${esc(QC.q)}</div>
           </div>
-          <div class="pick-sub">${LANG==='ar'?`${target.name} يكتب ٣ إجابات — وحدة منها كذبة`:`${target.name} — write 3 answers on your phone. One must be a LIE.`}</div>
+          <div class="pick-sub">${LANG==='ar'?'إجابتان صحيحتان وإجابة واحدة كذبة':`Two truths and one lie — can ${target.name} fool you?`}</div>
           <div id="statusRow" class="status-row"></div>
         </div>`);
       pushMirror({ headline: LANG==='ar'?`دور ${target.name}!`:`${target.name}'s turn!` });
@@ -2234,14 +2228,10 @@ const Host = (() => {
       // hiccup in the phase hand-off stranded them after answer one.
       const mtSpec = {
         type: 'multitext',
-        title: LANG==='ar' ? '✍️ اكتب ٣ إجابات' : '✍️ Write your 3 answers',
-        // v103 — the question goes IN the card. v101 removed it to avoid
-        // duplication, but with the 3-field card taking ~half the screen the
-        // stage above is squeezed to just the avatar and name, so the
-        // question was invisible exactly when the player needs it. Being
-        // able to read the question beats not repeating it.
+        title: LANG==='ar' ? '✍️ دورك' : '✍️ Your turn',
         context: QC.q,
-        sub: LANG==='ar' ? 'وحدة منها لازم تكون كذبة' : 'One of them must be a LIE',
+        sub: LANG==='ar' ? 'اكتب حقيقتين وكذبة مقنعة' : 'Write two truths and one convincing lie',
+        fullscreenInput: true,
         maxLen: 80,
         seconds: 90,
         fields: [
