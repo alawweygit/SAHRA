@@ -2592,7 +2592,136 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     await showScores();
   }
 
-  const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz, pinpoint: playPinpoint, emoji: playEmoji, year: playYear, mostlikely: playMostlikely, trueorlie: playTrueorlie, flaghunt: playFlaghunt, higherlow: playHigherlow, '2t1l': play2t1l, emojiplace: playEmojiplace, spy: playSpy };
+  /* ===== BLEND IN =====
+     Everyone answers the SAME question except one player (the spy), who gets
+     a different but closely-related question. Crucially the spy is NOT told —
+     they answer honestly and look odd without knowing why. At the reveal the
+     AGENTS' question is shown (never the spy's), so the spy works out what
+     happened at the same moment as everyone else, and can defend themselves
+     during the discussion. No scoring by design: the payoff is the discussion
+     and the reveal, not points. */
+  async function playBlendIn() {
+    await modeTitleCard('blendin');
+    const pids = players.map(p => p.pid);
+    const spy = players[Math.floor(Math.random() * players.length)];
+    const QN = 3;
+    let pairs = [];
+    try { pairs = (await Content.get('blendin', LANG, QN) || []).filter(x => x && x.a && x.b); }
+    catch (e) { console.error('[HYPOX] blendin content failed:', e.message); }
+    if (!pairs.length) pairs = [{ a: LANG==='ar'?'اذكر شي تاخذه لجزيرة مهجورة.':'Name something you would take to a desert island.', b: LANG==='ar'?'اذكر شي تاخذه في رحلة بالسيارة.':'Name something you would take on a road trip.' }];
+
+    const rounds = [];
+    for (let q = 0; q < QN; q++) {
+      const pair = pairs[q % pairs.length];
+      await FX.wipe();
+      setPill(`${LANG==='ar'?'سؤال':'Question'} ${q+1} ${t('of')} ${QN}`);
+      // The stage must NOT show either question — it is visible to everyone,
+      // and showing the agents' question would instantly expose the spy.
+      scene(`<div class="eyebrow">🎭 ${LANG==='ar'?'اندمج':'BLEND IN'}</div>
+        <div class="prompt-card display">${LANG==='ar'?`سؤال ${q+1} من ${QN}`:`Question ${q+1} of ${QN}`}</div>
+        <div class="pick-sub">${LANG==='ar'?'جاوبوا على جوالاتكم':'Answer on your phones'}</div>
+        <div id="statusRow" class="status-row"></div>`);
+      pushMirror({ headline: LANG==='ar'?`سؤال ${q+1}`:`Question ${q+1}` });
+      Audio_.sfx.sting();
+
+      const mkSpec = txt => ({ type:'text', title: LANG==='ar'?'جوابك':'Your answer', context: txt, maxLen:40, seconds:30 });
+      const specs = {};
+      pids.forEach(pid => { specs[pid] = mkSpec(pid === spy.pid ? pair.b : pair.a); });
+      const phaseId = 'bi' + Date.now() + '_' + q;
+      const deadline = Date.now() + inputTimeout(30) * 1000;
+      net.setState({ phase:'input-split', phaseId, deadline, specs });
+
+      const botPids = net.getBotPids ? net.getBotPids() : [];
+      botPids.forEach(bp => {
+        if (!pids.includes(bp)) return;
+        setTimeout(async () => {
+          try {
+            const fakes = LANG==='ar' ? ['ماء','أكل','جوال','كتاب','بطانية','نظارة'] : ['water','snacks','my phone','a book','a blanket','sunglasses'];
+            await net.room(`inputs/${phaseId}/${bp}`).set({ v: fakes[Math.floor(Math.random()*fakes.length)], t: Date.now() });
+          } catch(e) {}
+        }, 1200 + Math.random()*2500);
+      });
+
+      const ans = await net.collect(phaseId, specs[net.hostSelfPid] || mkSpec(pair.a), pids, inputTimeout(30));
+      rounds.push({ pair, ans });
+    }
+
+    // ---- Reveal: grouped BY QUESTION, always showing the agents' version ----
+    for (let q = 0; q < rounds.length; q++) {
+      const { pair, ans } = rounds[q];
+      await FX.wipe();
+      scene(`
+        <div class="tm-wrap">
+          <div class="tm-reveal-statement">${LANG==='ar'?`سؤال ${q+1} من ${QN}`:`Question ${q+1} of ${QN}`}</div>
+          <div class="tm-reveal-year-card">
+            <div class="tm-reveal-year-label">${LANG==='ar'?'السؤال':'The Question'}</div>
+            <div class="tm-reveal-year" style="font-size:clamp(16px,3vmin,26px)">${esc(pair.a)}</div>
+          </div>
+          <div class="tm-score-list">
+            ${players.map((p, i) => `
+              <div class="tm-score-row" style="animation-delay:${i*.08}s">
+                <div class="tm-score-avatar" style="background:${p.color}">${p.emoji}</div>
+                <div class="tm-score-info">
+                  <div class="tm-score-name">${esc(p.name)}</div>
+                  <div class="tm-score-guess">${esc((val(ans, p.pid)||'').trim() || (LANG==='ar'?'ما جاوب':'No answer'))}</div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>`);
+      Audio_.sfx.reveal();
+      await waitNext(12, LANG==='ar' ? 'التالي' : 'Next');
+    }
+
+    // ---- Discussion ----
+    const DISC = 90;
+    await FX.wipe();
+    scene(`<div class="eyebrow">🎭 ${LANG==='ar'?'وقت النقاش':'DISCUSSION TIME'}</div>
+      <div class="prompt-card display">${LANG==='ar'?'مين جاوب على سؤال ثاني؟':'Who was answering a different question?'}</div>
+      <div class="year-reveal" id="biT">${DISC}</div>
+      <div class="pick-sub" style="opacity:.7">${LANG==='ar'?'ناقشوا الإجابات — وحد منكم ما شاف نفس السؤال':'Talk it through — one of you never saw that question'}</div>`);
+    pushMirror({ headline: LANG==='ar'?'ناقشوا!':'Discuss!' });
+    let d = DISC;
+    const dI = setInterval(() => { d--; const el = document.getElementById('biT'); if (el) el.textContent = d; if (d <= 0) clearInterval(dI); }, 1000);
+    await Promise.race([sleep(DISC*1000), waitNext(DISC, LANG==='ar'?'صوّتوا الحين':'Vote now')]);
+    clearInterval(dI);
+
+    // ---- Vote (no points — the vote is the climax, not a scoring event) ----
+    await FX.wipe();
+    scene(`<div class="eyebrow">🗳️ ${LANG==='ar'?'صوّتوا':'VOTE'}</div>
+      <div class="prompt-card display">${LANG==='ar'?'مين الدخيل؟':'Who was the odd one out?'}</div>
+      <div id="statusRow" class="status-row"></div>`);
+    const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'مين الدخيل؟':'Who was the odd one out?', options:players.map(p=>({id:p.pid,label:`${p.emoji} ${p.name}`,color:p.color})), seconds:30 }, pids, 30);
+    const tally = {};
+    pids.forEach(pid => { const v = val(votes, pid); if (v && v !== pid) tally[v] = (tally[v]||0)+1; });
+    const maxV = Math.max(0, ...Object.values(tally));
+    const accused = Object.entries(tally).filter(([,c]) => c === maxV).map(([pid]) => pid);
+    const caught = accused.includes(spy.pid);
+
+    await FX.wipe();
+    Audio_.sfx.reveal(); FX.burst(120);
+    scene(`
+      <div style="text-align:center;padding:3vmin 2vmin;display:flex;flex-direction:column;align-items:center;gap:1.5vmin">
+        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(12px,2vmin,16px);color:var(--text2);letter-spacing:3px;text-transform:uppercase">${caught ? (LANG==='ar'?'انكشف!':'CAUGHT!') : (LANG==='ar'?'نجا!':'GOT AWAY!')}</div>
+        <div style="position:relative;margin:1vmin;animation:wyrTrophyPop 0.7s 0.2s both cubic-bezier(0.34,1.56,0.64,1)">
+          <div style="width:clamp(90px,14vmin,130px);height:clamp(90px,14vmin,130px);border-radius:50%;background:${spy.color};box-shadow:0 0 40px ${spy.color}88;display:flex;align-items:center;justify-content:center;font-size:clamp(46px,8vmin,72px)">${spy.emoji||'😊'}</div>
+          <div style="position:absolute;inset:-4px;border-radius:50%;border:3px solid ${spy.color};animation:wyrRingPulse 1.5s ease-in-out infinite"></div>
+        </div>
+        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(28px,5.6vmin,56px);color:var(--text);line-height:1.15">${esc(spy.name)}</div>
+        <div class="pick-sub">${LANG==='ar'?'كان يجاوب على سؤال ثاني':'was answering a different question'}</div>
+        <div class="tm-score-list" style="margin-top:1.5vmin">
+          ${rounds.map((r,i) => `
+            <div class="tm-score-row" style="animation-delay:${i*.1}s">
+              <div class="tm-score-info">
+                <div class="tm-score-name" style="color:var(--green);font-size:clamp(12px,1.8vmin,15px)">${esc(r.pair.a)}</div>
+                <div class="tm-score-guess" style="color:var(--pink)">${LANG==='ar'?'الدخيل شاف: ':'They saw: '}${esc(r.pair.b)}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`);
+    await waitNext(15, LANG==='ar'?'خلصنا':'Done');
+  }
+
+  const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz, pinpoint: playPinpoint, emoji: playEmoji, year: playYear, mostlikely: playMostlikely, trueorlie: playTrueorlie, flaghunt: playFlaghunt, higherlow: playHigherlow, '2t1l': play2t1l, emojiplace: playEmojiplace, spy: playSpy, blendin: playBlendIn };
 
   async function run(netInstance, playerList, mode) {
     net = netInstance;

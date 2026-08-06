@@ -133,6 +133,7 @@ const I18N = {
       emojiword: 'EMOJI WORD',
       emojiplace: 'EMOJI PLACE',
       spy: 'SPY GAME',
+      blendin: 'BLEND IN',
     },
     mode_taglines: {
       bluff: 'Spot the lie. Fool your friends.',
@@ -153,6 +154,7 @@ const I18N = {
       emojiword: 'What word do the emojis spell?',
       emojiplace: 'Type the place the emojis show.',
       spy: 'One spy. One secret word. Find them.',
+      blendin: 'One of you answered a different question.',
     },
     mode_rules: {
       bluff: 'A weird fact appears with a blank. Everyone writes a fake answer to fill it. Then vote for what you think is real. Fool them: +1000. Find the truth: +1000.',
@@ -353,6 +355,7 @@ const I18N = {
       emojiword: 'فك الكلمة',
       emojiplace: 'وين المكان؟',
       spy: 'لعبة الجاسوس',
+      blendin: 'اندمج',
     },
     mode_taglines: {
       bluff: 'اكتشف الكذبة. اخدع ربعك.',

@@ -836,6 +836,52 @@ PACKS.higherlow = {
   ],
 };
 
+/* ===== BLEND IN =====
+   Each entry is a PAIR of questions. Everyone gets `a` (the agents'
+   question); the spy gets `b`. Pairs are hand-tuned, not AI-generated: the
+   whole game lives or dies on this calibration. Too similar and the spy is
+   invisible and the round is a dud; too different and they're exposed on
+   answer one. The target is a pair where MOST answers overlap plausibly but
+   the honest edge cases give the spy away — e.g. desert island vs road trip
+   both yield "water" and "snacks", but only one plausibly yields "pillow".
+   Keep that property when adding new pairs. */
+PACKS.blendin = {
+  en: [
+    { a:'Name something you would take to a desert island.', b:'Name something you would take on a road trip.' },
+    { a:'Name something you would find in a hospital.', b:'Name something you would find in a school.' },
+    { a:'Name something you do before going to sleep.', b:'Name something you do as soon as you wake up.' },
+    { a:'Name something you would take to the beach.', b:'Name something you would take to the gym.' },
+    { a:'Name something people do at a wedding.', b:'Name something people do at a birthday party.' },
+    { a:'Name something you would find in a kitchen.', b:'Name something you would find in a restaurant.' },
+    { a:'Name something you pack for a long flight.', b:'Name something you pack for a camping trip.' },
+    { a:'Name something you would buy at a pharmacy.', b:'Name something you would buy at a supermarket.' },
+    { a:'Name something you do when you are bored.', b:'Name something you do when you cannot sleep.' },
+    { a:'Name something you would find in an office.', b:'Name something you would find in a library.' },
+    { a:'Name something you would take to a picnic.', b:'Name something you would take to a football match.' },
+    { a:'Name something people complain about at work.', b:'Name something people complain about at university.' },
+    { a:'Name something you would find in a hotel room.', b:'Name something you would find in a bedroom.' },
+    { a:'Name something you do on a rainy day.', b:'Name something you do on a day off.' },
+    { a:'Name something you would see at an airport.', b:'Name something you would see at a train station.' },
+  ],
+  ar: [
+    { a:'اذكر شي تاخذه معك لجزيرة مهجورة.', b:'اذكر شي تاخذه معك في رحلة بالسيارة.' },
+    { a:'اذكر شي تلقاه في المستشفى.', b:'اذكر شي تلقاه في المدرسة.' },
+    { a:'اذكر شي تسويه قبل ما تنام.', b:'اذكر شي تسويه أول ما تصحى.' },
+    { a:'اذكر شي تاخذه معك للبحر.', b:'اذكر شي تاخذه معك للنادي.' },
+    { a:'اذكر شي الناس يسوونه في العرس.', b:'اذكر شي الناس يسوونه في عيد الميلاد.' },
+    { a:'اذكر شي تلقاه في المطبخ.', b:'اذكر شي تلقاه في المطعم.' },
+    { a:'اذكر شي تحطه في شنطتك لرحلة طويلة.', b:'اذكر شي تحطه في شنطتك للتخييم.' },
+    { a:'اذكر شي تشتريه من الصيدلية.', b:'اذكر شي تشتريه من السوبرماركت.' },
+    { a:'اذكر شي تسويه لما تطفش.', b:'اذكر شي تسويه لما ما يجيك نوم.' },
+    { a:'اذكر شي تلقاه في المكتب.', b:'اذكر شي تلقاه في المكتبة.' },
+    { a:'اذكر شي تاخذه معك لنزهة.', b:'اذكر شي تاخذه معك لمباراة كورة.' },
+    { a:'اذكر شي الناس يشتكون منه في الشغل.', b:'اذكر شي الناس يشتكون منه في الجامعة.' },
+    { a:'اذكر شي تلقاه في غرفة فندق.', b:'اذكر شي تلقاه في غرفة نوم.' },
+    { a:'اذكر شي تسويه في يوم ممطر.', b:'اذكر شي تسويه في يوم إجازة.' },
+    { a:'اذكر شي تشوفه في المطار.', b:'اذكر شي تشوفه في محطة القطار.' },
+  ],
+};
+
 /* ===== 2 TRUTHS 1 LIE =====
    Each entry is a CATEGORY (flavour/tone) plus ONE specific question that
    all three of the player's statements must answer. One shared question is
