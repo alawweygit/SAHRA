@@ -95,20 +95,21 @@ const Controller = (() => {
     // hiccup in the phase hand-off left them stuck after answer one.
     // Submits a JSON array string; the host parses it back.
     if (spec.type === 'multitext') {
+      wrap.classList.add('ctrl-multitext');
       const fields = Array.isArray(spec.fields) ? spec.fields : [];
       const tas = [];
       fields.forEach((f, i) => {
         const row = document.createElement('div');
-        row.style.cssText = 'width:100%;margin-bottom:12px';
+        row.className = `ctrl-multitext-row ${f.lie ? 'is-lie' : 'is-truth'}`;
         const lab = document.createElement('div');
-        lab.style.cssText = `display:flex;align-items:center;gap:6px;font-family:'Fredoka One',sans-serif;font-size:14px;letter-spacing:1px;margin-bottom:6px;color:${f.lie ? 'var(--pink)' : 'var(--green)'}`;
+        lab.className = 'ctrl-multitext-label';
         lab.textContent = f.label || '';
         row.appendChild(lab);
         const ta = document.createElement('textarea');
-        ta.className = 'ctrl-input';
+        ta.className = 'ctrl-input ctrl-multitext-input';
         ta.placeholder = f.placeholder || '…';
         ta.maxLength = spec.maxLen || 80;
-        ta.rows = 2;
+        ta.rows = 1;
         ta.autocomplete = 'off';
         ta.style.borderColor = f.lie ? 'var(--pink)' : 'var(--green)';
         ta.style.borderWidth = '2px';

@@ -1385,6 +1385,7 @@
     return new Promise(resolve=>{
       const hidesStageAnswers=spec?.type==='choice'||spec?.type==='higherlow';
       const isMapInput=spec?.type==='map';
+      const isFullscreenInput=spec?.fullscreenInput===true;
       if(hidesStageAnswers)document.body.classList.add('phones-host-answering');
       // v96 — 'phones-host-answering' means "hide the answers on stage", and
       // only choice/higherlow set it. But the layout rules that keep
@@ -1394,18 +1395,23 @@
       // is why its flag kept rendering clipped behind the dock. This second
       // class tracks the thing those rules actually care about: the host's
       // own input dock is on screen, whatever the input type.
-      const usesBottomDock=!isMapInput;
+      const usesBottomDock=!isMapInput&&!isFullscreenInput;
       if(usesBottomDock)document.body.classList.add('phones-host-docked');
+      if(isFullscreenInput)document.body.classList.add('phones-host-fullscreen-input');
       // Use a body-level modal overlay — avoids all overflow/stacking context issues.
       // Map input goes full-screen so the host gets the same clean layout as player phones.
       const overlay=document.createElement('div');
       overlay.className='phones-host-input-overlay';
-      overlay.style.cssText=isMapInput
+      if(isFullscreenInput)overlay.classList.add('phones-host-fullscreen-input-overlay');
+      overlay.style.cssText=(isMapInput||isFullscreenInput)
         ?'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;pointer-events:none;'
         :'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none;';
       const panel=document.createElement('div');
+      if(isFullscreenInput)panel.className='phones-host-fullscreen-input-panel';
       panel.style.cssText=isMapInput
         ?'pointer-events:auto;background:var(--bg);width:100%;flex:1;overflow-y:auto;padding:max(60px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom));'
+        :isFullscreenInput
+          ?'pointer-events:auto;background:var(--bg);width:100%;height:100%;overflow:hidden;padding:max(72px,calc(env(safe-area-inset-top) + 62px)) 12px max(10px,env(safe-area-inset-bottom));'
         :'pointer-events:auto;background:var(--bg);border-top:2px solid var(--border-hi);padding:16px 16px max(20px,env(safe-area-inset-bottom));width:100%;max-height:60vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.6);';
       overlay.appendChild(panel);
       document.body.appendChild(overlay);
@@ -1415,6 +1421,7 @@
         overlay.remove();
         if(hidesStageAnswers)document.body.classList.remove('phones-host-answering');
         if(usesBottomDock)document.body.classList.remove('phones-host-docked');
+        if(isFullscreenInput)document.body.classList.remove('phones-host-fullscreen-input');
         resolve(value);
       };
       _ppDismiss=()=>done(null);
@@ -1427,9 +1434,9 @@
       // controller.js), which is why the host saw a bare input box while
       // players saw the instruction. Context is still stripped on host since
       // hostStage already shows the question above.
-      const _titledInput = spec?.type==='text' || spec?.type==='number';
+      const _titledInput = spec?.type==='text' || spec?.type==='number' || isFullscreenInput;
       const hostSpec=(isMapInput||_titledInput)
-        ?{...spec,controlsOnly:false,context:'',sub:spec.sub||'',title:spec.title||'',
+        ?{...spec,controlsOnly:false,context:isFullscreenInput?(spec.context||''):'',sub:spec.sub||'',title:spec.title||'',
           ...(_hExclude!==undefined?{excludeId:_hExclude}:{})}
         :{...spec,controlsOnly:true,title:LANG==='ar'?'👆 اختيارك':'👆 Your pick',context:'',sub:'',
           ...(_hExclude!==undefined?{excludeId:_hExclude}:{})};
@@ -1903,7 +1910,7 @@
           const _stripContextPhoneOnly = phonesOnly && _rawSpec?.hideContextOnPhone === true;
           const phoneSpec=_rawSpec?(phonesOnly?{..._rawSpec,controlsOnly:_mapPhoneOnly,...(_stripContextPhoneOnly?{context:''}:{})}:_rawSpec):null;
           if(!phoneSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
-          const _pa1=phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow'||phoneSpec.customRenderer==='timeMachine');
+          const _pa1=phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow'||phoneSpec.customRenderer==='timeMachine'||phoneSpec.fullscreenInput===true);
           // Choice/higherlow hide the ENTIRE shared stage while answering
           // (their own input form repeats the question). Text/number inputs
           // can't do that — the shared-stage headline is often the ONLY
