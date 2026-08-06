@@ -2289,7 +2289,7 @@ const Host = (() => {
         return { p, got: finders.includes(pid), picked, order: votes[pid]?.order ?? Infinity };
       }).filter(Boolean).sort((a, b) => (b.got - a.got) || (a.order - b.order));
       scene(`
-        <div class="tm-wrap">
+        <div class="tm-wrap t2l-reveal">
           <div class="tm-reveal-statement">${esc(target.name)} — ${LANG==='ar'?'الكذبة كانت':'the lie was'}</div>
           <div class="tm-reveal-year-card">
             <div class="tm-reveal-year-label">${LANG==='ar'?'❌ الكذبة':'❌ The Lie'}</div>
