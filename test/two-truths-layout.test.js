@@ -16,5 +16,8 @@ if (!/context:isFullscreenInput\?\(spec\.context\|\|''\):''/.test(main)) throw n
 if (!/ctrl-multitext/.test(controller)) throw new Error('Multitext renderer must expose structural classes');
 if (!/\.ctrl-multitext-input\s*\{[^}]*height:clamp\(/s.test(css)) throw new Error('All three inputs need compact viewport-aware heights');
 if (!/#scr-controller\.active:has\(#playerDock \.ctrl-multitext\)[^{]*\{[^}]*overflow:hidden\s*!important/s.test(css)) throw new Error('Writer screen must not require page scrolling');
+if (!/tm-wrap t2l-reveal/.test(host)) throw new Error('Two Truths reveal needs an isolated responsive wrapper');
+if (!/#scr-game\.active:has\(#hostStage \.t2l-reveal\) #hostStage\s*\{[^}]*align-items:center\s*!important[^}]*justify-content:center\s*!important/s.test(css)) throw new Error('Phone host reveal must be centered above its dock');
+if (!/#phoneSharedStage:has\(\.t2l-reveal\)\s*\{[^}]*flex:1 1 auto\s*!important[^}]*justify-content:center\s*!important/s.test(css)) throw new Error('Phone player reveal must be centered above its dock');
 
 console.log('Two Truths One Lie layout regression checks: ✓');

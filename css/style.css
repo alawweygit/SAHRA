@@ -2395,3 +2395,53 @@ body.hide-tracker .status-row{display:none!important;}
 .tm-score-guess{font-size:clamp(11px,2vmin,13px);color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tm-score-pts{font-family:'Fredoka One',sans-serif;font-size:clamp(14px,2.6vmin,18px);color:var(--yellow);flex-shrink:0;padding-left:4px;}
 .tm-score-pts.tm-zero{color:var(--text3);}
+
+/* Two Truths reveal: desktop already has the right composition. On phones,
+   let the reveal occupy the whole area above the fixed Next Round dock and
+   center one compact score card instead of leaving the result top-heavy. */
+@media(max-width:600px){
+  #scr-game.active:has(#hostStage .t2l-reveal) #hostStage{
+    flex:1 1 auto!important;
+    height:100%!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    padding-top:max(80px,calc(env(safe-area-inset-top,0px) + 68px))!important;
+    padding-bottom:12px!important;
+  }
+  body.phones-only-player #scr-controller #phoneSharedStage:has(.t2l-reveal){
+    flex:1 1 auto!important;
+    min-height:0!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    padding:12px 0!important;
+  }
+  .t2l-reveal{
+    width:min(90vw,520px)!important;
+    padding:0!important;
+    row-gap:clamp(9px,1.5vh,14px)!important;
+    margin:auto!important;
+  }
+  .t2l-reveal .tm-reveal-year-card{
+    width:min(76vw,300px);
+    padding:10px 16px;
+    border-radius:18px;
+  }
+  .t2l-reveal .tm-score-list{
+    width:100%;
+    max-width:520px;
+    gap:8px;
+    margin:0 auto;
+  }
+  .t2l-reveal .tm-score-row{
+    display:grid;
+    grid-template-columns:22px 44px minmax(0,1fr) auto;
+    gap:10px;
+    min-height:66px;
+    padding:9px 11px;
+    border-radius:17px;
+  }
+  .t2l-reveal .tm-score-avatar{width:44px;height:44px;font-size:22px;}
+  .t2l-reveal .tm-score-pts{white-space:nowrap;padding-left:0;}
+}
