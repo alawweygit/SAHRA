@@ -35,6 +35,15 @@ const Controller = (() => {
     if (spec.compactRebus) wrap.classList.add('rebus-controller');
     if (spec.controlsOnly) wrap.classList.add('ctrl-controls-only');
 
+    // v110 — question now renders ABOVE the answer area, as the visual
+    // headline, with the title demoted to a small label right above the
+    // input. Was reversed: 'Your answer' rendered big and yellow as the
+    // headline while the actual question sat below it in a small 13px gray
+    // box — so on modes like Blend In, where the question IS the entire
+    // task, players had to hunt for it in small print under a generic
+    // heading. DOM order is unchanged (title element first) so nothing
+    // downstream that references it by position breaks; the swap is CSS —
+    // see .ctrl-context / .ctrl-title in style.css.
     if (!spec.controlsOnly) {
       const title = document.createElement('div');
       title.className = 'ctrl-title display';

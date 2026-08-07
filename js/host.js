@@ -2624,7 +2624,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       pushMirror({ headline: LANG==='ar'?`سؤال ${q+1}`:`Question ${q+1}` });
       Audio_.sfx.sting();
 
-      const mkSpec = txt => ({ type:'text', title: LANG==='ar'?'جوابك':'Your answer', context: txt, maxLen:40, seconds:30, keepHostContext:true });
+      const mkSpec = txt => ({ type:'text', title: LANG==='ar'?'إجابتك':'Answer', context: txt, maxLen:40, seconds:30, keepHostContext:true });
       const specs = {};
       pids.forEach(pid => { specs[pid] = mkSpec(pid === spy.pid ? pair.b : pair.a); });
       const phaseId = 'bi' + Date.now() + '_' + q;

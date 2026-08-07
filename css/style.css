@@ -585,8 +585,9 @@ body.phones-hide-tracker #statusRow{display:none!important;}
    title + prompt + all three fields + submit remain visible without scroll
    on desktop and phone. */
 .ctrl-wrap.ctrl-multitext{height:100%;max-height:100%;min-height:0;justify-content:flex-start;gap:clamp(5px,1vh,9px);padding:clamp(10px,1.6vh,16px)!important;overflow:hidden;}
-.ctrl-multitext .ctrl-title{font-size:clamp(19px,3vh,28px)!important;line-height:1.1;}
-.ctrl-multitext .ctrl-context{width:100%;font-size:clamp(13px,2vh,18px);padding:clamp(7px,1.2vh,10px) 12px;line-height:1.3;}
+/* v110: swapped to match the global hierarchy change — question big, title small */
+.ctrl-multitext .ctrl-title{font-size:clamp(13px,2vh,16px)!important;line-height:1.2;}
+.ctrl-multitext .ctrl-context{width:100%;font-size:clamp(17px,3.2vh,24px);padding:clamp(10px,1.6vh,14px) 14px;line-height:1.3;}
 .ctrl-multitext .ctrl-sub{font-size:clamp(12px,1.8vh,16px)!important;line-height:1.2;}
 .ctrl-multitext-row{width:100%;margin:0;min-height:0;}
 .ctrl-multitext-label{display:flex;align-items:center;gap:6px;font-family:'Fredoka One',sans-serif;font-size:clamp(12px,1.8vh,15px);letter-spacing:1px;margin-bottom:4px;line-height:1.1;}
@@ -614,8 +615,16 @@ body.phones-hide-tracker #statusRow{display:none!important;}
 .psh-speech{position:relative;max-width:560px;background:var(--card);border:1.5px solid var(--border-hi);border-radius:18px 18px 18px 4px;padding:14px 18px;font-weight:700;box-shadow:0 8px 20px var(--shadow);}
 .psh-name{display:inline-block;margin:-30px 0 7px;background:linear-gradient(135deg,var(--pink),var(--orange));border-radius:30px;padding:4px 16px;font-family:'Fredoka One',sans-serif;font-size:12px;letter-spacing:1px;}
 .ctrl-wrap{display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;background:var(--card);border:1.5px solid var(--border-hi);border-radius:22px;padding:24px 18px;width:100%;box-shadow:0 12px 32px var(--shadow);animation:promptIn 0.4s both;}
-.ctrl-title{font-family:'Fredoka One','Lalezar',sans-serif;font-size:clamp(17px,5vw,24px);color:var(--yellow);line-height:1.25;}
-.ctrl-context{font-weight:700;font-size:13px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;line-height:1.5;}
+/* v110 — swapped visual hierarchy: the question (.ctrl-context) is now the
+   big headline, .ctrl-title is a small label right above the input. Was
+   backwards — 'Your answer' rendered big and yellow as the headline while
+   the actual question sat in a tiny 13px gray box below it, so on modes
+   where the question IS the whole task (Blend In), players had to hunt for
+   it in small print under a generic heading. Reordered via flex `order`
+   rather than DOM order, since .ctrl-wrap is a flex column — keeps the
+   underlying element order untouched for anything that depends on it. */
+.ctrl-title{order:2;font-family:'Fredoka One','Lalezar',sans-serif;font-size:clamp(13px,3vw,16px);color:var(--text2);line-height:1.2;font-weight:600;}
+.ctrl-context{order:1;font-family:'Fredoka One','Lalezar',sans-serif;font-weight:700;font-size:clamp(19px,4.6vw,26px);color:var(--yellow);background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;line-height:1.3;}
 .ctrl-sub{font-weight:600;font-size:12px;color:var(--text3);}
 .ctrl-input{width:100%;font-family:inherit;font-weight:700;font-size:16px;background:var(--bg2);border:2px solid var(--border-hi);color:var(--text);border-radius:16px;padding:13px;outline:none;resize:none;transition:border-color 0.2s;}
 .ctrl-input:focus{border-color:var(--pink);}
@@ -1153,7 +1162,8 @@ html{font-size:17px;}
 .big-btn:hover{filter:brightness(1.1);transform:translateY(-2px);}
 .bar-btn:hover{filter:brightness(1.15);}
 .eyebrow{font-size:clamp(15px,2vw,19px)!important;}
-.ctrl-title{font-size:clamp(20px,4vw,28px)!important;}
+/* v110: was clamp(20px,4vw,28px) — .ctrl-title is now the small label, not the headline; see the order swap above. */
+.ctrl-title{font-size:clamp(13px,3vw,16px)!important;}
 .ctrl-sub{font-size:clamp(15px,2vw,18px)!important;}
 .share-code b{font-size:clamp(30px,5vw,52px)!important;letter-spacing:.12em;}
 
@@ -1555,8 +1565,9 @@ html{font-size:17px;}
   #ctrlArea { position: relative; top: 8px; }
   .phone-mirror { margin-bottom: 6px; padding: 10px 14px; gap: 5px; }
   .ctrl-wrap { padding: 16px 14px; gap: 10px; border-radius: 19px; }
-  .ctrl-title { font-size: clamp(17px,4.5vw,22px) !important; }
-  .ctrl-context { font-size: clamp(15px,4.1vw,20px); padding: 8px 11px; }
+  /* v110: title/context sizes swapped to match the desktop order swap above */
+  .ctrl-title { font-size: clamp(13px,3.4vw,16px) !important; }
+  .ctrl-context { font-size: clamp(19px,5vw,25px); padding: 12px 14px; }
   .ctrl-input { font-size: 16px; min-height: 100px; padding: 12px; }
   .ctrl-choices { gap: 7px; }
   .choice-btn { min-height: 48px; font-size: 14px; padding: 11px 10px; border-radius: 14px; }
