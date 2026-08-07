@@ -1434,9 +1434,16 @@
       // controller.js), which is why the host saw a bare input box while
       // players saw the instruction. Context is still stripped on host since
       // hostStage already shows the question above.
+      // v109 — spec.keepHostContext opts a mode OUT of the usual stripping
+      // below. That stripping assumes "hostStage already shows the question
+      // above", true for Flag Hunt/True or Lie/etc, but FALSE for Blend In:
+      // the stage deliberately hides the question (everyone can see it, and
+      // showing the agents' question there would expose the spy on sight).
+      // Without this, the host saw a bare "Your answer" box with no question
+      // at all, since stripped context and no stage copy left nothing.
       const _titledInput = spec?.type==='text' || spec?.type==='number' || isFullscreenInput;
       const hostSpec=(isMapInput||_titledInput)
-        ?{...spec,controlsOnly:false,context:isFullscreenInput?(spec.context||''):'',sub:spec.sub||'',title:spec.title||'',
+        ?{...spec,controlsOnly:false,context:(isFullscreenInput||spec?.keepHostContext)?(spec.context||''):'',sub:spec.sub||'',title:spec.title||'',
           ...(_hExclude!==undefined?{excludeId:_hExclude}:{})}
         :{...spec,controlsOnly:true,title:LANG==='ar'?'👆 اختيارك':'👆 Your pick',context:'',sub:'',
           ...(_hExclude!==undefined?{excludeId:_hExclude}:{})};
