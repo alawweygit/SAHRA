@@ -623,8 +623,16 @@ body.phones-hide-tracker #statusRow{display:none!important;}
    it in small print under a generic heading. Reordered via flex `order`
    rather than DOM order, since .ctrl-wrap is a flex column — keeps the
    underlying element order untouched for anything that depends on it. */
-.ctrl-title{order:2;font-family:'Fredoka One','Lalezar',sans-serif;font-size:clamp(13px,3vw,16px);color:var(--text2);line-height:1.2;font-weight:600;}
-.ctrl-context{order:1;font-family:'Fredoka One','Lalezar',sans-serif;font-weight:700;font-size:clamp(19px,4.6vw,26px);color:var(--yellow);background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;line-height:1.3;}
+/* v111 — fixed a real bug from v110: order:1/order:2 only beats siblings
+   that ALSO have an explicit order. Every other child in .ctrl-wrap
+   (translate button, textarea, char count, Send It button) was left at the
+   flex default order:0, which is LOWER than 1 and 2 — so instead of the
+   question moving to the top, everything else jumped ahead of it, pushing
+   the question card to the very bottom of the screen. Negative values
+   guarantee both stay first regardless of what else .ctrl-wrap contains,
+   without needing to touch every other child's order. */
+.ctrl-title{order:-1;font-family:'Fredoka One','Lalezar',sans-serif;font-size:clamp(13px,3vw,16px);color:var(--text2);line-height:1.2;font-weight:600;}
+.ctrl-context{order:-2;font-family:'Fredoka One','Lalezar',sans-serif;font-weight:700;font-size:clamp(19px,4.6vw,26px);color:var(--yellow);background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;line-height:1.3;}
 .ctrl-sub{font-weight:600;font-size:12px;color:var(--text3);}
 .ctrl-input{width:100%;font-family:inherit;font-weight:700;font-size:16px;background:var(--bg2);border:2px solid var(--border-hi);color:var(--text);border-radius:16px;padding:13px;outline:none;resize:none;transition:border-color 0.2s;}
 .ctrl-input:focus{border-color:var(--pink);}
