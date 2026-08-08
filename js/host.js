@@ -2619,12 +2619,22 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       // and showing the agents' question would instantly expose the spy.
       scene(`<div class="eyebrow">🎭 ${LANG==='ar'?'اندمج':'BLEND IN'}</div>
         <div class="prompt-card display">${LANG==='ar'?`سؤال ${q+1} من ${QN}`:`Question ${q+1} of ${QN}`}</div>
-        <div class="pick-sub">${LANG==='ar'?'جاوبوا على جوالاتكم':'Answer on your phones'}</div>
+        <div class="pick-sub">${LANG==='ar'?'كل واحد يشوف سؤاله على جهازه':'Your question is on your own screen'}</div>
         <div id="statusRow" class="status-row"></div>`);
+      // Mirror headline stays deliberately generic — it is broadcast to every
+      // device, so it must never carry either question.
       pushMirror({ headline: LANG==='ar'?`سؤال ${q+1}`:`Question ${q+1}` });
       Audio_.sfx.sting();
 
-      const mkSpec = txt => ({ type:'text', title: LANG==='ar'?'إجابتك':'Answer', context: txt, maxLen:40, seconds:30, keepHostContext:true });
+      // v112 — fullscreenInput gives this its own full-screen panel (same
+      // treatment 2 Truths 1 Lie already uses), so the question renders as
+      // the headline at the TOP of the screen on host and player, Mac and
+      // phone. It cannot go on the shared stage: that stage is broadcast
+      // identically to every device, so the agents' question would be
+      // visible to the spy and the mode would collapse. The per-player
+      // input panel is the only surface that can show each person their
+      // own question.
+      const mkSpec = txt => ({ type:'text', title: LANG==='ar'?'إجابتك':'Answer', context: txt, maxLen:40, seconds:30, keepHostContext:true, fullscreenInput:true });
       const specs = {};
       pids.forEach(pid => { specs[pid] = mkSpec(pid === spy.pid ? pair.b : pair.a); });
       const phaseId = 'bi' + Date.now() + '_' + q;

@@ -599,6 +599,13 @@ body.phones-hide-tracker #statusRow{display:none!important;}
 .ctrl-multitext>button:not(.ctrl-submit){margin:0!important;padding:4px 12px!important;font-size:12px!important;}
 .phones-host-fullscreen-input-panel{display:flex;align-items:stretch;justify-content:center;}
 .phones-host-fullscreen-input-panel>.ctrl-multitext{width:min(94vw,780px)!important;}
+/* v112 — full-screen single-text panel (Blend In). The question is the whole
+   task here and cannot be shown on the shared stage (it's broadcast to every
+   device, which would expose the spy), so it gets full headline treatment at
+   the top of its own panel instead. */
+.phones-host-fullscreen-input-panel>.ctrl-wrap{width:min(94vw,780px)!important;justify-content:flex-start;}
+.phones-host-fullscreen-input-panel .ctrl-context{font-size:clamp(24px,5.4vw,40px)!important;padding:clamp(16px,3vh,26px) 20px!important;line-height:1.25;width:100%;}
+.phones-host-fullscreen-input-panel .ctrl-title{font-size:clamp(13px,3vw,17px)!important;}
 
 @media(max-width:600px){
   .t2l-wait-stage{padding-top:24px;gap:10px;}
