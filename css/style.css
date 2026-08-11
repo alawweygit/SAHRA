@@ -1233,7 +1233,7 @@ html{font-size:17px;}
 /* ============ NEW GAME STYLES ============ */
 .emoji-riddle{font-size:clamp(52px,11vw,120px);letter-spacing:.08em;margin:2vmin 0;animation:promptPop .5s cubic-bezier(0.2,1.4,0.4,1) both;}
 .pp-photo{max-height:34vh;max-width:min(92%,720px);border-radius:18px;margin:1vmin auto;display:block;object-fit:cover;box-shadow:0 12px 44px rgba(0,0,0,.5);}
-.year-reveal{font-size:clamp(44px,9vw,100px)!important;color:var(--yellow);}
+.year-reveal{font-size:clamp(44px,9vw,100px)!important;color:var(--yellow);width:100%;text-align:center;margin:2vmin 0;}
 .ctrl-input-year{font-family:"Fredoka One",sans-serif;font-size:clamp(30px,7vw,44px)!important;text-align:center;letter-spacing:.14em;resize:none;}
 
 /* ============ SESSION LEADERBOARD ============ */

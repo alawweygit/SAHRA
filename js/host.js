@@ -2747,7 +2747,12 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     Audio_.sfx.reveal(); FX.burst(120);
     scene(`
       <div style="text-align:center;padding:3vmin 2vmin;display:flex;flex-direction:column;align-items:center;gap:1.5vmin">
-        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(12px,2vmin,16px);color:var(--text2);letter-spacing:3px;text-transform:uppercase">${caught ? (LANG==='ar'?'انكشف!':'CAUGHT!') : (LANG==='ar'?'نجا!':'GOT AWAY!')}</div>
+        <!-- v116 — was "CAUGHT!"/"GOT AWAY!", which never actually said WHO
+             won (Ali's feedback: it wasn't clear if that meant the agents
+             won or the spy did). Now states the winner outright; the spy's
+             own avatar/name/"was the odd one out" line right below is
+             unchanged so the spy is still shown clearly either way. -->
+        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(15px,2.6vmin,20px);color:${caught?'var(--green)':'var(--pink)'};letter-spacing:2px;text-transform:uppercase">${caught ? (LANG==='ar'?'🎉 فاز الفريق!':'🎉 AGENTS WIN!') : (LANG==='ar'?'🎭 فاز الجاسوس!':'🎭 SPY WINS!')}</div>
         <div style="position:relative;margin:1vmin;animation:wyrTrophyPop 0.7s 0.2s both cubic-bezier(0.34,1.56,0.64,1)">
           <div style="width:clamp(90px,14vmin,130px);height:clamp(90px,14vmin,130px);border-radius:50%;background:${spy.color};box-shadow:0 0 40px ${spy.color}88;display:flex;align-items:center;justify-content:center;font-size:clamp(46px,8vmin,72px)">${spy.emoji||'😊'}</div>
           <div style="position:absolute;inset:-4px;border-radius:50%;border:3px solid ${spy.color};animation:wyrRingPulse 1.5s ease-in-out infinite"></div>
