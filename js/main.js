@@ -1746,10 +1746,21 @@
         try{
           net.room('state').get().then(snap=>{
             const st=snap.val();
-            if(st&&st.phase==='input'&&st.phaseId&&st.spec){
+            // v118 — was `st.phase==='input' && st.spec` plus a hard
+            // requirement on st.targets. ALL THREE fail for Blend In, which
+            // uses phase 'input-split' with per-player `specs` and set no
+            // targets — so a player who locked their phone or switched apps
+            // mid-answer never got their input re-rendered, could never
+            // submit, and hung the round until the 30s timeout with the
+            // tracker showing them as missing. Exactly the "one person
+            // always hasn't submitted" bug. Now handles both phases, both
+            // spec shapes, and treats absent targets as "everyone".
+            const _stSpec = st && (st.spec || st.specs?.[myPid] || st.specs?._default);
+            if(st&&(st.phase==='input'||st.phase==='input-split')&&st.phaseId&&_stSpec){
               const now=Date.now();
               const deadline=st.deadline||0;
-              if(deadline>now&&st.targets&&st.targets.includes(myPid)){
+              const _isTarget = !st.targets || st.targets.includes(myPid);
+              if(deadline>now&&_isTarget){
                 // Still time left — re-render input
                 lastPhaseId=null; // force re-render
                 net.onState._lastState=null;

@@ -191,11 +191,18 @@ class FirebaseNet {
       const finish = () => {
         if (done) return; done = true;
         ref.off(); clearTimeout(timer);
+        // v118 — clear the force-finish hook so a stale one can't end the
+        // NEXT phase early.
+        if (typeof window !== 'undefined' && window.__hypoxForceCollect === finish) window.__hypoxForceCollect = null;
         // Close the host's own input overlay if it's still open (timer expired).
         if (this.hostSelfPid && typeof window !== 'undefined' && window.__hypoxDismissPP) window.__hypoxDismissPP();
         resolve(out);
       };
       const timer = setTimeout(finish, ms);
+      // v118 — lets the host end collection early with whatever has arrived.
+      // Without this, one unreachable player (dropped connection, closed tab)
+      // stalls the whole room for the full timeout with no way to advance.
+      if (typeof window !== 'undefined') window.__hypoxForceCollect = finish;
 
       // Phones-only: the host is also a player. Collect their own input via the
       // local overlay and write it in, just like a remote submission.

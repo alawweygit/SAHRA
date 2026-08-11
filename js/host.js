@@ -2646,7 +2646,10 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       pids.forEach(pid => { specs[pid] = mkSpec(pid === spy.pid ? pair.b : pair.a); });
       const phaseId = 'bi' + Date.now() + '_' + q;
       const deadline = Date.now() + inputTimeout(30) * 1000;
-      net.setState({ phase:'input-split', phaseId, deadline, specs });
+      // v118 — `targets` added: collectWithTimer sets it on every input
+      // phase, and the reconnect/lock-screen recovery path reads it. Blend
+      // In omitted it because it hand-rolls its own collection loop.
+      net.setState({ phase:'input-split', phaseId, deadline, specs, targets: pids });
 
       const botPids = net.getBotPids ? net.getBotPids() : [];
       botPids.forEach(bp => {
@@ -2679,7 +2682,27 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         if (net.hostSelfPid && pid === net.hostSelfPid) document.body.classList.remove('hide-tracker');
       });
 
+      // v118 — after 12s, give the host a way out. Previously a single
+      // unreachable player (dropped connection, closed tab, phone that never
+      // recovered its input) stalled the entire room for the full 30s with
+      // no button to press — exactly what Ali hit. Only appears once things
+      // are clearly dragging, so it never clutters a normal round.
+      const _biSkipTimer = setTimeout(() => {
+        const action = document.getElementById('hostDockAction');
+        if (!action || action.querySelector('#biSkipBtn')) return;
+        const b = document.createElement('button');
+        b.id = 'biSkipBtn';
+        b.className = 'big-btn ghost host-only-ui';
+        b.textContent = LANG==='ar' ? 'تخطّي الانتظار ⏭' : 'Skip waiting ⏭';
+        b.addEventListener('click', () => {
+          if (window.__hypoxForceCollect) window.__hypoxForceCollect();
+        }, { once:true });
+        action.appendChild(b);
+      }, 12000);
+
       const ans = await net.collect(phaseId, specs[net.hostSelfPid] || mkSpec(pair.a), pids, inputTimeout(30));
+      clearTimeout(_biSkipTimer);
+      document.getElementById('biSkipBtn')?.remove();
       net.onEachInput(null);
       document.body.classList.remove('hide-tracker');
       rounds.push({ pair, ans });
