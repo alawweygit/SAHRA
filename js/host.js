@@ -2592,6 +2592,187 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     await showScores();
   }
 
+  /* ===== BUSTED — personal Lie Detector =====
+     Same core loop as Lie Detector (write a lie -> mix with truth -> vote
+     -> score for fooling / for finding truth), but the truth comes from a
+     PLAYER, not a trivia pack. Each round one player is the subject: they
+     answer privately first, then everyone else writes a fake answer about
+     them. Deliberately built as a separate mode rather than replacing Lie
+     Detector — the private-answer-first step gives it a different rhythm,
+     and generic trivia bluffing is still worth keeping for when nobody
+     wants to be put on the spot. */
+  async function playBusted() {
+    await modeTitleCard('busted');
+    const numRounds = window.HYPOX_STATE?.rounds || 3;
+    let prompts = [];
+    try { prompts = (await Content.get('busted', LANG, numRounds) || []).filter(x => x && x.q && x.other); }
+    catch (e) { console.error('[HYPOX] busted content failed:', e.message); }
+    if (!prompts.length) prompts = [{ q: LANG==='ar'?'أغرب شي أكلته':'The weirdest thing you have ever eaten', other: LANG==='ar'?'أغرب شي أكله {name}':'The weirdest thing {name} has ever eaten' }];
+
+    const seatPool = players.slice().sort(() => Math.random() - 0.5);
+
+    for (let r = 0; r < numRounds; r++) {
+      const P = prompts[r % prompts.length];
+      const subject = seatPool[r % seatPool.length];
+      const others = players.filter(p => p.pid !== subject.pid).map(p => p.pid);
+      if (!others.length) continue; // need at least one liar
+
+      /* ---- PHASE 1: the subject answers privately ---- */
+      await FX.wipe();
+      setPill(`${t('round')} ${r + 1} ${t('of')} ${numRounds}`);
+      scene(`
+        <div style="text-align:center;padding:3vmin 2vmin;display:flex;flex-direction:column;align-items:center;gap:1.5vmin">
+          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(12px,2vmin,16px);color:var(--text2);letter-spacing:3px;text-transform:uppercase;animation:fadeSlideUp 0.4s both">🎭 ${LANG==='ar'?'مكشوف':'BUSTED'}</div>
+          <div style="position:relative;margin:1vmin;animation:wyrTrophyPop 0.7s 0.2s both cubic-bezier(0.34,1.56,0.64,1)">
+            <div style="width:clamp(90px,14vmin,130px);height:clamp(90px,14vmin,130px);border-radius:50%;background:${subject.color};box-shadow:0 0 40px ${subject.color}88;display:flex;align-items:center;justify-content:center;font-size:clamp(46px,8vmin,72px)">${subject.emoji||'😊'}</div>
+            <div style="position:absolute;inset:-4px;border-radius:50%;border:3px solid ${subject.color};animation:wyrRingPulse 1.5s ease-in-out infinite"></div>
+          </div>
+          <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(28px,5.6vmin,56px);color:var(--text);animation:fadeSlideUp 0.5s 0.6s both;line-height:1.15">${esc(subject.name)}</div>
+          <div class="pick-sub">${LANG==='ar'?'يجاوب بصراحة على جواله… والباقي ينتظر':'is answering honestly — everyone else, no peeking'}</div>
+          <div id="statusRow" class="status-row"></div>
+        </div>`);
+      pushMirror({ headline: LANG==='ar'?`دور ${subject.name}`:`${subject.name}'s turn` });
+      Audio_.sfx.sting();
+
+      const truthIn = await collectWithTimer({
+        type: 'text',
+        title: LANG==='ar' ? 'جاوب بصراحة' : 'Answer honestly',
+        context: P.q,
+        maxLen: 30,
+        seconds: 45,
+        keepHostContext: true,
+        fullscreenInput: true,
+      }, [subject.pid], 45);
+
+      const truthUp = ((val(truthIn, subject.pid) || '').trim().toUpperCase().slice(0, 60)) || (LANG==='ar' ? 'ما جاوب' : 'NO ANSWER');
+      const promptText = P.other.replace('{name}', subject.name);
+
+      /* ---- PHASE 2: everyone else writes a lie about them ---- */
+      await FX.wipe();
+      scene(frameWithTimer(
+        `<div class="prompt-card display">${esc(promptText)}</div>`,
+        LANG==='ar' ? `اكتب كذبة تشبه ${esc(subject.name)}` : `Write a lie that sounds like ${esc(subject.name)}`));
+      hostSay('prompt');
+
+      const lieIn = await collectWithTimer({
+        type: 'text',
+        title: LANG==='ar' ? 'اكتب كذبتك' : 'Write your lie',
+        context: promptText,
+        maxLen: 30,
+        enforceUnique: true,
+      }, others, 60);
+
+      /* ---- Build answer set (same shape playBluff uses) ---- */
+      const seen = new Set([truthUp]);
+      const lies = [];
+      const truthWriters = [];
+      for (const pid of others) {
+        const v = (val(lieIn, pid) || '').trim().toUpperCase().slice(0, 60);
+        if (!v) continue;
+        if (v === truthUp) { truthWriters.push(pid); }
+        else if (!seen.has(v)) { seen.add(v); lies.push({ text: v, by: pid }); }
+      }
+      const answers = shuffle([{ text: truthUp, truth: true, writers: truthWriters }, ...lies]);
+
+      /* ---- PHASE 3: vote (subject excluded — they know the answer) ---- */
+      await FX.wipe();
+      setPill(t('vote_title'));
+      scene(`
+        <div class="eyebrow">${esc(promptText)}</div>
+        <div class="answer-grid" id="answerGrid">
+          ${answers.map((a, i) => `
+            <div class="ans-card" id="card-${i}" style="animation-delay:${i * .12}s">
+              <div class="ans-inner">
+                <div class="ans-face ans-front"><div>${esc(a.text)}</div><div class="voter-strip" id="voters-${i}"></div></div>
+                <div class="ans-face ans-back ${a.truth ? 'truth' : 'lie'}">
+                  <div class="ans-tag">${a.truth ? '✦ ' + esc(t('truth')) + ' ✦' : esc(t('a_lie_by'))}</div>
+                  <div>${a.truth ? esc(a.text) : ''}</div>
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>
+        <div id="statusRow" class="status-row"></div>`);
+      answers.forEach((a, i) => setTimeout(() => Audio_.sfx.pop(), i * 120));
+      hostSay('vote');
+
+      const _exclude = {};
+      for (const pid of others) {
+        const ownIdx = answers.findIndex(a => !a.truth && a.by === pid);
+        if (ownIdx !== -1) _exclude[pid] = ownIdx;
+      }
+      const votes = await collectWithTimer({
+        type: 'choice', title: t('pick_truth'),
+        options: answers.map((a, i) => ({ id: i, label: a.text })),
+        playerExcludes: _exclude,
+      }, others, 30);
+
+      const votesByCard = answers.map(() => []);
+      for (const pid of others) {
+        const v = val(votes, pid);
+        if (v === null || v === undefined) continue;
+        const a = answers[v];
+        if (!a) continue;
+        if (!a.truth && a.by === pid) continue;
+        votesByCard[v].push(pid);
+      }
+      for (let i = 0; i < answers.length; i++) {
+        for (const pid of votesByCard[i]) {
+          Audio_.sfx.vote();
+          const p = safeP(pid);
+          const strip = $('#voters-' + i);
+          if (strip) strip.insertAdjacentHTML('beforeend', `<div class="voter" style="background:${p.color}">${p.emoji}</div>`);
+          await sleep(380);
+        }
+      }
+      await sleep(500);
+      hideHost();
+
+      /* ---- PHASE 4: reveal lies, then the truth ---- */
+      for (let i = 0; i < answers.length; i++) {
+        const a = answers[i];
+        if (a.truth) continue;
+        await sleep(650);
+        const card = $('#card-' + i);
+        if (!card) continue;
+        const author = safeP(a.by);
+        card.querySelector('.ans-back div:last-child').textContent = author ? `${author.emoji} ${author.name}` : '?';
+        card.classList.add('flipped');
+        await sleep(400);
+        Audio_.sfx.buzzer(); card.classList.add('shake'); FX.shake(); FX.burstAt(card, 26);
+        const fooled = votesByCard[i].length;
+        if (fooled && author) {
+          addScore(a.by, fooled * 500);
+          FX.flyPoints(card, `+${fooled * 500} ${author.name}`);
+        }
+        await sleep(850);
+      }
+      Audio_.sfx.drum();
+      await say(LANG === 'ar' ? '…والحقيقة هي' : 'And the truth is…', { speed: 40 });
+      hideHost();
+      const ti = answers.findIndex(a => a.truth);
+      const tCard = $('#card-' + ti);
+      if (tCard) {
+        tCard.classList.add('flipped');
+        await sleep(350);
+        Audio_.sfx.reveal(); FX.shake(); FX.burst(150); FX.burstAt(tCard, 40);
+      }
+      const allWinners = [...new Set([...votesByCard[ti], ...(answers[ti].writers || [])])];
+      allWinners.forEach(pid => addScore(pid, 1000));
+      if (allWinners.length && tCard) {
+        const names = allWinners.map(pid => safeP(pid)?.name).filter(Boolean).join(' & ');
+        FX.flyPoints(tCard, `+1000 ${names}`);
+      }
+      // Nobody fooled = the subject is genuinely unreadable; worth a callout.
+      if (!allWinners.length) {
+        await sleep(400);
+        await say(LANG === 'ar' ? `😱 محد عرف ${subject.name}!` : `😱 Nobody knows ${subject.name} at all!`, { speed: 35 });
+        hideHost();
+      }
+      await sleep(1600);
+      await showScores();
+    }
+  }
+
   /* ===== BLEND IN =====
      Everyone answers the SAME question except one player (the spy), who gets
      a different but closely-related question. Crucially the spy is NOT told —
@@ -2867,7 +3048,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     });
   }
 
-  const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz, pinpoint: playPinpoint, emoji: playEmoji, year: playYear, mostlikely: playMostlikely, trueorlie: playTrueorlie, flaghunt: playFlaghunt, higherlow: playHigherlow, '2t1l': play2t1l, emojiplace: playEmojiplace, spy: playSpy, blendin: playBlendIn };
+  const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz, pinpoint: playPinpoint, emoji: playEmoji, year: playYear, mostlikely: playMostlikely, trueorlie: playTrueorlie, flaghunt: playFlaghunt, higherlow: playHigherlow, '2t1l': play2t1l, emojiplace: playEmojiplace, spy: playSpy, blendin: playBlendIn, busted: playBusted };
 
   async function run(netInstance, playerList, mode) {
     net = netInstance;

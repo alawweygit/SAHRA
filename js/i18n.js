@@ -134,6 +134,7 @@ const I18N = {
       emojiplace: 'EMOJI PLACE',
       spy: 'SPY GAME',
       blendin: 'BLEND IN',
+      busted: 'BUSTED',
     },
     mode_taglines: {
       bluff: 'Spot the lie. Fool your friends.',
@@ -155,6 +156,7 @@ const I18N = {
       emojiplace: 'Type the place the emojis show.',
       spy: 'One spy. One secret word. Find them.',
       blendin: 'One of you answered a different question.',
+      busted: 'Lie about your friends. Spot the real answer.',
     },
     mode_rules: {
       bluff: 'A weird fact appears with a blank. Everyone writes a fake answer to fill it. Then vote for what you think is real. Fool them: +1000. Find the truth: +1000.',
@@ -173,6 +175,7 @@ const I18N = {
       emojiplace: 'Emojis hint at a place. Type the answer — letters appear as hints over time.',
       spy: 'Everyone knows the secret word except the spy. Discuss, vote, catch the spy — or the spy wins by guessing the word! Categories: Location, Event, Movie, Food, Sport, Animal, Celebrity.',
       emoji: 'Emojis appear on your phone. Decode what word they sound out phonetically — type the answer fast. Speed scoring: 1st +1000 down to +400.',
+      busted: 'One player answers a question about themselves privately. Everyone else writes a fake answer that sounds like them. Vote for the real one: +1000. Fool someone with your lie: +500 each.',
       blendin: 'Everyone gets the same question except one secret player, who gets a different one. Nobody knows who. Answer honestly, then discuss and vote for who seemed off. No points — just the reveal.',
       year: 'An event appears. Everyone types the year it happened. Closest guess wins: 1st +1000, 2nd +700, 3rd +500. Nail the exact year for a +500 bonus.',
       quiz: 'Speed trivia. Right answer = points. Faster = more points. No mercy.',
@@ -357,6 +360,7 @@ const I18N = {
       emojiplace: 'وين المكان؟',
       spy: 'لعبة الجاسوس',
       blendin: 'اندمج',
+      busted: 'مكشوف',
     },
     mode_taglines: {
       bluff: 'اكتشف الكذبة. اخدع ربعك.',
@@ -378,6 +382,7 @@ const I18N = {
       emojiplace: 'الإيموجي يمثل مكان. اكتب الجواب.',
       spy: 'اكتشف الجاسوس قبل فوات الأوان.',
       blendin: 'وحد منكم يجاوب على سؤال مختلف.',
+      busted: 'اكذب على ربعك. واكتشف الجواب الحقيقي.',
     },
     mode_rules: {
       bluff: 'تظهر معلومة غريبة ناقصها جزء. كل واحد يكتب كذبة تكمّل الفراغ، وبعدها الكل يصوّت. خدعت صديق: +٥٠٠. لقيت الحقيقة: +١٠٠٠.',
@@ -398,6 +403,7 @@ const I18N = {
       emoji: 'الإيموجيات تنطق كلمة. مثلاً 🌊🦉 = سيول (sea+owl). اكتب الجواب — أحرف تظهر للمساعدة مع الوقت. كلما احتجت أحرف أكثر كلما نقصت نقاطك.',
       year: 'يظهر حدث، والكل يكتب السنة اللي صار فيها. الأقرب يفوز: الأول +١٠٠٠، الثاني +٧٠٠، الثالث +٥٠٠. السنة بالضبط = +٥٠٠ إضافية.',
       quiz: 'سؤال بـ٤ خيارات يظهر. اختر الإجابة الصحيحة بأسرع ما تقدر. الجواب الصح = نقاط، والأسرع يأخذ أكثر.',
+      busted: 'لاعب يجاوب بصراحة على سؤال عن نفسه، والباقي يكتبون إجابات مزيفة تشبهه. صوّت على الحقيقية: +١٠٠٠. خدعت أحد بكذبتك: +٥٠٠ لكل واحد.',
       blendin: 'الكل ياخذ نفس السؤال إلا لاعب واحد سري ياخذ سؤال مختلف. محد يدري مين هو. جاوبوا بصراحة، وبعدين ناقشوا وصوّتوا مين كان غريب. بدون نقاط — بس المتعة والكشف.',
     },
     banter_lobby: [

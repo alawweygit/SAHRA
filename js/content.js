@@ -836,6 +836,59 @@ PACKS.higherlow = {
   ],
 };
 
+/* ===== BUSTED (personal Lie Detector) =====
+   Unlike PACKS.bluff, whose answers are world-trivia facts, every prompt
+   here is ABOUT one player in the room. That player answers privately
+   first (their answer becomes the truth), then everyone else writes a
+   fake answer trying to sound like that person. The whole point is that
+   the bluffs are believable specifically BECAUSE the liars know the
+   subject — something a generic trivia pack can't do.
+   `q` is the prompt shown to the subject; `{name}` is replaced with the
+   subject's name when shown to everyone else. Keep prompts answerable in
+   a few words — long answers make the vote cards unreadable. */
+PACKS.busted = {
+  en: [
+    { q: 'The weirdest thing you have ever eaten', other: 'The weirdest thing {name} has ever eaten' },
+    { q: 'Something you are irrationally scared of', other: 'Something {name} is irrationally scared of' },
+    { q: 'The last thing you searched on your phone', other: 'The last thing {name} searched on their phone' },
+    { q: 'A talent nobody here knows you have', other: 'A talent nobody knows {name} has' },
+    { q: 'The worst haircut you have ever had', other: 'The worst haircut {name} has ever had' },
+    { q: 'Your most embarrassing childhood nickname', other: "{name}'s most embarrassing childhood nickname" },
+    { q: 'Something you have broken and never admitted to', other: 'Something {name} broke and never admitted to' },
+    { q: 'The worst thing you have ever cooked', other: 'The worst thing {name} has ever cooked' },
+    { q: 'A show you secretly love', other: 'A show {name} secretly loves' },
+    { q: 'The dumbest thing you have spent money on', other: 'The dumbest thing {name} has spent money on' },
+    { q: 'Something that always makes you cry', other: 'Something that always makes {name} cry' },
+    { q: 'Your go-to karaoke song', other: "{name}'s go-to karaoke song" },
+    { q: 'The last excuse you made to avoid plans', other: "{name}'s last excuse to avoid plans" },
+    { q: 'A food you refuse to eat', other: '{name} refuses to eat this food' },
+    { q: 'Something you are weirdly competitive about', other: 'Something {name} is weirdly competitive about' },
+    { q: 'The app you waste the most time on', other: 'The app {name} wastes the most time on' },
+    { q: 'Something you have lost and never found', other: 'Something {name} lost and never found' },
+    { q: 'Your worst habit', other: "{name}'s worst habit" },
+  ],
+  ar: [
+    { q: 'أغرب شي أكلته في حياتك', other: 'أغرب شي أكله {name} في حياته' },
+    { q: 'شي تخاف منه بدون سبب منطقي', other: 'شي يخاف منه {name} بدون سبب منطقي' },
+    { q: 'آخر شي بحثت عنه في جوالك', other: 'آخر شي بحث عنه {name} في جواله' },
+    { q: 'موهبة ما يعرفها أحد عنك', other: 'موهبة ما يعرفها أحد عن {name}' },
+    { q: 'أسوأ قصة شعر سويتها', other: 'أسوأ قصة شعر سواها {name}' },
+    { q: 'أكثر لقب محرج نادوك فيه وأنت صغير', other: 'أكثر لقب محرج نادوا فيه {name} وهو صغير' },
+    { q: 'شي كسرته وما اعترفت فيه', other: 'شي كسره {name} وما اعترف فيه' },
+    { q: 'أسوأ أكلة طبختها', other: 'أسوأ أكلة طبخها {name}' },
+    { q: 'مسلسل تحبه بالسر', other: 'مسلسل يحبه {name} بالسر' },
+    { q: 'أغبى شي صرفت عليه فلوس', other: 'أغبى شي صرف عليه {name} فلوس' },
+    { q: 'شي دايماً يبكيك', other: 'شي دايماً يبكي {name}' },
+    { q: 'أغنيتك المفضلة في الكاريوكي', other: 'أغنية {name} المفضلة في الكاريوكي' },
+    { q: 'آخر عذر قلته عشان تلغي موعد', other: 'آخر عذر قاله {name} عشان يلغي موعد' },
+    { q: 'أكلة ترفض تاكلها', other: 'أكلة يرفض {name} ياكلها' },
+    { q: 'شي تتنافس فيه بشكل غريب', other: 'شي يتنافس فيه {name} بشكل غريب' },
+    { q: 'التطبيق اللي تضيع فيه وقتك', other: 'التطبيق اللي يضيع فيه {name} وقته' },
+    { q: 'شي ضيعته وما لقيته أبداً', other: 'شي ضيعه {name} وما لقاه أبداً' },
+    { q: 'أسوأ عادة عندك', other: 'أسوأ عادة عند {name}' },
+  ],
+};
+
 /* ===== BLEND IN =====
    Each entry is a PAIR of questions. Everyone gets `a` (the agents'
    question); the spy gets `b`. Pairs are hand-tuned, not AI-generated: the
