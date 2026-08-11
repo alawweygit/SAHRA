@@ -1165,7 +1165,13 @@
     
     $('#roundPill').textContent=(t('mode_names')||{})[gameMode]||gameMode;
     const _isPhones=net.playMode==='phones';
-    net.setState({phase:'wait',msg:_isPhones?(LANG==='ar'?'اللعبة تبدأ الآن…':'Game starting…'):T.watchScreen()});
+    // v117 — skipPlaceholder:true. This 'wait' state is set the instant
+    // Start is clicked, and modeTitleCard()'s 'gameinfo' state always
+    // follows within milliseconds — so its own placeholder ("Game
+    // starting… One moment…") was pure flicker: Ali saw it flash by before
+    // being replaced. Other legitimate uses of the 'wait'/'mirror' phase
+    // (e.g. reconnection) don't set this flag, so they still show theirs.
+    net.setState({phase:'wait',msg:_isPhones?(LANG==='ar'?'اللعبة تبدأ الآن…':'Game starting…'):T.watchScreen(),skipPlaceholder:true});
     await Host.run(net,players,gameMode);
     if(window.__hypoxAbort||!net||net!==runningNet||!gameActive)return;
     showPackPicker();
@@ -2030,7 +2036,7 @@
             requestAnimationFrame(_measureDock);
             setTimeout(_measureDock,250); // re-measure once more in case fonts/layout settle late
           }
-          if(shared.dataset.sharedReady!=='1')renderSharedStatus(state.msg||(LANG==='ar'?'جاري إعادة الاتصال باللعبة…':'Reconnecting to the game…'),LANG==='ar'?'لحظات...':'One moment…');
+          if(shared.dataset.sharedReady!=='1'&&!state.skipPlaceholder)renderSharedStatus(state.msg||(LANG==='ar'?'جاري إعادة الاتصال باللعبة…':'Reconnecting to the game…'),LANG==='ar'?'لحظات...':'One moment…');
           // Host phone gets a Next button to advance the game
           if(net.hostSelfPid&&net.hostSelfPid===myPid&&window.__hypoxSkip){
             ctrl.classList.remove('hidden');
@@ -2096,15 +2102,14 @@
           // Show shared stage with tutorial, hide controller
           shared.classList.remove('hidden');
           ctrl.classList.add('hidden');ctrl.innerHTML='';
-          if(shared.dataset.sharedReady!=='1'){
-            shared.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:20px 16px">
-              <div style="font-size:56px;margin-bottom:8px">${esc(state.icon||'🎮')}</div>
-              <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(20px,5vw,28px);color:var(--yellow);margin-bottom:6px">${esc(state.modeName||'')}</div>
-              <div style="font-size:clamp(13px,3.5vw,16px);color:var(--text2);margin-bottom:12px">${esc(state.tagline||'')}</div>
-              ${state.rules?`<div style="font-size:clamp(12px,3vw,14px);color:var(--text3);line-height:1.5;background:rgba(255,255,255,0.06);border-radius:12px;padding:10px 14px;text-align:left">${esc(state.rules)}</div>`:''}
-              <div style="margin-top:16px;font-size:13px;color:var(--text3)">${LANG==='ar'?'انتظر المضيف يبدأ…':'Waiting for host to start…'}</div>
-            </div>`;
-          }
+          // v117 — was painting its own placeholder card (icon/name/tagline/
+          // rules + "Waiting for host to start…") here whenever the real
+          // DOM-clone-mirrored tutorial hadn't arrived yet. That mirror
+          // content lands almost immediately in this flow, so the
+          // placeholder was a second flash Ali saw before the real card —
+          // on top of the 'wait' phase's own flash right before it. Now
+          // just leaves whatever was already on screen alone and waits for
+          // the real content instead of painting a throwaway substitute.
           return;
         }
         ctrl.classList.remove('hidden');
