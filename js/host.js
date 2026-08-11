@@ -2754,9 +2754,33 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         </div>
         <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(28px,5.6vmin,56px);color:var(--text);line-height:1.15">${esc(spy.name)}</div>
         <div class="pick-sub">${LANG==='ar'?'كان يجاوب على سؤال ثاني':'was answering a different question'}</div>
+        <!-- v115 — Ali wants the results moment to BE the vote breakdown
+             (who voted for whom, caught or not) instead of a scoreless
+             leaderboard. Added here since Blend In no longer shows the
+             shared winnerScene() at all. -->
         <div class="tm-score-list" style="margin-top:1.5vmin">
+          ${players.map((p,i) => {
+            const votedFor = val(votes, p.pid);
+            const votedForP = votedFor ? safeP(votedFor) : null;
+            const gotItRight = votedFor === spy.pid;
+            return `
+            <div class="tm-score-row" style="animation-delay:${i*.08}s">
+              <div class="tm-score-rank">${p.pid===spy.pid ? '🕵️' : (gotItRight?'✅':'❌')}</div>
+              <div class="tm-score-avatar" style="background:${p.color}">${p.emoji}</div>
+              <div class="tm-score-info">
+                <div class="tm-score-name">${esc(p.name)}</div>
+                <div class="tm-score-guess">${p.pid===spy.pid
+                  ? (LANG==='ar'?'كان هو الدخيل':'was the odd one out')
+                  : votedForP
+                    ? (LANG==='ar'?`صوّت لـ ${esc(votedForP.name)}`:`voted for ${esc(votedForP.name)}`)
+                    : (LANG==='ar'?'ما صوّت':'did not vote')}</div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="tm-score-list" style="margin-top:1vmin">
           ${rounds.map((r,i) => `
-            <div class="tm-score-row" style="animation-delay:${i*.1}s">
+            <div class="tm-score-row" style="animation-delay:${(players.length+i)*.08}s">
               <div class="tm-score-info">
                 <div class="tm-score-name" style="color:var(--green);font-size:clamp(12px,1.8vmin,15px)">${esc(r.pair.a)}</div>
                 <div class="tm-score-guess" style="color:var(--pink)">${LANG==='ar'?'الدخيل شاف: ':'They saw: '}${esc(r.pair.b)}</div>
@@ -2765,6 +2789,54 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         </div>
       </div>`);
     await waitNext(15, LANG==='ar'?'خلصنا':'Done');
+  }
+
+  // v115 — Blend In (and any future scoreless mode) skips the shared
+  // winnerScene() crown/leaderboard entirely: with everyone tied at 0,
+  // it's a meaningless screen (Ali's earlier "Final Results" screenshot).
+  // This shows just the Play Again / Play Another Game buttons, since the
+  // actual "results" for a scoreless mode already happened on Blend In's
+  // own reveal (who voted for whom, caught or not).
+  const SCORELESS_MODES = new Set(['blendin']);
+
+  async function scorelessEndScreen() {
+    await FX.wipe();
+    hideHost();
+    setPill(LANG==='ar'?'خلصنا':'All Done');
+    scene(`
+      <div style="text-align:center;padding:3vmin 2vmin">
+        <div style="font-size:clamp(40px,8vmin,64px);margin-bottom:1vmin">🎉</div>
+        <div class="lobby-title display">${LANG==='ar'?'خلصت اللعبة!':'That\'s a wrap!'}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:2vmin;align-items:center;">
+        <button class="big-btn" id="againBtnSL" style="max-width:340px;width:100%">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
+        <button class="big-btn ghost" id="changeGameBtnSL" style="max-width:340px;width:100%">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
+      </div>`);
+    net.setState({ phase: 'session-end-scoreless' });
+    return new Promise(resolve => {
+      const againBtn = document.getElementById('againBtnSL');
+      const changeGameBtn = document.getElementById('changeGameBtnSL');
+      let settled = false;
+      const choose = action => {
+        if (settled) return;
+        settled = true;
+        window.__hypoxPlayAgain = action === 'again';
+        resolve(action);
+      };
+      againBtn?.addEventListener('click', () => choose('again'), { once:true });
+      changeGameBtn?.addEventListener('click', () => choose('change'), { once:true });
+      // Poll for phone host choice (phones-only mode) — reuses the exact
+      // same bridge winnerScene() uses (__hypoxWinnerChoice), since main.js
+      // already knows how to set it and this runs in the same JS context
+      // as the host's own phone in phones-only mode.
+      const _poll = setInterval(() => {
+        if (window.__hypoxWinnerChoice === 'again') {
+          clearInterval(_poll); window.__hypoxWinnerChoice = null; choose('again');
+        } else if (window.__hypoxWinnerChoice === 'change') {
+          clearInterval(_poll); window.__hypoxWinnerChoice = null; choose('change');
+        }
+      }, 300);
+    });
   }
 
   const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz, pinpoint: playPinpoint, emoji: playEmoji, year: playYear, mostlikely: playMostlikely, trueorlie: playTrueorlie, flaghunt: playFlaghunt, higherlow: playHigherlow, '2t1l': play2t1l, emojiplace: playEmojiplace, spy: playSpy, blendin: playBlendIn };
@@ -2814,7 +2886,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         await new Promise(r => document.getElementById('errContinueBtn')?.addEventListener('click', r, {once:true}));
       }
       if (window.__hypoxAbort) { stopSharedScreen(); return; }
-      const resultAction = await winnerScene();
+      const resultAction = SCORELESS_MODES.has(mode) ? await scorelessEndScreen() : await winnerScene();
       if(resultAction === 'again') {
         playAgain = true;
       }

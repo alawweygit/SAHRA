@@ -2116,6 +2116,35 @@
           <div style="margin-top:16px;font-size:13px;color:var(--text3)">${LANG==='ar'?'انتظر المضيف يبدأ…':'Waiting for host to start…'}</div>
         </div>`;
         resetScrollPositionAfterLayout();
+      }else if(state.phase==='session-end-scoreless'){
+        // v115 — scoreless modes (Blend In) skip the winner/leaderboard
+        // phase entirely and land here instead. Same host-only-buttons /
+        // waiting-note split as the winner phase (v113), and the SAME
+        // __hypoxWinnerChoice poll bridge — no need for a second bridge,
+        // host.js's scorelessEndScreen() already polls that global.
+        ctrl.classList.remove('hidden');
+        const _isHostPhoneSL=(net.hostSelfPid&&net.hostSelfPid===myPid)&&net?.phonesOnly;
+        ctrl.innerHTML=_isHostPhoneSL
+          ?`<div class="ctrl-wrap" style="text-align:center">
+            <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:340px;margin:0 auto">
+              <button id="phoneAgainBtnSL" class="big-btn">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
+              <button id="phoneChangeBtnSL" class="big-btn ghost">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
+            </div>
+          </div>`
+          :`<div class="ctrl-wrap" style="text-align:center">
+            <div class="ctrl-sub">${LANG==='ar'?'بانتظار المضيف…':'Waiting for the host…'}</div>
+          </div>`;
+        resetScrollPositionAfterLayout();
+        if(_isHostPhoneSL){
+          document.getElementById('phoneAgainBtnSL')?.addEventListener('click',()=>{
+            Audio_.sfx.submit();
+            window.__hypoxWinnerChoice='again';
+          },{once:true});
+          document.getElementById('phoneChangeBtnSL')?.addEventListener('click',()=>{
+            Audio_.sfx.submit();
+            window.__hypoxWinnerChoice='change';
+          },{once:true});
+        }
       }else if(state.phase==='winner'){
         ctrl.classList.remove('hidden');
         const _isHostPhone=(net.hostSelfPid&&net.hostSelfPid===myPid)&&net?.phonesOnly;
