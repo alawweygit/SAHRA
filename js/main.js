@@ -2113,15 +2113,23 @@
       }else if(state.phase==='winner'){
         ctrl.classList.remove('hidden');
         const _isHostPhone=(net.hostSelfPid&&net.hostSelfPid===myPid)&&net?.phonesOnly;
-        ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center">
-          <div class="crown">👑</div>
-          <div class="ctrl-title display">${state.emoji} ${esc(state.name)}</div>
-          <div class="ctrl-sub">${T.winner()}</div>
-          ${_isHostPhone?`<div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;width:100%;max-width:340px;margin:20px auto 0">
-            <button id="phoneAgainBtn" class="big-btn">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
-            <button id="phoneChangeBtn" class="big-btn ghost">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
-          </div>`:''}
-        </div>`;
+        // v113 — was duplicating the crown/name/"Champion of the night!" text
+        // here, which the mirrored stage above already shows in full (crown,
+        // name, tagline, full leaderboard). On a phone's narrower viewport
+        // that stacked as two nearly-identical cards squeezed together —
+        // exactly the collapsing/overlapping look Ali reported. Host phones
+        // now show ONLY the action buttons; other players get a short
+        // waiting note instead of a redundant copy of the winner card.
+        ctrl.innerHTML=_isHostPhone
+          ?`<div class="ctrl-wrap" style="text-align:center">
+            <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:340px;margin:0 auto">
+              <button id="phoneAgainBtn" class="big-btn">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
+              <button id="phoneChangeBtn" class="big-btn ghost">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
+            </div>
+          </div>`
+          :`<div class="ctrl-wrap" style="text-align:center">
+            <div class="ctrl-sub">${LANG==='ar'?'بانتظار المضيف…':'Waiting for the host…'}</div>
+          </div>`;
         resetScrollPositionAfterLayout();
         Audio_.sfx.fanfare();
         if(_isHostPhone){

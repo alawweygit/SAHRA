@@ -2617,9 +2617,16 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       setPill(`${LANG==='ar'?'سؤال':'Question'} ${q+1} ${t('of')} ${QN}`);
       // The stage must NOT show either question — it is visible to everyone,
       // and showing the agents' question would instantly expose the spy.
+      // v113 — clearer copy (Ali's feedback on the old "Your question is on
+      // your own screen", which read as unclear/generic) plus a real
+      // submission tracker matching every other mode: mini avatars with a
+      // checkmark that fills in as people answer. Blend In hand-rolls its
+      // own collection loop (per-player specs aren't supported by
+      // collectWithTimer), so it never got that tracker for free — added
+      // manually here, mirroring collectWithTimer's own tracker code.
       scene(`<div class="eyebrow">🎭 ${LANG==='ar'?'اندمج':'BLEND IN'}</div>
         <div class="prompt-card display">${LANG==='ar'?`سؤال ${q+1} من ${QN}`:`Question ${q+1} of ${QN}`}</div>
-        <div class="pick-sub">${LANG==='ar'?'كل واحد يشوف سؤاله على جهازه':'Your question is on your own screen'}</div>
+        <div class="pick-sub">${LANG==='ar'?'📱 كل لاعب يشوف سؤاله الخاص على جواله':"📱 Everyone's question is different — check your own phone"}</div>
         <div id="statusRow" class="status-row"></div>`);
       // Mirror headline stays deliberately generic — it is broadcast to every
       // device, so it must never carry either question.
@@ -2652,7 +2659,29 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         }, 1200 + Math.random()*2500);
       });
 
+      // Tracker: mini avatars + checkmark, filled in as answers come in.
+      // Same "hide until the host has answered" behaviour as
+      // collectWithTimer, so the host can't peek at who's answered while
+      // still typing their own.
+      const _hostIsPlayingBI = net.hostSelfPid && pids.includes(net.hostSelfPid);
+      if (_hostIsPlayingBI) document.body.classList.add('hide-tracker');
+      const biRow = $('#statusRow');
+      if (biRow) {
+        biRow.innerHTML = pids.map(pid => {
+          const p = safeP(pid);
+          return `<div class="mini" id="mini-${pid}">${avatarHTML(p)}<div class="check">✓</div></div>`;
+        }).join('');
+      }
+      net.onEachInput(pid => {
+        Audio_.sfx.submit();
+        const el = $('#mini-' + pid);
+        if (el) el.classList.add('done');
+        if (net.hostSelfPid && pid === net.hostSelfPid) document.body.classList.remove('hide-tracker');
+      });
+
       const ans = await net.collect(phaseId, specs[net.hostSelfPid] || mkSpec(pair.a), pids, inputTimeout(30));
+      net.onEachInput(null);
+      document.body.classList.remove('hide-tracker');
       rounds.push({ pair, ans });
     }
 
@@ -2673,7 +2702,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
                 <div class="tm-score-avatar" style="background:${p.color}">${p.emoji}</div>
                 <div class="tm-score-info">
                   <div class="tm-score-name">${esc(p.name)}</div>
-                  <div class="tm-score-guess">${esc((val(ans, p.pid)||'').trim() || (LANG==='ar'?'ما جاوب':'No answer'))}</div>
+                  <div class="tm-score-guess" style="font-family:'Fredoka One',sans-serif;font-weight:700;font-size:clamp(15px,2.4vmin,19px);color:var(--yellow)">${esc((val(ans, p.pid)||'').trim() || (LANG==='ar'?'ما جاوب':'No answer'))}</div>
                 </div>
               </div>`).join('')}
           </div>
@@ -2683,7 +2712,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     }
 
     // ---- Discussion ----
-    const DISC = 90;
+    const DISC = 60; // v113 — was 90s, Ali wants 60
     await FX.wipe();
     scene(`<div class="eyebrow">🎭 ${LANG==='ar'?'وقت النقاش':'DISCUSSION TIME'}</div>
       <div class="prompt-card display">${LANG==='ar'?'مين جاوب على سؤال ثاني؟':'Who was answering a different question?'}</div>
@@ -2700,7 +2729,14 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     scene(`<div class="eyebrow">🗳️ ${LANG==='ar'?'صوّتوا':'VOTE'}</div>
       <div class="prompt-card display">${LANG==='ar'?'مين الدخيل؟':'Who was the odd one out?'}</div>
       <div id="statusRow" class="status-row"></div>`);
-    const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'مين الدخيل؟':'Who was the odd one out?', options:players.map(p=>({id:p.pid,label:`${p.emoji} ${p.name}`,color:p.color})), seconds:30 }, pids, 30);
+    // v113 — nobody can vote for themselves. Uses the same playerExcludes
+    // mechanism Bluff already relies on (each pid maps to the option id
+    // they're not allowed to pick); main.js resolves it into excludeId for
+    // both phones and the host's own overlay automatically.
+    const _biExcludeMap = {};
+    pids.forEach(pid => { _biExcludeMap[pid] = pid; });
+    if (net.hostSelfPid) _biExcludeMap[net.hostSelfPid] = net.hostSelfPid;
+    const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'مين الدخيل؟':'Who was the odd one out?', options:players.map(p=>({id:p.pid,label:`${p.emoji} ${p.name}`,color:p.color})), playerExcludes:_biExcludeMap, seconds:30 }, pids, 30);
     const tally = {};
     pids.forEach(pid => { const v = val(votes, pid); if (v && v !== pid) tally[v] = (tally[v]||0)+1; });
     const maxV = Math.max(0, ...Object.values(tally));
