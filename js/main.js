@@ -1411,7 +1411,13 @@
       panel.style.cssText=isMapInput
         ?'pointer-events:auto;background:var(--bg);width:100%;flex:1;overflow-y:auto;padding:max(60px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom));'
         :isFullscreenInput
-          ?'pointer-events:auto;background:var(--bg);width:100%;height:100%;overflow:hidden;padding:max(72px,calc(env(safe-area-inset-top) + 62px)) 12px max(10px,env(safe-area-inset-bottom));'
+          // v114 — was overflow:hidden. On a shorter phone (iPhone SE) or
+          // once the keyboard eats vertical space, content taller than what
+          // remains was clipped with NO way to scroll to it — the same
+          // failure mode as the earlier host-dock clipping bugs, just
+          // unguarded here. Affects both Blend In and 2 Truths 1 Lie, since
+          // they share this panel. overflow-y:auto lets it scroll instead.
+          ?'pointer-events:auto;background:var(--bg);width:100%;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:max(72px,calc(env(safe-area-inset-top) + 62px)) 12px max(10px,env(safe-area-inset-bottom));'
         :'pointer-events:auto;background:var(--bg);border-top:2px solid var(--border-hi);padding:16px 16px max(20px,env(safe-area-inset-bottom));width:100%;max-height:60vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.6);';
       overlay.appendChild(panel);
       document.body.appendChild(overlay);
