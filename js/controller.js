@@ -178,6 +178,169 @@ const Controller = (() => {
       return;
     }
 
+    // HarfHunt turn: pick an available letter, then answer with it — both
+    // steps live under ONE authoritative deadline (net.setState's `deadline`
+    // set by collectWithTimer covers letter-pick + typing combined). Locking
+    // the letter once chosen is deliberate per design: no re-picking while
+    // the clock runs. Submits a single JSON payload {letter, answer}.
+    if (spec.type === 'harfturn') {
+      wrap.classList.add('ctrl-harfturn');
+      const grid = document.createElement('div');
+      grid.className = 'harf-letter-grid';
+      const letters = Array.isArray(spec.letters) ? spec.letters : [];
+      let chosen = null;
+
+      const stage2 = document.createElement('div');
+      stage2.className = 'harf-answer-stage';
+      const bigLetter = document.createElement('div');
+      bigLetter.className = 'harf-big-letter';
+      const ansLabel = document.createElement('div');
+      ansLabel.className = 'harf-answer-label';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'ctrl-input harf-answer-input';
+      input.maxLength = spec.maxLen || 30;
+      input.autocomplete = 'off';
+      input.placeholder = LANG === 'ar' ? '…اكتب جوابك' : 'Type your answer…';
+      const btn = document.createElement('button');
+      btn.className = 'big-btn ctrl-submit';
+      btn.textContent = t('submit');
+      btn.disabled = true;
+      stage2.append(bigLetter, ansLabel, input, btn);
+
+      letters.forEach(L => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'harf-letter-btn';
+        b.textContent = L;
+        b.addEventListener('click', () => {
+          if (chosen) return; // v120 — locked once picked, no re-choosing mid-turn
+          chosen = L;
+          Audio_.sfx.vote && Audio_.sfx.vote();
+          grid.classList.add('harf-grid-locked');
+          [...grid.querySelectorAll('.harf-letter-btn')].forEach(x => x.disabled = true);
+          b.classList.add('picked');
+          bigLetter.textContent = L;
+          ansLabel.textContent = (LANG === 'ar' ? 'جاوب بحرف ' : 'Answer with ') + L;
+          stage2.classList.add('shown');
+          requestAnimationFrame(() => input.focus());
+        });
+        grid.appendChild(b);
+      });
+
+      input.addEventListener('input', () => { btn.disabled = !input.value.trim(); });
+
+      let submitting = false;
+      const doSubmit = async () => {
+        if (submitting || !chosen) return;
+        const v = input.value.trim();
+        if (!v) { input.classList.add('shake'); setTimeout(() => input.classList.remove('shake'), 400); return; }
+        submitting = true;
+        btn.disabled = true; input.disabled = true;
+        wrap.setAttribute('aria-busy', 'true');
+        try { await onSubmit(JSON.stringify({ letter: chosen, answer: v })); }
+        catch (e) { submitting = false; btn.disabled = false; input.disabled = false; wrap.removeAttribute('aria-busy'); }
+      };
+      btn.addEventListener('click', doSubmit);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doSubmit(); } });
+
+      wrap.appendChild(grid);
+      wrap.appendChild(stage2);
+      container.replaceChildren(wrap);
+      scrollInputIntoView(wrap);
+      return;
+    }
+
+    // HarfHunt appeal review: everyone sees this round's accepted answers and
+    // can toggle CHALLENGE on any that isn't their own, then hits DONE. No
+    // countdown — collectWithTimer just gives this a generous window and
+    // waits for every connected player to press Done (per spec: no rush).
+    if (spec.type === 'harfreview') {
+      wrap.classList.add('ctrl-harfreview');
+      const heading = document.createElement('div');
+      heading.className = 'harf-review-heading';
+      heading.textContent = LANG === 'ar' ? 'راجع الجولة' : 'Review This Round';
+      wrap.appendChild(heading);
+
+      const list = document.createElement('div');
+      list.className = 'harf-review-list';
+      const answers = Array.isArray(spec.answers) ? spec.answers : [];
+      const challenged = new Set();
+      answers.forEach(a => {
+        const card = document.createElement('div');
+        card.className = 'harf-review-card';
+        const letterEl = document.createElement('div');
+        letterEl.className = 'harf-review-letter';
+        letterEl.textContent = a.letter;
+        const body = document.createElement('div');
+        body.className = 'harf-review-body';
+        const ansEl = document.createElement('div');
+        ansEl.className = 'harf-review-answer';
+        ansEl.textContent = a.answer;
+        const nameEl = document.createElement('div');
+        nameEl.className = 'harf-review-name';
+        nameEl.textContent = a.name || '';
+        body.append(ansEl, nameEl);
+        card.append(letterEl, body);
+
+        const isOwn = spec.viewerPid !== undefined && String(a.pid) === String(spec.viewerPid);
+        if (!isOwn) {
+          const chBtn = document.createElement('button');
+          chBtn.className = 'harf-challenge-btn';
+          chBtn.textContent = LANG === 'ar' ? 'اعتراض' : 'CHALLENGE';
+          chBtn.addEventListener('click', () => {
+            if (challenged.has(a.id)) { challenged.delete(a.id); chBtn.classList.remove('active'); }
+            else { challenged.add(a.id); chBtn.classList.add('active'); Audio_.sfx.vote && Audio_.sfx.vote(); }
+          });
+          card.appendChild(chBtn);
+        }
+        list.appendChild(card);
+      });
+      wrap.appendChild(list);
+
+      const doneBtn = document.createElement('button');
+      doneBtn.className = 'big-btn ctrl-submit';
+      doneBtn.textContent = LANG === 'ar' ? 'خلصت' : 'DONE';
+      let submitting = false;
+      doneBtn.addEventListener('click', async () => {
+        if (submitting) return;
+        submitting = true;
+        doneBtn.disabled = true;
+        try { await onSubmit(JSON.stringify([...challenged])); }
+        catch (e) { submitting = false; doneBtn.disabled = false; }
+      });
+      wrap.appendChild(doneBtn);
+
+      container.replaceChildren(wrap);
+      scrollInputIntoView(wrap);
+      return;
+    }
+
+    // HarfHunt appeal vote: binary ACCEPT/REJECT, one tap and locked.
+    if (spec.type === 'harfvote') {
+      wrap.classList.add('ctrl-harfvote');
+      const row = document.createElement('div');
+      row.className = 'harf-vote-row';
+      const mk = (id, label, cls) => {
+        const b = document.createElement('button');
+        b.className = 'harf-vote-btn ' + cls;
+        b.textContent = label;
+        b.addEventListener('click', () => {
+          Audio_.sfx.vote && Audio_.sfx.vote();
+          [...row.querySelectorAll('.harf-vote-btn')].forEach(x => x.disabled = true);
+          b.classList.add('picked');
+          onSubmit(id);
+        });
+        return b;
+      };
+      row.appendChild(mk('accept', LANG === 'ar' ? 'يصح ✅' : 'ACCEPT', 'harf-vote-accept'));
+      row.appendChild(mk('reject', LANG === 'ar' ? 'ما يصح ❌' : 'REJECT', 'harf-vote-reject'));
+      wrap.appendChild(row);
+      container.replaceChildren(wrap);
+      scrollInputIntoView(wrap);
+      return;
+    }
+
     if (spec.type === 'text') {
       const ta = document.createElement('textarea');
       ta.className = 'ctrl-input';

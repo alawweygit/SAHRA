@@ -135,6 +135,7 @@ const I18N = {
       spy: 'SPY GAME',
       blendin: 'BLEND IN',
       busted: 'BUSTED',
+      harfhunt: 'HARFHUNT',
     },
     mode_taglines: {
       bluff: 'Spot the lie. Fool your friends.',
@@ -157,6 +158,7 @@ const I18N = {
       spy: 'One spy. One secret word. Find them.',
       blendin: 'One of you answered a different question.',
       busted: 'Lie about your friends. Spot the real answer.',
+      harfhunt: 'Pick a letter. Answer fast. One fail ends the round.',
     },
     mode_rules: {
       bluff: 'A weird fact appears with a blank. Everyone writes a fake answer to fill it. Then vote for what you think is real. Fool them: +1000. Find the truth: +1000.',
@@ -179,6 +181,7 @@ const I18N = {
       blendin: 'Everyone gets the same question except one secret player, who gets a different one. Nobody knows who. Answer honestly, then discuss and vote for who seemed off. No points — just the reveal.',
       year: 'An event appears. Everyone types the year it happened. Closest guess wins: 1st +1000, 2nd +700, 3rd +500. Nail the exact year for a +500 bonus.',
       quiz: 'Speed trivia. Right answer = points. Faster = more points. No mercy.',
+      harfhunt: 'Everyone starts with points. On your turn, pick an available letter and answer the category before the timer runs out. One fail ends the round for everyone and costs points. After each round, challenge any answer you disagree with — the group votes. Most points after all rounds wins.',
     },
     banter_lobby: [
       "Alright, get your phones out. Yes, you too.",
@@ -361,6 +364,7 @@ const I18N = {
       spy: 'لعبة الجاسوس',
       blendin: 'اندمج',
       busted: 'مكشوف',
+      harfhunt: 'هارف هنت',
     },
     mode_taglines: {
       bluff: 'اكتشف الكذبة. اخدع ربعك.',
@@ -383,6 +387,7 @@ const I18N = {
       spy: 'اكتشف الجاسوس قبل فوات الأوان.',
       blendin: 'وحد منكم يجاوب على سؤال مختلف.',
       busted: 'اكذب على ربعك. واكتشف الجواب الحقيقي.',
+      harfhunt: 'اختر حرف. جاوب بسرعة. أول غلطة تخلص الجولة.',
     },
     mode_rules: {
       bluff: 'تظهر معلومة غريبة ناقصها جزء. كل واحد يكتب كذبة تكمّل الفراغ، وبعدها الكل يصوّت. خدعت صديق: +٥٠٠. لقيت الحقيقة: +١٠٠٠.',
@@ -405,6 +410,7 @@ const I18N = {
       quiz: 'سؤال بـ٤ خيارات يظهر. اختر الإجابة الصحيحة بأسرع ما تقدر. الجواب الصح = نقاط، والأسرع يأخذ أكثر.',
       busted: 'لاعب يجاوب بصراحة على سؤال عن نفسه، والباقي يكتبون إجابات مزيفة تشبهه. صوّت على الحقيقية: +١٠٠٠. خدعت أحد بكذبتك: +٥٠٠ لكل واحد.',
       blendin: 'الكل ياخذ نفس السؤال إلا لاعب واحد سري ياخذ سؤال مختلف. محد يدري مين هو. جاوبوا بصراحة، وبعدين ناقشوا وصوّتوا مين كان غريب. بدون نقاط — بس المتعة والكشف.',
+      harfhunt: 'كل واحد يبدأ برصيد نقاط. بدورك، اختر حرف متاح وجاوب على الفئة قبل ما ينخلص الوقت. أول غلطة تخلص الجولة للكل وتخسر نقاط. بعد كل جولة، اعترض على أي جواب ما تشوفه صح — والجماعة تصوّت. أكثر نقاط بعد كل الجولات يفوز.',
     },
     banter_lobby: [
       'طلّعوا جوالاتكم. إي حتى أنت.',

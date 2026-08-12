@@ -2471,3 +2471,146 @@ body.hide-tracker .status-row{display:none!important;}
   .t2l-reveal .tm-score-avatar{width:44px;height:44px;font-size:22px;}
   .t2l-reveal .tm-score-pts{white-space:nowrap;padding-left:0;}
 }
+
+/* ============ HARFHUNT (v120) ============
+   Motif: the letter tile. Available = bold/legible, selected = accent pop,
+   used = deliberately red/consumed (never removed — watching the board
+   run out of easy letters IS the tension, per spec). All colors from the
+   existing theme tokens so light/dark mode both work automatically. */
+:root { --harf-accent: #22d3ee; }
+.harf-stage,.harf-round-intro,.harf-reveal,.harf-fail,.harf-review-tv,
+.harf-appeal,.harf-appeal-result,.harf-sudden-intro,.harf-tie,.harf-final{
+  display:flex;flex-direction:column;align-items:center;gap:1.4vmin;
+  width:min(94vw,640px);text-align:center;padding:1vmin 0;
+}
+.harf-category{font-family:'Fredoka One','Lalezar',sans-serif;color:var(--text);
+  font-size:clamp(22px,4.4vmin,40px);line-height:1.2;}
+.harf-turn-who{display:flex;align-items:center;gap:10px;margin-top:.4vmin;}
+.harf-turn-name{font-weight:800;font-size:clamp(16px,2.6vmin,24px);color:var(--harf-accent);}
+
+.harf-tv-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:.8vmin;
+  max-width:min(92vw,560px);margin-top:.6vmin;}
+.harf-tv-letter{
+  width:clamp(30px,5.4vmin,46px);height:clamp(30px,5.4vmin,46px);
+  display:flex;align-items:center;justify-content:center;border-radius:10px;
+  font-family:'Fredoka One',sans-serif;font-weight:700;
+  font-size:clamp(14px,2.4vmin,20px);color:var(--text);
+  background:var(--card);border:2px solid var(--border-hi);
+  box-shadow:0 3px 0 var(--shadow);transition:transform .15s,opacity .2s;
+}
+.harf-tv-letter.used{
+  background:rgba(239,68,68,0.16);border-color:rgba(239,68,68,0.55);
+  color:rgba(239,68,68,0.85);opacity:.55;box-shadow:none;
+  text-decoration:line-through;text-decoration-thickness:2px;
+}
+.harf-tv-letter.active{border-color:var(--harf-accent);transform:scale(1.12);
+  box-shadow:0 0 0 3px rgba(34,211,238,0.3);}
+
+.harf-history{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
+  margin-top:1vmin;max-width:90vw;}
+.harf-history-chip{background:var(--card);border:1px solid var(--border);
+  border-radius:20px;padding:4px 12px;font-size:clamp(11px,1.7vmin,14px);
+  color:var(--text2);}
+.harf-history-chip b{color:var(--harf-accent);}
+
+.harf-order-strip{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:1vmin;}
+
+/* letter tiles inside the phone controller (harfturn input type) */
+.harf-letter-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;
+  margin:1vmin 0;transition:opacity .2s;}
+.harf-letter-btn{
+  width:clamp(38px,10vw,50px);height:clamp(38px,10vw,50px);
+  border-radius:12px;font-family:'Fredoka One',sans-serif;font-weight:700;
+  font-size:clamp(16px,4vw,20px);color:var(--text);background:var(--card);
+  border:2px solid var(--border-hi);box-shadow:0 4px 0 var(--shadow);
+  cursor:pointer;transition:transform .18s var(--ease-out),opacity .2s;
+}
+.harf-letter-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--shadow);}
+.harf-letter-btn.picked{border-color:var(--harf-accent);
+  box-shadow:0 0 0 3px rgba(34,211,238,0.35),0 4px 0 var(--shadow);
+  transform:scale(1.08);}
+.harf-letter-grid.harf-grid-locked .harf-letter-btn:not(.picked){opacity:.3;}
+
+.harf-answer-stage{display:none;flex-direction:column;align-items:center;
+  gap:.6vmin;width:100%;margin-top:1vmin;}
+.harf-answer-stage.shown{display:flex;animation:cardDeal .35s var(--ease-out) both;}
+.harf-big-letter{font-family:'Fredoka One',sans-serif;font-size:clamp(30px,9vw,44px);
+  color:var(--harf-accent);}
+.harf-answer-label{font-weight:700;color:var(--text2);font-size:clamp(12px,3.2vw,15px);}
+.harf-answer-input{width:100%;max-width:340px;text-align:center;font-size:clamp(16px,4vw,20px)!important;}
+
+/* answer reveal */
+.harf-reveal-letter{font-family:'Fredoka One',sans-serif;color:var(--harf-accent);
+  font-size:clamp(24px,5vmin,36px);}
+.harf-reveal-answer{font-family:'Fredoka One','Lalezar',sans-serif;color:var(--yellow);
+  font-size:clamp(30px,7vmin,58px);animation:winnerZoom .6s var(--ease-out) both;}
+.harf-reveal-by{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--text2);}
+
+/* failure */
+.harf-fail-label{font-family:'Fredoka One',sans-serif;color:#ef4444;
+  font-size:clamp(22px,5vmin,38px);letter-spacing:1px;animation:shake .5s;}
+.harf-fail-name{font-weight:800;font-size:clamp(16px,2.8vmin,24px);color:var(--text);}
+.harf-fail-penalty{font-family:'Fredoka One',sans-serif;color:#ef4444;
+  font-size:clamp(24px,5vmin,36px);}
+.harf-fail-roundover{margin-top:.6vmin;font-weight:800;letter-spacing:2px;
+  color:var(--text2);text-transform:uppercase;font-size:clamp(12px,2vmin,15px);}
+
+/* appeal review (host TV) */
+.harf-review-tv-list{display:flex;flex-direction:column;gap:8px;width:100%;max-width:520px;}
+.harf-review-tv-card{background:var(--card);border:1.5px solid var(--border);
+  border-radius:14px;padding:10px 16px;text-align:left;font-size:clamp(13px,2vmin,16px);
+  color:var(--text);display:flex;gap:10px;align-items:baseline;}
+body.ar .harf-review-tv-card{text-align:right;}
+.harf-review-tv-card b{color:var(--harf-accent);}
+.harf-review-tv-card span{margin-left:auto;color:var(--text2);font-weight:700;font-size:.85em;}
+body.ar .harf-review-tv-card span{margin-left:0;margin-right:auto;}
+
+/* appeal review (phone controller) */
+.harf-review-heading{font-family:'Fredoka One',sans-serif;font-size:clamp(16px,4vw,20px);
+  color:var(--text);margin-bottom:.4vmin;}
+.harf-review-list{display:flex;flex-direction:column;gap:8px;width:100%;}
+.harf-review-card{display:flex;align-items:center;gap:10px;background:var(--card);
+  border:1.5px solid var(--border);border-radius:14px;padding:8px 12px;}
+.harf-review-letter{font-family:'Fredoka One',sans-serif;color:var(--harf-accent);
+  font-size:clamp(16px,4vw,20px);min-width:24px;text-align:center;}
+.harf-review-body{flex:1;text-align:left;}
+body.ar .harf-review-body{text-align:right;}
+.harf-review-answer{font-weight:700;color:var(--text);font-size:clamp(13px,3.4vw,16px);}
+.harf-review-name{color:var(--text2);font-size:clamp(10px,2.6vw,12px);}
+.harf-challenge-btn{flex-shrink:0;background:transparent;border:1.5px solid var(--pink);
+  color:var(--pink);border-radius:20px;padding:6px 12px;font-weight:700;
+  font-size:clamp(10px,2.6vw,12px);cursor:pointer;}
+.harf-challenge-btn.active{background:var(--pink);color:#fff;}
+
+/* appeal vote */
+.harf-appeal-cat{color:var(--text2);font-weight:700;font-size:clamp(12px,2vmin,15px);}
+.harf-appeal-letter{font-family:'Fredoka One',sans-serif;color:var(--harf-accent);
+  font-size:clamp(20px,4vmin,30px);}
+.harf-appeal-answer{font-family:'Fredoka One','Lalezar',sans-serif;color:var(--yellow);
+  font-size:clamp(26px,6vmin,48px);}
+.harf-appeal-by{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--text2);}
+.harf-vote-row{display:flex;gap:12px;width:100%;margin-top:1vmin;}
+.harf-vote-btn{flex:1;font-family:'Fredoka One',sans-serif;font-weight:700;
+  border-radius:16px;padding:16px 10px;font-size:clamp(13px,3.6vw,17px);
+  cursor:pointer;box-shadow:0 4px 0 var(--shadow);border:2px solid transparent;
+  transition:transform .1s;}
+.harf-vote-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--shadow);}
+.harf-vote-accept{background:rgba(52,211,153,0.15);border-color:var(--green);color:var(--green);}
+.harf-vote-reject{background:rgba(239,68,68,0.15);border-color:#ef4444;color:#ef4444;}
+.harf-vote-btn.picked{opacity:.6;}
+.harf-vote-btn:disabled{cursor:default;}
+
+.harf-appeal-result.rejected .harf-score-anim{font-family:'Fredoka One',sans-serif;
+  color:var(--text);font-size:clamp(20px,4vmin,30px);margin:.4vmin 0;}
+.harf-appeal-result.stands .harf-fail-label{animation:none;}
+
+/* sudden death + final */
+.harf-tie-row{display:flex;align-items:center;gap:10px;font-weight:700;
+  font-size:clamp(14px,2.4vmin,20px);color:var(--text);}
+.harf-final-champ{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:1vmin;}
+.harf-final-rest{display:flex;flex-direction:column;gap:4px;margin-top:1.2vmin;
+  color:var(--text2);font-weight:600;font-size:clamp(13px,2vmin,16px);}
+
+@media (prefers-reduced-motion: reduce){
+  .harf-answer-stage.shown,.harf-reveal-answer,.harf-fail-label,.harf-letter-btn.picked{animation:none!important;}
+}

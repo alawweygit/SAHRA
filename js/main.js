@@ -10,9 +10,9 @@
     {emoji:'🐺',color:'#94a3b8',label:'Wolf'},{emoji:'🐯',color:'#f59e0b',label:'Tiger'},
     {emoji:'🦈',color:'#0ea5e9',label:'Shark'},
   ];
-  const MODE_MIN = {bluff:3,wyr:3,interrogation:3,diss:3,trivia:2,pinpoint:2,emoji:2,year:2,mostlikely:3,trueorlie:2,flaghunt:2,higherlow:2,'2t1l':3,emojiplace:2,spy:3,blendin:4,busted:3};
-  const MODE_ICONS = {bluff:'🔍',wyr:'⚖️',interrogation:'🔥',diss:'🎤',trivia:'⚡',pinpoint:'📍',emoji:'🧩',year:'⏳',mostlikely:'🏆',trueorlie:'✅',flaghunt:'🚩',higherlow:'📊','2t1l':'🤥',emojiplace:'🌍',spy:'🕵️',blendin:'🎭',busted:'🎯'};
-  const MODE_COLORS = {bluff:'#f472b6',wyr:'#60a5fa',interrogation:'#ff6b35',diss:'#fb923c',trivia:'#facc15',pinpoint:'#22d3ee',emoji:'#e879f9',year:'#fbbf24',mostlikely:'#f43f5e',trueorlie:'#10b981',flaghunt:'#ef4444',higherlow:'#8b5cf6','2t1l':'#f97316',emojiplace:'#06b6d4',spy:'#64748b',blendin:'#a78bfa',busted:'#f43f5e'};
+  const MODE_MIN = {bluff:3,wyr:3,interrogation:3,diss:3,trivia:2,pinpoint:2,emoji:2,year:2,mostlikely:3,trueorlie:2,flaghunt:2,higherlow:2,'2t1l':3,emojiplace:2,spy:3,blendin:4,busted:3,harfhunt:2};
+  const MODE_ICONS = {bluff:'🔍',wyr:'⚖️',interrogation:'🔥',diss:'🎤',trivia:'⚡',pinpoint:'📍',emoji:'🧩',year:'⏳',mostlikely:'🏆',trueorlie:'✅',flaghunt:'🚩',higherlow:'📊','2t1l':'🤥',emojiplace:'🌍',spy:'🕵️',blendin:'🎭',busted:'🎯',harfhunt:'🔤'};
+  const MODE_COLORS = {bluff:'#f472b6',wyr:'#60a5fa',interrogation:'#ff6b35',diss:'#fb923c',trivia:'#facc15',pinpoint:'#22d3ee',emoji:'#e879f9',year:'#fbbf24',mostlikely:'#f43f5e',trueorlie:'#10b981',flaghunt:'#ef4444',higherlow:'#8b5cf6','2t1l':'#f97316',emojiplace:'#06b6d4',spy:'#64748b',blendin:'#a78bfa',busted:'#f43f5e',harfhunt:'#22d3ee'};
   const CAT_INFO = [
     {id:'general',icon:'🎲',name:'General Mix',nameAr:'خلطة عامة'},
     {id:'geography',icon:'🌍',name:'Geography',nameAr:'جغرافيا'},
@@ -1924,6 +1924,11 @@
           if(_isNewPhase1){lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);}
           const _rawSpec=state.spec?{...state.spec}:null;
           if(_rawSpec&&_rawSpec.playerExcludes&&myPid!==undefined&&_rawSpec.playerExcludes[myPid]!==undefined){_rawSpec.excludeId=_rawSpec.playerExcludes[myPid];}
+          // v120 — generic viewer identity for specs that need to hide/adjust
+          // content per-recipient without a full per-player spec broadcast
+          // (e.g. HarfHunt's appeal review hides the CHALLENGE button on a
+          // player's own answer). Harmless no-op for every other spec type.
+          if(_rawSpec&&myPid!==undefined){_rawSpec.viewerPid=myPid;}
           // Map input in phones-only: the shared stage already shows the city name
           // and mode header from the host scene clone — set controlsOnly so the
           // controller shows only the map+button without a duplicate city name card.

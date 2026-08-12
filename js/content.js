@@ -4,6 +4,31 @@
    If unset or the request fails, local packs are used. */
 
 const PACKS = {
+  /* ---- HARFHUNT: category strings only. Deliberately curated, NOT
+     AI-generated (see Content._load — harfhunt is never sent to the AI
+     backend, so it always falls through to this static pool). Broad,
+     social categories with many plausible letters, so a round doesn't die
+     to an unlucky/impossible category. ---- */
+  harfhunt: {
+    en: [
+      'Animals', 'Foods', 'Countries', 'Cities', 'Things in a Kitchen',
+      'Things at School', 'Jobs', 'Sports', 'Clothing', 'Brands',
+      'Famous People', 'Movies', 'Things You Take on Holiday',
+      'Things Found in a Bathroom', 'Things at a Party', 'Things You Can Drink',
+      'Things in a Living Room', 'Things You Find at the Beach',
+      'Things That Are Cold', 'Things in a Garage', 'Music Artists',
+      'Things You Wear on Your Feet', 'Things in a Hospital', 'TV Shows',
+    ],
+    ar: [
+      'حيوانات', 'أكلات', 'دول', 'مدن', 'أشياء في المطبخ',
+      'أشياء في المدرسة', 'وظايف', 'رياضات', 'ملابس', 'ماركات',
+      'مشاهير', 'أفلام', 'أشياء تاخذها بالسفر',
+      'أشياء بالحمام', 'أشياء بالحفلة', 'مشروبات',
+      'أشياء بغرفة الجلوس', 'أشياء تلقاها بالبحر',
+      'أشياء باردة', 'أشياء بالكراج', 'فنانين ومطربين',
+      'أشياء تلبسها بالرجل', 'أشياء بالمستشفى', 'مسلسلات',
+    ],
+  },
   /* ---- BLUFF BANQUET: { fact: text with ___ , truth } ---- */
   bluff: {
     en: [

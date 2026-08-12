@@ -252,6 +252,20 @@ const Host = (() => {
               botVal = fakes[Math.floor(Math.random() * fakes.length)];
             } else if (spec.type === 'number') {
               botVal = String(Math.floor(Math.random() * 9000) + 1000);
+            } else if (spec.type === 'harfturn') {
+              // Bot turn: grab any available letter and a short filler word —
+              // it only needs to survive validation often enough not to stall
+              // testing; real polish isn't the point for a bot player.
+              const opts = Array.isArray(spec.letters) ? spec.letters : [];
+              const L = opts.length ? opts[Math.floor(Math.random() * opts.length)] : 'A';
+              const fillers = LANG === 'ar'
+                ? { ا:'اكل', ب:'بيت', ت:'تفاح', ج:'جبل', د:'دجاج', ر:'رز', ز:'زيت', س:'سيارة', ش:'شمس', ص:'صابون', ط:'طائرة', ع:'عصير', غ:'غيمة', ف:'فيل', ق:'قطة', ك:'كتاب', ل:'ليمون', م:'ماء', ن:'نجمة', ه:'هاتف', و:'وردة', ي:'يد' }
+                : { A:'Apple', B:'Banana', C:'Chair', D:'Dog', E:'Elephant', F:'Fork', G:'Grape', H:'Hat', I:'Igloo', J:'Jacket', K:'Kite', L:'Lamp', M:'Mango', N:'Nest', O:'Onion', P:'Pizza', R:'Rabbit', S:'Sun', T:'Table', U:'Umbrella', V:'Van', W:'Water', Y:'Yogurt' };
+              botVal = JSON.stringify({ letter: L, answer: fillers[L] || (LANG==='ar'?'شي':'Thing') });
+            } else if (spec.type === 'harfreview') {
+              botVal = JSON.stringify([]); // bots never initiate a challenge
+            } else if (spec.type === 'harfvote') {
+              botVal = Math.random() < 0.8 ? 'accept' : 'reject';
             } else if (spec.type === 'multitext') {
               // v104 — multitext was added in v102 but never taught to the
               // bots, so bot players submitted nothing and every statement
@@ -3006,6 +3020,362 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
   // This shows just the Play Again / Play Another Game buttons, since the
   // actual "results" for a scoreless mode already happened on Blend In's
   // own reveal (who voted for whom, caught or not).
+  /* ================================================================
+     MODE — HARFHUNT (category + letters pressure game)
+     Design: docs/ali-harfhunt-spec (v120). Turn-based, one authoritative
+     timer per turn, single failure ends the round, appeal/vote system lets
+     the group overturn provisionally-accepted answers after the round ends.
+  ================================================================ */
+  const HARF_TURN_SECONDS = 12;
+  const HARF_PENALTY = 100;
+  const HARF_MIN_ROUNDS = 5;
+  const HARF_MAX_ROUNDS = 8;
+  // Q/X/Z (and Arabic's rarest word-starters) excluded — see Ali's spec:
+  // "remove hard letters" so a round doesn't die to an unwinnable letter.
+  const HARF_LETTERS_EN = 'ABCDEFGHIJKLMNOPRSTUVWY'.split('');
+  const HARF_LETTERS_AR = 'ابتجحدرزسشصطعغفقكلمنهوي'.split('');
+  const harfLetters = () => (LANG === 'ar' ? HARF_LETTERS_AR : HARF_LETTERS_EN).slice();
+
+  // AI validation — deterministic structured verdict from the backend
+  // (see backend/server.js: /api/harfhunt-validate). ANY failure — timeout,
+  // network error, non-200 — resolves to 'uncertain' rather than 'invalid'.
+  // This is deliberate: an infrastructure hiccup must never read as a player
+  // mistake (spec section 63). 'uncertain' is accepted provisionally; the
+  // group's own appeal/vote system is what settles genuinely borderline
+  // answers, not an over-eager validator.
+  async function validateHarfAnswer(category, letter, answer) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch('https://hypox-ai-backend-production.up.railway.app/api/harfhunt-validate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category, letter, answer, lang: LANG }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) return 'uncertain';
+      const data = await res.json();
+      return ['valid', 'invalid', 'uncertain'].includes(data?.result) ? data.result : 'uncertain';
+    } catch (e) {
+      return 'uncertain';
+    }
+  }
+
+  function harfLetterGrid(available, activeLetter) {
+    const all = harfLetters();
+    return `<div class="harf-tv-grid">${all.map(L => {
+      const used = !available.includes(L);
+      const active = L === activeLetter;
+      return `<div class="harf-tv-letter${used ? ' used' : ''}${active ? ' active' : ''}">${L}</div>`;
+    }).join('')}</div>`;
+  }
+
+  function harfTurnScene(category, currentP, available, history) {
+    return `
+      <div class="harf-stage">
+        <div class="eyebrow">🔤 ${LANG === 'ar' ? 'هارف هنت' : 'HARFHUNT'}</div>
+        <div class="harf-category display">${esc(category)}</div>
+        <div class="harf-turn-who">
+          ${avatarHTML(currentP, 'avatar')}
+          <div class="harf-turn-name">${esc(currentP.name)} ${LANG === 'ar' ? 'دورها' : "'s turn"}</div>
+        </div>
+        ${harfLetterGrid(available)}
+        ${history.length ? `<div class="harf-history">${history.slice(-4).map(h =>
+          `<span class="harf-history-chip"><b>${esc(h.letter)}</b> ${esc(h.answer)}</span>`).join('')}</div>` : ''}
+      </div>`;
+  }
+
+  function harfRevealScene(letter, answer, p) {
+    return `
+      <div class="harf-reveal">
+        <div class="harf-reveal-letter">${esc(letter)}</div>
+        <div class="harf-reveal-answer display">${esc(answer.toUpperCase())}</div>
+        <div class="harf-reveal-by">${avatarHTML(p, 'avatar')}<span>${esc(p.name)}</span></div>
+      </div>`;
+  }
+
+  function harfFailScene(p, beforeScore, reason) {
+    const label = reason === 'timeout' ? (LANG === 'ar' ? "خلص الوقت" : "TIME'S UP")
+      : reason === 'invalid' ? (LANG === 'ar' ? 'جواب غلط' : 'INVALID ANSWER')
+      : (LANG === 'ar' ? 'حرف غلط' : 'WRONG LETTER');
+    return `
+      <div class="harf-fail">
+        <div class="harf-fail-label">${label}</div>
+        ${avatarHTML(p, 'avatar')}
+        <div class="harf-fail-name">${esc(p.name)}</div>
+        <div class="harf-fail-penalty">−${HARF_PENALTY}</div>
+        <div class="harf-fail-roundover">${LANG === 'ar' ? 'خلصت الجولة' : 'ROUND OVER'}</div>
+      </div>`;
+  }
+
+  /* Runs ONE round's turn loop for a given player order + fresh letters.
+     Shared by both normal rounds and sudden-death rounds. Returns
+     { failure, roundAnswers, usedAllLetters }. */
+  async function runHarfTurnLoop(category, order, answerSeqRef) {
+    let available = harfLetters();
+    const roundAnswers = [];
+    let failure = null;
+    let turnIdx = 0;
+
+    while (true) {
+      if (available.length === 0) return { failure: null, roundAnswers, usedAllLetters: true };
+      const currentP = order[turnIdx % order.length];
+      turnIdx++;
+
+      await FX.wipe();
+      scene(harfTurnScene(category, currentP, available, roundAnswers));
+      pushMirror({ headline: category, sub: `${currentP.name} ${LANG === 'ar' ? 'دورها' : "'s turn"}` });
+      Audio_.sfx.tick();
+      net.setState({
+        phase: 'harf-turn', category, currentPid: currentP.pid, available: available.slice(),
+        history: roundAnswers.map(a => ({ letter: a.letter, answer: a.answer, name: safeP(a.pid).name })),
+      });
+
+      const spec = { type: 'harfturn', title: LANG === 'ar' ? 'دورك' : 'YOUR TURN', context: category, letters: available.slice() };
+      const inputs = await collectWithTimer(spec, [currentP.pid], HARF_TURN_SECONDS);
+      const raw = val(inputs, currentP.pid);
+
+      let letter = null, answerText = '';
+      if (raw) {
+        try { const parsed = JSON.parse(raw); letter = parsed.letter; answerText = String(parsed.answer || '').trim(); }
+        catch (e) { /* malformed payload treated as no-answer below */ }
+      }
+
+      // Deterministic checks first (spec section 10): non-empty, letter still
+      // valid this exact turn, submitted answer actually starts with it.
+      if (!raw || !letter || !answerText) return { failure: { pid: currentP.pid, reason: 'timeout' }, roundAnswers, usedAllLetters: false };
+      if (!available.includes(letter)) return { failure: { pid: currentP.pid, reason: 'wrongletter' }, roundAnswers, usedAllLetters: false };
+      const upAnswer = answerText.normalize('NFKC');
+      const startsRight = LANG === 'ar' ? upAnswer.startsWith(letter) : upAnswer.toUpperCase().startsWith(letter.toUpperCase());
+      if (!startsRight) return { failure: { pid: currentP.pid, reason: 'wrongletter' }, roundAnswers, usedAllLetters: false };
+
+      net.setState({ phase: 'validating', category });
+      pushMirror({ headline: LANG === 'ar' ? '...نتأكد' : 'CHECKING...' });
+      const verdict = await validateHarfAnswer(category, letter, answerText);
+      if (verdict === 'invalid') return { failure: { pid: currentP.pid, reason: 'invalid' }, roundAnswers, usedAllLetters: false };
+
+      // valid or uncertain — accept (provisionally, if uncertain)
+      available = available.filter(L => L !== letter);
+      answerSeqRef.n++;
+      roundAnswers.push({ answerId: 'a' + answerSeqRef.n, pid: currentP.pid, letter, answer: answerText, order: roundAnswers.length });
+      Audio_.sfx.correct();
+      FX.burst(40);
+      scene(harfRevealScene(letter, answerText, currentP));
+      pushMirror({ headline: `${letter} — ${answerText}`, sub: currentP.name });
+      net.setState({ phase: 'answerReveal', category, letter, answer: answerText, pid: currentP.pid });
+      await sleep(1100);
+    }
+  }
+
+  /* Appeal review + vote. No countdown anywhere in this phase (Ali's spec is
+     explicit: "THERE IS NO APPEAL COUNTDOWN TIMER"). collectWithTimer still
+     needs a numeric seconds value for its deadline bookkeeping, so a large
+     one is used purely as a safety ceiling — normal play always resolves via
+     everyone pressing Done/voting, never via that ceiling expiring. */
+  async function runHarfAppeals(roundAnswers, category, allPids) {
+    if (!roundAnswers.length) return;
+    const reviewAnswers = roundAnswers.map(a => ({ id: a.answerId, letter: a.letter, answer: a.answer, pid: a.pid, name: safeP(a.pid).name }));
+
+    await FX.wipe();
+    scene(`
+      <div class="harf-review-tv">
+        <div class="eyebrow">${LANG === 'ar' ? 'راجعوا الجولة' : 'REVIEW THIS ROUND'}</div>
+        <div class="harf-review-tv-list">
+          ${reviewAnswers.map(a => `<div class="harf-review-tv-card"><b>${esc(a.letter)}</b> — ${esc(a.answer)} <span>${esc(a.name)}</span></div>`).join('')}
+        </div>
+      </div>`);
+    net.setState({ phase: 'appealReview', category, answers: reviewAnswers });
+
+    const flags = await collectWithTimer({ type: 'harfreview', answers: reviewAnswers }, allPids, 3600);
+    const challengeCounts = new Map();
+    for (const pid of allPids) {
+      const raw = val(flags, pid);
+      let ids = [];
+      try { ids = raw ? JSON.parse(raw) : []; } catch (e) { ids = []; }
+      for (const id of ids) challengeCounts.set(id, (challengeCounts.get(id) || 0) + 1);
+    }
+    const challengedIds = roundAnswers.filter(a => challengeCounts.has(a.answerId)).map(a => a.answerId);
+    if (!challengedIds.length) return; // v120 — nobody flagged anything, straight to next round
+
+    for (let i = 0; i < challengedIds.length; i++) {
+      const a = roundAnswers.find(x => x.answerId === challengedIds[i]);
+      if (!a) continue;
+      const answerer = safeP(a.pid);
+      const eligibleVoters = allPids.filter(pid => pid !== a.pid);
+
+      await FX.wipe();
+      setPill(`${LANG === 'ar' ? 'اعتراض' : 'APPEAL'} ${i + 1} ${t('of')} ${challengedIds.length}`);
+      scene(`
+        <div class="harf-appeal">
+          <div class="eyebrow">${LANG === 'ar' ? 'الجواب اتعارض عليه' : 'ANSWER CHALLENGED'}</div>
+          <div class="harf-appeal-cat">${esc(category)}</div>
+          <div class="harf-appeal-letter">${esc(a.letter)}</div>
+          <div class="harf-appeal-answer display">${esc(a.answer.toUpperCase())}</div>
+          <div class="harf-appeal-by">${avatarHTML(answerer, 'avatar')}<span>${esc(answerer.name)}</span></div>
+          <div class="pick-sub">${LANG === 'ar' ? 'هل الجواب صح؟' : 'Does this answer count?'}</div>
+        </div>`);
+      pushMirror({ headline: LANG === 'ar' ? 'الجواب اتعارض عليه' : 'ANSWER CHALLENGED', sub: `${a.letter} — ${a.answer}` });
+      net.setState({ phase: 'appealVote', category, answerId: a.answerId, letter: a.letter, answer: a.answer, pid: a.pid, eligibleVoters });
+
+      const votes = await collectWithTimer({ type: 'harfvote' }, eligibleVoters, 3600);
+      let accept = 0, reject = 0;
+      for (const pid of eligibleVoters) {
+        const v = val(votes, pid);
+        if (v === 'reject') reject++; else if (v === 'accept') accept++;
+      }
+      const rejected = reject > accept; // tie = stands, per spec section 23
+
+      await sleep(400);
+      if (rejected) {
+        const before = answerer.score;
+        addScore(a.pid, -HARF_PENALTY);
+        Audio_.sfx.buzzer();
+        scene(`
+          <div class="harf-appeal-result rejected">
+            <div class="harf-fail-label">${LANG === 'ar' ? 'رفض' : 'REJECTED'}</div>
+            ${avatarHTML(answerer, 'avatar')}
+            <div class="harf-fail-name">${esc(answerer.name)}</div>
+            <div class="harf-score-anim">${before} → ${before - HARF_PENALTY}</div>
+            <div class="harf-fail-penalty">−${HARF_PENALTY}</div>
+          </div>`);
+      } else {
+        Audio_.sfx.correct();
+        scene(`
+          <div class="harf-appeal-result stands">
+            <div class="harf-fail-label" style="color:var(--green,#34d399)">${LANG === 'ar' ? 'الجواب صح' : 'ANSWER STANDS'}</div>
+          </div>`);
+      }
+      net.setState({ phase: 'appealResult', answerId: a.answerId, rejected });
+      await sleep(1500);
+    }
+  }
+
+  /* Sudden death: fresh round, only tied players, no scoring — first
+     failure removes that player from the tie-break; repeat until one
+     remains. Spec section 55: "Do not deduct normal game score during
+     sudden death. The tie-break determines the winner." */
+  async function runHarfSuddenDeath(tiedPids, usedCategories, answerSeqRef) {
+    let contenders = tiedPids.slice();
+    while (contenders.length > 1) {
+      const pool = (await Content.get('harfhunt', LANG, HARF_MAX_ROUNDS)).filter(c => !usedCategories.has(c));
+      const category = (pool[0] || (await Content.get('harfhunt', LANG, 1))[0] || (LANG === 'ar' ? 'حيوانات' : 'Animals'));
+      usedCategories.add(category);
+      const order = shuffle(contenders.map(pid => safeP(pid)));
+
+      await FX.wipe();
+      scene(`
+        <div class="harf-sudden-intro">
+          <div class="eyebrow">⚡ ${LANG === 'ar' ? 'موت مفاجئ' : 'SUDDEN DEATH'}</div>
+          <div class="mode-title display">${esc(category)}</div>
+        </div>`);
+      Audio_.sfx.versus();
+      net.setState({ phase: 'suddenDeath', category, contenders });
+      await sleep(1600);
+
+      const { failure } = await runHarfTurnLoop(category, order, answerSeqRef);
+      if (!failure) { contenders = contenders.slice(0, 1); break; } // exhausted letters with 2 left — treat as no clear loser, stop safely
+      const p = safeP(failure.pid);
+      Audio_.sfx.buzzer(); FX.shake();
+      scene(harfFailScene(p, p.score, failure.reason));
+      await sleep(1400);
+      contenders = contenders.filter(pid => pid !== failure.pid);
+    }
+    return contenders[0];
+  }
+
+  async function harfFinalResults(usedCategories, answerSeqRef) {
+    const sorted = players.slice().sort((a, b) => b.score - a.score);
+    const topScore = sorted[0]?.score;
+    const tied = sorted.filter(p => p.score === topScore).map(p => p.pid);
+
+    let championPid = tied[0];
+    if (tied.length > 1) {
+      await FX.wipe();
+      scene(`
+        <div class="harf-tie">
+          <div class="eyebrow display">${LANG === 'ar' ? 'تعادل' : 'TIE'}</div>
+          ${tied.map(pid => { const p = safeP(pid); return `<div class="harf-tie-row">${avatarHTML(p, 'avatar')}<span>${esc(p.name)} — ${p.score}</span></div>`; }).join('')}
+        </div>`);
+      await sleep(1800);
+      championPid = await runHarfSuddenDeath(tied, usedCategories, answerSeqRef);
+    }
+
+    await showScores(true);
+    const champion = safeP(championPid);
+    Audio_.sfx.crown(); Audio_.sfx.fanfare(); FX.burst(220, true);
+    scene(`
+      <div class="harf-final">
+        <div class="eyebrow">🏆 ${LANG === 'ar' ? 'بطل هارف هنت' : 'HARFHUNT CHAMPION'}</div>
+        <div class="harf-final-champ">${avatarHTML(champion, 'avatar')}<div class="mode-title display">${esc(champion.name)} — ${champion.score}</div></div>
+        <div class="harf-final-rest">
+          ${sorted.filter(p => p.pid !== championPid).map(p => `<div class="harf-final-row">${esc(p.name)} — ${p.score}</div>`).join('')}
+        </div>
+      </div>`);
+    net.setState({ phase: 'finalResults', championPid, standings: sorted.map(p => ({ pid: p.pid, name: p.name, score: p.score })) });
+    await waitNext();
+  }
+
+  async function playHarfhunt() {
+    await modeTitleCard('harfhunt');
+    const roundCount = Math.max(HARF_MIN_ROUNDS, Math.min(HARF_MAX_ROUNDS, players.length));
+    const startScore = roundCount * 100;
+    players.forEach(p => { p.score = startScore; net.updateScore(p.pid, startScore); });
+
+    const categories = await Content.get('harfhunt', LANG, roundCount);
+    if (!categories.length) {
+      scene(`<div class="prompt-card display">🔤 ${LANG === 'ar' ? 'تعذّر تحميل الفئات' : 'Could not load categories'}</div>`);
+      await waitNext(5); return;
+    }
+    const usedCategories = new Set(categories);
+    const answerSeqRef = { n: 0 };
+
+    for (let roundNum = 1; roundNum <= roundCount; roundNum++) {
+      const category = categories[roundNum - 1];
+      const order = shuffle(players.slice());
+
+      await FX.wipe();
+      setPill(`${LANG === 'ar' ? 'الجولة' : 'ROUND'} ${roundNum} ${t('of')} ${roundCount}`);
+      scene(`
+        <div class="harf-round-intro">
+          <div class="eyebrow">🔤 HARFHUNT</div>
+          <div class="mode-title display">${esc(category)}</div>
+          <div class="harf-order-strip">${order.map(p => avatarHTML(p, 'avatar')).join('')}</div>
+        </div>`);
+      pushMirror({ headline: category, sub: LANG === 'ar' ? `الجولة ${roundNum}` : `Round ${roundNum}` });
+      Audio_.sfx.whoosh();
+      net.setState({ phase: 'roundIntro', round: roundNum, roundCount, category, order: order.map(p => p.pid) });
+      await sleep(1800);
+
+      const { failure, roundAnswers, usedAllLetters } = await runHarfTurnLoop(category, order, answerSeqRef);
+
+      if (failure) {
+        const p = safeP(failure.pid);
+        const before = p.score;
+        addScore(failure.pid, -HARF_PENALTY);
+        Audio_.sfx.buzzer(); FX.shake();
+        scene(harfFailScene(p, before, failure.reason));
+        net.setState({ phase: 'roundFailed', round: roundNum, pid: failure.pid, reason: failure.reason });
+        await sleep(1600);
+      } else if (usedAllLetters) {
+        Audio_.sfx.fanfare(); FX.burst(160, true);
+        scene(`
+          <div style="text-align:center;padding:4vmin 2vmin">
+            <div style="font-size:clamp(40px,8vmin,64px)">🏆</div>
+            <div class="lobby-title display">${LANG === 'ar' ? 'جولة مثالية!' : 'PERFECT ROUND!'}</div>
+            <div class="pick-sub">${LANG === 'ar' ? 'محد غلط — كل الحروف انستخدمت' : 'Nobody failed — every letter got used'}</div>
+          </div>`);
+        net.setState({ phase: 'roundFailed', round: roundNum, perfect: true });
+        await sleep(1800);
+      }
+
+      await runHarfAppeals(roundAnswers, category, players.map(p => p.pid));
+
+      if (roundNum < roundCount) await showScores();
+    }
+
+    await harfFinalResults(usedCategories, answerSeqRef);
+  }
+
   const SCORELESS_MODES = new Set(['blendin']);
 
   async function scorelessEndScreen() {
@@ -3048,7 +3418,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     });
   }
 
-  const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz, pinpoint: playPinpoint, emoji: playEmoji, year: playYear, mostlikely: playMostlikely, trueorlie: playTrueorlie, flaghunt: playFlaghunt, higherlow: playHigherlow, '2t1l': play2t1l, emojiplace: playEmojiplace, spy: playSpy, blendin: playBlendIn, busted: playBusted };
+  const MODES = { bluff: playBluff, wyr: playWyr, interrogation: playInterrogation, diss: playDiss, quiz: playQuiz, trivia: playQuiz, pinpoint: playPinpoint, emoji: playEmoji, year: playYear, mostlikely: playMostlikely, trueorlie: playTrueorlie, flaghunt: playFlaghunt, higherlow: playHigherlow, '2t1l': play2t1l, emojiplace: playEmojiplace, spy: playSpy, blendin: playBlendIn, busted: playBusted, harfhunt: playHarfhunt };
 
   async function run(netInstance, playerList, mode) {
     net = netInstance;

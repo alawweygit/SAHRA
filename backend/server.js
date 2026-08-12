@@ -204,6 +204,40 @@ app.post('/api/translate', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+// HarfHunt answer validation — deterministic, structured, low-latency.
+// Deliberately biased toward NOT punishing borderline answers: the game's
+// own appeal/vote system exists precisely so humans settle subjective calls.
+// This endpoint only needs to catch answers that are clearly wrong; anything
+// even slightly debatable should come back 'uncertain' and be accepted
+// provisionally. A technical failure here must NEVER read as a game failure
+// — the caller (host.js) treats any error/timeout as 'uncertain' too.
+app.post('/api/harfhunt-validate', async (req, res) => {
+  try {
+    const { category, letter, answer, lang = 'en' } = req.body || {};
+    if (!category || !letter || !answer) return res.status(400).json({ result: 'uncertain' });
+    const msg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 20,
+      temperature: 0,
+      messages: [{ role: 'user', content:
+        `Party game "HarfHunt". Category: "${category}". Required starting letter: "${letter}". ` +
+        `Player answer: "${answer}" (language: ${lang}).\n` +
+        `Judge ONLY: does the answer plausibly belong to the category AND does it genuinely start with "${letter}" ` +
+        `(after trimming whitespace, case-insensitive)? Be lenient on category fit — if a reasonable person ` +
+        `at a party could argue it fits, it fits. Only mark invalid if it is CLEARLY wrong (wrong starting ` +
+        `letter, nonsense text, or plainly unrelated to the category). If you are at all unsure, say uncertain.\n` +
+        `Reply with EXACTLY one word, nothing else: valid, invalid, or uncertain.`
+      }],
+    });
+    const text = msg.content.filter(b => b.type === 'text').map(b => b.text).join('').trim().toLowerCase();
+    const result = ['valid', 'invalid', 'uncertain'].includes(text) ? text : 'uncertain';
+    res.json({ result });
+  } catch (e) {
+    console.error('harfhunt-validate error:', e.message);
+    res.json({ result: 'uncertain' }); // infra failure — never penalize the player for it
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('HYPOX backend port ' + PORT));
 
