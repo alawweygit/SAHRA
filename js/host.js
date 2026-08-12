@@ -2618,6 +2618,15 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
   async function playBusted() {
     await modeTitleCard('busted');
     const numRounds = window.HYPOX_STATE?.rounds || 3;
+    // v123 — scoring constants for the "how well do you know them" redesign.
+    // Exact-match bonus set to 500 (matching the correct-voter bonus) as a
+    // reasonable default — Ali said to finish the build and settle scoring
+    // after, so this is a starting number, easy to retune from one place.
+    const CORRECT_VOTER_BONUS = 500;   // each voter who correctly picks the truth
+    const SUBJECT_PER_VOTER_BONUS = 500; // subject earns this × correct-voter count
+    const FOOLER_BONUS_PER_VOTE = 250; // guess-writer earns this per vote their guess wrongly got
+    const EXACT_MATCH_BONUS = 500;     // flat, to anyone whose guess is word-for-word the truth
+
     let prompts = [];
     try { prompts = (await Content.get('busted', LANG, numRounds) || []).filter(x => x && x.q && x.other); }
     catch (e) { console.error('[HYPOX] busted content failed:', e.message); }
@@ -2629,9 +2638,14 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       const P = prompts[r % prompts.length];
       const subject = seatPool[r % seatPool.length];
       const others = players.filter(p => p.pid !== subject.pid).map(p => p.pid);
-      if (!others.length) continue; // need at least one liar
+      if (!others.length) continue; // need at least one guesser
 
-      /* ---- PHASE 1: the subject answers privately ---- */
+      const promptText = P.other.replace('{name}', subject.name);
+
+      /* ---- Intro card — deliberately does NOT repeat the question text
+         (that's what caused the duplicate box on phones-only screens: the
+         mirrored TV scene and the controller's own spec.context both
+         showed the same string). Shows the subject + flavor line instead. */
       await FX.wipe();
       setPill(`${t('round')} ${r + 1} ${t('of')} ${numRounds}`);
       scene(`
@@ -2642,53 +2656,43 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
             <div style="position:absolute;inset:-4px;border-radius:50%;border:3px solid ${subject.color};animation:wyrRingPulse 1.5s ease-in-out infinite"></div>
           </div>
           <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(28px,5.6vmin,56px);color:var(--text);animation:fadeSlideUp 0.5s 0.6s both;line-height:1.15">${esc(subject.name)}</div>
-          <div class="pick-sub">${LANG==='ar'?'يجاوب بصراحة على جواله… والباقي ينتظر':'is answering honestly — everyone else, no peeking'}</div>
-          <div id="statusRow" class="status-row"></div>
+          <div class="pick-sub">${LANG==='ar'?'شكثر تعرفونه؟':'How well does everyone know them?'}</div>
         </div>`);
-      pushMirror({ headline: LANG==='ar'?`دور ${subject.name}`:`${subject.name}'s turn` });
+      pushMirror({ headline: LANG==='ar'?`دور ${subject.name}`:`${subject.name}'s round` });
       Audio_.sfx.sting();
 
-      const truthIn = await collectWithTimer({
+      /* ---- Everyone writes AT ONCE — subject answers honestly, everyone
+         else guesses what the subject wrote. One collect call, per-player
+         title/context via playerTitles/playerContexts (see main.js) so
+         nobody waits on anybody else. */
+      const allPids = [subject.pid, ...others];
+      const spec = {
         type: 'text',
-        title: LANG==='ar' ? 'جاوب بصراحة' : 'Answer honestly',
-        context: P.q,
-        maxLen: 30,
-        seconds: 45,
-        keepHostContext: true,
-        fullscreenInput: true,
-      }, [subject.pid], 45);
-
-      const truthUp = ((val(truthIn, subject.pid) || '').trim().toUpperCase().slice(0, 60)) || (LANG==='ar' ? 'ما جاوب' : 'NO ANSWER');
-      const promptText = P.other.replace('{name}', subject.name);
-
-      /* ---- PHASE 2: everyone else writes a lie about them ---- */
-      await FX.wipe();
-      scene(frameWithTimer(
-        `<div class="prompt-card display">${esc(promptText)}</div>`,
-        LANG==='ar' ? `اكتب كذبة تشبه ${esc(subject.name)}` : `Write a lie that sounds like ${esc(subject.name)}`));
-      hostSay('prompt');
-
-      const lieIn = await collectWithTimer({
-        type: 'text',
-        title: LANG==='ar' ? 'اكتب كذبتك' : 'Write your lie',
+        title: LANG==='ar' ? 'خمن جوابهم' : 'Guess their answer',
         context: promptText,
         maxLen: 30,
-        enforceUnique: true,
-      }, others, 60);
+        fullscreenInput: true,
+        playerTitles: { [subject.pid]: LANG==='ar' ? 'جاوب بصراحة' : 'Answer honestly' },
+        playerContexts: { [subject.pid]: P.q },
+      };
+      const allInputs = await collectWithTimer(spec, allPids, 45);
 
-      /* ---- Build answer set (same shape playBluff uses) ---- */
+      const truthUp = ((val(allInputs, subject.pid) || '').trim().toUpperCase().slice(0, 60)) || (LANG==='ar' ? 'ما جاوب' : 'NO ANSWER');
+
+      /* ---- Build answer set: guesses that exactly match the truth merge
+         into the truth card (writers list) exactly like Bluff does. ---- */
       const seen = new Set([truthUp]);
-      const lies = [];
+      const guesses = [];
       const truthWriters = [];
       for (const pid of others) {
-        const v = (val(lieIn, pid) || '').trim().toUpperCase().slice(0, 60);
+        const v = (val(allInputs, pid) || '').trim().toUpperCase().slice(0, 60);
         if (!v) continue;
         if (v === truthUp) { truthWriters.push(pid); }
-        else if (!seen.has(v)) { seen.add(v); lies.push({ text: v, by: pid }); }
+        else if (!seen.has(v)) { seen.add(v); guesses.push({ text: v, by: pid }); }
       }
-      const answers = shuffle([{ text: truthUp, truth: true, writers: truthWriters }, ...lies]);
+      const answers = shuffle([{ text: truthUp, truth: true, writers: truthWriters }, ...guesses]);
 
-      /* ---- PHASE 3: vote (subject excluded — they know the answer) ---- */
+      /* ---- Vote (subject excluded — they already know the answer) ---- */
       await FX.wipe();
       setPill(t('vote_title'));
       scene(`
@@ -2720,6 +2724,8 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         playerExcludes: _exclude,
       }, others, 30);
 
+      // voter-strip: shows exactly who voted for each card (avatars land on
+      // the card during reveal) — this already answers "who voted for who".
       const votesByCard = answers.map(() => []);
       for (const pid of others) {
         const v = val(votes, pid);
@@ -2741,7 +2747,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       await sleep(500);
       hideHost();
 
-      /* ---- PHASE 4: reveal lies, then the truth ---- */
+      /* ---- Reveal wrong guesses, then the truth ---- */
       for (let i = 0; i < answers.length; i++) {
         const a = answers[i];
         if (a.truth) continue;
@@ -2753,10 +2759,12 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         card.classList.add('flipped');
         await sleep(400);
         Audio_.sfx.buzzer(); card.classList.add('shake'); FX.shake(); FX.burstAt(card, 26);
+        // Fooler bonus — this guess got mistaken for the truth.
         const fooled = votesByCard[i].length;
         if (fooled && author) {
-          addScore(a.by, fooled * 500);
-          FX.flyPoints(card, `+${fooled * 500} ${author.name}`);
+          const bonus = fooled * FOOLER_BONUS_PER_VOTE;
+          addScore(a.by, bonus);
+          FX.flyPoints(card, `+${bonus} ${author.name}`);
         }
         await sleep(850);
       }
@@ -2770,14 +2778,26 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         await sleep(350);
         Audio_.sfx.reveal(); FX.shake(); FX.burst(150); FX.burstAt(tCard, 40);
       }
-      const allWinners = [...new Set([...votesByCard[ti], ...(answers[ti].writers || [])])];
-      allWinners.forEach(pid => addScore(pid, 1000));
-      if (allWinners.length && tCard) {
-        const names = allWinners.map(pid => safeP(pid)?.name).filter(Boolean).join(' & ');
-        FX.flyPoints(tCard, `+1000 ${names}`);
+
+      // Exact-match bonus — flat, regardless of votes.
+      const truthAns = answers[ti];
+      (truthAns.writers || []).forEach(pid => addScore(pid, EXACT_MATCH_BONUS));
+      if (truthAns.writers?.length && tCard) {
+        const names = truthAns.writers.map(pid => safeP(pid)?.name).filter(Boolean).join(' & ');
+        FX.flyPoints(tCard, `+${EXACT_MATCH_BONUS} ${names}`);
+        await sleep(500);
       }
-      // Nobody fooled = the subject is genuinely unreadable; worth a callout.
-      if (!allWinners.length) {
+
+      // Correct-voter bonus + subject's per-voter bonus.
+      const correctVoters = votesByCard[ti];
+      correctVoters.forEach(pid => addScore(pid, CORRECT_VOTER_BONUS));
+      if (correctVoters.length) {
+        const voterNames = correctVoters.map(pid => safeP(pid)?.name).filter(Boolean).join(' & ');
+        if (tCard) FX.flyPoints(tCard, `+${CORRECT_VOTER_BONUS} ${voterNames}`);
+        await sleep(500);
+        addScore(subject.pid, SUBJECT_PER_VOTER_BONUS * correctVoters.length);
+        if (tCard) FX.flyPoints(tCard, `+${SUBJECT_PER_VOTER_BONUS * correctVoters.length} ${subject.name}`);
+      } else if (!truthAns.writers?.length) {
         await sleep(400);
         await say(LANG === 'ar' ? `😱 محد عرف ${subject.name}!` : `😱 Nobody knows ${subject.name} at all!`, { speed: 35 });
         hideHost();

@@ -1955,6 +1955,13 @@
           // (e.g. HarfHunt's appeal review hides the CHALLENGE button on a
           // player's own answer). Harmless no-op for every other spec type.
           if(_rawSpec&&myPid!==undefined){_rawSpec.viewerPid=myPid;}
+          // v123 — per-player title/context override, used by Busted so the
+          // subject and everyone else can answer SIMULTANEOUSLY in one
+          // collect call with different prompts each (subject: "answer
+          // honestly", everyone else: "guess their answer"), instead of the
+          // old sequential subject-then-others flow.
+          if(_rawSpec&&_rawSpec.playerTitles&&myPid!==undefined&&_rawSpec.playerTitles[myPid]!==undefined){_rawSpec.title=_rawSpec.playerTitles[myPid];}
+          if(_rawSpec&&_rawSpec.playerContexts&&myPid!==undefined&&_rawSpec.playerContexts[myPid]!==undefined){_rawSpec.context=_rawSpec.playerContexts[myPid];}
           // Map input in phones-only: the shared stage already shows the city name
           // and mode header from the host scene clone — set controlsOnly so the
           // controller shows only the map+button without a duplicate city name card.
