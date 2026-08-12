@@ -2625,7 +2625,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     const CORRECT_VOTER_BONUS = 500;   // each voter who correctly picks the truth
     const SUBJECT_PER_VOTER_BONUS = 500; // subject earns this × correct-voter count
     const FOOLER_BONUS_PER_VOTE = 250; // guess-writer earns this per vote their guess wrongly got
-    const EXACT_MATCH_BONUS = 500;     // flat, to anyone whose guess is word-for-word the truth
+    const EXACT_MATCH_BONUS = 250;     // flat, to anyone whose guess is word-for-word the truth — same weight as the fooler bonus, per Ali
 
     let prompts = [];
     try { prompts = (await Content.get('busted', LANG, numRounds) || []).filter(x => x && x.q && x.other); }
