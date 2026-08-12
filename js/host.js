@@ -3044,6 +3044,11 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
   // group's own appeal/vote system is what settles genuinely borderline
   // answers, not an over-eager validator.
   async function validateHarfAnswer(category, letter, answer) {
+    // Lobby toggle (next to Add Bot) lets Ali turn AI validation off entirely
+    // for a session — every answer then goes straight to 'uncertain', which
+    // means it's accepted provisionally and settled purely by the group's
+    // own appeal/vote system if anyone disputes it.
+    if (window.HYPOX_STATE && window.HYPOX_STATE.harfAI === false) return 'uncertain';
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
@@ -3053,10 +3058,13 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
-      if (!res.ok) return 'uncertain';
+      if (!res.ok) { console.warn('[HarfHunt AI] backend responded but not OK:', res.status); return 'uncertain'; }
       const data = await res.json();
-      return ['valid', 'invalid', 'uncertain'].includes(data?.result) ? data.result : 'uncertain';
+      const result = ['valid', 'invalid', 'uncertain'].includes(data?.result) ? data.result : 'uncertain';
+      console.log('[HarfHunt AI] verdict:', result, '(category:', category, 'letter:', letter, 'answer:', answer + ')');
+      return result;
     } catch (e) {
+      console.warn('[HarfHunt AI] call failed — treating as uncertain (this is intentional, not a bug):', e.message);
       return 'uncertain';
     }
   }

@@ -23,7 +23,7 @@
     {id:'football',icon:'⚽',name:'Football',nameAr:'كرة القدم'},
   ];
 
-  window.HYPOX_STATE = window.HYPOX_STATE || {region:null,rounds:5,category:'general',flavor:'global',autoplay:false};
+  window.HYPOX_STATE = window.HYPOX_STATE || {region:null,rounds:5,category:'general',flavor:'global',autoplay:false,harfAI:true};
 
   function showHypoxHeader(){
     $('#topbar').classList.add('show');
@@ -1023,6 +1023,29 @@
         await net.addBot(botPid,name,av);
       };
       document.getElementById('scr-lobby').appendChild(addBotBtn);
+    }
+    // HarfHunt AI-validation toggle — same testing area as Add Bot. Lobby-only
+    // setting (host device), read by Host.playHarfhunt via window.HYPOX_STATE.
+    // OFF means every HarfHunt answer is judged purely by the group's own
+    // appeal/vote system — no AI call is made at all.
+    let harfAiBtn=document.getElementById('harfAiToggleBtn');
+    if(!harfAiBtn&&!isOff){
+      harfAiBtn=document.createElement('button');
+      harfAiBtn.id='harfAiToggleBtn';
+      harfAiBtn.className='bar-btn';
+      harfAiBtn.style.cssText='margin-top:8px;display:block;margin-left:auto;margin-right:auto;opacity:0.7;font-size:13px;';
+      const paintHarfAiBtn=()=>{
+        harfAiBtn.textContent = window.HYPOX_STATE.harfAI
+          ? (LANG==='ar'?'🧠 تحقق الذكاء الاصطناعي: يعمل':'🧠 AI Validation: ON')
+          : (LANG==='ar'?'🧠 تحقق الذكاء الاصطناعي: متوقف':'🧠 AI Validation: OFF');
+      };
+      paintHarfAiBtn();
+      harfAiBtn.onclick=()=>{
+        window.HYPOX_STATE.harfAI=!window.HYPOX_STATE.harfAI;
+        Audio_.sfx.blip&&Audio_.sfx.blip();
+        paintHarfAiBtn();
+      };
+      document.getElementById('scr-lobby').appendChild(harfAiBtn);
     }
     // Back button via topbarBack (top-left) — not bottom
     // Presence monitoring — update player row colors when online/offline status changes
