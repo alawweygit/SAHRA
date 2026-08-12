@@ -23,7 +23,7 @@
     {id:'football',icon:'⚽',name:'Football',nameAr:'كرة القدم'},
   ];
 
-  window.HYPOX_STATE = window.HYPOX_STATE || {region:null,rounds:5,category:'general',flavor:'global',autoplay:false,harfAI:true};
+  window.HYPOX_STATE = window.HYPOX_STATE || {region:null,rounds:5,category:'general',flavor:'global',autoplay:false,aiEnabled:true};
 
   function showHypoxHeader(){
     $('#topbar').classList.add('show');
@@ -1024,28 +1024,31 @@
       };
       document.getElementById('scr-lobby').appendChild(addBotBtn);
     }
-    // HarfHunt AI-validation toggle — same testing area as Add Bot. Lobby-only
-    // setting (host device), read by Host.playHarfhunt via window.HYPOX_STATE.
-    // OFF means every HarfHunt answer is judged purely by the group's own
-    // appeal/vote system — no AI call is made at all.
-    let harfAiBtn=document.getElementById('harfAiToggleBtn');
-    if(!harfAiBtn&&!isOff){
-      harfAiBtn=document.createElement('button');
-      harfAiBtn.id='harfAiToggleBtn';
-      harfAiBtn.className='bar-btn';
-      harfAiBtn.style.cssText='margin-top:8px;display:block;margin-left:auto;margin-right:auto;opacity:0.7;font-size:13px;';
-      const paintHarfAiBtn=()=>{
-        harfAiBtn.textContent = window.HYPOX_STATE.harfAI
-          ? (LANG==='ar'?'🧠 تحقق الذكاء الاصطناعي: يعمل':'🧠 AI Validation: ON')
-          : (LANG==='ar'?'🧠 تحقق الذكاء الاصطناعي: متوقف':'🧠 AI Validation: OFF');
+    // Global AI toggle — same testing area as Add Bot. Controls ALL AI use
+    // across every mode: Content._load's AI content-generation fetch (bluff,
+    // wyr, trivia, etc. all funnel through it) AND HarfHunt's answer
+    // validator. OFF means the whole game runs on static content packs and
+    // HarfHunt falls back to pure group appeal/vote judging — nothing calls
+    // the Railway backend at all. Lobby-only setting (host device),
+    // read via window.HYPOX_STATE.aiEnabled.
+    let aiToggleBtn=document.getElementById('aiToggleBtn');
+    if(!aiToggleBtn&&!isOff){
+      aiToggleBtn=document.createElement('button');
+      aiToggleBtn.id='aiToggleBtn';
+      aiToggleBtn.className='bar-btn';
+      aiToggleBtn.style.cssText='margin-top:8px;display:block;margin-left:auto;margin-right:auto;opacity:0.7;font-size:13px;';
+      const paintAiBtn=()=>{
+        aiToggleBtn.textContent = window.HYPOX_STATE.aiEnabled
+          ? (LANG==='ar'?'🧠 الذكاء الاصطناعي: يعمل':'🧠 AI: ON')
+          : (LANG==='ar'?'🧠 الذكاء الاصطناعي: متوقف':'🧠 AI: OFF');
       };
-      paintHarfAiBtn();
-      harfAiBtn.onclick=()=>{
-        window.HYPOX_STATE.harfAI=!window.HYPOX_STATE.harfAI;
+      paintAiBtn();
+      aiToggleBtn.onclick=()=>{
+        window.HYPOX_STATE.aiEnabled=!window.HYPOX_STATE.aiEnabled;
         Audio_.sfx.blip&&Audio_.sfx.blip();
-        paintHarfAiBtn();
+        paintAiBtn();
       };
-      document.getElementById('scr-lobby').appendChild(harfAiBtn);
+      document.getElementById('scr-lobby').appendChild(aiToggleBtn);
     }
     // Back button via topbarBack (top-left) — not bottom
     // Presence monitoring — update player row colors when online/offline status changes

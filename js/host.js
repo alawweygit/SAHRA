@@ -3044,11 +3044,10 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
   // group's own appeal/vote system is what settles genuinely borderline
   // answers, not an over-eager validator.
   async function validateHarfAnswer(category, letter, answer) {
-    // Lobby toggle (next to Add Bot) lets Ali turn AI validation off entirely
-    // for a session — every answer then goes straight to 'uncertain', which
-    // means it's accepted provisionally and settled purely by the group's
-    // own appeal/vote system if anyone disputes it.
-    if (window.HYPOX_STATE && window.HYPOX_STATE.harfAI === false) return 'uncertain';
+    // Global lobby AI toggle (next to Add Bot) — OFF means every answer goes
+    // straight to 'uncertain' (accepted provisionally, settled by the
+    // group's own appeal/vote system if disputed).
+    if (window.HYPOX_STATE && window.HYPOX_STATE.aiEnabled === false) return 'uncertain';
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);

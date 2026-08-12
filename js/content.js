@@ -383,7 +383,11 @@ const Content = (() => {
 
   async _load(mode, lang, count, region) {
     const cfg = window.HYPOX_CONFIG || {};
-    if (cfg.aiEndpoint && !window._hypoxTestMode) {
+    // Global lobby AI toggle (next to Add Bot) — OFF makes every mode fall
+    // straight through to its static content pool, same as if no AI
+    // backend were configured at all. No network call is made.
+    const aiOff = typeof window !== 'undefined' && window.HYPOX_STATE && window.HYPOX_STATE.aiEnabled === false;
+    if (cfg.aiEndpoint && !window._hypoxTestMode && !aiOff) {
       let timeoutId;
       try {
         const controller = new AbortController();
