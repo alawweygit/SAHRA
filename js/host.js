@@ -501,13 +501,15 @@ const Host = (() => {
     const w = sorted[0];
     setPill(t('final_results'));
     scene(`
-      <div class="crown">👑</div>
-      <div class="winner-name display">${w.emoji} ${esc(w.name)}</div>
-      <div class="tagline">${esc(t('winner'))}</div>
-      <div class="final-lb">${sorted.map((p,i)=>`<div class="final-lb-row"><span class="final-medal">${['🥇','🥈','🥉'][i]||((i+1)+'.')}</span>${avatarHTML(p)}<span class="final-name">${esc(p.name)}</span><span class="final-pts">${p.score}</span></div>`).join('')}</div>
-      <div style="display:flex;flex-direction:column;gap:12px;margin-top:2vmin;align-items:center;">
-        <button class="big-btn" id="againBtn" style="max-width:340px;width:100%">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
-        <button class="big-btn ghost" id="changeGameBtn" style="max-width:340px;width:100%">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
+      <div class="winner-wrap">
+        <div class="crown">👑</div>
+        <div class="winner-name display">${w.emoji} ${esc(w.name)}</div>
+        <div class="tagline">${esc(t('winner'))}</div>
+        <div class="final-lb">${sorted.map((p,i)=>`<div class="final-lb-row"><span class="final-medal">${['🥇','🥈','🥉'][i]||((i+1)+'.')}</span>${avatarHTML(p)}<span class="final-name">${esc(p.name)}</span><span class="final-pts">${p.score}</span></div>`).join('')}</div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:2vmin;align-items:center;width:100%">
+          <button class="big-btn" id="againBtn" style="max-width:340px;width:100%">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
+          <button class="big-btn ghost" id="changeGameBtn" style="max-width:340px;width:100%">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
+        </div>
       </div>`);
     net.setState({ phase: 'winner', name: w.name, emoji: w.emoji });
 
@@ -3046,7 +3048,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
      timer per turn, single failure ends the round, appeal/vote system lets
      the group overturn provisionally-accepted answers after the round ends.
   ================================================================ */
-  const HARF_TURN_SECONDS = 12;
+  const HARF_TURN_SECONDS = 15;
   const HARF_PENALTY = 100;
   const HARF_MIN_ROUNDS = 5;
   const HARF_MAX_ROUNDS = 8;
@@ -3104,11 +3106,20 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         <div class="harf-category display">${esc(category)}</div>
         <div class="harf-turn-who">
           ${avatarHTML(currentP, 'avatar')}
-          <div class="harf-turn-name">${esc(currentP.name)} ${LANG === 'ar' ? 'دورها' : "'s turn"}</div>
+          <div class="harf-turn-name">${esc(currentP.name)}${LANG === 'ar' ? ' دورها' : "'s turn"}</div>
+        </div>
+        <div class="ring-timer harf-ring" id="ringTimer">
+          <svg viewBox="0 0 100 100">
+            <circle class="ring-bg" cx="50" cy="50" r="44"/>
+            <circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/>
+          </svg>
+          <div class="timer-num" id="timerNum"></div>
         </div>
         ${harfLetterGrid(available)}
+        <div class="harf-hint">${LANG === 'ar' ? 'اضغط على حرف متاح وجاوب على الفئة' : 'Tap an available letter, then answer the category'}</div>
         ${history.length ? `<div class="harf-history">${history.slice(-4).map(h =>
           `<span class="harf-history-chip"><b>${esc(h.letter)}</b> ${esc(h.answer)}</span>`).join('')}</div>` : ''}
+        <div id="statusRow" class="status-row"></div>
       </div>`;
   }
 
@@ -3158,7 +3169,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         history: roundAnswers.map(a => ({ letter: a.letter, answer: a.answer, name: safeP(a.pid).name })),
       });
 
-      const spec = { type: 'harfturn', title: LANG === 'ar' ? 'دورك' : 'YOUR TURN', context: category, letters: available.slice() };
+      const spec = { type: 'harfturn', title: LANG === 'ar' ? 'دورك' : 'YOUR TURN', context: category, letters: available.slice(), fullscreenInput: true };
       const inputs = await collectWithTimer(spec, [currentP.pid], HARF_TURN_SECONDS);
       const raw = val(inputs, currentP.pid);
 
@@ -3207,13 +3218,12 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     scene(`
       <div class="harf-review-tv">
         <div class="eyebrow">${LANG === 'ar' ? 'راجعوا الجولة' : 'REVIEW THIS ROUND'}</div>
-        <div class="harf-review-tv-list">
-          ${reviewAnswers.map(a => `<div class="harf-review-tv-card"><b>${esc(a.letter)}</b> — ${esc(a.answer)} <span>${esc(a.name)}</span></div>`).join('')}
-        </div>
+        <div class="harf-review-tv-sub">${LANG === 'ar' ? 'شوفوا جوالاتكم — اعترضوا على أي جواب' : 'Check your phones — challenge any answer you disagree with'}</div>
+        <div id="statusRow" class="status-row"></div>
       </div>`);
     net.setState({ phase: 'appealReview', category, answers: reviewAnswers });
 
-    const flags = await collectWithTimer({ type: 'harfreview', answers: reviewAnswers }, allPids, 3600);
+    const flags = await collectWithTimer({ type: 'harfreview', answers: reviewAnswers, fullscreenInput: true }, allPids, 3600);
     const challengeCounts = new Map();
     for (const pid of allPids) {
       const raw = val(flags, pid);
@@ -3244,7 +3254,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       pushMirror({ headline: LANG === 'ar' ? 'الجواب اتعارض عليه' : 'ANSWER CHALLENGED', sub: `${a.letter} — ${a.answer}` });
       net.setState({ phase: 'appealVote', category, answerId: a.answerId, letter: a.letter, answer: a.answer, pid: a.pid, eligibleVoters });
 
-      const votes = await collectWithTimer({ type: 'harfvote' }, eligibleVoters, 3600);
+      const votes = await collectWithTimer({ type: 'harfvote', fullscreenInput: true }, eligibleVoters, 3600);
       let accept = 0, reject = 0;
       for (const pid of eligibleVoters) {
         const v = val(votes, pid);

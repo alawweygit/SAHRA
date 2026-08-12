@@ -2186,7 +2186,10 @@
             </div>
           </div>`
           :`<div class="ctrl-wrap" style="text-align:center">
-            <div class="ctrl-sub">${LANG==='ar'?'بانتظار المضيف…':'Waiting for the host…'}</div>
+            <div class="wait-host-card">
+              <div class="wait-host-dots"><span></span><span></span><span></span></div>
+              <div class="wait-host-text">${LANG==='ar'?'بانتظار المضيف':'Waiting for the host'}</div>
+            </div>
           </div>`;
         resetScrollPositionAfterLayout();
         if(_isHostPhoneSL){
@@ -2217,7 +2220,10 @@
             </div>
           </div>`
           :`<div class="ctrl-wrap" style="text-align:center">
-            <div class="ctrl-sub">${LANG==='ar'?'بانتظار المضيف…':'Waiting for the host…'}</div>
+            <div class="wait-host-card">
+              <div class="wait-host-dots"><span></span><span></span><span></span></div>
+              <div class="wait-host-text">${LANG==='ar'?'بانتظار المضيف':'Waiting for the host'}</div>
+            </div>
           </div>`;
         resetScrollPositionAfterLayout();
         Audio_.sfx.fanfare();

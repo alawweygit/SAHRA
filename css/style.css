@@ -2614,3 +2614,66 @@ body.ar .harf-review-body{text-align:right;}
 @media (prefers-reduced-motion: reduce){
   .harf-answer-stage.shown,.harf-reveal-answer,.harf-fail-label,.harf-letter-btn.picked{animation:none!important;}
 }
+
+/* HarfHunt v125 — layout/legibility fixes from live playtest.
+   .harf-stage now fills and centers in the available stage height so the
+   short turn scene doesn't leave a large blurred dead zone below it, and
+   hint text tells first-time players what to actually do with the grid. */
+.harf-stage{
+  min-height:min(62vh,560px);
+  justify-content:center;
+}
+.harf-hint{
+  color:var(--text2);font-weight:700;
+  font-size:clamp(11px,1.9vmin,15px);
+  margin-top:.4vmin;opacity:.85;
+}
+.harf-pick-hint{
+  color:var(--text2);font-weight:700;text-align:center;
+  font-size:clamp(12px,3.2vw,15px);margin-bottom:.4vmin;
+}
+.harf-ring{margin:.4vmin auto;}
+.harf-review-tv-sub{
+  color:var(--text2);font-weight:600;text-align:center;
+  font-size:clamp(13px,2.2vmin,17px);max-width:min(88vw,520px);line-height:1.4;
+}
+
+/* v125 — final results: center the winner block on narrow phone screens
+   (the crown/name were inheriting the stage's left alignment) and give
+   'waiting for the host' an animated card instead of dead grey text. */
+.winner-wrap{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;width:100%;max-width:min(94vw,560px);margin:0 auto;gap:.6vmin;
+}
+.winner-wrap .crown,.winner-wrap .winner-name,.winner-wrap .tagline{
+  text-align:center;width:100%;
+}
+.wait-host-card{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:20px;padding:18px 22px;margin:0 auto;max-width:340px;
+  animation:fadeSlideUp .4s var(--ease-out) both;
+}
+.wait-host-text{
+  font-family:'Fredoka One',sans-serif;color:var(--text2);
+  font-size:clamp(13px,3.4vw,16px);letter-spacing:.5px;
+}
+.wait-host-dots{display:flex;gap:7px;}
+.wait-host-dots span{
+  width:9px;height:9px;border-radius:50%;background:var(--purple);
+  animation:waitDotPulse 1.2s ease-in-out infinite;
+}
+.wait-host-dots span:nth-child(2){animation-delay:.18s;}
+.wait-host-dots span:nth-child(3){animation-delay:.36s;}
+@keyframes waitDotPulse{
+  0%,60%,100%{transform:scale(.7);opacity:.35;}
+  30%{transform:scale(1.15);opacity:1;}
+}
+@media (max-width:520px){
+  .winner-name{font-size:clamp(26px,8vw,40px);}
+  .final-lb{max-width:100%;}
+  .final-lb-row{padding:9px 12px;gap:9px;}
+}
+@media (prefers-reduced-motion: reduce){
+  .wait-host-dots span{animation:none;opacity:.7;}
+}

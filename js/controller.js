@@ -185,6 +185,10 @@ const Controller = (() => {
     // the clock runs. Submits a single JSON payload {letter, answer}.
     if (spec.type === 'harfturn') {
       wrap.classList.add('ctrl-harfturn');
+      const pickHint = document.createElement('div');
+      pickHint.className = 'harf-pick-hint';
+      pickHint.textContent = LANG === 'ar' ? 'اضغط على حرف متاح' : 'Tap an available letter';
+      wrap.appendChild(pickHint);
       const grid = document.createElement('div');
       grid.className = 'harf-letter-grid';
       const letters = Array.isArray(spec.letters) ? spec.letters : [];

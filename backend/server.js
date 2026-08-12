@@ -194,13 +194,14 @@ app.post('/api/translate', async (req, res) => {
     const { text, to } = req.body || {};
     if (!text) return res.status(400).json({ error: 'No text' });
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-6',
       max_tokens: 300,
       messages: [{ role: 'user', content: `Translate this game question to Arabic. Keep ___ as is. Return ONLY the translation, nothing else:\n${text}` }],
     });
     const translation = msg.content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
     res.json({ translation });
   } catch(e) {
+    console.error('[translate] failed:', e.status || '', e.message);
     res.status(500).json({ error: e.message });
   }
 });
@@ -216,7 +217,7 @@ app.post('/api/harfhunt-validate', async (req, res) => {
     const { category, letter, answer, lang = 'en' } = req.body || {};
     if (!category || !letter || !answer) return res.status(400).json({ result: 'uncertain' });
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-6',
       max_tokens: 20,
       temperature: 0,
       messages: [{ role: 'user', content:
