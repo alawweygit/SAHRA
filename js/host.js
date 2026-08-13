@@ -591,7 +591,7 @@ const Host = (() => {
       const pids = [...new Set([...players.map(p => p.pid), ...(net.hostSelfPid && !_bluffBots.includes(net.hostSelfPid) ? [net.hostSelfPid] : [])])];
 
       const inputs = await collectWithTimer(
-        { type: 'text', title: t('write_lie'), context: R.fact.replace('___', '____'), translateContext: R.fact, maxLen: 30, enforceUnique: true, oneWord: true },
+        { type: 'text', title: t('write_lie'), context: R.fact.replace('___', '____'), translateContext: R.fact, maxLen: 30, enforceUnique: true, oneWord: true, fullscreenInput: true },
         pids, 60);
 
       // Build answer set: unique lies + truth (all UPPERCASE)
@@ -1298,7 +1298,7 @@ const Host = (() => {
       const lines = await collectWithTimer({
         type:'text',
         title: LANG==='ar'?'🎤 اكتب خطك الأقوى!':'🎤 Write your most savage line!',
-        context: promptText, maxLen:100
+        context: promptText, maxLen:100, fullscreenInput: true
       }, duelerPids, 35);
 
       const lineA = (val(lines,A.pid)||'').trim() || (LANG==='ar'?'لا يوجد خط':'(no line submitted)');
