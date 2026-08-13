@@ -242,26 +242,15 @@ app.post('/api/harfhunt-validate', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('HYPOX backend port ' + PORT));
 
-// Self-warm: pre-generate the 3 most popular modes on startup so first request is instant
-const WARM_MODES = [
-  { mode: 'bluff', lang: 'ar' },
-  { mode: 'bluff', lang: 'en' },
-  { mode: 'wyr',   lang: 'ar' },
-];
-setTimeout(async () => {
-  for (const { mode, lang } of WARM_MODES) {
-    try {
-      const baseKey = mode + ':' + lang;
-      if (!usedFingerprints.has(baseKey)) usedFingerprints.set(baseKey, new Set());
-      const fresh = await generateBatch(mode, lang, usedFingerprints.get(baseKey), baseKey);
-      const current = pool.get(baseKey) || [];
-      pool.set(baseKey, [...current, ...fresh]);
-      console.log(`[warm] ${baseKey} — ${fresh.length} items cached`);
-    } catch(e) {
-      console.warn(`[warm] ${mode}:${lang} failed — ${e.message}`);
-    }
-  }
-}, 3000); // wait 3s after boot before warming
+// v126 — self-warm removed. It regenerated 3 full content batches (~4000
+// output tokens each, ~$0.06/batch) on EVERY backend restart, which during
+// active development means every single git push — completely disconnected
+// from actual gameplay. Combined with the in-memory pool getting wiped on
+// each restart too, this was the dominant driver of token spend, not
+// players. Trade-off from removing it: the very first real game request
+// after a cold restart takes a few extra seconds (has to generate on
+// demand) instead of being pre-warmed. Worth it — that's a one-time delay
+// for whoever's first in, not a recurring cost on every deploy.
 
 // Keep-warm: ping self every 20 minutes to prevent Railway sleep
 setInterval(() => {
