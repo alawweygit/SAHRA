@@ -3135,6 +3135,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
   function harfFailScene(p, beforeScore, reason) {
     const label = reason === 'timeout' ? (LANG === 'ar' ? "خلص الوقت" : "TIME'S UP")
       : reason === 'invalid' ? (LANG === 'ar' ? 'جواب غلط' : 'INVALID ANSWER')
+      : reason === 'rejected' ? (LANG === 'ar' ? 'رفضه الفريق' : 'VOTED OUT')
       : (LANG === 'ar' ? 'حرف غلط' : 'WRONG LETTER');
     return `
       <div class="harf-fail">
@@ -3192,7 +3193,42 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       const verdict = await validateHarfAnswer(category, letter, answerText);
       if (verdict === 'invalid') return { failure: { pid: currentP.pid, reason: 'invalid' }, roundAnswers, usedAllLetters: false };
 
-      // valid or uncertain — accept (provisionally, if uncertain)
+      // v130 — was: accept silently (provisionally, if AI verdict was
+      // 'uncertain'), keep playing, and only let the group review/challenge
+      // ALL of this round's answers in one big batch AFTER the round ended.
+      // Ali's redesign, replacing that entirely: everyone else votes on
+      // THIS answer right now, 5 seconds, and — per his explicit spec —
+      // silence/timeout counts as REJECTED, not accepted. No more
+      // end-of-round appeal phase at all.
+      const otherPids = order.filter(pid => pid !== currentP.pid);
+      if (otherPids.length) {
+        await FX.wipe();
+        scene(`
+          <div class="harf-appeal">
+            <div class="eyebrow">${LANG === 'ar' ? 'صح ولا غلط؟' : 'DOES THIS COUNT?'}</div>
+            <div class="harf-appeal-cat">${esc(category)}</div>
+            <div class="harf-appeal-letter">${esc(letter)}</div>
+            <div class="harf-appeal-answer display">${esc(answerText.toUpperCase())}</div>
+            <div class="harf-appeal-by">${avatarHTML(currentP, 'avatar')}<span>${esc(currentP.name)}</span></div>
+          </div>`);
+        pushMirror({ headline: LANG === 'ar' ? 'صح ولا غلط؟' : 'DOES THIS COUNT?', sub: `${letter} — ${answerText}` });
+        net.setState({ phase: 'appealVote', category, letter, answer: answerText, pid: currentP.pid, eligibleVoters: otherPids });
+
+        const votes = await collectWithTimer({ type: 'harfvote', category, answerText: `${letter} — ${answerText.toUpperCase()}`, byName: currentP.name, fullscreenInput: true }, otherPids, 5);
+        let accept = 0, reject = 0;
+        for (const pid of otherPids) {
+          const v = val(votes, pid);
+          if (v === 'reject') reject++; else if (v === 'accept') accept++;
+        }
+        // "Considered no" on timeout is Ali's explicit spec: accept needs a
+        // real majority, not just "not enough rejects". Ties and pure
+        // silence both fall through to rejected.
+        const accepted = accept > reject && accept > 0;
+        if (!accepted) return { failure: { pid: currentP.pid, reason: 'rejected' }, roundAnswers, usedAllLetters: false };
+      }
+
+      // valid or uncertain and confirmed by the group (or nobody else was
+      // there to vote) — accept for real.
       available = available.filter(L => L !== letter);
       answerSeqRef.n++;
       roundAnswers.push({ answerId: 'a' + answerSeqRef.n, pid: currentP.pid, letter, answer: answerText, order: roundAnswers.length });
@@ -3205,91 +3241,6 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     }
   }
 
-  /* Appeal review + vote. No countdown anywhere in this phase (Ali's spec is
-     explicit: "THERE IS NO APPEAL COUNTDOWN TIMER"). collectWithTimer still
-     needs a numeric seconds value for its deadline bookkeeping, so a large
-     one is used purely as a safety ceiling — normal play always resolves via
-     everyone pressing Done/voting, never via that ceiling expiring. */
-  async function runHarfAppeals(roundAnswers, category, allPids) {
-    if (!roundAnswers.length) return;
-    const reviewAnswers = roundAnswers.map(a => ({ id: a.answerId, letter: a.letter, answer: a.answer, pid: a.pid, name: safeP(a.pid).name }));
-
-    await FX.wipe();
-    scene(`
-      <div class="harf-review-tv">
-        <div class="eyebrow">${LANG === 'ar' ? 'راجعوا الجولة' : 'REVIEW THIS ROUND'}</div>
-        <div class="harf-review-tv-sub">${LANG === 'ar' ? 'شوفوا جوالاتكم — اعترضوا على أي جواب' : 'Check your phones — challenge any answer you disagree with'}</div>
-        <div id="statusRow" class="status-row"></div>
-      </div>`);
-    net.setState({ phase: 'appealReview', category, answers: reviewAnswers });
-
-    const flags = await collectWithTimer({ type: 'harfreview', answers: reviewAnswers, fullscreenInput: true }, allPids, 3600);
-    const challengeCounts = new Map();
-    for (const pid of allPids) {
-      const raw = val(flags, pid);
-      let ids = [];
-      try { ids = raw ? JSON.parse(raw) : []; } catch (e) { ids = []; }
-      for (const id of ids) challengeCounts.set(id, (challengeCounts.get(id) || 0) + 1);
-    }
-    const challengedIds = roundAnswers.filter(a => challengeCounts.has(a.answerId)).map(a => a.answerId);
-    if (!challengedIds.length) return; // v120 — nobody flagged anything, straight to next round
-
-    for (let i = 0; i < challengedIds.length; i++) {
-      const a = roundAnswers.find(x => x.answerId === challengedIds[i]);
-      if (!a) continue;
-      const answerer = safeP(a.pid);
-      const eligibleVoters = allPids.filter(pid => pid !== a.pid);
-
-      await FX.wipe();
-      setPill(`${LANG === 'ar' ? 'اعتراض' : 'APPEAL'} ${i + 1} ${t('of')} ${challengedIds.length}`);
-      scene(`
-        <div class="harf-appeal">
-          <div class="eyebrow">${LANG === 'ar' ? 'الجواب اتعارض عليه' : 'ANSWER CHALLENGED'}</div>
-          <div class="harf-appeal-cat">${esc(category)}</div>
-          <div class="harf-appeal-letter">${esc(a.letter)}</div>
-          <div class="harf-appeal-answer display">${esc(a.answer.toUpperCase())}</div>
-          <div class="harf-appeal-by">${avatarHTML(answerer, 'avatar')}<span>${esc(answerer.name)}</span></div>
-          <div class="pick-sub">${LANG === 'ar' ? 'هل الجواب صح؟' : 'Does this answer count?'}</div>
-        </div>`);
-      pushMirror({ headline: LANG === 'ar' ? 'الجواب اتعارض عليه' : 'ANSWER CHALLENGED', sub: `${a.letter} — ${a.answer}` });
-      net.setState({ phase: 'appealVote', category, answerId: a.answerId, letter: a.letter, answer: a.answer, pid: a.pid, eligibleVoters });
-
-      // v129 — category/answerText/byName added so the phone's own harfvote
-      // card can show what's being voted on. Previously omitted, and since
-      // this input uses fullscreenInput (hides the shared stage), the voter
-      // saw nothing but ACCEPT/REJECT with no idea what they referred to.
-      const votes = await collectWithTimer({ type: 'harfvote', category, answerText: `${a.letter} — ${a.answer.toUpperCase()}`, byName: answerer.name, fullscreenInput: true }, eligibleVoters, 3600);
-      let accept = 0, reject = 0;
-      for (const pid of eligibleVoters) {
-        const v = val(votes, pid);
-        if (v === 'reject') reject++; else if (v === 'accept') accept++;
-      }
-      const rejected = reject > accept; // tie = stands, per spec section 23
-
-      await sleep(400);
-      if (rejected) {
-        const before = answerer.score;
-        addScore(a.pid, -HARF_PENALTY);
-        Audio_.sfx.buzzer();
-        scene(`
-          <div class="harf-appeal-result rejected">
-            <div class="harf-fail-label">${LANG === 'ar' ? 'رفض' : 'REJECTED'}</div>
-            ${avatarHTML(answerer, 'avatar')}
-            <div class="harf-fail-name">${esc(answerer.name)}</div>
-            <div class="harf-score-anim">${before} → ${before - HARF_PENALTY}</div>
-            <div class="harf-fail-penalty">−${HARF_PENALTY}</div>
-          </div>`);
-      } else {
-        Audio_.sfx.correct();
-        scene(`
-          <div class="harf-appeal-result stands">
-            <div class="harf-fail-label" style="color:var(--green,#34d399)">${LANG === 'ar' ? 'الجواب صح' : 'ANSWER STANDS'}</div>
-          </div>`);
-      }
-      net.setState({ phase: 'appealResult', answerId: a.answerId, rejected });
-      await sleep(1500);
-    }
-  }
 
   /* Sudden death: fresh round, only tied players, no scoring — first
      failure removes that player from the tie-break; repeat until one
@@ -3409,7 +3360,9 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         await sleep(1800);
       }
 
-      await runHarfAppeals(roundAnswers, category, players.map(p => p.pid));
+      // v130 — runHarfAppeals() (batch review of the whole round after it
+      // ends) removed. Every answer is now voted on live, right after it's
+      // submitted, inside runHarfTurnLoop itself.
 
       if (roundNum < roundCount) await showScores();
     }
