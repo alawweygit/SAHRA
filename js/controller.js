@@ -224,6 +224,18 @@ const Controller = (() => {
           grid.classList.add('harf-grid-locked');
           [...grid.querySelectorAll('.harf-letter-btn')].forEach(x => x.disabled = true);
           b.classList.add('picked');
+          // v132 — was just dimming the grid (opacity .3, still full height
+          // on screen). The grid staying at full size, THEN stage2 (answer
+          // box) appended below it, THEN the keyboard opening on top of all
+          // of that, meant the real answer input needed a very precise
+          // scroll to end up visible — v129's scrollIntoView fix wasn't
+          // reliably winning that race. Hiding the grid outright once a
+          // letter's picked (it's inactive anyway) shrinks the page enough
+          // that the answer box sits near the top with much less scrolling
+          // needed, so it's far less dependent on scroll-timing working
+          // perfectly against the keyboard's own animation.
+          grid.style.display = 'none';
+          pickHint.style.display = 'none';
           bigLetter.textContent = L;
           ansLabel.textContent = (LANG === 'ar' ? 'جاوب بحرف ' : 'Answer with ') + L;
           stage2.classList.add('shown');

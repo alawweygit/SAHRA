@@ -3210,7 +3210,14 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       //
       // Challenger identity is never shown anywhere in this flow (Ali's
       // spec: "challenge identity stays anonymous").
-      const otherPids = order.filter(pid => pid !== currentP.pid);
+      // v132 — real bug: `order` holds player OBJECTS (see `currentP =
+      // order[turnIdx % order.length]` above), not pid strings. Comparing
+      // one against currentP.pid (a string) never matched, so otherPids was
+      // actually the full array of player objects, answerer included. Used
+      // as Object.fromEntries keys below, each object got coerced to the
+      // literal string "[object Object]" by JS — exactly the Firebase
+      // error Ali hit ("invalid key ([object Object])").
+      const otherPids = order.filter(p => p.pid !== currentP.pid).map(p => p.pid);
       let challenged = false;
 
       if (otherPids.length) {
