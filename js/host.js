@@ -3193,51 +3193,108 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       const verdict = await validateHarfAnswer(category, letter, answerText);
       if (verdict === 'invalid') return { failure: { pid: currentP.pid, reason: 'invalid' }, roundAnswers, usedAllLetters: false };
 
-      // v130 — was: accept silently (provisionally, if AI verdict was
-      // 'uncertain'), keep playing, and only let the group review/challenge
-      // ALL of this round's answers in one big batch AFTER the round ended.
-      // Ali's redesign, replacing that entirely: everyone else votes on
-      // THIS answer right now, 5 seconds, and — per his explicit spec —
-      // silence/timeout counts as REJECTED, not accepted. No more
-      // end-of-round appeal phase at all.
+      // v131 — Ali's hybrid redesign, replacing v130's mandatory vote-on-
+      // every-answer entirely. That was too slow: a 15-answer round would
+      // add over a minute of pure voting, breaking the letter-board/turn-
+      // timer momentum that makes the mode tense. This is the compromise:
+      //
+      //  1. Answer shows to everyone with a short CHALLENGE window. If
+      //     nobody challenges, auto-accept immediately — no vote at all.
+      //  2. Only if someone actually challenges does the group stop and
+      //     hold a real ACCEPT/REJECT vote.
+      //  3. Burden of proof is on the CHALLENGE, not the answer: majority
+      //     REJECT is required to overturn it. Ties, "anything else", and
+      //     partial turnout with no clear reject majority all mean the
+      //     answer stands — the OPPOSITE default bias from v130's "silence
+      //     = rejected", which Ali explicitly said was unfair.
+      //
+      // Challenger identity is never shown anywhere in this flow (Ali's
+      // spec: "challenge identity stays anonymous").
       const otherPids = order.filter(pid => pid !== currentP.pid);
+      let challenged = false;
+
       if (otherPids.length) {
         await FX.wipe();
         scene(`
+          <div class="harf-reveal">
+            <div class="harf-reveal-letter">${esc(letter)}</div>
+            <div class="harf-reveal-answer display">${esc(answerText.toUpperCase())}</div>
+            <div class="harf-reveal-by">${avatarHTML(currentP, 'avatar')}<span>${esc(currentP.name)}</span></div>
+            <div class="harf-challenge-hint">${LANG === 'ar' ? 'اعتراض على الجواب؟' : 'Disagree with this?'}</div>
+          </div>`);
+        pushMirror({ headline: `${letter} — ${answerText}`, sub: currentP.name });
+        Audio_.sfx.correct(); FX.burst(40);
+        net.setState({ phase: 'harf-challenge-window', category, letter, answer: answerText, pid: currentP.pid, eligibleVoters: otherPids });
+
+        const CHALLENGE_WINDOW_SECONDS = 4;
+        const cwPhaseId = 'hcw' + Date.now();
+        const cwDeadline = Date.now() + CHALLENGE_WINDOW_SECONDS * 1000;
+        net.setState({ phase: 'input-split', phaseId: cwPhaseId, deadline: cwDeadline, targets: otherPids,
+          specs: Object.fromEntries(otherPids.map(pid => [pid, { type: 'harfchallenge' }])) });
+        // Short-circuit the instant ANYONE challenges — don't wait for the
+        // rest of the window or for other players to respond at all.
+        net.onEachInput(pid => {
+          if (window.__hypoxForceCollect) window.__hypoxForceCollect();
+        });
+        const cwResult = await net.collect(cwPhaseId, { type: 'harfchallenge' }, otherPids, CHALLENGE_WINDOW_SECONDS);
+        net.onEachInput(null);
+        challenged = otherPids.some(pid => val(cwResult, pid) === 'challenge');
+      }
+
+      if (challenged) {
+        Audio_.sfx.buzzer(); FX.shake();
+        await FX.wipe();
+        scene(`
           <div class="harf-appeal">
-            <div class="eyebrow">${LANG === 'ar' ? 'صح ولا غلط؟' : 'DOES THIS COUNT?'}</div>
+            <div class="eyebrow">${LANG === 'ar' ? '⚠️ اعتراض على الجواب' : '⚠️ ANSWER CHALLENGED'}</div>
             <div class="harf-appeal-cat">${esc(category)}</div>
             <div class="harf-appeal-letter">${esc(letter)}</div>
             <div class="harf-appeal-answer display">${esc(answerText.toUpperCase())}</div>
             <div class="harf-appeal-by">${avatarHTML(currentP, 'avatar')}<span>${esc(currentP.name)}</span></div>
+            <div class="pick-sub">${LANG === 'ar' ? 'هل الجواب صح؟' : 'Does this answer count?'}</div>
           </div>`);
-        pushMirror({ headline: LANG === 'ar' ? 'صح ولا غلط؟' : 'DOES THIS COUNT?', sub: `${letter} — ${answerText}` });
+        pushMirror({ headline: LANG === 'ar' ? 'اعتراض!' : 'CHALLENGED!', sub: `${letter} — ${answerText}` });
         net.setState({ phase: 'appealVote', category, letter, answer: answerText, pid: currentP.pid, eligibleVoters: otherPids });
 
-        const votes = await collectWithTimer({ type: 'harfvote', category, answerText: `${letter} — ${answerText.toUpperCase()}`, byName: currentP.name, fullscreenInput: true }, otherPids, 5);
+        // No timer pressure on the actual vote (Ali: "there isn't necessarily
+        // a need for a timer during the actual vote") — net.collect already
+        // resolves as soon as everyone targeted has voted; the 60s figure
+        // here is purely a safety ceiling in case someone drops.
+        const votes = await collectWithTimer({ type: 'harfvote', category, answerText: `${letter} — ${answerText.toUpperCase()}`, byName: currentP.name, fullscreenInput: true }, otherPids, 60);
         let accept = 0, reject = 0;
         for (const pid of otherPids) {
           const v = val(votes, pid);
           if (v === 'reject') reject++; else if (v === 'accept') accept++;
         }
-        // "Considered no" on timeout is Ali's explicit spec: accept needs a
-        // real majority, not just "not enough rejects". Ties and pure
-        // silence both fall through to rejected.
-        const accepted = accept > reject && accept > 0;
-        if (!accepted) return { failure: { pid: currentP.pid, reason: 'rejected' }, roundAnswers, usedAllLetters: false };
+        const rejected = reject > accept; // burden of proof is on the challenge
+        if (rejected) return { failure: { pid: currentP.pid, reason: 'rejected' }, roundAnswers, usedAllLetters: false };
+
+        // Challenged but the vote didn't overturn it — answer stands.
+        await sleep(300);
+        Audio_.sfx.correct();
+        scene(`
+          <div class="harf-appeal-result stands">
+            <div class="harf-fail-label" style="color:var(--green,#34d399)">${LANG === 'ar' ? 'الجواب صح' : 'ANSWER STANDS'}</div>
+          </div>`);
+        await sleep(900);
       }
 
-      // valid or uncertain and confirmed by the group (or nobody else was
-      // there to vote) — accept for real.
+      // Accepted — either nobody challenged, or a challenge failed to
+      // overturn it. The reveal itself already played before the challenge
+      // window opened (or, if there were no other players to challenge,
+      // play it now) — don't show it a second time.
       available = available.filter(L => L !== letter);
       answerSeqRef.n++;
       roundAnswers.push({ answerId: 'a' + answerSeqRef.n, pid: currentP.pid, letter, answer: answerText, order: roundAnswers.length });
-      Audio_.sfx.correct();
-      FX.burst(40);
-      scene(harfRevealScene(letter, answerText, currentP));
-      pushMirror({ headline: `${letter} — ${answerText}`, sub: currentP.name });
       net.setState({ phase: 'answerReveal', category, letter, answer: answerText, pid: currentP.pid });
-      await sleep(1100);
+      if (!otherPids.length) {
+        // Nobody else at the table (heads-up edge case) — no challenge
+        // window ran above, so show the reveal here.
+        Audio_.sfx.correct(); FX.burst(40);
+        scene(harfRevealScene(letter, answerText, currentP));
+        pushMirror({ headline: `${letter} — ${answerText}`, sub: currentP.name });
+      }
+      await sleep(700);
     }
   }
 

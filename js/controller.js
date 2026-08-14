@@ -334,6 +334,30 @@ const Controller = (() => {
     }
 
     // HarfHunt appeal vote: binary ACCEPT/REJECT, one tap and locked.
+    // v131 — Ali's hybrid redesign: after an answer clears the AI check, it
+    // shows to everyone with a brief CHALLENGE window. No challenge =
+    // auto-accept, no vote needed at all. This is that button. Submits the
+    // instant it's tapped — host.js short-circuits collection on the FIRST
+    // challenge via window.__hypoxForceCollect (v118), it doesn't wait for
+    // everyone. Deliberately minimal: one button, no context duplication —
+    // the answer itself is already shown on the shared stage above.
+    if (spec.type === 'harfchallenge') {
+      wrap.classList.add('ctrl-harfchallenge');
+      const btn = document.createElement('button');
+      btn.className = 'big-btn harf-challenge-btn';
+      btn.textContent = LANG === 'ar' ? '⚑ اعتراض' : '⚑ CHALLENGE';
+      btn.addEventListener('click', () => {
+        Audio_.sfx.vote && Audio_.sfx.vote();
+        btn.disabled = true;
+        btn.classList.add('picked');
+        onSubmit('challenge');
+      }, { once: true });
+      wrap.appendChild(btn);
+      container.replaceChildren(wrap);
+      scrollInputIntoView(wrap);
+      return;
+    }
+
     if (spec.type === 'harfvote') {
       wrap.classList.add('ctrl-harfvote');
       // v129 — was rendering ONLY the two buttons with zero context. This
