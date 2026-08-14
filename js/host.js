@@ -3254,7 +3254,11 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       pushMirror({ headline: LANG === 'ar' ? 'الجواب اتعارض عليه' : 'ANSWER CHALLENGED', sub: `${a.letter} — ${a.answer}` });
       net.setState({ phase: 'appealVote', category, answerId: a.answerId, letter: a.letter, answer: a.answer, pid: a.pid, eligibleVoters });
 
-      const votes = await collectWithTimer({ type: 'harfvote', fullscreenInput: true }, eligibleVoters, 3600);
+      // v129 — category/answerText/byName added so the phone's own harfvote
+      // card can show what's being voted on. Previously omitted, and since
+      // this input uses fullscreenInput (hides the shared stage), the voter
+      // saw nothing but ACCEPT/REJECT with no idea what they referred to.
+      const votes = await collectWithTimer({ type: 'harfvote', category, answerText: `${a.letter} — ${a.answer.toUpperCase()}`, byName: answerer.name, fullscreenInput: true }, eligibleVoters, 3600);
       let accept = 0, reject = 0;
       for (const pid of eligibleVoters) {
         const v = val(votes, pid);

@@ -227,7 +227,20 @@ const Controller = (() => {
           bigLetter.textContent = L;
           ansLabel.textContent = (LANG === 'ar' ? 'جاوب بحرف ' : 'Answer with ') + L;
           stage2.classList.add('shown');
-          requestAnimationFrame(() => input.focus());
+          requestAnimationFrame(() => {
+            input.focus();
+            // v129 — the earlier scrollInputIntoView(wrap) call runs once,
+            // right when the letter grid first renders — before stage2 (the
+            // answer box) exists. Picking a letter reveals stage2 further
+            // down AND pops the keyboard at the same time, which together
+            // pushed the actual answer box out of view: the player saw the
+            // keyboard's own toolbar with no visible app input, and only
+            // noticed the real (correctly pink-bordered, focused) box after
+            // typing triggered the browser's own scroll correction. Give the
+            // keyboard time to finish animating in, then explicitly bring
+            // the real input into view.
+            setTimeout(() => input.scrollIntoView({ behavior: 'smooth', block: 'center' }), 350);
+          });
         });
         grid.appendChild(b);
       });
@@ -323,6 +336,23 @@ const Controller = (() => {
     // HarfHunt appeal vote: binary ACCEPT/REJECT, one tap and locked.
     if (spec.type === 'harfvote') {
       wrap.classList.add('ctrl-harfvote');
+      // v129 — was rendering ONLY the two buttons with zero context. This
+      // input type uses fullscreenInput, which takes over the whole screen
+      // and hides the shared stage — so the letter/answer/category/answerer
+      // that ARE shown correctly on the host's stage were completely
+      // invisible on the voter's own phone. They were being asked to accept
+      // or reject something they couldn't see. Now shown directly on the
+      // card, from the same data host.js already broadcasts in the spec.
+      if (spec.category || spec.letter || spec.answer) {
+        const ctx = document.createElement('div');
+        ctx.className = 'harf-vote-context';
+        ctx.innerHTML = `
+          ${spec.category ? `<div class="harf-vote-cat">${esc(spec.category)}</div>` : ''}
+          ${spec.answerText ? `<div class="harf-vote-answer">${esc(spec.answerText)}</div>` : ''}
+          ${spec.byName ? `<div class="harf-vote-by">${esc(spec.byName)}</div>` : ''}
+        `;
+        wrap.appendChild(ctx);
+      }
       const row = document.createElement('div');
       row.className = 'harf-vote-row';
       const mk = (id, label, cls) => {
