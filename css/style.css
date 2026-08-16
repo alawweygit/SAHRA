@@ -122,7 +122,15 @@ body.theme-light .deco-blob{opacity:0.14;}
 /* ============ TOP BAR ============ */
 /* Topbar: center pill only, no opacity animation (would break fixed children) */
 #topbar{
-  position:fixed;top:0;left:0;right:0;z-index:29;
+  position:fixed;top:0;left:0;right:0;z-index:10001;
+  /* v139 — was z-index:29. Every fullscreen input overlay in the app
+     (Lie Detector's lie-writing screen, Blend In, 2 Truths, HarfHunt's
+     turn/vote screens) sits at z-index:9999, which completely buried the
+     menu button underneath it — not hidden, just unreachable, which is
+     what Ali hit. #topbar itself stays pointer-events:none / transparent
+     background except where .show is applied (see below), so raising it
+     above every overlay doesn't visually or functionally block anything
+     underneath; it just lets the already-present button poke through. */
   display:flex;align-items:center;justify-content:center;
   padding:max(14px,env(safe-area-inset-top,0px)+8px) 64px;
   background:transparent;pointer-events:none;
