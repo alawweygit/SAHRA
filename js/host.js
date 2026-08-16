@@ -266,6 +266,20 @@ const Host = (() => {
               botVal = JSON.stringify([]); // bots never initiate a challenge
             } else if (spec.type === 'harfvote') {
               botVal = Math.random() < 0.8 ? 'accept' : 'reject';
+            } else if (spec.type === 'harfchallenge') {
+              // v133 — was falling into the generic `else { botVal = 'bot' }`
+              // fallback further below, which every bot fired within
+              // ~1.5-4s of the window opening. Combined with onEachInput
+              // force-finishing on ANY submitted value (not just an actual
+              // challenge — also fixed this version), a bot's garbage 'bot'
+              // value was silently ending the challenge window almost
+              // instantly — exactly Ali's "milliseconds, shifts directly
+              // from page to page" report. Bots now rarely challenge (10%)
+              // so the window plays out normally most of the time, and when
+              // they don't, they submit nothing at all rather than a
+              // throwaway value.
+              if (Math.random() < 0.10) botVal = 'challenge';
+              else return; // no submission — let the real window run its course
             } else if (spec.type === 'multitext') {
               // v104 — multitext was added in v102 but never taught to the
               // bots, so bot players submitted nothing and every statement
@@ -3222,29 +3236,50 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
 
       if (otherPids.length) {
         await FX.wipe();
+        // v133 — CHALLENGE_WINDOW_SECONDS: 4 -> 7, per Ali's "give it more
+        // time" (currently felt instant, not a real usable window). Also
+        // added a live, visibly ticking countdown (harfCwT) — there was
+        // previously no number on screen at all, just a static hint line,
+        // so even with a real 4-7s window running correctly there was
+        // nothing showing the player HOW long they had.
+        const CHALLENGE_WINDOW_SECONDS = 7;
         scene(`
           <div class="harf-reveal">
             <div class="harf-reveal-letter">${esc(letter)}</div>
             <div class="harf-reveal-answer display">${esc(answerText.toUpperCase())}</div>
             <div class="harf-reveal-by">${avatarHTML(currentP, 'avatar')}<span>${esc(currentP.name)}</span></div>
             <div class="harf-challenge-hint">${LANG === 'ar' ? 'اعتراض على الجواب؟' : 'Disagree with this?'}</div>
+            <div class="year-reveal" id="harfCwT" style="font-size:clamp(32px,6vmin,64px)!important">${CHALLENGE_WINDOW_SECONDS}</div>
           </div>`);
         pushMirror({ headline: `${letter} — ${answerText}`, sub: currentP.name });
         Audio_.sfx.correct(); FX.burst(40);
         net.setState({ phase: 'harf-challenge-window', category, letter, answer: answerText, pid: currentP.pid, eligibleVoters: otherPids });
 
-        const CHALLENGE_WINDOW_SECONDS = 4;
         const cwPhaseId = 'hcw' + Date.now();
         const cwDeadline = Date.now() + CHALLENGE_WINDOW_SECONDS * 1000;
         net.setState({ phase: 'input-split', phaseId: cwPhaseId, deadline: cwDeadline, targets: otherPids,
           specs: Object.fromEntries(otherPids.map(pid => [pid, { type: 'harfchallenge' }])) });
-        // Short-circuit the instant ANYONE challenges — don't wait for the
-        // rest of the window or for other players to respond at all.
-        net.onEachInput(pid => {
-          if (window.__hypoxForceCollect) window.__hypoxForceCollect();
+
+        let cwLeft = CHALLENGE_WINDOW_SECONDS;
+        const cwInterval = setInterval(() => {
+          cwLeft--;
+          const el = $('#harfCwT');
+          if (el) el.textContent = Math.max(0, cwLeft);
+          if (cwLeft <= 0) clearInterval(cwInterval);
+        }, 1000);
+
+        // v133 — real bug: this fired on ANY submitted input, value
+        // unchecked. A bot's fallback garbage submission (or literally
+        // anything) was enough to force-finish the window almost
+        // instantly — that's what turned a real 4s window into what Ali
+        // saw as milliseconds. Only an actual 'challenge' should cut the
+        // window short now.
+        net.onEachInput((pid, v) => {
+          if (v === 'challenge' && window.__hypoxForceCollect) window.__hypoxForceCollect();
         });
         const cwResult = await net.collect(cwPhaseId, { type: 'harfchallenge' }, otherPids, CHALLENGE_WINDOW_SECONDS);
         net.onEachInput(null);
+        clearInterval(cwInterval);
         challenged = otherPids.some(pid => val(cwResult, pid) === 'challenge');
       }
 
