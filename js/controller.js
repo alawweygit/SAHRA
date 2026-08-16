@@ -185,6 +185,26 @@ const Controller = (() => {
     // the clock runs. Submits a single JSON payload {letter, answer}.
     if (spec.type === 'harfturn') {
       wrap.classList.add('ctrl-harfturn');
+      // v135 — the ring timer v134 fixed lives on the shared stage, but
+      // this fullscreenInput panel takes over the ENTIRE phone screen and
+      // covers that stage completely — so the countdown was still
+      // invisible to players even after v134, just for a different reason
+      // (wrong screen, not "never built"). This panel needs its own.
+      if (spec.deadline) {
+        const cd = document.createElement('div');
+        cd.className = 'harf-turn-countdown';
+        wrap.appendChild(cd);
+        const tick = () => {
+          const left = Math.max(0, Math.ceil((spec.deadline - Date.now()) / 1000));
+          cd.textContent = left;
+          cd.classList.toggle('danger', left <= 5 && left > 0);
+        };
+        tick();
+        const cdInterval = setInterval(() => {
+          tick();
+          if (spec.deadline - Date.now() <= 0) clearInterval(cdInterval);
+        }, 1000);
+      }
       const pickHint = document.createElement('div');
       pickHint.className = 'harf-pick-hint';
       pickHint.textContent = LANG === 'ar' ? 'اضغط على حرف متاح' : 'Tap an available letter';

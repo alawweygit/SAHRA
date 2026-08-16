@@ -2639,6 +2639,13 @@ body.ar .harf-review-body{text-align:right;}
   font-size:clamp(11px,1.9vmin,15px);
   margin-top:.4vmin;opacity:.85;
 }
+/* v135 — countdown inside the fullscreen harfturn panel itself */
+.harf-turn-countdown{
+  font-family:'Fredoka One',sans-serif;font-weight:800;
+  font-size:clamp(28px,7vw,44px);color:var(--yellow);
+  text-align:center;margin-bottom:.6vmin;
+}
+.harf-turn-countdown.danger{color:var(--pink,#f472b6);animation:dangerPulse .5s ease-in-out infinite;}
 .harf-pick-hint{
   color:var(--text2);font-weight:700;text-align:center;
   font-size:clamp(12px,3.2vw,15px);margin-bottom:.4vmin;

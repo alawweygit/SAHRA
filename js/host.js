@@ -229,6 +229,15 @@ const Host = (() => {
   async function collectWithTimer(spec, pids, seconds, statusLabelFn) {
     const phaseId = 'ph' + (++phaseCounter);
     const deadline = inputDeadline(seconds);
+    // v135 — attach deadline onto spec itself (not just as a sibling field
+    // on state). fullscreenInput panels (HarfHunt's turn screen, etc.) take
+    // over the WHOLE phone screen and never see the shared stage's own ring
+    // timer — the v134 fix drove that ring, but it's invisible whenever a
+    // fullscreen panel covers it. spec is the exact object that reaches
+    // Controller.render on the phone (and net.collect's promptLocal call
+    // for the host's own device), so this is the one place a countdown
+    // built into the panel itself can read a deadline from.
+    spec.deadline = deadline;
 
     pushMirror({ headline: spec.context || spec.title || '', sub: spec.title || '' });
     net.setState({ phase: 'input', phaseId, spec, targets: pids, deadline, mirror: { ...mirror } });
