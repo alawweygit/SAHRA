@@ -635,7 +635,12 @@ const Host = (() => {
         pids, 60);
 
       // Build answer set: unique lies + truth (all UPPERCASE)
-      const truthUp = R.truth.toUpperCase();
+      // v137 — content pack is now clean (single-word truths throughout),
+      // but this stays as a defensive safety net for AI-generated content
+      // that might still slip in a phrase. Last word, not first — 'THE
+      // UNICORN' should resolve to UNICORN, not THE.
+      const truthWords = R.truth.toUpperCase().replace(/\(.*?\)/g, '').trim().split(/\s+/);
+      const truthUp = truthWords[truthWords.length - 1];
       const seen = new Set([truthUp]);
       const lies = [];
       const truthWriters = []; // players who wrote the correct answer
@@ -684,6 +689,12 @@ const Host = (() => {
       const _hostExcludeIdx = net.hostSelfPid ? answers.findIndex(a => !a.truth && a.by === net.hostSelfPid) : -1;
       const votes = await collectWithTimer({
         type: 'choice', title: t('pick_truth'),
+        // v137 — was missing entirely. 'choice' inputs hide the shared
+        // stage on phones (where the fact/blank IS shown correctly — see
+        // Ali's Mac screenshots), but nothing was passed to replace it, so
+        // players on their own phones saw only 'Which one is the REAL
+        // answer?' and the option buttons with no question at all.
+        context: R.fact.replace('___', '____'),
         options: answers.map((a, i) => ({ id: i, label: a.text })),
         playerExcludes: _bluffExcludeMap,
         hostExcludeIdx: _hostExcludeIdx,
