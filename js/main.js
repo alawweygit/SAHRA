@@ -1736,7 +1736,20 @@
       // signal already used for scroll-reset above — no new plumbing
       // needed, and it can't drift out of sync with the host's own
       // transitions since it's the same counter.
-      if(sceneChanged) FX.wipe();
+      // v140 — only for remote players. The host's own device already gets
+      // a correctly-sequenced wipe directly from host.js itself
+      // (await FX.wipe() finishes fully, THEN scene() shows new content —
+      // see e.g. line 623). But the host is ALSO subscribed to this same
+      // broadcast (in phones-only mode the host's own browser listens to
+      // onSharedScreen too), so the v138 wipe trigger below was ALSO firing
+      // on the host — a SECOND, redundant wipe landing a network
+      // round-trip after the content had already appeared directly. That's
+      // exactly Ali's "shows content, THEN milliseconds later the pink
+      // animation" report — a regression from v138, not a pre-existing
+      // issue. Remote players never had the direct path at all, so they
+      // still need this trigger; only the host needs to skip it.
+      const _isHostDevice = net?.hostSelfPid && net.hostSelfPid === myPid;
+      if(sceneChanged && !_isHostDevice) FX.wipe();
       if(sceneChanged || !shared.dataset.sharedReady){
         shared.innerHTML=html; // first paint / genuinely new scene: full mount
         shared.scrollTop=0; // guaranteed floor: a new scene always starts at
