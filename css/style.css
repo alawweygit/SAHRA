@@ -2640,12 +2640,21 @@ body.ar .harf-review-body{text-align:right;}
   margin-top:.4vmin;opacity:.85;
 }
 /* v135 — countdown inside the fullscreen harfturn panel itself */
+/* v136 — was the same var(--yellow) as .ctrl-context (the category
+   headline) rendered directly above it, so on the already-stacked
+   fullscreen turn panel (title, category, translate button, THEN this)
+   it visually blended into the headline above rather than reading as a
+   distinct timer. Uses HarfHunt's own accent color instead, and is a
+   compact pill rather than full-width text to keep the panel lean on
+   shorter phones. */
 .harf-turn-countdown{
   font-family:'Fredoka One',sans-serif;font-weight:800;
-  font-size:clamp(28px,7vw,44px);color:var(--yellow);
-  text-align:center;margin-bottom:.6vmin;
+  font-size:clamp(20px,5vw,28px);color:var(--harf-accent);
+  background:rgba(34,211,238,0.12);border:1.5px solid rgba(34,211,238,0.35);
+  border-radius:20px;padding:4px 18px;
+  display:inline-block;margin:0 auto .8vmin;
 }
-.harf-turn-countdown.danger{color:var(--pink,#f472b6);animation:dangerPulse .5s ease-in-out infinite;}
+.harf-turn-countdown.danger{color:var(--pink,#f472b6);background:rgba(244,114,182,0.14);border-color:rgba(244,114,182,0.4);animation:dangerPulse .5s ease-in-out infinite;}
 .harf-pick-hint{
   color:var(--text2);font-weight:700;text-align:center;
   font-size:clamp(12px,3.2vw,15px);margin-bottom:.4vmin;

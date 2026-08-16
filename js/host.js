@@ -222,13 +222,20 @@ const Host = (() => {
   }
 
   const autoplayEnabled = () => window.HYPOX_STATE?.autoplay === true;
-  const inputDeadline = seconds => autoplayEnabled() ? Date.now() + seconds * 1000 : null;
-  const inputTimeout = seconds => autoplayEnabled() ? seconds * 1000 : 9e7;
+  // v136 — spec.forceTimer bypasses the autoplay gate below. Without it,
+  // inputDeadline returns null and inputTimeout returns ~25 hours whenever
+  // autoplay is off — meaning HarfHunt's 15s turn cutoff (and its visible
+  // countdown, which depends on a real deadline existing) silently did
+  // nothing in manual/non-autoplay play. Ali wants the 15s cutoff to always
+  // apply, so HarfHunt opts out of the gate; every other mode's existing
+  // autoplay-dependent behavior is untouched.
+  const inputDeadline = (seconds, force) => (force || autoplayEnabled()) ? Date.now() + seconds * 1000 : null;
+  const inputTimeout = (seconds, force) => (force || autoplayEnabled()) ? seconds * 1000 : 9e7;
 
   /* ---------- input collection with big timer ---------- */
   async function collectWithTimer(spec, pids, seconds, statusLabelFn) {
     const phaseId = 'ph' + (++phaseCounter);
-    const deadline = inputDeadline(seconds);
+    const deadline = inputDeadline(seconds, spec.forceTimer === true);
     // v135 — attach deadline onto spec itself (not just as a sibling field
     // on state). fullscreenInput panels (HarfHunt's turn screen, etc.) take
     // over the WHOLE phone screen and never see the shared stage's own ring
@@ -368,7 +375,7 @@ const Host = (() => {
 
     // Manual pacing must not silently complete a phase when its old 12–60s
     // response timer expires. It still proceeds normally once everyone answers.
-    const inputs = await net.collect(phaseId, spec, pids, net.isOffline ? 9e7 : inputTimeout(seconds));
+    const inputs = await net.collect(phaseId, spec, pids, net.isOffline ? 9e7 : inputTimeout(seconds, spec.forceTimer === true));
     if (timerInt) clearInterval(timerInt);
     try { Audio_.stopMusic(); } catch(e) {}
     net.setState({ phase: 'wait', msg: LANG==='ar'?'👆 تابع الشاشة':'👆 Watch the screen', mirror: { ...mirror } });
@@ -3203,7 +3210,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         history: roundAnswers.map(a => ({ letter: a.letter, answer: a.answer, name: safeP(a.pid).name })),
       });
 
-      const spec = { type: 'harfturn', title: LANG === 'ar' ? 'دورك' : 'YOUR TURN', context: category, letters: available.slice(), fullscreenInput: true };
+      const spec = { type: 'harfturn', title: LANG === 'ar' ? 'دورك' : 'YOUR TURN', context: category, letters: available.slice(), fullscreenInput: true, forceTimer: true };
       const inputs = await collectWithTimer(spec, [currentP.pid], HARF_TURN_SECONDS);
       const raw = val(inputs, currentP.pid);
 
