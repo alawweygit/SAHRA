@@ -3290,7 +3290,14 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
           </div>`);
         pushMirror({ headline: `${letter} — ${answerText}`, sub: currentP.name });
         Audio_.sfx.correct(); FX.burst(40);
-        net.setState({ phase: 'harf-challenge-window', category, letter, answer: answerText, pid: currentP.pid, eligibleVoters: otherPids });
+        // v138 — removed a dead net.setState({phase:'harf-challenge-window'})
+        // call that used to sit here. Nothing anywhere ever read that phase
+        // name; it was immediately overwritten by the very next setState
+        // call below (phase:'input-split'), so it was a spurious extra
+        // state write on every single challenge window — two Firebase
+        // writes in quick succession instead of one, which is exactly the
+        // kind of thing that can cause a premature/duplicate render on a
+        // receiving device. Confirmed dead, not just suspected.
 
         const cwPhaseId = 'hcw' + Date.now();
         const cwDeadline = Date.now() + CHALLENGE_WINDOW_SECONDS * 1000;

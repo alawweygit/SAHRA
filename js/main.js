@@ -1724,6 +1724,19 @@
       // restructure — #scr-controller no longer scrolls), so track/restore
       // scroll directly on it, not the outer screen.
       const _prevScroll = sceneChanged ? 0 : (shared.scrollTop || 0);
+      // v138 — play the same wipe transition players' phones see the host
+      // play locally, whenever a genuinely new scene arrives. FX.wipe() only
+      // ever runs where host.js's game loop executes — the host's own
+      // device — because it's a purely local CSS animation, never part of
+      // the network payload. Remote phones only ever received the new
+      // CONTENT via this mirror broadcast, never the transition effect
+      // itself, which is why Ali saw it on host/Mac but not on player
+      // phones. sceneId already increments on every single scene() call
+      // (which is also every FX.wipe() call), so this rides the exact same
+      // signal already used for scroll-reset above — no new plumbing
+      // needed, and it can't drift out of sync with the host's own
+      // transitions since it's the same counter.
+      if(sceneChanged) FX.wipe();
       if(sceneChanged || !shared.dataset.sharedReady){
         shared.innerHTML=html; // first paint / genuinely new scene: full mount
         shared.scrollTop=0; // guaranteed floor: a new scene always starts at
