@@ -330,9 +330,19 @@ const Host = (() => {
     // countdown (online only — offline is turn-based, no global clock)
     let timerInt = null;
     const CIRC = 276.5;
-    // Ring timer removed per design decision — speed scoring handles urgency
-    $('#ringTimer')?.classList.add('hidden');
-    if (false && net.isOffline) {
+    // v134 — was: unconditionally hide #ringTimer for every mode, and the
+    // code that would have driven it was dead (`if (false && ...)`), so it
+    // never ran for ANYONE. The comment above it explains why other modes
+    // (quiz/trivia) deliberately dropped their ring — speed scoring already
+    // conveys urgency there. But HarfHunt shares this same function and has
+    // its OWN #ringTimer in harfTurnScene, and Ali explicitly wants a real,
+    // visible 15s countdown per turn — the auto-fail-on-timeout behavior
+    // below was already correct, only the on-screen display was missing.
+    // Only hide/skip the ring for modes that made the deliberate choice to
+    // drop it; HarfHunt keeps and drives its own.
+    const showRing = spec.type === 'harfturn';
+    if (!showRing) $('#ringTimer')?.classList.add('hidden');
+    if (showRing) {
       const num = $('#timerNum'), fill = $('#timerFill');
       if (fill) { fill.style.transition = 'none'; fill.style.strokeDashoffset = 0; await sleep(40); fill.style.transition = 'stroke-dashoffset .95s linear'; }
       timerInt = setInterval(() => {
