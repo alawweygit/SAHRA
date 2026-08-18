@@ -1889,6 +1889,39 @@
     // v144 — named (was an inline anonymous arrow function) so the
     // host-disconnect recovery below can re-invoke it with a freshly
     // fetched state, not just hide the banner over otherwise-stale content.
+    // v146 — reusable watchdog, extracted from v145's wait/mirror-specific
+    // version. Call with a stable key identifying the current transitional
+    // state and how long that phase is EVER legitimately supposed to last
+    // (per host.js's own sleep()/await duration for it) — if this exact
+    // key is still current once the timeout fires, with no OTHER state
+    // update having arrived in the meantime (checked via the generation
+    // counter, not just this key, so a genuine transition to a DIFFERENT
+    // phase always counts as "moved on"), it re-fetches the real current
+    // state and replays it. Only ever call this for phases that are always
+    // brief by design (a fixed short sleep, or a single quick network
+    // call) — never for phases meant to sit for a long time (active input
+    // collection, timerless votes, discussion timers, results screens),
+    // since those are SUPPOSED to hold, and watchdogging them would
+    // wrongly interrupt normal play.
+    function armStuckWatchdog(key,timeoutMs,keyFn){
+      if(window._hypoxWaitWatchdogKey===key)return;
+      window._hypoxWaitWatchdogKey=key;
+      const _genAtSchedule=window._hypoxStateGen;
+      clearTimeout(window._hypoxWaitWatchdogTimer);
+      window._hypoxWaitWatchdogTimer=setTimeout(()=>{
+        if(window._hypoxStateGen!==_genAtSchedule)return; // moved on normally
+        net.room('state').get().then(snap=>{
+          const fresh=snap.val();
+          if(!fresh)return;
+          // v146 — keyFn must build the fresh key the SAME way the caller
+          // built `key` from the original state, or this comparison can
+          // never correctly detect "nothing actually changed" — an earlier
+          // version of this hardcoded a different field list here than
+          // callers used, which would have made the check always mismatch.
+          if(keyFn(fresh)!==key)handleNetState(fresh); // real change waiting, just never delivered
+        }).catch(()=>{});
+      },timeoutMs);
+    }
     const handleNetState = state=>{
       // v145 — bumped on EVERY call, any phase. Used by the wait-phase
       // watchdog below to detect "did we receive ANY follow-up update at
@@ -2128,38 +2161,20 @@
           return;
         }
       }else if(state.phase==='wait'||state.phase==='mirror'){
-        // v145 — watchdog for this specific phase. host.js only ever sets
-        // 'wait' for brief transitional announcements (e.g. the "X is in
-        // the hot seat!" card, ~2.8s per its own sleep() call) before
-        // immediately moving to the real input-collecting phase. Ali hit a
-        // case where his phone got stuck on exactly this 'wait' state
-        // indefinitely — the host had already moved on to the actual
-        // question buttons, but this device's Firebase listener never
-        // delivered that follow-up write, same root cause as the
-        // hostLeft-banner issue, just a different phase. Since 'wait' is
-        // NEVER legitimately long-lived (unlike e.g. a discussion timer or
-        // an active input phase, which really can sit for a long time), a
-        // fixed timeout here is safe: if still on this same wait state
-        // after 9s, re-fetch and replay the real current state — same
-        // recovery mechanism already used for hostLeft.
-        const _waitKey=state.phase+'|'+(state.msg||'')+'|'+(state.phaseId||'');
-        if(window._hypoxWaitWatchdogKey!==_waitKey){
-          window._hypoxWaitWatchdogKey=_waitKey;
-          const _genAtSchedule=window._hypoxStateGen;
-          clearTimeout(window._hypoxWaitWatchdogTimer);
-          window._hypoxWaitWatchdogTimer=setTimeout(()=>{
-            // If any state update of ANY kind has been processed since this
-            // timer was scheduled, we genuinely moved on — nothing to do.
-            if(window._hypoxStateGen!==_genAtSchedule)return;
-            net.room('state').get().then(snap=>{
-              const fresh=snap.val();
-              if(fresh){
-                const freshKey=fresh.phase+'|'+(fresh.msg||'')+'|'+(fresh.phaseId||'');
-                if(freshKey!==_waitKey)handleNetState(fresh); // real change waiting, just never delivered
-              }
-            }).catch(()=>{});
-          },9000);
-        }
+        // v145/v146 — see armStuckWatchdog(). host.js only ever sets 'wait'
+        // for brief transitional announcements (e.g. the "X is in the hot
+        // seat!" card, ~2.8s per its own sleep() call) before immediately
+        // moving to the real input-collecting phase. Ali hit a case where
+        // his phone got stuck on exactly this 'wait' state indefinitely —
+        // the host had already moved on to the actual question buttons,
+        // but this device's Firebase listener never delivered that
+        // follow-up write. 9s is generous relative to every real 'wait'
+        // usage in host.js (all well under 3s).
+        armStuckWatchdog(
+          state.phase+'|'+(state.msg||'')+'|'+(state.phaseId||''),
+          9000,
+          s=>s.phase+'|'+(s.msg||'')+'|'+(s.phaseId||'')
+        );
         // Show full game content on phone using mirror data
         if(phonesOnly){
           document.body.classList.remove('phones-player-answering');
@@ -2206,6 +2221,24 @@
             ctrl.innerHTML='';
           }
           return;
+        }
+        // v146 — watchdog for the genuinely brief phases that share this
+        // generic fallback (no dedicated branch of their own). Deliberately
+        // an ALLOWLIST, not a blanket rule: this same fallback is ALSO used
+        // by phases meant to hold for a long time on purpose —
+        // 'appealVote' has NO timer at all by explicit design (Ali's own
+        // spec), and 'finalResults'/'suddenDeath' can legitimately sit
+        // until the host acts. Those must never be force-refreshed
+        // mid-wait, so only the four confirmed-brief ones (each backed by
+        // a fixed short sleep() or a single quick network call in host.js)
+        // get armed here.
+        const _briefPhases={validating:1,answerReveal:1,roundIntro:1,roundFailed:1};
+        if(_briefPhases[state.phase]){
+          armStuckWatchdog(
+            state.phase+'|'+(state.round||'')+'|'+(state.letter||'')+'|'+(state.pid||''),
+            state.phase==='validating'?15000:6000,
+            s=>s.phase+'|'+(s.round||'')+'|'+(s.letter||'')+'|'+(s.pid||'')
+          );
         }
         const m = state.mirror||state;
         if(m.headline){
