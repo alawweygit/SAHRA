@@ -1886,7 +1886,10 @@
       if(hidden)s.style.setProperty('display','none','important');
       else s.style.removeProperty('display');
     }
-    net.onState(state=>{
+    // v144 — named (was an inline anonymous arrow function) so the
+    // host-disconnect recovery below can re-invoke it with a freshly
+    // fetched state, not just hide the banner over otherwise-stale content.
+    const handleNetState = state=>{
       if(!state||state.phase==='hostLeft'){
         document.body.classList.remove('phones-player-answering');
         setSharedStageHidden(false);
@@ -1900,6 +1903,37 @@
             _hb.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:300;background:rgba(0,0,0,0.85);border:1.5px solid var(--yellow);border-radius:20px;padding:10px 20px;font-family:Fredoka One,sans-serif;font-size:14px;color:var(--yellow);text-align:center;';
             _hb.textContent=LANG==='ar'?'المضيف انقطع — اللعبة مستمرة ⚡':'Host disconnected — game continues ⚡';
             document.body.appendChild(_hb);
+            // v144 — this banner previously had NO auto-clear at all: its
+            // only removal path was a subsequent non-hostLeft state update
+            // reaching net.onState. Ali hit a case where the host's brief
+            // disconnect was transient (his own host screen kept running
+            // normally the whole time) and the shared-screen mirror/tracker
+            // kept visibly updating (checkmarks progressing) — but this
+            // specific banner never cleared, because the exact 'state' node
+            // this listener watches didn't happen to change phase again for
+            // a while. A hard timeout means a stale banner can never
+            // outlive the actual disconnect, regardless of why the normal
+            // clearance path was delayed.
+            // v144 — was: clear the banner text/element only. That alone
+            // would leave the actual game content still stuck on whatever
+            // was last rendered (see Ali's pic3 — frozen mid-transition
+            // behind the banner), since nothing re-triggers rendering until
+            // the NEXT live Firebase write happens to arrive, which could
+            // be delayed for any number of reasons unrelated to whether the
+            // host is actually still there. A one-time fresh fetch, replayed
+            // through the same handler, genuinely recovers the player back
+            // to whatever the game is currently doing — not just hides the
+            // symptom.
+            setTimeout(()=>{
+              if(window._hypoxHostGone){
+                window._hypoxHostGone=false;
+                document.getElementById('hostGoneBanner')?.remove();
+                net.room('state').get().then(snap=>{
+                  const fresh=snap.val();
+                  if(fresh&&fresh.phase!=='hostLeft')handleNetState(fresh);
+                }).catch(()=>{});
+              }
+            },6000);
           }
           window._hypoxHostGone=true;
           return;
@@ -2125,15 +2159,14 @@
               },{once:true});
             }
           } else {
-            // Non-host players: show waiting for host message
-            ctrl.classList.remove('hidden');
-            if(!ctrl.querySelector('.waiting-for-host')){
-              ctrl.innerHTML=`<div style="padding:4px 16px">
-                <div class="waiting-for-host" style="text-align:center;padding:12px 16px;color:var(--text3);font-size:clamp(13px,3.5vw,16px);background:var(--bg2);border:1.5px solid var(--border);border-radius:20px;max-width:400px;margin:0 auto">
-                  ⏳ ${LANG==='ar'?'انتظر المضيف...':'Waiting for host...'}
-                </div>
-              </div>`;
-            }
+            // v144 — was showing a "⏳ Waiting for host..." box here for
+            // every non-host player. The shared stage above already shows
+            // the full hot-seat announcement (name, avatar, "is in the hot
+            // seat" pill) — this box added nothing but visual clutter below
+            // it, per Ali's explicit ask to remove it. Leave ctrl empty;
+            // the stage content is the whole message during this phase.
+            ctrl.classList.add('hidden');
+            ctrl.innerHTML='';
           }
           return;
         }
@@ -2262,6 +2295,7 @@
           },{once:true});
         }
       }
-    });
+    };
+    net.onState(handleNetState);
   }
 })();
