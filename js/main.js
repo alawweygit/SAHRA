@@ -2105,8 +2105,14 @@
         if(_isNewPhase){lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);}
         const rawSpec=state.specs?.[myPid]||state.specs?._default;
         if(!rawSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
-        // In phones-only: choice/text types need full UI; wait types hide ctrl
-        const _needsInput = rawSpec.type==='choice'||rawSpec.type==='text'||rawSpec.type==='higherlow'||rawSpec.type==='number'||rawSpec.type==='multitext';
+        // v147 — CONFIRMED root cause of players never seeing WYR/Know Your
+        // Crew's question buttons at all: 'wyr-multi' was missing from this
+        // whitelist. Every input-split state for this mode was silently
+        // treated as a spectator/wait type below (hide ctrl, clear it,
+        // return) — not a delivery/timing problem at all, the v145/v146
+        // watchdog was solving a different bug and could never have fixed
+        // this one, since the state WAS arriving correctly every time.
+        const _needsInput = rawSpec.type==='choice'||rawSpec.type==='text'||rawSpec.type==='higherlow'||rawSpec.type==='number'||rawSpec.type==='multitext'||rawSpec.type==='wyr-multi'||rawSpec.type==='harfchallenge';
         const spec = phonesOnly && _needsInput
           ? {...rawSpec, controlsOnly:false}
           : phonesOnly
@@ -2217,8 +2223,19 @@
             // seat" pill) — this box added nothing but visual clutter below
             // it, per Ali's explicit ask to remove it. Leave ctrl empty;
             // the stage content is the whole message during this phase.
+            //
+            // v147 — but #playerDock.docked has its OWN visible background/
+            // border/shadow (see CSS), applied to the wrapper regardless of
+            // whether the ctrl content inside it is empty. .docked gets
+            // added unconditionally above (needed for the host's Next-
+            // button case), so non-host players in THIS branch were left
+            // staring at a bare, empty dock bar with nothing in it — the
+            // flat line Ali flagged in his screenshot. Undo it specifically
+            // here, since there's genuinely nothing to dock.
             ctrl.classList.add('hidden');
             ctrl.innerHTML='';
+            _pd?.classList.remove('docked');
+            _sc?.classList.remove('has-docked-footer');
           }
           return;
         }
