@@ -582,7 +582,7 @@
         document.body.appendChild(_conf);
         document.getElementById('_confYes').onclick=()=>{_conf.remove();leaveGame();};
         document.getElementById('_confNo').onclick=()=>_conf.remove();
-      }else{show('#scr-title');}
+      }else{$('#topbar').classList.remove('show');$('#roundPill').innerHTML='HYPOX';$('#roundPill').style.cssText='';show('#scr-title');}
     });
     // Join screen — build mini avatar picker
     buildJoinAvatarRow();
