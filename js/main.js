@@ -1890,6 +1890,11 @@
     // host-disconnect recovery below can re-invoke it with a freshly
     // fetched state, not just hide the banner over otherwise-stale content.
     const handleNetState = state=>{
+      // v145 — bumped on EVERY call, any phase. Used by the wait-phase
+      // watchdog below to detect "did we receive ANY follow-up update at
+      // all" — comparing phase-specific keys alone can't distinguish
+      // "still stuck" from "moved on normally to something else".
+      window._hypoxStateGen=(window._hypoxStateGen||0)+1;
       if(!state||state.phase==='hostLeft'){
         document.body.classList.remove('phones-player-answering');
         setSharedStageHidden(false);
@@ -2123,6 +2128,38 @@
           return;
         }
       }else if(state.phase==='wait'||state.phase==='mirror'){
+        // v145 — watchdog for this specific phase. host.js only ever sets
+        // 'wait' for brief transitional announcements (e.g. the "X is in
+        // the hot seat!" card, ~2.8s per its own sleep() call) before
+        // immediately moving to the real input-collecting phase. Ali hit a
+        // case where his phone got stuck on exactly this 'wait' state
+        // indefinitely — the host had already moved on to the actual
+        // question buttons, but this device's Firebase listener never
+        // delivered that follow-up write, same root cause as the
+        // hostLeft-banner issue, just a different phase. Since 'wait' is
+        // NEVER legitimately long-lived (unlike e.g. a discussion timer or
+        // an active input phase, which really can sit for a long time), a
+        // fixed timeout here is safe: if still on this same wait state
+        // after 9s, re-fetch and replay the real current state — same
+        // recovery mechanism already used for hostLeft.
+        const _waitKey=state.phase+'|'+(state.msg||'')+'|'+(state.phaseId||'');
+        if(window._hypoxWaitWatchdogKey!==_waitKey){
+          window._hypoxWaitWatchdogKey=_waitKey;
+          const _genAtSchedule=window._hypoxStateGen;
+          clearTimeout(window._hypoxWaitWatchdogTimer);
+          window._hypoxWaitWatchdogTimer=setTimeout(()=>{
+            // If any state update of ANY kind has been processed since this
+            // timer was scheduled, we genuinely moved on — nothing to do.
+            if(window._hypoxStateGen!==_genAtSchedule)return;
+            net.room('state').get().then(snap=>{
+              const fresh=snap.val();
+              if(fresh){
+                const freshKey=fresh.phase+'|'+(fresh.msg||'')+'|'+(fresh.phaseId||'');
+                if(freshKey!==_waitKey)handleNetState(fresh); // real change waiting, just never delivered
+              }
+            }).catch(()=>{});
+          },9000);
+        }
         // Show full game content on phone using mirror data
         if(phonesOnly){
           document.body.classList.remove('phones-player-answering');
