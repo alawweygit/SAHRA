@@ -1710,7 +1710,7 @@
         }
       }
     }
-    function renderShared(view){
+    async function renderShared(view){
       if(!phonesOnly||!view?.html||!String(view.html).trim())return false;
       const html=safeSharedHTML(view.html);
       if(!html.trim())return false;
@@ -1724,32 +1724,30 @@
       // restructure — #scr-controller no longer scrolls), so track/restore
       // scroll directly on it, not the outer screen.
       const _prevScroll = sceneChanged ? 0 : (shared.scrollTop || 0);
-      // v138 — play the same wipe transition players' phones see the host
-      // play locally, whenever a genuinely new scene arrives. FX.wipe() only
-      // ever runs where host.js's game loop executes — the host's own
-      // device — because it's a purely local CSS animation, never part of
-      // the network payload. Remote phones only ever received the new
-      // CONTENT via this mirror broadcast, never the transition effect
-      // itself, which is why Ali saw it on host/Mac but not on player
-      // phones. sceneId already increments on every single scene() call
-      // (which is also every FX.wipe() call), so this rides the exact same
-      // signal already used for scroll-reset above — no new plumbing
-      // needed, and it can't drift out of sync with the host's own
-      // transitions since it's the same counter.
-      // v140 — only for remote players. The host's own device already gets
-      // a correctly-sequenced wipe directly from host.js itself
-      // (await FX.wipe() finishes fully, THEN scene() shows new content —
-      // see e.g. line 623). But the host is ALSO subscribed to this same
-      // broadcast (in phones-only mode the host's own browser listens to
-      // onSharedScreen too), so the v138 wipe trigger below was ALSO firing
-      // on the host — a SECOND, redundant wipe landing a network
-      // round-trip after the content had already appeared directly. That's
-      // exactly Ali's "shows content, THEN milliseconds later the pink
-      // animation" report — a regression from v138, not a pre-existing
-      // issue. Remote players never had the direct path at all, so they
-      // still need this trigger; only the host needs to skip it.
+      // v138/v140/v141 — play the same wipe transition players' phones see
+      // the host play locally, whenever a genuinely new scene arrives.
+      // FX.wipe() only ever runs where host.js's game loop executes — the
+      // host's own device — because it's a purely local CSS animation,
+      // never part of the network payload. v140 correctly excluded the
+      // host's own device from this (it already gets a properly-sequenced
+      // wipe directly from host.js — see e.g. line 623's
+      // `await FX.wipe(); scene(...)`).
+      //
+      // v141 — the REMAINING bug Ali reported: this call fired FX.wipe()
+      // WITHOUT awaiting it, then fell straight through to swap
+      // shared.innerHTML on the very same tick. So the wipe animation had
+      // only just started (0ms into its 380ms run) at the exact moment the
+      // new content became visible underneath it — the wipe was playing
+      // OVER/AFTER content that was already there, not covering the
+      // transition. Host never had this problem because host.js's own
+      // scene() calls are already preceded by a genuine `await FX.wipe()`.
+      // Fixed by actually awaiting the full wipe here too, so the content
+      // swap only happens once the wipe has fully finished — exactly
+      // mirroring the host's own sequencing.
       const _isHostDevice = net?.hostSelfPid && net.hostSelfPid === myPid;
-      if(sceneChanged && !_isHostDevice) FX.wipe();
+      if(sceneChanged && !_isHostDevice){
+        await FX.wipe();
+      }
       if(sceneChanged || !shared.dataset.sharedReady){
         shared.innerHTML=html; // first paint / genuinely new scene: full mount
         shared.scrollTop=0; // guaranteed floor: a new scene always starts at
@@ -1875,7 +1873,7 @@
           }, 60);
         } catch(e) { console.error('player reveal map failed', e); }
       }
-      net.onSharedScreen(view=>{ renderShared(view); tryInitRevealMap(); });
+      net.onSharedScreen(async view=>{ await renderShared(view); tryInitRevealMap(); });
     }
     let lastPhaseId=null;
     let hostLeftTimer=null;
