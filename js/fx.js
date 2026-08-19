@@ -68,7 +68,27 @@ const FX = (() => {
     void w.offsetWidth;
     w.addEventListener('animationend', () => w.classList.remove('go'), { once:true });
     w.classList.add('go');
-    await sleep(380);
+    // v148 — was `await sleep(380)`. Two separate problems, found together:
+    //
+    // 1. The REAL CSS animation duration is 650ms (#wipe.go{animation:
+    //    wipeAcross 0.65s...}), not 380ms — the JS timing was never in sync
+    //    with the actual animation to begin with, for every caller,
+    //    everywhere, this whole time.
+    // 2. Per the wipeAcross keyframe, the bar only fully covers the screen
+    //    briefly around 45%-55% of its run (292.5-357.5ms of the real
+    //    650ms), then continues sliding off to the right for the remaining
+    //    duration. Waiting for anything close to the full run — 380ms
+    //    included, since that's PAST the 357.5ms cover window and already
+    //    into the exit — meant content swapped while the bar was already
+    //    exiting or gone, so the OLD content flashed back into view before
+    //    an abrupt cut to the new one, instead of a real wipe transition.
+    //
+    // Fixed by resolving at 320ms — centered in the real 292.5-357.5ms
+    // cover window — so every existing `await FX.wipe()` call site (host.js's
+    // 50+ usages, plus main.js's player-side one) now swaps content WHILE
+    // the screen is genuinely covered, and the bar's own still-running exit
+    // animation naturally reveals the new content as it slides away.
+    await sleep(320);
   }
 
   function flyPoints(anchorEl, text) {
