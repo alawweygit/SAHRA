@@ -665,6 +665,27 @@ body.phones-hide-tracker #statusRow{display:none!important;}
 .choice-btn.picked{border-color:var(--yellow);background:var(--card-hi);}
 .ctrl-done{font-family:'Fredoka One',sans-serif;color:var(--green);font-size:16px;animation:popIn 0.4s both;}
 .ctrl-waiting{display:flex;gap:10px;padding:12px;}
+
+/* Lie Detector vote: match the player's one-card composition while keeping
+   this mode's own flippable answer faces, voter landing strips and colors. */
+.lie-detector-choice-shell{
+  display:flex;flex-direction:column;align-items:stretch;gap:14px;
+  width:min(94vw,880px);padding:24px 18px;
+  background:var(--card);border:1.5px solid var(--border-hi);
+  border-radius:22px;box-shadow:0 12px 32px var(--shadow);
+}
+.lie-detector-choice-shell>.prompt-card{
+  width:100%;max-width:none!important;margin:0!important;
+}
+.lie-detector-choice-shell>.answer-grid{
+  display:flex!important;flex-direction:column!important;
+  width:100%;max-width:none;margin:0;gap:9px;
+}
+.lie-detector-choice-shell .ans-card{width:100%;min-height:clamp(74px,10vmin,110px);}
+
+@media(max-width:600px){
+  .lie-detector-choice-shell{padding:16px 14px;gap:10px;border-radius:18px;}
+}
 .pulse-dot{width:13px;height:13px;border-radius:50%;background:var(--blue);animation:dotPulse 1.2s ease-in-out infinite;}
 .pulse-dot:nth-child(2){animation-delay:0.2s;}
 .pulse-dot:nth-child(3){animation-delay:0.4s;}

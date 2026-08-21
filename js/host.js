@@ -661,18 +661,20 @@ const Host = (() => {
       setPill(t('vote_title'));
       scene(`
         <div class="eyebrow">${esc(t('pick_truth'))}</div>
-        <div class="prompt-card small display">${esc(R.fact).replace('___', '<span class="blank">&nbsp;???&nbsp;</span>')}</div>
-        <div class="answer-grid" id="answerGrid">
-          ${answers.map((a, i) => `
-            <div class="ans-card" id="card-${i}" style="animation-delay:${i * .12}s">
-              <div class="ans-inner">
-                <div class="ans-face ans-front"><div>${esc(a.text)}</div><div class="voter-strip" id="voters-${i}"></div></div>
-                <div class="ans-face ans-back ${a.truth ? 'truth' : 'lie'}">
-                  <div class="ans-tag">${a.truth ? '✦ ' + esc(t('truth')) + ' ✦' : esc(t('a_lie_by'))}</div>
-                  <div>${a.truth ? esc(a.text) : ''}</div>
+        <div class="lie-detector-choice-shell">
+          <div class="prompt-card small display">${esc(R.fact).replace('___', '<span class="blank">&nbsp;???&nbsp;</span>')}</div>
+          <div class="answer-grid" id="answerGrid">
+            ${answers.map((a, i) => `
+              <div class="ans-card" id="card-${i}" style="animation-delay:${i * .12}s">
+                <div class="ans-inner">
+                  <div class="ans-face ans-front"><div>${esc(a.text)}</div><div class="voter-strip" id="voters-${i}"></div></div>
+                  <div class="ans-face ans-back ${a.truth ? 'truth' : 'lie'}">
+                    <div class="ans-tag">${a.truth ? '✦ ' + esc(t('truth')) + ' ✦' : esc(t('a_lie_by'))}</div>
+                    <div>${a.truth ? esc(a.text) : ''}</div>
+                  </div>
                 </div>
-              </div>
-            </div>`).join('')}
+              </div>`).join('')}
+          </div>
         </div>
         <div id="statusRow" class="status-row"></div>`);
       answers.forEach((a, i) => setTimeout(() => Audio_.sfx.pop(), i * 120));
