@@ -41,6 +41,24 @@ const Host = (() => {
   /* ---------- tiny host-screen helpers ---------- */
   const stage = () => $('#hostStage');
 
+  // Phones-only modes with bespoke collection loops used to hand-build a
+  // separate host UI. Route those through the player renderer too, while
+  // keeping the wrapper local to the host and preserving each mode's spec.
+  function renderHostPlayerCard(spec,onSubmit){
+    const panel=document.createElement('div');
+    panel.className='phones-host-inline-choice-panel host-only-ui';
+    document.body.classList.add('phones-host-inline-answering');
+    stage()?.appendChild(panel);
+    Controller.render(panel,{...spec,controlsOnly:false},async value=>{
+      const result=await onSubmit(value);
+      if(result?.accepted===false)return result;
+      panel.remove();
+      document.body.classList.remove('phones-host-inline-answering');
+      return result;
+    });
+    return panel;
+  }
+
   /* Phones Only gets the same presentation as the host. A debounced DOM
      snapshot is published independently of input state, so timers, revealed
      hints, avatars and score animations stay live without interrupting forms. */
@@ -49,7 +67,11 @@ const Host = (() => {
     const source = stage();
     if (!source) return '';
     const clone = source.cloneNode(true);
-    clone.querySelectorAll('script,style,iframe,object,embed,.leaflet-pane,.leaflet-control-container').forEach(el => el.remove());
+    // Local host controls must never be serialized. Besides preventing an
+    // accidental duplicate on player phones, removing them before the tree
+    // walk avoids cloning and diffing a second set of animated answer buttons
+    // on every input/timer update.
+    clone.querySelectorAll('script,style,iframe,object,embed,.leaflet-pane,.leaflet-control-container,.host-only-ui').forEach(el => el.remove());
     clone.querySelectorAll('*').forEach(el => {
       el.removeAttribute('id');
       [...el.attributes].forEach(a => {
@@ -178,6 +200,7 @@ const Host = (() => {
     // per round; reveal/score scenes simply stay unaffected. This also
     // covers the timeout path where the host never submitted an answer.
     document.body.classList.remove('hide-tracker');
+    document.body.classList.remove('phones-host-inline-answering');
     sharedSceneId++;
     s.innerHTML = html;
     s.classList.remove('scene-in'); void s.offsetWidth; s.classList.add('scene-in');
@@ -853,60 +876,11 @@ const Host = (() => {
         }, 1000 + Math.random() * 2500);
       });
 
-      // Host renders 3 sets of cyan/pink buttons locally
+      // Host uses the same multi-question card renderer as every player.
       if (net.hostSelfPid) {
-        const hostWyrWrap = document.createElement('div');
-        hostWyrWrap.id = 'wyrHostBtns';
-        hostWyrWrap.className = 'host-only-ui';
-        hostWyrWrap.style.cssText = 'width:100%;max-width:680px;margin-top:8px;display:flex;flex-direction:column;gap:10px;padding:0 12px;box-sizing:border-box;';
-        const hostAnswers = new Array(questions.length).fill(null);
-        const btnStyle = (bg,fg) => `flex:1;min-height:56px;padding:12px 10px;border-radius:16px;background:${bg};color:${fg};font-family:'Fredoka One',sans-serif;font-size:clamp(13px,1.8vmin,18px);border:none;cursor:pointer;line-height:1.3;word-break:break-word;font-weight:700;transition:opacity 0.2s;`;
-        questions.forEach((Q, qi) => {
-          const row = document.createElement('div');
-          row.style.cssText = 'display:flex;gap:8px;align-items:stretch;';
-          row.innerHTML = `<button id="wyrH_${qi}_a" style="${btnStyle('#2de1fc','#000')}">${esc(Q.a)}</button><div style="font-family:'Fredoka One',sans-serif;font-size:16px;color:var(--text3);display:flex;align-items:center;padding:0 4px;flex-shrink:0">VS</div><button id="wyrH_${qi}_b" style="${btnStyle('#ff3d8a','#fff')}">${esc(Q.b)}</button>`;
-          hostWyrWrap.appendChild(row);
-          const pick = (v) => {
-            hostAnswers[qi] = v;
-            const btnA = document.getElementById(`wyrH_${qi}_a`);
-            const btnB = document.getElementById(`wyrH_${qi}_b`);
-            if (btnA) { btnA.style.opacity = v==='a' ? '1' : '0.35'; btnA.disabled = true; }
-            if (btnB) { btnB.style.opacity = v==='b' ? '1' : '0.35'; btnB.disabled = true; }
-            // If all answered, submit
-            if (hostAnswers.every(a => a !== null)) {
-              hostWyrWrap.remove();
-              net.room('inputs/' + phaseId + '/' + net.hostSelfPid).set({ v: hostAnswers.join(','), t: Date.now() }).catch(()=>{});
-            }
-          };
-        });
-        document.getElementById('hostStage')?.appendChild(hostWyrWrap);
-        // Wire buttons AFTER appending to DOM
-        questions.forEach((Q, qi) => {
-          document.getElementById(`wyrH_${qi}_a`)?.addEventListener('click', () => {
-            Audio_.sfx.submit();
-            hostAnswers[qi] = 'a';
-            const btnA = document.getElementById(`wyrH_${qi}_a`);
-            const btnB = document.getElementById(`wyrH_${qi}_b`);
-            if (btnA) { btnA.style.opacity='1'; btnA.style.outline='3px solid #fff'; }
-            if (btnB) { btnB.style.opacity='0.35'; btnB.style.outline='none'; }
-            if (hostAnswers.every(a => a !== null)) {
-              hostWyrWrap.remove();
-              net.room('inputs/' + phaseId + '/' + net.hostSelfPid).set({ v: hostAnswers.join(','), t: Date.now() }).catch(()=>{});
-            }
-          });
-          document.getElementById(`wyrH_${qi}_b`)?.addEventListener('click', () => {
-            Audio_.sfx.submit();
-            hostAnswers[qi] = 'b';
-            const btnA = document.getElementById(`wyrH_${qi}_a`);
-            const btnB = document.getElementById(`wyrH_${qi}_b`);
-            if (btnA) { btnA.style.opacity='0.35'; btnA.style.outline='none'; }
-            if (btnB) { btnB.style.opacity='1'; btnB.style.outline='3px solid #fff'; }
-            if (hostAnswers.every(a => a !== null)) {
-              hostWyrWrap.remove();
-              net.room('inputs/' + phaseId + '/' + net.hostSelfPid).set({ v: hostAnswers.join(','), t: Date.now() }).catch(()=>{});
-            }
-          });
-        });
+        renderHostPlayerCard(phoneWyrSpec,value=>
+          net.room('inputs/' + phaseId + '/' + net.hostSelfPid).set({v:value,t:Date.now()})
+        );
       }
 
       // Online players already received the split-input state above. One
@@ -1212,37 +1186,13 @@ const Host = (() => {
       // DOM-clone broadcast (see sharedHTML()/mutation observer), so it stays
       // strictly local to the host's own screen.
       if (net.hostSelfPid === hotPid) {
-        const _hostPickWrap = document.createElement('div');
-        _hostPickWrap.className = 'host-only-ui';
-        _hostPickWrap.style.cssText = 'position:fixed;inset:0;z-index:600;background:var(--bg);display:flex;flex-direction:column;align-items:center;padding:0 4vw;overflow-y:auto;';
-        _hostPickWrap.innerHTML = `
-          <div style="height:max(60px,8vmin)"></div>
-          <div class="ctrl-title display">😂 ${LANG==='ar'?'اختار الأضحك':'Pick the funniest'}</div>
-          <div class="ctrl-context">${esc(promptText)}</div>
-          <div class="ctrl-choices" id="siaHostPickList">${answerList.map((a,idx)=>{
-            const col=COLS[idx%COLS.length];
-            return `<button class="choice-btn sia-host-pick-btn" data-idx="${idx}" style="--cb:${col};animation-delay:${idx*0.07}s">${esc(String.fromCharCode(65+idx)+'. '+a.text)}</button>`;
-          }).join('')}</div>`;
-        document.body.appendChild(_hostPickWrap);
+        renderHostPlayerCard(pickSpecs[hotPid],value=>
+          net.room('inputs/'+pickPhaseId+'/'+hotPid).set({v:value,t:Date.now()})
+        );
         const _extraCtrl = document.getElementById('ctrlArea');
         if (_extraCtrl) { _extraCtrl.innerHTML = ''; _extraCtrl.classList.add('hidden'); }
         const _extraShared = document.getElementById('phoneSharedStage');
         if (_extraShared) _extraShared.style.setProperty('display', 'none', 'important');
-        const _pickBtns = _hostPickWrap.querySelectorAll('.sia-host-pick-btn');
-        let _picked = false;
-        _pickBtns.forEach(btn => {
-          btn.addEventListener('click', async () => {
-            if (_picked) return;
-            _picked = true;
-            const idx = parseInt(btn.dataset.idx);
-            const a = answerList[idx];
-            Audio_.sfx.submit();
-            btn.classList.add('picked');
-            _pickBtns.forEach(b => { if (b !== btn) { b.style.opacity = '0.4'; b.style.pointerEvents = 'none'; } });
-            await net.room('inputs/'+pickPhaseId+'/'+hotPid).set({ v: a.pid, t: Date.now() });
-            setTimeout(() => _hostPickWrap.remove(), 600);
-          }, { once: true });
-        });
       }
 
       // Send choice spec — hot seat player gets buttons on their device via controller
@@ -1412,17 +1362,9 @@ const Host = (() => {
         const myOpt=net.hostSelfPid===A.pid?'a':net.hostSelfPid===B.pid?'b':null;
         const votableOpts=myOpt?voteOpts.filter(o=>o.id!==myOpt):voteOpts;
         if (votableOpts.length) {
-          const btnRow=document.createElement('div');
-          btnRow.className='host-only-ui';
-          btnRow.style.cssText='display:flex;gap:12px;justify-content:center;margin-top:14px;width:100%;max-width:700px;align-items:stretch;';
-          btnRow.innerHTML=votableOpts.map(o=>`<button id="diss_${o.id}" style="flex:1;max-width:320px;padding:14px;border-radius:14px;background:${o.color}22;border:2px solid ${o.color}60;color:var(--text);font-family:'Fredoka One',sans-serif;font-size:clamp(13px,1.8vmin,16px);cursor:pointer;line-height:1.4;text-align:left">${esc(o.id==='a'?lineA:lineB)}</button>`).join('<div style="font-family:Fredoka One;font-size:18px;color:var(--text3);display:flex;align-items:center">VS</div>');
-          document.getElementById('hostStage')?.appendChild(btnRow);
-          votableOpts.forEach(o=>{
-            document.getElementById('diss_'+o.id)?.addEventListener('click',async()=>{
-              Audio_.sfx.submit();btnRow.remove();
-              await net.room('inputs/'+votePhaseId+'/'+net.hostSelfPid).set({v:o.id,t:Date.now()});
-            },{once:true});
-          });
+          renderHostPlayerCard({type:'choice',title:LANG==='ar'?'🥊 من يفوز؟':'🥊 Who wins?',options:votableOpts},value=>
+            net.room('inputs/'+votePhaseId+'/'+net.hostSelfPid).set({v:value,t:Date.now()})
+          );
         }
       }
 
