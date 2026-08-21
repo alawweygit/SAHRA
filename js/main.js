@@ -1602,6 +1602,9 @@
     const ctrl=$('#ctrlArea');
     const shared=$('#phoneSharedStage');
     const sharedHost=$('#phoneSharedHost');
+    let _pendingSharedView=null;
+    let _sharedRenderSeq=0;
+    let _afterSharedRender=()=>{};
     const phonesOnly=net.playMode==='phones';
     net.phonesOnly=phonesOnly;
     document.body.classList.toggle('phones-only-player',phonesOnly);
@@ -1693,6 +1696,10 @@
     }
     function renderSharedStatus(title,sub=''){
       if(!phonesOnly)return;
+      // A loading placeholder must never replace a game scene that has
+      // already mounted. State and sharedScreen are separate Firebase paths,
+      // so either listener can legitimately arrive first on a player phone.
+      if(shared.dataset.gameStarted==='1')return;
       shared.innerHTML=`<div class="shared-status ctrl-wrap"><div class="ctrl-title display">${esc(title)}</div>${sub?`<div class="ctrl-sub">${esc(sub)}</div>`:''}</div>`;
       resetScrollPositionAfterLayout();
     }
@@ -1746,6 +1753,23 @@
       if(!html.trim())return false;
       const nextSceneId=String(view.sceneId??'');
       const sceneChanged=nextSceneId!==''&&shared.dataset.sceneId!==nextSceneId;
+      const sharedStageSuppressed=()=>document.visibilityState!=='visible'||shared.classList.contains('hidden')||shared.style.display==='none';
+      const renderSeq=++_sharedRenderSeq;
+
+      // Choice inputs deliberately hide #phoneSharedStage because the
+      // controller repeats the question. A sharedScreen update can beat the
+      // independent state='wait' update to this device; playing and committing
+      // the wipe while the stage is still display:none makes the later reveal
+      // look like an unanimated content cut. Hold only the newest scene until
+      // the stage is actually visible, then perform the wipe and commit.
+      if(sceneChanged&&sharedStageSuppressed()){
+        _pendingSharedView=view;
+        return false;
+      }
+
+      // Live listeners may deliver several snapshots while a wipe is in
+      // flight. They share the physical animation, but only the newest
+      // snapshot is allowed to replace the DOM at its covered midpoint.
       // Preserve scroll position across re-renders within the same scene —
       // replacing innerHTML always resets scrollTop to 0, which breaks
       // scrolling on any screen that updates repeatedly (bar-fill counters,
@@ -1771,12 +1795,17 @@
       // OVER/AFTER content that was already there, not covering the
       // transition. Host never had this problem because host.js's own
       // scene() calls are already preceded by a genuine `await FX.wipe()`.
-      // Fixed by actually awaiting the full wipe here too, so the content
-      // swap only happens once the wipe has fully finished — exactly
+      // Fixed by awaiting the wipe's covered midpoint here too, so the
+      // content swap happens while the bar covers the viewport — exactly
       // mirroring the host's own sequencing.
       const _isHostDevice = net?.hostSelfPid && net.hostSelfPid === myPid;
       if(sceneChanged && !_isHostDevice){
         await FX.wipe();
+      }
+      if(renderSeq!==_sharedRenderSeq)return false;
+      if(sceneChanged&&sharedStageSuppressed()){
+        _pendingSharedView=view;
+        return false;
       }
       if(sceneChanged || !shared.dataset.sharedReady){
         shared.innerHTML=html; // first paint / genuinely new scene: full mount
@@ -1789,6 +1818,7 @@
       shared.dataset.sharedReady='1';
       shared.dataset.gameStarted='1';
       if(nextSceneId!=='')shared.dataset.sceneId=nextSceneId;
+      if(_pendingSharedView===view)_pendingSharedView=null;
       if(view.pill!==undefined)$('#roundPill').textContent=view.pill||'';
       // Mutation updates inside one scene (avatars, scores, timers) must not
       // yank a player who is choosing below. Only a new game scene goes top.
@@ -1798,7 +1828,14 @@
         shared.scrollTop=_prevScroll;
         requestAnimationFrame(()=>{shared.scrollTop=_prevScroll;});
       }
+      _afterSharedRender();
       return true;
+    }
+    function flushPendingShared(){
+      if(!_pendingSharedView||document.visibilityState!=='visible'||shared.style.display==='none')return;
+      const pending=_pendingSharedView;
+      _pendingSharedView=null;
+      requestAnimationFrame(()=>renderShared(pending));
     }
     function renderSharedLobby(list){
       if(!phonesOnly||shared.dataset.sharedReady==='1')return;
@@ -1823,6 +1860,7 @@
     // Re-render input when phone comes back from lock screen
     document.addEventListener('visibilitychange',()=>{
       if(document.visibilityState==='visible'&&gameActive&&net){
+        flushPendingShared();
         try{
           net.room('state').get().then(snap=>{
             const st=snap.val();
@@ -1903,7 +1941,8 @@
           }, 60);
         } catch(e) { console.error('player reveal map failed', e); }
       }
-      net.onSharedScreen(async view=>{ await renderShared(view); tryInitRevealMap(); });
+      _afterSharedRender=tryInitRevealMap;
+      net.onSharedScreen(view=>{ renderShared(view); });
     }
     let lastPhaseId=null;
     let hostLeftTimer=null;
@@ -1914,7 +1953,10 @@
       const s=document.getElementById('phoneSharedStage');
       if(!s)return;
       if(hidden)s.style.setProperty('display','none','important');
-      else s.style.removeProperty('display');
+      else{
+        s.style.removeProperty('display');
+        flushPendingShared();
+      }
     }
     // v144 — named (was an inline anonymous arrow function) so the
     // host-disconnect recovery below can re-invoke it with a freshly

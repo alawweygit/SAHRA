@@ -185,6 +185,65 @@ const Host = (() => {
     window.__hypoxResetScroll?.();
   }
 
+  /* Keep the host's question/answer composition in sync with the controller.
+     Controller.render() already presents choice moments as one framed card:
+     question first, then a single vertical list of answers. Host scenes grew
+     independently and used several different grids (or omitted the choices
+     entirely), so normalize that structure once at the collection boundary
+     instead of maintaining another per-mode set of layouts. Existing option
+     nodes and ids are moved, never recreated, when a scene needs them later
+     for its reveal animation. */
+  function matchHostChoiceLayout(spec) {
+    if (!spec || !['choice', 'higherlow'].includes(spec.type)) return;
+    const s = stage();
+    if (!s || s.querySelector('.host-choice-shell')) return;
+
+    let options = s.querySelector('.answer-grid, .quiz-grid');
+    if (!options) {
+      const seen = new Set();
+      const optionList = (Array.isArray(spec.options) ? spec.options : []).filter(option => {
+        const key = String(option?.id);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      if (!optionList.length) return;
+      options = document.createElement('div');
+      options.className = 'ctrl-choices host-choice-options';
+      optionList.forEach((option, index) => {
+        const item = document.createElement('div');
+        item.className = 'choice-btn host-choice-option' + (option.btnClass ? ' ' + option.btnClass : '');
+        item.textContent = option.label ?? '';
+        if (option.color) item.style.setProperty('--cb', option.color);
+        item.style.animationDelay = (index * .07) + 's';
+        options.appendChild(item);
+      });
+    }
+
+    let question = s.querySelector('.prompt-card, .tm-statement-card, .emoji-riddle');
+    if (!question) {
+      const questionText = spec.context || spec.question || s.querySelector('.eyebrow')?.textContent || '';
+      if (questionText) {
+        question = document.createElement('div');
+        question.className = 'prompt-card display host-choice-question';
+        question.textContent = questionText;
+      }
+    }
+    if (!question) return;
+
+    const shell = document.createElement('div');
+    shell.className = 'host-choice-shell';
+    const anchor = question.isConnected ? question : (options.isConnected ? options : s.querySelector('#statusRow'));
+    (anchor?.parentNode || s).insertBefore(shell, anchor || null);
+    shell.appendChild(question);
+
+    // Higher/Lower and a few vote scenes place useful context between the
+    // question and status tracker. Keep it inside the same framed card too.
+    Array.from(s.querySelectorAll('.pick-sub')).forEach(node => shell.appendChild(node));
+    shell.appendChild(options);
+    publishSharedScreen(true);
+  }
+
   function setPill(text) { $('#roundPill').textContent = text; pushMirror({ pill: text }); publishSharedScreen(); }
 
   let _sayToken = 0;
@@ -245,6 +304,8 @@ const Host = (() => {
     // for the host's own device), so this is the one place a countdown
     // built into the panel itself can read a deadline from.
     spec.deadline = deadline;
+
+    matchHostChoiceLayout(spec);
 
     pushMirror({ headline: spec.context || spec.title || '', sub: spec.title || '' });
     net.setState({ phase: 'input', phaseId, spec, targets: pids, deadline, mirror: { ...mirror } });
