@@ -39,6 +39,36 @@
   let _menuScrollY=0;
   if('scrollRestoration' in history)history.scrollRestoration='manual';
 
+  // v149 — device-level "no internet" banner. Previously, if THIS device's
+  // own connection dropped (the browser's native offline event / a real
+  // net::ERR_INTERNET_DISCONNECTED, e.g. WiFi blip), there was zero
+  // user-facing feedback anywhere — just a silent console error, leaving
+  // the player confused about why nothing was updating. This is a
+  // DIFFERENT situation from the existing hostGoneBanner (which is about
+  // the HOST specifically losing connection while the game continues for
+  // everyone else) — this is about the local device's own connectivity.
+  // Firebase's SDK already retries/reconnects on its own once the network
+  // genuinely returns, so no manual resync is needed here — just tell the
+  // player what's happening and clear automatically when it's back.
+  (function setupOfflineBanner(){
+    const BANNER_ID='netOfflineBanner';
+    function showOfflineBanner(){
+      if(document.getElementById(BANNER_ID))return;
+      const b=document.createElement('div');
+      b.id=BANNER_ID;
+      b.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:400;background:rgba(0,0,0,0.85);border:1.5px solid var(--pink,#f472b6);border-radius:20px;padding:10px 20px;font-family:Fredoka One,sans-serif;font-size:14px;color:var(--pink,#f472b6);text-align:center;max-width:88vw;';
+      b.textContent=(typeof LANG!=='undefined'&&LANG==='ar')?'📡 لا يوجد اتصال بالإنترنت — نحاول إعادة الاتصال...':'📡 No internet connection — reconnecting...';
+      document.body.appendChild(b);
+    }
+    function hideOfflineBanner(){
+      document.getElementById(BANNER_ID)?.remove();
+    }
+    window.addEventListener('offline',showOfflineBanner);
+    window.addEventListener('online',hideOfflineBanner);
+    // Catch the case where the page loaded already offline
+    if(!navigator.onLine)showOfflineBanner();
+  })();
+
   function hasActiveInput(container=document.getElementById('ctrlArea')){
     // Active = has enabled (not locked) interactive elements.
     return !!container?.querySelector('textarea:not([disabled]),input:not([disabled]),.ctrl-map,.choice-btn:not(.picked),.ctrl-choices');
