@@ -1,8 +1,10 @@
 /* HYPOX — visual FX: confetti + transitions */
 const FX = (() => {
   let canvas, ctx, parts = [], raf = null;
-  // v150 — see wipe() below for why this exists.
-  let _wipeInFlight = null;
+  // One physical wipe can serve several simultaneous scene listeners. Keep
+  // the cycle alive through its EXIT as well as its covered midpoint, so a
+  // late update cannot restart the bar while the first animation is leaving.
+  let _wipeCycle = null;
 
   function init() {
     canvas = document.getElementById('confetti');
@@ -79,15 +81,51 @@ const FX = (() => {
     // already in flight, every other caller just awaits and shares THAT
     // SAME promise instead of restarting the animation and racing an
     // independent timer.
-    if (_wipeInFlight) return _wipeInFlight;
-    _wipeInFlight = (async () => {
-      const w = document.getElementById('wipe');
-      if (!w) return;
-      Audio_.sfx.whoosh();
-      w.classList.remove('go');
-      void w.offsetWidth;
-      w.addEventListener('animationend', () => w.classList.remove('go'), { once:true });
+    if (_wipeCycle) {
+      if (!_wipeCycle.covered) return _wipeCycle.cover;
+      await _wipeCycle.done;
+      // Another caller may have started the next cycle while we waited.
+      if (_wipeCycle) return wipe();
+    }
+    const w = document.getElementById('wipe');
+    if (!w) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      await new Promise(resolve=>requestAnimationFrame(resolve));
+      return;
+    }
+
+    let resolveCover, resolveDone;
+    const cycle={
+      covered:false,
+      cover:new Promise(resolve=>{resolveCover=resolve;}),
+      done:new Promise(resolve=>{resolveDone=resolve;}),
+    };
+    _wipeCycle=cycle;
+    Audio_.sfx.whoosh();
+    w.classList.remove('go');
+    requestAnimationFrame(()=>{
+      if(_wipeCycle!==cycle)return;
       w.classList.add('go');
+      const coverTimer=setTimeout(()=>{
+        cycle.covered=true;
+        resolveCover();
+      },320);
+      const finish=()=>{
+        clearTimeout(coverTimer);
+        if(!cycle.covered){cycle.covered=true;resolveCover();}
+        w.classList.remove('go');
+        if(_wipeCycle===cycle)_wipeCycle=null;
+        resolveDone();
+      };
+      w.addEventListener('animationend',finish,{once:true});
+      // animationend can be lost when a mobile browser backgrounds the tab.
+      setTimeout(()=>{
+        if(_wipeCycle===cycle){
+          w.removeEventListener('animationend',finish);
+          finish();
+        }
+      },760);
+    });
       // v148 — was `await sleep(380)`. Two separate problems, found together:
     //
     // 1. The REAL CSS animation duration is 650ms (#wipe.go{animation:
@@ -108,9 +146,7 @@ const FX = (() => {
     // 50+ usages, plus main.js's player-side one) now swaps content WHILE
     // the screen is genuinely covered, and the bar's own still-running exit
     // animation naturally reveals the new content as it slides away.
-      await sleep(320);
-    })().finally(() => { _wipeInFlight = null; });
-    return _wipeInFlight;
+    return cycle.cover;
   }
 
   function flyPoints(anchorEl, text) {

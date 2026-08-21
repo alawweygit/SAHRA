@@ -228,6 +228,7 @@
     const _clean=id.replace(/^#/,'');
     $$('.screen').forEach(s=>s.classList.remove('active'));
     const _sel=$(id);if(_sel)_sel.classList.add('active');
+    document.body.classList.toggle('game-screen-active',_clean==='scr-game'||_clean==='scr-controller');
     // #lobbyDockAction lives inside the shared host-input-dock (outside
     // .screen), so it isn't covered by the .screen show/hide above — toggle
     // it explicitly with the lobby screen, same as before.
@@ -1315,7 +1316,7 @@
     const mirror=$('#phoneMirror');if(mirror){mirror.classList.add('hidden');mirror.querySelectorAll('#pmPill,#pmHeadline,#pmSpeech').forEach(el=>el.textContent='');}
     const stage=$('#hostStage');if(stage)stage.innerHTML='';
     $('#scr-game')?.classList.remove('rebus-input-active','pack-picker-active');
-    document.body.classList.remove('phones-only-player','phones-host-answering','phones-host-docked','phones-player-answering');
+    document.body.classList.remove('phones-only-player','phones-host-answering','phones-host-inline-answering','phones-host-docked','phones-player-answering');
     Host.hideHost?.();
     const speech=$('#speechText');if(speech)speech.textContent='';
   }
@@ -1448,7 +1449,43 @@
       const hidesStageAnswers=spec?.type==='choice'||spec?.type==='higherlow';
       const isMapInput=spec?.type==='map';
       const isFullscreenInput=spec?.fullscreenInput===true;
-      if(hidesStageAnswers)document.body.classList.add('phones-host-answering');
+      const _hExclude=spec?.playerExcludes?.[net?.hostSelfPid];
+
+      // Choice rounds used to keep the host's display-only question in
+      // #hostStage, hide its answers, then mount a second controls-only dock
+      // at the bottom of the viewport. That was the host/player mismatch:
+      // players received Controller's complete framed question + title +
+      // stacked choices, while the host saw two independently styled areas.
+      // Render the exact same complete controller card in the stage for the
+      // phones-only host. The host-only wrapper is excluded from the shared
+      // DOM mirror, so remote players still receive their own personal card.
+      if(hidesStageAnswers){
+        const stage=document.getElementById('hostStage');
+        if(!stage){resolve(null);return;}
+        document.body.classList.add('phones-host-inline-answering');
+        const panel=document.createElement('div');
+        panel.className='phones-host-inline-choice-panel host-only-ui';
+        stage.appendChild(panel);
+        let settled=false;
+        const done=value=>{
+          if(settled)return;
+          settled=true;
+          _ppDismiss=null;
+          panel.remove();
+          document.body.classList.remove('phones-host-inline-answering');
+          resolve(value);
+        };
+        _ppDismiss=()=>done(null);
+        window.__hypoxDismissPP=()=>{if(_ppDismiss)_ppDismiss();};
+        const hostSpec={...spec,controlsOnly:false,...(_hExclude!==undefined?{excludeId:_hExclude}:{})};
+        Controller.render(panel,hostSpec,async value=>{
+          const result=submitInput?await submitInput(value):{accepted:true};
+          if(result?.accepted===false)return result;
+          done(value);
+          return result;
+        });
+        return;
+      }
       // v96 — 'phones-host-answering' means "hide the answers on stage", and
       // only choice/higherlow set it. But the layout rules that keep
       // #hostStage clear of the host's bottom input dock (v87 dock cap +
@@ -1494,7 +1531,6 @@
       };
       _ppDismiss=()=>done(null);
       window.__hypoxDismissPP=()=>{if(_ppDismiss)_ppDismiss();};
-      const _hExclude=spec?.playerExcludes?.[net?.hostSelfPid];
       // Map: show city name + subtitle just like the player controller (full-screen layout).
       // Other types: controlsOnly + generic title since host sees the question on hostStage.
       // Text/number inputs keep their real title (e.g. "Type the year") on the
@@ -1946,6 +1982,21 @@
     }
     let lastPhaseId=null;
     let hostLeftTimer=null;
+    let playerInputRenderEpoch=0;
+
+    // A player input is a scene change too. Previously Controller.render()
+    // mounted the new question immediately, while renderShared() independently
+    // started the wipe for the mirrored host scene. On real phones the new
+    // card therefore appeared first and the wipe visibly followed it. Keep
+    // the current view in place, start one shared wipe, and only mount the
+    // newest input at the covered midpoint.
+    async function renderPlayerInputAfterWipe(render){
+      const epoch=++playerInputRenderEpoch;
+      await FX.wipe();
+      if(epoch!==playerInputRenderEpoch)return false;
+      render();
+      return true;
+    }
     // Directly hide/show the shared-stage mirror via inline style. This is
     // stronger than toggling a CSS class — it can't be silently overridden
     // by any other CSS rule's specificity or cascade order.
@@ -2000,6 +2051,7 @@
       // all" — comparing phase-specific keys alone can't distinguish
       // "still stuck" from "moved on normally to something else".
       window._hypoxStateGen=(window._hypoxStateGen||0)+1;
+      if(state?.phase!=='input'&&state?.phase!=='input-split')playerInputRenderEpoch++;
       if(!state||state.phase==='hostLeft'){
         document.body.classList.remove('phones-player-answering');
         setSharedStageHidden(false);
@@ -2090,6 +2142,8 @@
       if(state.phase==='input'){
         const _isNewPhase1 = state.phaseId!==lastPhaseId;
         if(_isNewPhase1){
+          // Cancel any still-waiting render from the phase we just left.
+          playerInputRenderEpoch++;
           _lastMirrorKey=''; // clear mirror when input starts
           // Guaranteed reset, independent of renderShared's own sceneChanged
           // logic: whatever scroll position either the headline or the input
@@ -2157,24 +2211,26 @@
           // question stays visible but the ticks only appear once THIS
           // player has submitted, matching choice-type behavior.
           const _hideTrackerOnly = phonesOnly && !_pa1;
-          document.body.classList.toggle('phones-player-answering',_pa1);
-          document.body.classList.toggle('hide-tracker',_hideTrackerOnly);
-          setSharedStageHidden(_pa1);
           if(!_isNewPhase1)return; // avoid rebuilding the tappable buttons on a replayed event
-          ctrl.classList.remove('hidden');
           const _tmSubmit=async value=>{
             const result=await net.submitInput(state.phaseId,value,{enforceUnique:phoneSpec.enforceUnique===true});
             if(result?.accepted===false)return result;
             setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');document.body.classList.remove('hide-tracker');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
             return result;
           };
-          if(phoneSpec.customRenderer==='timeMachine'){renderTimeMachineInput(ctrl,phoneSpec,_tmSubmit);}
-          else{Controller.render(ctrl,phoneSpec,_tmSubmit);}
-          resetScrollPositionAfterLayout();
+          renderPlayerInputAfterWipe(()=>{
+            document.body.classList.toggle('phones-player-answering',_pa1);
+            document.body.classList.toggle('hide-tracker',_hideTrackerOnly);
+            setSharedStageHidden(_pa1);
+            ctrl.classList.remove('hidden');
+            if(phoneSpec.customRenderer==='timeMachine'){renderTimeMachineInput(ctrl,phoneSpec,_tmSubmit);}
+            else{Controller.render(ctrl,phoneSpec,_tmSubmit);}
+            resetScrollPositionAfterLayout();
+          });
         }else if(phonesOnly){document.body.classList.remove('phones-player-answering');document.body.classList.remove('hide-tracker');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else{Controller.waitScreen(ctrl,T.watchScreen());resetScrollPositionAfterLayout();}
       }else if(state.phase==='input-split'){
         const _isNewPhase = state.phaseId!==lastPhaseId;
-        if(_isNewPhase){lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);}
+        if(_isNewPhase){playerInputRenderEpoch++;lastPhaseId=state.phaseId;Audio_.sfx.sting();if(navigator.vibrate)navigator.vibrate(120);}
         const rawSpec=state.specs?.[myPid]||state.specs?._default;
         if(!rawSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
         // v147 — CONFIRMED root cause of players never seeing WYR/Know Your
@@ -2204,9 +2260,6 @@
         }
         const _isActiveInput = spec.type==='choice'||spec.type==='higherlow'||spec.type==='text'||spec.type==='number';
         const _pa2=phonesOnly&&_isActiveInput;
-        document.body.classList.toggle('phones-player-answering',_pa2);
-        setSharedStageHidden(_pa2);
-
         // The host device already renders its own inline choice UI directly
         // into the scene (WYR picks, Diss votes, SIA pick-the-funniest) —
         // rendering the same choice again here would duplicate it. Check
@@ -2219,14 +2272,18 @@
         }
 
         if(!_isNewPhase)return; // avoid rebuilding the tappable buttons on a replayed event
-        ctrl.classList.remove('hidden');
-        Controller.render(ctrl,spec,async value=>{
-          const result=await net.submitInput(state.phaseId,value,{enforceUnique:spec.enforceUnique===true});
-          if(result?.accepted===false)return result;
-          setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
-          return result;
+        renderPlayerInputAfterWipe(()=>{
+          document.body.classList.toggle('phones-player-answering',_pa2);
+          setSharedStageHidden(_pa2);
+          ctrl.classList.remove('hidden');
+          Controller.render(ctrl,spec,async value=>{
+            const result=await net.submitInput(state.phaseId,value,{enforceUnique:spec.enforceUnique===true});
+            if(result?.accepted===false)return result;
+            setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
+            return result;
+          });
+          if(!phonesOnly)resetScrollPositionAfterLayout();
         });
-        if(!phonesOnly)resetScrollPositionAfterLayout();
       }else if(state.phase==='packpicker'){
         // Game ended — host is showing next game picker
         gameActive=false;

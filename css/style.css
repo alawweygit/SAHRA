@@ -96,6 +96,13 @@ body.theme-light .deco-blob{opacity:0.14;}
   transition:opacity 0.35s ease, transform 0.4s var(--ease-out);
 }
 .screen.active{opacity:1;pointer-events:auto;transform:scale(1) translateY(0);}
+.screen:not(.active){content-visibility:hidden;}
+
+/* Large continuously animated blurred layers force full-viewport repaints on
+   phones and lower-powered laptops. Freeze them during gameplay; the same
+   colored atmosphere remains, but question cards and the wipe keep the GPU. */
+body.game-screen-active .deco-blob{animation:none;filter:blur(58px);}
+body.game-screen-active .deco-float{animation:none;opacity:.14;}
 /* #scr-controller must never receive a transform: any transform value (even
    scale(1) translateY(0), a visual no-op) creates a new containing block,
    which breaks position:sticky/fixed descendants' positioning relative to
@@ -576,6 +583,14 @@ body.ar .eyebrow{letter-spacing:0;}
 .phones-host-answering #hostStage :is(.answer-grid,.quiz-grid),
 body.phones-player-answering #phoneSharedStage :is(.answer-grid,.quiz-grid){display:none!important;}
 body.phones-player-answering #phoneSharedStage{display:none!important;}
+
+/* Phones-only host choice UI now uses the same complete Controller card as
+   player phones. Preserve the original scene underneath for reveal logic,
+   but show only the local interactive card while the host is choosing. */
+body.phones-host-inline-answering #hostStage{justify-content:flex-start!important;overflow-y:auto!important;padding:clamp(10px,2.5vmin,22px)!important;}
+body.phones-host-inline-answering #hostStage > :not(.phones-host-inline-choice-panel){display:none!important;}
+.phones-host-inline-choice-panel{width:min(100%,760px);margin:0 auto;padding:0;box-sizing:border-box;}
+.phones-host-inline-choice-panel>.ctrl-wrap{width:100%;max-width:none;margin:0;}
 /* Text/number inputs keep the shared stage (question) visible while
    answering, but hide just the submission tracker until this player
    has submitted — see phones-hide-tracker toggle in main.js. */
@@ -796,9 +811,9 @@ body.phones-hide-tracker #statusRow{display:none!important;}
 
 /* ============ CONFETTI / WIPE / FX ============ */
 #confetti{position:absolute;inset:0;pointer-events:none;z-index:50;}
-#wipe{position:absolute;inset:0;z-index:90;pointer-events:none;background:linear-gradient(115deg,var(--pink),var(--orange));transform:translateX(-115%) skewX(-8deg) scaleX(1.18);}
+#wipe{position:absolute;inset:0;z-index:90;pointer-events:none;background:linear-gradient(115deg,var(--pink),var(--orange));transform:translate3d(-115%,0,0) skewX(-8deg) scaleX(1.18);will-change:transform;backface-visibility:hidden;contain:strict;}
 #wipe.go{animation:wipeAcross 0.65s cubic-bezier(0.72,0,0.28,1) both;}
-@keyframes wipeAcross{0%{transform:translateX(-115%) skewX(-8deg) scaleX(1.18);}45%,55%{transform:translateX(0) skewX(-8deg) scaleX(1.18);}100%{transform:translateX(115%) skewX(-8deg) scaleX(1.18);}}
+@keyframes wipeAcross{0%{transform:translate3d(-115%,0,0) skewX(-8deg) scaleX(1.18);}45%,55%{transform:translate3d(0,0,0) skewX(-8deg) scaleX(1.18);}100%{transform:translate3d(115%,0,0) skewX(-8deg) scaleX(1.18);}}
 
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.001s!important;transition-duration:0.001s!important;}}
 
@@ -1834,13 +1849,13 @@ body.ar .tutorial-bullets { text-align: right; }
     inset:0;
     width:100vw;
     height:100dvh;
-    transform:translateX(-130%) skewX(-4deg) scaleX(1.06);
+    transform:translate3d(-130%,0,0) skewX(-4deg) scaleX(1.06);
   }
   #wipe.go{animation-name:wipeAcrossMobile;}
   @keyframes wipeAcrossMobile{
-    0%{transform:translateX(-130%) skewX(-4deg) scaleX(1.06);}
-    45%,55%{transform:translateX(0) skewX(-4deg) scaleX(1.06);}
-    100%{transform:translateX(130%) skewX(-4deg) scaleX(1.06);}
+    0%{transform:translate3d(-130%,0,0) skewX(-4deg) scaleX(1.06);}
+    45%,55%{transform:translate3d(0,0,0) skewX(-4deg) scaleX(1.06);}
+    100%{transform:translate3d(130%,0,0) skewX(-4deg) scaleX(1.06);}
   }
   #menuOverlay,#confetti{
     position:fixed;
