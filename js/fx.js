@@ -1,6 +1,8 @@
 /* HYPOX — visual FX: confetti + transitions */
 const FX = (() => {
   let canvas, ctx, parts = [], raf = null;
+  // v150 — see wipe() below for why this exists.
+  let _wipeInFlight = null;
 
   function init() {
     canvas = document.getElementById('confetti');
@@ -61,14 +63,32 @@ const FX = (() => {
   }
 
   async function wipe() {
-    const w = document.getElementById('wipe');
-    if (!w) return;
-    Audio_.sfx.whoosh();
-    w.classList.remove('go');
-    void w.offsetWidth;
-    w.addEventListener('animationend', () => w.classList.remove('go'), { once:true });
-    w.classList.add('go');
-    // v148 — was `await sleep(380)`. Two separate problems, found together:
+    // v150 — CONCURRENCY BUG, the actual explanation for why this kept
+    // showing content before/without the wipe specifically on PLAYER, never
+    // on host. Host's 57 await FX.wipe() calls all run inside one linear
+    // async game loop (host.js) — always fully sequential, one call always
+    // finishes before the next line runs. Player's renderShared() reacts to
+    // a LIVE Firebase listener (net.onSharedScreen), which can fire again
+    // before a previous renderShared() call's own `await FX.wipe()` has
+    // resolved. Without a guard, that second call restarted the shared
+    // #wipe animation from scratch (classList.remove('go')/add('go')) while
+    // the FIRST call's independent sleep(320) timer kept counting down
+    // unaware of the restart — so call #1 could swap its content right as
+    // the animation was only just beginning again, nowhere near its actual
+    // cover point. Fixed by making this reentrant-safe: if a wipe is
+    // already in flight, every other caller just awaits and shares THAT
+    // SAME promise instead of restarting the animation and racing an
+    // independent timer.
+    if (_wipeInFlight) return _wipeInFlight;
+    _wipeInFlight = (async () => {
+      const w = document.getElementById('wipe');
+      if (!w) return;
+      Audio_.sfx.whoosh();
+      w.classList.remove('go');
+      void w.offsetWidth;
+      w.addEventListener('animationend', () => w.classList.remove('go'), { once:true });
+      w.classList.add('go');
+      // v148 — was `await sleep(380)`. Two separate problems, found together:
     //
     // 1. The REAL CSS animation duration is 650ms (#wipe.go{animation:
     //    wipeAcross 0.65s...}), not 380ms — the JS timing was never in sync
@@ -88,7 +108,9 @@ const FX = (() => {
     // 50+ usages, plus main.js's player-side one) now swaps content WHILE
     // the screen is genuinely covered, and the bar's own still-running exit
     // animation naturally reveals the new content as it slides away.
-    await sleep(320);
+      await sleep(320);
+    })().finally(() => { _wipeInFlight = null; });
+    return _wipeInFlight;
   }
 
   function flyPoints(anchorEl, text) {
