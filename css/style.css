@@ -591,6 +591,50 @@ body.phones-host-inline-answering #hostStage{justify-content:flex-start!importan
 body.phones-host-inline-answering #hostStage > :not(.phones-host-inline-choice-panel){display:none!important;}
 .phones-host-inline-choice-panel{width:min(100%,760px);margin:0 auto;padding:0;box-sizing:border-box;}
 .phones-host-inline-choice-panel>.ctrl-wrap{width:100%;max-width:none;margin:0;}
+
+/* One responsive choice-card design for both host and player phones. The
+   desktop host gets a little more presence; phones use the full safe width
+   with compact, readable controls so the card does not become a tall stack
+   of oversized nested boxes. */
+.phones-host-inline-choice-panel{width:min(94vw,900px);}
+.phones-host-inline-choice-panel>.ctrl-choice-card{padding:clamp(20px,2.8vmin,32px)!important;gap:clamp(10px,1.5vmin,15px)!important;}
+.phones-host-inline-choice-panel .ctrl-choice-card .ctrl-context{width:100%;font-size:clamp(22px,3.2vmin,34px);padding:clamp(14px,2vmin,20px);}
+.phones-host-inline-choice-panel .ctrl-choice-card .ctrl-title{font-size:clamp(15px,2vmin,19px)!important;}
+.phones-host-inline-choice-panel .ctrl-choice-card .choice-btn{min-height:clamp(54px,7vmin,68px);font-size:clamp(15px,2vmin,18px);}
+
+@media(max-width:600px){
+  body.phones-only-player.phones-player-answering #scr-controller,
+  body.phones-host-inline-answering #scr-game.active{
+    padding-left:12px!important;
+    padding-right:12px!important;
+  }
+  body.phones-only-player.phones-player-answering #playerDock:not(.docked){width:100%;max-height:none;overflow:visible;}
+  body.phones-only-player.phones-player-answering #ctrlArea{top:0;width:min(calc(100vw - 24px),520px);margin:0 auto max(16px,env(safe-area-inset-bottom));}
+  body.phones-only-player.phones-player-answering .ctrl-choice-card,
+  body.phones-host-inline-answering .ctrl-choice-card{
+    padding:16px 14px!important;
+    gap:10px!important;
+    border-radius:22px!important;
+  }
+  body.phones-only-player.phones-player-answering .ctrl-choice-card .ctrl-context,
+  body.phones-host-inline-answering .ctrl-choice-card .ctrl-context{
+    width:100%;
+    font-size:clamp(20px,5.6vw,27px);
+    line-height:1.25;
+    padding:14px;
+  }
+  body.phones-only-player.phones-player-answering .ctrl-choice-card .ctrl-title,
+  body.phones-host-inline-answering .ctrl-choice-card .ctrl-title{font-size:clamp(14px,3.8vw,17px)!important;}
+  body.phones-only-player.phones-player-answering .ctrl-choice-card .ctrl-choices,
+  body.phones-host-inline-answering .ctrl-choice-card .ctrl-choices{gap:8px;}
+  body.phones-only-player.phones-player-answering .ctrl-choice-card .choice-btn,
+  body.phones-host-inline-answering .ctrl-choice-card .choice-btn{
+    min-height:54px;
+    padding:12px 10px;
+    font-size:clamp(15px,4vw,17px);
+    border-radius:15px;
+  }
+}
 /* Text/number inputs keep the shared stage (question) visible while
    answering, but hide just the submission tracker until this player
    has submitted — see phones-hide-tracker toggle in main.js. */

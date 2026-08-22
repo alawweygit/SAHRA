@@ -2215,7 +2215,17 @@
           const _tmSubmit=async value=>{
             const result=await net.submitInput(state.phaseId,value,{enforceUnique:phoneSpec.enforceUnique===true});
             if(result?.accepted===false)return result;
-            setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');document.body.classList.remove('hide-tracker');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
+            // Keep a submitted choice card on the player phone until the
+            // host actually changes phase. Hiding it after 600ms exposed the
+            // display-only mirrored host scene underneath, which is why the
+            // player's design suddenly changed into the oversized nested
+            // layout while everyone else was still voting.
+            const keepSubmittedChoice=phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow');
+            setTimeout(()=>{
+              if(keepSubmittedChoice)return;
+              if(phonesOnly){document.body.classList.remove('phones-player-answering');document.body.classList.remove('hide-tracker');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}
+              else Controller.waitScreen(ctrl);
+            },600);
             return result;
           };
           renderPlayerInputAfterWipe(()=>{
@@ -2279,7 +2289,12 @@
           Controller.render(ctrl,spec,async value=>{
             const result=await net.submitInput(state.phaseId,value,{enforceUnique:spec.enforceUnique===true});
             if(result?.accepted===false)return result;
-            setTimeout(()=>{if(phonesOnly){document.body.classList.remove('phones-player-answering');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}else Controller.waitScreen(ctrl);},600);
+            const keepSubmittedChoice=phonesOnly&&(spec.type==='choice'||spec.type==='higherlow');
+            setTimeout(()=>{
+              if(keepSubmittedChoice)return;
+              if(phonesOnly){document.body.classList.remove('phones-player-answering');setSharedStageHidden(false);ctrl.classList.add('hidden');ctrl.innerHTML='';}
+              else Controller.waitScreen(ctrl);
+            },600);
             return result;
           });
           if(!phonesOnly)resetScrollPositionAfterLayout();
