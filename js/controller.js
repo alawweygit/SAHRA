@@ -32,6 +32,9 @@ const Controller = (() => {
     if (!container) return;
     const wrap = document.createElement('div');
     wrap.className = 'ctrl-wrap';
+    if (spec.type === 'choice' || spec.type === 'higherlow' || spec.type === 'wyr-multi') {
+      wrap.classList.add('ctrl-choice-card');
+    }
     if (spec.compactRebus) wrap.classList.add('rebus-controller');
     if (spec.controlsOnly) wrap.classList.add('ctrl-controls-only');
 
