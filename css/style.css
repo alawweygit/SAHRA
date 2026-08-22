@@ -588,7 +588,7 @@ body.phones-player-answering #phoneSharedStage{display:none!important;}
    player phones. Preserve the original scene underneath for reveal logic,
    but show only the local interactive card while the host is choosing. */
 body.phones-host-inline-answering #hostStage{justify-content:flex-start!important;overflow-y:auto!important;padding:clamp(10px,2.5vmin,22px)!important;}
-body.phones-host-inline-answering #hostStage > :not(.phones-host-inline-choice-panel){display:none!important;}
+body.phones-host-inline-answering #hostStage > :not(.phones-host-inline-choice-panel):not(.wyr-keep-visible){display:none!important;}
 .phones-host-inline-choice-panel{width:min(100%,760px);margin:0 auto;padding:0;box-sizing:border-box;}
 .phones-host-inline-choice-panel>.ctrl-wrap{width:100%;max-width:none;margin:0;}
 

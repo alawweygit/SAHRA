@@ -409,9 +409,9 @@ const Host = (() => {
   }
 
   /* ---------- shared frames ---------- */
-  function frameWithTimer(innerHTML, eyebrow) {
+  function frameWithTimer(innerHTML, eyebrow, eyebrowClass) {
     return `
-      <div class="eyebrow">${esc(eyebrow || '')}</div>
+      <div class="eyebrow${eyebrowClass ? ' ' + eyebrowClass : ''}">${esc(eyebrow || '')}</div>
       ${innerHTML}
       <div class="ring-timer" id="ringTimer">
         <svg viewBox="0 0 100 100">
@@ -853,8 +853,8 @@ const Host = (() => {
 
       // Host screen: avatar + status row only (host answers via buttons like everyone else)
       scene(frameWithTimer(`
-        <div class="hotseat">${avatarHTML(target)}<div class="pname">${esc(target.name)}</div></div>
-        <div id="statusRow" class="status-row" style="margin-top:12px"></div>`, t('mode_names')['wyr']));
+        <div class="hotseat wyr-keep-visible">${avatarHTML(target)}<div class="pname">${esc(target.name)}</div></div>
+        <div id="statusRow" class="status-row wyr-keep-visible" style="margin-top:12px"></div>`, t('mode_names')['wyr'], 'wyr-keep-visible'));
 
       const phaseId = 'ph' + (++phaseCounter);
       net.setState({

@@ -79,8 +79,14 @@ const Controller = (() => {
           else txBtn.textContent='🌐 ترجم';
         }catch(e){txBtn.textContent='🌐 ترجم';}
       });
-      // Insert translate button right below question card if in shared stage
-      const _qCard = document.querySelector('#phoneSharedStage .ctrl-context, #phoneSharedStage .prompt-card');
+      // Insert translate button right below question card if in shared stage.
+      // Only look there when THIS render has no visible context of its own
+      // (spec.controlsOnly) — otherwise always attach to wrap, so the button
+      // never lands inside a #phoneSharedStage clone that's currently hidden
+      // (e.g. while this player is actively answering a choice/vote).
+      const _qCard = spec.controlsOnly
+        ? document.querySelector('#phoneSharedStage .ctrl-context, #phoneSharedStage .prompt-card')
+        : null;
       if(_qCard){
         _qCard.parentNode.insertBefore(txBtn, _qCard.nextSibling);
         _qCard.parentNode.insertBefore(txDiv, txBtn.nextSibling);
