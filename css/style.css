@@ -737,10 +737,10 @@ body.phones-hide-tracker #statusRow{display:none!important;}
   width:100%;max-width:none!important;margin:0!important;
 }
 .lie-detector-choice-shell>.answer-grid{
-  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  width:100%;max-width:none;margin:0;gap:1.4vmin;
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  width:100%;max-width:none;margin:0;gap:1.2vmin;
 }
-.lie-detector-choice-shell .ans-card{width:100%;min-height:clamp(84px,13vmin,130px);}
+.lie-detector-choice-shell .ans-card{width:100%;min-height:clamp(80px,12vmin,120px);}
 
 @media(max-width:600px){
   .lie-detector-choice-shell{padding:16px 14px;gap:10px;border-radius:18px;}
