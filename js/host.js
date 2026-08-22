@@ -723,7 +723,6 @@ const Host = (() => {
         options: answers.map((a, i) => ({ id: i, label: a.text })),
         playerExcludes: _bluffExcludeMap,
         hostExcludeIdx: _hostExcludeIdx,
-        gridClass: 'lie-vote-grid',
       }, pids, 30);
 
       // land voters on cards (skip self-votes on own lie)
