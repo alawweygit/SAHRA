@@ -285,10 +285,22 @@ const Host = (() => {
               const opts = spec.options || [];
               botVal = opts.length ? opts[Math.floor(Math.random() * opts.length)].id : 0;
             } else if (spec.type === 'text') {
-              const fakes = LANG==='ar'
-                ? ['ربما','لا أعرف','يمكن','أكيد','ممكن','شايف','معقول']
-                : ['Maybe','Idk','Could be','Probably','Nope','Sure','Hmm'];
-              botVal = fakes[Math.floor(Math.random() * fakes.length)];
+              const fakesEn = ['Maybe','Idk','Could be','Probably','Nope','Sure','Hmm','Nah','Guess so','Doubt it','Yep','Totally','Unlikely','No clue','Perhaps','Definitely','Not sure','Kinda','Obviously','Hardly','Somewhat','I think so','Not really','Absolutely','Barely'];
+              const fakesAr = ['ربما','لا أعرف','يمكن','أكيد','ممكن','شايف','معقول','لا','أظن','مو متأكد','فعلاً','مستبعد','ولا فكرة','بصراحة','أكيد لأ','شكلها','غالباً','بجد؟','طبعاً','بعيد'];
+              const fakes = LANG==='ar' ? fakesAr : fakesEn;
+              // Avoid repeating a word another bot (or real player) already
+              // submitted this phase -- bots write directly to Firebase
+              // (see below), skipping the enforceUnique claim system real
+              // players use, so this is their own lightweight collision check.
+              let takenNorm = new Set();
+              try {
+                const snap = await net.room(`inputs/${phaseId}`).get();
+                const existing = snap.val() || {};
+                takenNorm = new Set(Object.values(existing).map(e => String(e.v||'').trim().toUpperCase()));
+              } catch (e) {}
+              const available = fakes.filter(w => !takenNorm.has(w.trim().toUpperCase()));
+              const pool = available.length ? available : fakes;
+              botVal = pool[Math.floor(Math.random() * pool.length)];
             } else if (spec.type === 'number') {
               botVal = String(Math.floor(Math.random() * 9000) + 1000);
             } else if (spec.type === 'harfturn') {
