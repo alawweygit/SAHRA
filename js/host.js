@@ -192,6 +192,17 @@ const Host = (() => {
     mirror = { ...mirror, ...patch };
     if (net && net.setMirror) net.setMirror({ ...mirror });
   }
+  let fxSeq = 0;
+  // Confetti (canvas) and flyPoints (a transient div appended to
+  // document.body, auto-removed after 1.3s) are both invisible to the
+  // DOM-clone mirror players see in phones-only mode -- canvas pixels
+  // and body-level elements outside #hostStage were never part of what
+  // gets cloned. This broadcasts a small instruction instead, so each
+  // player's own device replays the same effect locally, anchored to
+  // their own copy of the card.
+  function broadcastFx(fx) {
+    pushMirror({ fx: { ...fx, seq: ++fxSeq } });
+  }
 
   function scene(html) {
     const s = stage();
@@ -774,7 +785,11 @@ const Host = (() => {
         const fooled = votesByCard[i].length;
         if (fooled && author) {
           addScore(a.by, fooled * 500);
-          FX.flyPoints(card, `+${fooled * 500} ${author.name}`);
+          const flyText = `+${fooled * 500} ${author.name}`;
+          FX.flyPoints(card, flyText);
+          broadcastFx({ type: 'burstAt', cardIndex: i, n: 26, text: flyText });
+        } else {
+          broadcastFx({ type: 'burstAt', cardIndex: i, n: 26 });
         }
         await sleep(850);
       }
@@ -796,7 +811,11 @@ const Host = (() => {
       allWinners.forEach(pid => addScore(pid, 1000));
       if (allWinners.length) {
         const names = allWinners.map(pid => safeP(pid)?.name).filter(Boolean).join(' & ');
-        FX.flyPoints(tCard, `+1000 ${names}`);
+        const flyText = `+1000 ${names}`;
+        FX.flyPoints(tCard, flyText);
+        broadcastFx({ type: 'truthBurst', cardIndex: ti, n: 150, n2: 40, text: flyText });
+      } else {
+        broadcastFx({ type: 'truthBurst', cardIndex: ti, n: 150, n2: 40 });
       }
       // Special callout for truth writers
       if (writerPids.length) {
