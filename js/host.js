@@ -3550,6 +3550,11 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
           // Broadcast to all players' phones via mirror
           updateMirror({ announce: (removed.emoji||'👤') + ' ' + (removed.name||'Player') + (LANG==='ar'?' غادر اللعبة':' left the game'), announceId: Date.now() });
           setTimeout(() => updateMirror({ announce: null, announceId: null }), 4000);
+          // Unstick any in-flight collection (vote/write phase) that was
+          // waiting on this pid to submit -- without this, the offline
+          // watcher correctly detects and removes them, but the round
+          // itself keeps waiting for a submission that will never come.
+          if (window.__hypoxForceCollect) window.__hypoxForceCollect();
         }
       });
     }

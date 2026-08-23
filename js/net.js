@@ -102,8 +102,25 @@ class FirebaseNet {
     const n = existingArr.length;
     if (n >= 20) throw new Error('full');
     // Check name uniqueness (case-insensitive)
-    const nameTaken = existingArr.some(p => p.name && p.name.trim().toLowerCase() === name.trim().toLowerCase());
+    const nameKey = name.trim().toLowerCase();
+    const nameTaken = existingArr.some(p => p.name && p.name.trim().toLowerCase() === nameKey);
     if (nameTaken) throw new Error('name-taken');
+    // Reclaim: someone who disconnected (auto-removed after ~30s of no
+    // heartbeat) gets their score back if they rejoin with the exact same
+    // name within the grace window -- see watchAndRemoveOffline, which
+    // stashes this record instead of just deleting the player outright.
+    const RECLAIM_GRACE_MS = 150000; // 2.5 minutes
+    let reclaimedScore = 0;
+    try {
+      const discSnap = await this.room('disconnected/' + nameKey).get();
+      const disc = discSnap.val();
+      if (disc) {
+        if (Date.now() - (disc.disconnectedAt || 0) < RECLAIM_GRACE_MS) {
+          reclaimedScore = disc.score || 0;
+        }
+        await this.room('disconnected/' + nameKey).remove(); // consume either way
+      }
+    } catch (e) {}
     if (!av) av = AVATARS[n % AVATARS.length];
     // Check emoji uniqueness — reject if taken instead of silently swapping
     const takenEmojis = new Set(existingArr.map(p => p.emoji));
@@ -111,7 +128,7 @@ class FirebaseNet {
     this.pid = 'p' + Date.now() + Math.floor(Math.random() * 999);
     const isVip = n === 0;
     await this.room('players/' + this.pid).set({
-      name: name.slice(0, 14), emoji: av.emoji, color: av.color, score: 0, isVip, joinedAt: Date.now(),
+      name: name.slice(0, 14), emoji: av.emoji, color: av.color, score: reclaimedScore, isVip, joinedAt: Date.now(),
     });
     // Player NOT removed on disconnect (iOS backgrounds tab = disconnect)
     // Player persists until explicit close() call
@@ -258,12 +275,32 @@ class FirebaseNet {
           const age = now - (data.t || 0);
           if (age > OFFLINE_MS) {
             try {
+              const pSnap = await this.room('players/' + pid).get();
+              const pData = pSnap.val();
+              if (pData && pData.name) {
+                const nameKey = pData.name.trim().toLowerCase();
+                await this.room('disconnected/' + nameKey).set({
+                  score: pData.score || 0, disconnectedAt: now,
+                });
+              }
               await this.room('players/' + pid).remove();
               await this.room('presence/' + pid).remove();
               if (onRemove) onRemove(pid);
             } catch(e) {}
           }
         }
+        // Sweep out stashed disconnected-player records once their reclaim
+        // grace window has fully passed, so this doesn't grow unbounded
+        // across a long session for names nobody rejoins with.
+        try {
+          const discSnap = await this.room('disconnected').get();
+          const disc = discSnap.val() || {};
+          for (const [nameKey, d] of Object.entries(disc)) {
+            if (now - (d.disconnectedAt || 0) > 150000) {
+              try { await this.room('disconnected/' + nameKey).remove(); } catch(e) {}
+            }
+          }
+        } catch(e) {}
       } catch(e) {}
     }, 10000);
   }
