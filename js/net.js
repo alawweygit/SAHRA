@@ -264,9 +264,39 @@ class FirebaseNet {
 
   updateScore(pid, score) { return this.room(`players/${pid}/score`).set(score); }
 
+  // Shared removal path used by both the automatic offline watcher and a
+  // manual host-triggered removal (tapping a disconnected player's avatar).
+  // Stashes {score, disconnectedAt} for the reclaim window, removes the
+  // live player + presence records, then fires the registered onRemove
+  // callback so host.js can update its local roster / toast / unstick any
+  // in-flight collection.
+  async _removePlayerNow(pid) {
+    try {
+      const pSnap = await this.room('players/' + pid).get();
+      const pData = pSnap.val();
+      if (pData && pData.name) {
+        const nameKey = pData.name.trim().toLowerCase();
+        await this.room('disconnected/' + nameKey).set({
+          score: pData.score || 0, disconnectedAt: Date.now(),
+        });
+      }
+      await this.room('players/' + pid).remove();
+      await this.room('presence/' + pid).remove();
+      if (this._onRemoveCb) this._onRemoveCb(pid);
+    } catch (e) {}
+  }
+  // Host-triggered manual removal, e.g. tapping a greyed-out disconnected
+  // avatar in the status row. Doesn't wait for the 30s auto-detect window.
+  async forceRemovePlayer(pid) {
+    if (pid === this.pid || pid === this.hostSelfPid) return; // never remove self/host
+    if ((this._botPids||[]).includes(pid)) return; // never remove bots
+    await this._removePlayerNow(pid);
+  }
+
   // ── AUTO-REMOVE OFFLINE PLAYERS ──
   watchAndRemoveOffline(onRemove) {
     if (this._offlineWatcher) return;
+    this._onRemoveCb = onRemove;
     const OFFLINE_MS = 30000; // 30s before auto-remove
     this._offlineWatcher = setInterval(async () => {
       if (!this.code) return;
@@ -280,19 +310,7 @@ class FirebaseNet {
           if (!data || !data.t) continue; // never remove players with no heartbeat entry (TV mode host)
           const age = now - (data.t || 0);
           if (age > OFFLINE_MS) {
-            try {
-              const pSnap = await this.room('players/' + pid).get();
-              const pData = pSnap.val();
-              if (pData && pData.name) {
-                const nameKey = pData.name.trim().toLowerCase();
-                await this.room('disconnected/' + nameKey).set({
-                  score: pData.score || 0, disconnectedAt: now,
-                });
-              }
-              await this.room('players/' + pid).remove();
-              await this.room('presence/' + pid).remove();
-              if (onRemove) onRemove(pid);
-            } catch(e) {}
+            await this._removePlayerNow(pid);
           }
         }
         // Sweep out stashed disconnected-player records once their reclaim

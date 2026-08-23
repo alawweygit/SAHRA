@@ -383,8 +383,22 @@ const Host = (() => {
         const p = safeP(pid);
         const _st = (window._hypoxPresence||{})[pid];
         const _off = _st==='away'||_st==='offline';
-        return `<div class="mini${_off?' mini-offline':''}" id="mini-${pid}" style="${_off?'opacity:0.4;filter:grayscale(0.8)':''}">${avatarHTML(p)}<div class="check">✓</div></div>`;
+        return `<div class="mini${_off?' mini-offline':''}" id="mini-${pid}" style="${_off?'opacity:0.4;filter:grayscale(0.8);cursor:pointer':''}">${avatarHTML(p)}<div class="check">✓</div></div>`;
       }).join('');
+      // Let the host tap a greyed-out (offline) avatar to remove that
+      // player immediately, rather than waiting up to ~30s for the
+      // automatic offline watcher to catch it. Never bound to anything
+      // for real players (their own device never renders #statusRow with
+      // a live listener attached -- the DOM-clone mirror only copies
+      // markup, not event bindings), so this is host-only by construction.
+      row.querySelectorAll('.mini-offline').forEach(el => {
+        el.addEventListener('click', async () => {
+          const pid = el.id.replace('mini-', '');
+          const p = safeP(pid);
+          const ok = confirm((LANG==='ar'?'إزالة ':'Remove ') + (p?.name || 'player') + (LANG==='ar'?' من اللعبة؟':' from the game?'));
+          if (ok && net.forceRemovePlayer) await net.forceRemovePlayer(pid);
+        });
+      });
     }
     net.onEachInput(pid => {
       Audio_.sfx.submit();
