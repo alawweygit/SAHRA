@@ -307,8 +307,14 @@ class FirebaseNet {
 
   // ── AUTO-REMOVE OFFLINE PLAYERS ──
   watchAndRemoveOffline(onRemove) {
+    // Always adopt the latest callback, even if the watcher is already
+    // running. This is called twice -- once by the lobby, then again by
+    // host.js when the game starts -- and an early return here would leave
+    // _onRemoveCb pointing at the lobby's callback for the whole game,
+    // so the game's own handler (which force-finishes a stuck collection)
+    // would never run.
+    if (onRemove) this._onRemoveCb = onRemove;
     if (this._offlineWatcher) return;
-    this._onRemoveCb = onRemove;
     const OFFLINE_MS = 30000; // 30s before auto-remove
     this._offlineWatcher = setInterval(async () => {
       if (!this.code) return;
