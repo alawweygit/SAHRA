@@ -1704,11 +1704,19 @@
       // the DOM-clone mirror, so this triggers an equivalent on THIS
       // device, positioned against this device's own copy of the card.
       if(phonesOnly && m.fx && m.fx.seq !== undefined && m.fx.seq !== _lastFxSeq){
+        const _firstMirror = _lastFxSeq === -1;
         _lastFxSeq = m.fx.seq;
-        const _fxCard = m.fx.cardIndex!==undefined ? shared.querySelector('#card-'+m.fx.cardIndex) : null;
-        if(m.fx.type==='burstAt'){ FX.shake(); if(_fxCard) FX.burstAt(_fxCard, m.fx.n||26); }
-        else if(m.fx.type==='truthBurst'){ FX.shake(); FX.burst(m.fx.n||150); if(_fxCard) FX.burstAt(_fxCard, m.fx.n2||40); }
-        if(m.fx.text && _fxCard) FX.flyPoints(_fxCard, m.fx.text);
+        // On this device's FIRST mirror render, just adopt whatever seq is
+        // already in the mirror without playing it. The fx field persists in
+        // Firebase after its moment has passed, so a player who reloads or
+        // reconnects mid-game would otherwise replay a burst for a reveal
+        // that already finished -- possibly over an unrelated screen.
+        if(!_firstMirror){
+          const _fxCard = m.fx.cardIndex!==undefined ? shared.querySelector('#card-'+m.fx.cardIndex) : null;
+          if(m.fx.type==='burstAt'){ FX.shake(); if(_fxCard) FX.burstAt(_fxCard, m.fx.n||26); }
+          else if(m.fx.type==='truthBurst'){ FX.shake(); FX.burst(m.fx.n||150); if(_fxCard) FX.burstAt(_fxCard, m.fx.n2||40); }
+          if(m.fx.text && _fxCard) FX.flyPoints(_fxCard, m.fx.text);
+        }
       }
       // Update the small strip
       if(!phonesOnly)mstrip.classList.remove('hidden');

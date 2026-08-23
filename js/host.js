@@ -3611,20 +3611,20 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
           // Broadcast to all players' phones via mirror
           updateMirror({ announce: (removed.emoji||'👤') + ' ' + (removed.name||'Player') + (LANG==='ar'?' غادر اللعبة':' left the game'), announceId: Date.now() });
           setTimeout(() => updateMirror({ announce: null, announceId: null }), 4000);
-          // Unstick any in-flight collection (vote/write phase) that was
-          // waiting on THIS pid specifically -- without this, the offline
-          // watcher correctly detects and removes them, but the round
-          // itself keeps waiting for a submission that will never come.
-          // Scoped to only the removed pid: an unrelated spectator
-          // disconnecting during e.g. a hot-seat round (where only one
-          // target is actually answering) must not cut off that target's
-          // still-pending answer just because someone else dropped.
-          if (activeCollectionPids && activeCollectionPids.includes(pid) && window.__hypoxForceCollect) {
-            console.log('[HYPOX] host: force-finishing collection due to disconnect', pid);
-            window.__hypoxForceCollect();
-          } else {
-            console.log('[HYPOX] host: disconnect did not match an active collection (nothing to unstick)', pid);
-          }
+        }
+        // Unstick any in-flight collection (vote/write phase) that was
+        // waiting on THIS pid specifically. Deliberately OUTSIDE the
+        // idx check above: the toast/announcement are cosmetic and depend
+        // on finding the player locally, but unsticking a frozen round must
+        // never be skipped just because the local roster lookup missed.
+        // Still scoped to the removed pid: an unrelated spectator dropping
+        // during e.g. a hot-seat round (where only one target is answering)
+        // must not cut off that target's still-pending answer.
+        if (activeCollectionPids && activeCollectionPids.includes(pid) && window.__hypoxForceCollect) {
+          console.log('[HYPOX] host: force-finishing collection due to disconnect', pid);
+          window.__hypoxForceCollect();
+        } else {
+          console.log('[HYPOX] host: disconnect did not match an active collection (nothing to unstick)', pid);
         }
       });
     }
