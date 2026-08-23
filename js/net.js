@@ -363,8 +363,10 @@ class FirebaseNet {
   }
   onPresence(cb) {
     if (!this.code) return;
-    this.room('presence').on('value', s => {
-      const v = s.val() || {};
+    // Recompute status from a snapshot's timestamps. Split out so both the
+    // Firebase 'value' listener and the local ticker below can use it.
+    const computeAndEmit = () => {
+      const v = this._lastPresenceVal || {};
       const now = Date.now();
       const status = {};
       for (const [pid, data] of Object.entries(v)) {
@@ -372,7 +374,22 @@ class FirebaseNet {
         status[pid] = age < 15000 ? 'online' : age < 60000 ? 'away' : 'offline';
       }
       cb(status);
+    };
+    this.room('presence').on('value', s => {
+      this._lastPresenceVal = s.val() || {};
+      computeAndEmit();
     });
+    // A disconnected device stops writing its heartbeat altogether, so the
+    // 'value' listener above never fires again for it -- meaning a purely
+    // event-driven status would stay stuck at whatever it last was
+    // ('online') indefinitely. Re-evaluate on a local clock so going stale
+    // is actually detected without needing a remote change that will never
+    // arrive.
+    if (this._presenceTicker) clearInterval(this._presenceTicker);
+    this._presenceTicker = setInterval(computeAndEmit, 5000);
+  }
+  stopPresenceTicker() {
+    if (this._presenceTicker) { clearInterval(this._presenceTicker); this._presenceTicker = null; }
   }
 
   async close() {
@@ -381,6 +398,7 @@ class FirebaseNet {
     const playerRef = this.pid ? this.room('players/' + this.pid) : null;
     this.stopHeartbeat();
     this.stopOfflineWatcher();
+    this.stopPresenceTicker();
     try { await roomRef.onDisconnect().cancel(); } catch(e) {}
     try { await this.room('state').onDisconnect().cancel(); } catch(e) {}
     if (playerRef) {

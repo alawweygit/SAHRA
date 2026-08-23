@@ -381,25 +381,42 @@ const Host = (() => {
     if (row) {
       row.innerHTML = pids.map(pid => {
         const p = safeP(pid);
-        const _st = (window._hypoxPresence||{})[pid];
-        const _off = _st==='away'||_st==='offline';
-        return `<div class="mini${_off?' mini-offline':''}" id="mini-${pid}" style="${_off?'opacity:0.4;filter:grayscale(0.8);cursor:pointer':''}">${avatarHTML(p)}<div class="check">✓</div></div>`;
+        return `<div class="mini" id="mini-${pid}">${avatarHTML(p)}<div class="check">✓</div></div>`;
       }).join('');
-      // Let the host tap a greyed-out (offline) avatar to remove that
-      // player immediately, rather than waiting up to ~30s for the
-      // automatic offline watcher to catch it. Never bound to anything
-      // for real players (their own device never renders #statusRow with
-      // a live listener attached -- the DOM-clone mirror only copies
-      // markup, not event bindings), so this is host-only by construction.
-      row.querySelectorAll('.mini-offline').forEach(el => {
-        el.addEventListener('click', async () => {
-          const pid = el.id.replace('mini-', '');
-          const p = safeP(pid);
-          const ok = confirm((LANG==='ar'?'إزالة ':'Remove ') + (p?.name || 'player') + (LANG==='ar'?' من اللعبة؟':' from the game?'));
-          if (ok && net.forceRemovePlayer) await net.forceRemovePlayer(pid);
-        });
-      });
     }
+    // Keep the offline styling live for the whole phase. Previously this was
+    // painted once at phase start from a _hypoxPresence snapshot that could
+    // itself be stale, so a player who dropped mid-phase never went grey and
+    // never became tappable. Toggles classes/styles on the existing nodes
+    // rather than re-rendering innerHTML, so the 'done' checkmarks applied by
+    // onEachInput below survive each repaint.
+    const paintOffline = () => {
+      const _pres = window._hypoxPresence || {};
+      pids.forEach(pid => {
+        const el = document.getElementById('mini-' + pid);
+        if (!el) return;
+        const _st = _pres[pid];
+        const _off = _st === 'away' || _st === 'offline';
+        el.classList.toggle('mini-offline', _off);
+        el.style.opacity = _off ? '0.4' : '';
+        el.style.filter = _off ? 'grayscale(0.8)' : '';
+        el.style.cursor = _off ? 'pointer' : '';
+        // Bind the host's tap-to-remove once per element. Real players never
+        // get this: their device only receives a markup clone of #hostStage
+        // via the mirror, which carries no event listeners.
+        if (_off && !el.dataset.rmBound) {
+          el.dataset.rmBound = '1';
+          el.addEventListener('click', async () => {
+            if (!el.classList.contains('mini-offline')) return; // came back online
+            const p = safeP(pid);
+            const ok = confirm((LANG==='ar'?'إزالة ':'Remove ') + (p?.name || 'player') + (LANG==='ar'?' من اللعبة؟':' from the game?'));
+            if (ok && net.forceRemovePlayer) await net.forceRemovePlayer(pid);
+          });
+        }
+      });
+    };
+    paintOffline();
+    const _offlinePaintInt = setInterval(paintOffline, 3000);
     net.onEachInput(pid => {
       Audio_.sfx.submit();
       const el = $('#mini-' + pid);
@@ -446,6 +463,7 @@ const Host = (() => {
       inputs = await net.collect(phaseId, spec, pids, net.isOffline ? 9e7 : inputTimeout(seconds, spec.forceTimer === true));
     } finally {
       activeCollectionPids = null;
+      clearInterval(_offlinePaintInt);
     }
     if (timerInt) clearInterval(timerInt);
     try { Audio_.stopMusic(); } catch(e) {}
