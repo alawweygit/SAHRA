@@ -271,19 +271,31 @@ class FirebaseNet {
   // callback so host.js can update its local roster / toast / unstick any
   // in-flight collection.
   async _removePlayerNow(pid) {
+    console.log('[HYPOX] removing disconnected player', pid);
+    let pData = null;
     try {
       const pSnap = await this.room('players/' + pid).get();
-      const pData = pSnap.val();
-      if (pData && pData.name) {
+      pData = pSnap.val();
+    } catch (e) { console.error('[HYPOX] failed reading player before removal', pid, e); }
+    // Stash for reclaim -- isolated in its own try/catch so a failure here
+    // (e.g. a permissions issue on this newer path) can never block the
+    // actual removal below, which matters far more.
+    if (pData && pData.name) {
+      try {
         const nameKey = pData.name.trim().toLowerCase();
         await this.room('disconnected/' + nameKey).set({
           score: pData.score || 0, disconnectedAt: Date.now(),
         });
-      }
+      } catch (e) { console.error('[HYPOX] failed stashing disconnected record (non-blocking)', pid, e); }
+    }
+    try {
       await this.room('players/' + pid).remove();
       await this.room('presence/' + pid).remove();
-      if (this._onRemoveCb) this._onRemoveCb(pid);
-    } catch (e) {}
+      console.log('[HYPOX] player removed from room', pid);
+    } catch (e) { console.error('[HYPOX] FAILED removing player/presence -- game may stay stuck', pid, e); return; }
+    if (this._onRemoveCb) {
+      try { this._onRemoveCb(pid); } catch (e) { console.error('[HYPOX] onRemove callback threw', pid, e); }
+    }
   }
   // Host-triggered manual removal, e.g. tapping a greyed-out disconnected
   // avatar in the status row. Doesn't wait for the 30s auto-detect window.
@@ -310,6 +322,7 @@ class FirebaseNet {
           if (!data || !data.t) continue; // never remove players with no heartbeat entry (TV mode host)
           const age = now - (data.t || 0);
           if (age > OFFLINE_MS) {
+            console.log('[HYPOX] offline watcher: stale heartbeat detected', pid, 'age(ms)=', age);
             await this._removePlayerNow(pid);
           }
         }
@@ -325,7 +338,7 @@ class FirebaseNet {
             }
           }
         } catch(e) {}
-      } catch(e) {}
+      } catch(e) { console.error('[HYPOX] offline watcher tick failed', e); }
     }, 10000);
   }
   stopOfflineWatcher() {

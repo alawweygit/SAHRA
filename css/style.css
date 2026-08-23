@@ -725,8 +725,10 @@ body.phones-hide-tracker #statusRow{display:none!important;}
 .ctrl-done{font-family:'Fredoka One',sans-serif;color:var(--green);font-size:16px;animation:popIn 0.4s both;}
 .ctrl-waiting{display:flex;gap:10px;padding:12px;}
 
-/* Lie Detector vote: match the player's one-card composition while keeping
-   this mode's own flippable answer faces, voter landing strips and colors. */
+/* Reveal-screen shell for the flip-card answer grid (3 per row). Used by
+   both Lie Detector and Busted -- confirmed via code survey to be the only
+   two modes sharing this exact answer-grid/ans-card/voter-strip structure.
+   Name kept as-is (Lie Detector was first) rather than renaming everywhere. */
 .lie-detector-choice-shell{
   display:flex;flex-direction:column;align-items:stretch;gap:14px;
   width:min(94vw,880px);padding:24px 18px;

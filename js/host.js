@@ -2749,6 +2749,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       await FX.wipe();
       setPill(t('vote_title'));
       scene(`
+        <div class="lie-detector-choice-shell">
         <div class="eyebrow">${esc(promptText)}</div>
         <div class="answer-grid" id="answerGrid">
           ${answers.map((a, i) => `
@@ -2762,7 +2763,8 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
               </div>
             </div>`).join('')}
         </div>
-        <div id="statusRow" class="status-row"></div>`);
+        <div id="statusRow" class="status-row"></div>
+        </div>`);
       answers.forEach((a, i) => setTimeout(() => Audio_.sfx.pop(), i * 120));
       hostSay('vote');
 
@@ -2817,7 +2819,11 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         if (fooled && author) {
           const bonus = fooled * FOOLER_BONUS_PER_VOTE;
           addScore(a.by, bonus);
-          FX.flyPoints(card, `+${bonus} ${author.name}`);
+          const flyText = `+${bonus} ${author.name}`;
+          FX.flyPoints(card, flyText);
+          broadcastFx({ type: 'burstAt', cardIndex: i, n: 26, text: flyText });
+        } else {
+          broadcastFx({ type: 'burstAt', cardIndex: i, n: 26 });
         }
         await sleep(850);
       }
@@ -2830,6 +2836,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         tCard.classList.add('flipped');
         await sleep(350);
         Audio_.sfx.reveal(); FX.shake(); FX.burst(150); FX.burstAt(tCard, 40);
+        broadcastFx({ type: 'truthBurst', cardIndex: ti, n: 150, n2: 40 });
       }
 
       // Exact-match bonus — flat, regardless of votes.
@@ -2837,7 +2844,9 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       (truthAns.writers || []).forEach(pid => addScore(pid, EXACT_MATCH_BONUS));
       if (truthAns.writers?.length && tCard) {
         const names = truthAns.writers.map(pid => safeP(pid)?.name).filter(Boolean).join(' & ');
-        FX.flyPoints(tCard, `+${EXACT_MATCH_BONUS} ${names}`);
+        const flyText = `+${EXACT_MATCH_BONUS} ${names}`;
+        FX.flyPoints(tCard, flyText);
+        broadcastFx({ type: 'flyOnly', cardIndex: ti, text: flyText });
         await sleep(500);
       }
 
@@ -2846,10 +2855,18 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       correctVoters.forEach(pid => addScore(pid, CORRECT_VOTER_BONUS));
       if (correctVoters.length) {
         const voterNames = correctVoters.map(pid => safeP(pid)?.name).filter(Boolean).join(' & ');
-        if (tCard) FX.flyPoints(tCard, `+${CORRECT_VOTER_BONUS} ${voterNames}`);
+        if (tCard) {
+          const flyText1 = `+${CORRECT_VOTER_BONUS} ${voterNames}`;
+          FX.flyPoints(tCard, flyText1);
+          broadcastFx({ type: 'flyOnly', cardIndex: ti, text: flyText1 });
+        }
         await sleep(500);
         addScore(subject.pid, SUBJECT_PER_VOTER_BONUS * correctVoters.length);
-        if (tCard) FX.flyPoints(tCard, `+${SUBJECT_PER_VOTER_BONUS * correctVoters.length} ${subject.name}`);
+        if (tCard) {
+          const flyText2 = `+${SUBJECT_PER_VOTER_BONUS * correctVoters.length} ${subject.name}`;
+          FX.flyPoints(tCard, flyText2);
+          broadcastFx({ type: 'flyOnly', cardIndex: ti, text: flyText2 });
+        }
       } else if (!truthAns.writers?.length) {
         await sleep(400);
         await say(LANG === 'ar' ? `😱 محد عرف ${subject.name}!` : `😱 Nobody knows ${subject.name} at all!`, { speed: 35 });
@@ -3563,6 +3580,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     // Start auto-remove watcher for offline players
     if (net.watchAndRemoveOffline) {
       net.watchAndRemoveOffline(pid => {
+        console.log('[HYPOX] host: onRemove fired for', pid, 'activeCollectionPids=', activeCollectionPids);
         const idx = players.findIndex(p => p.pid === pid);
         if (idx !== -1) {
           const removed = players[idx];
@@ -3584,7 +3602,10 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
           // target is actually answering) must not cut off that target's
           // still-pending answer just because someone else dropped.
           if (activeCollectionPids && activeCollectionPids.includes(pid) && window.__hypoxForceCollect) {
+            console.log('[HYPOX] host: force-finishing collection due to disconnect', pid);
             window.__hypoxForceCollect();
+          } else {
+            console.log('[HYPOX] host: disconnect did not match an active collection (nothing to unstick)', pid);
           }
         }
       });
