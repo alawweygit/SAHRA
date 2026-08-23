@@ -3601,16 +3601,25 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         console.log('[HYPOX] host: onRemove fired for', pid, 'activeCollectionPids=', activeCollectionPids);
         const idx = players.findIndex(p => p.pid === pid);
         if (idx !== -1) {
-          const removed = players[idx];
-          players.splice(idx, 1);
-          const toast = document.createElement('div');
-          toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:var(--text2);font-family:Fredoka One,sans-serif;font-size:14px;padding:8px 20px;border-radius:20px;z-index:500;';
-          toast.textContent = (removed.emoji||'👤') + ' ' + (removed.name||'Player') + (LANG==='ar'?' غادر اللعبة':' left the game');
-          document.body.appendChild(toast);
-          setTimeout(() => toast.remove(), 3000);
-          // Broadcast to all players' phones via mirror
-          updateMirror({ announce: (removed.emoji||'👤') + ' ' + (removed.name||'Player') + (LANG==='ar'?' غادر اللعبة':' left the game'), announceId: Date.now() });
-          setTimeout(() => updateMirror({ announce: null, announceId: null }), 4000);
+          try {
+            const removed = players[idx];
+            players.splice(idx, 1);
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:var(--text2);font-family:Fredoka One,sans-serif;font-size:14px;padding:8px 20px;border-radius:20px;z-index:500;';
+            toast.textContent = (removed.emoji||'👤') + ' ' + (removed.name||'Player') + (LANG==='ar'?' غادر اللعبة':' left the game');
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+            // Broadcast to all players' phones via mirror
+            pushMirror({ announce: (removed.emoji||'👤') + ' ' + (removed.name||'Player') + (LANG==='ar'?' غادر اللعبة':' left the game'), announceId: Date.now() });
+            setTimeout(() => pushMirror({ announce: null, announceId: null }), 4000);
+          } catch (e) {
+            // Cosmetic (toast/announcement) failure must never block the
+            // force-finish below -- this whole block used to call a
+            // function (updateMirror) that never existed in this file,
+            // which silently killed the entire callback before it ever
+            // reached the force-finish, regardless of code order.
+            console.error('[HYPOX] host: toast/announce failed (non-blocking)', pid, e);
+          }
         }
         // Unstick any in-flight collection (vote/write phase) that was
         // waiting on THIS pid specifically. Deliberately OUTSIDE the
