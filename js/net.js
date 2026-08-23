@@ -109,16 +109,22 @@ class FirebaseNet {
     // heartbeat) gets their score back if they rejoin with the exact same
     // name within the grace window -- see watchAndRemoveOffline, which
     // stashes this record instead of just deleting the player outright.
+    // Uses a transaction (not get-then-remove) so two people rejoining
+    // under the identical name at nearly the same instant can't both
+    // claim the same stashed score -- whoever's transaction commits first
+    // consumes it, the second just finds it already gone.
     const RECLAIM_GRACE_MS = 150000; // 2.5 minutes
     let reclaimedScore = 0;
     try {
-      const discSnap = await this.room('disconnected/' + nameKey).get();
-      const disc = discSnap.val();
-      if (disc) {
-        if (Date.now() - (disc.disconnectedAt || 0) < RECLAIM_GRACE_MS) {
-          reclaimedScore = disc.score || 0;
-        }
-        await this.room('disconnected/' + nameKey).remove(); // consume either way
+      let claimedDisc = null;
+      const discRef = this.room('disconnected/' + nameKey);
+      const result = await discRef.transaction(current => {
+        if (current == null) return; // nothing stashed, abort
+        claimedDisc = current; // capture pre-delete value for use below
+        return null; // consume it
+      });
+      if (result.committed && claimedDisc && Date.now() - (claimedDisc.disconnectedAt || 0) < RECLAIM_GRACE_MS) {
+        reclaimedScore = claimedDisc.score || 0;
       }
     } catch (e) {}
     if (!av) av = AVATARS[n % AVATARS.length];

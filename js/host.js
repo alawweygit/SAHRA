@@ -4,6 +4,11 @@
 
 const Host = (() => {
   let net = null, players = [], phaseCounter = Date.now(), skipResolve = null;
+  // Tracks the pids the currently in-flight collectWithTimer() call is
+  // waiting on, so the offline-disconnect handler can tell whether the
+  // player who just left is actually relevant to THIS collection before
+  // force-finishing it (see watchAndRemoveOffline's callback below).
+  let activeCollectionPids = null;
   // Host (Laith) should only speak before a mode's rounds begin and after
   // its final results — never mid-round. Rather than edit the ~25 scattered
   // say()/hostSay() call sites across every game mode individually (risky,
@@ -421,7 +426,13 @@ const Host = (() => {
 
     // Manual pacing must not silently complete a phase when its old 12–60s
     // response timer expires. It still proceeds normally once everyone answers.
-    const inputs = await net.collect(phaseId, spec, pids, net.isOffline ? 9e7 : inputTimeout(seconds, spec.forceTimer === true));
+    activeCollectionPids = pids;
+    let inputs;
+    try {
+      inputs = await net.collect(phaseId, spec, pids, net.isOffline ? 9e7 : inputTimeout(seconds, spec.forceTimer === true));
+    } finally {
+      activeCollectionPids = null;
+    }
     if (timerInt) clearInterval(timerInt);
     try { Audio_.stopMusic(); } catch(e) {}
     net.setState({ phase: 'wait', msg: LANG==='ar'?'👆 تابع الشاشة':'👆 Watch the screen', mirror: { ...mirror } });
@@ -3551,10 +3562,16 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
           updateMirror({ announce: (removed.emoji||'👤') + ' ' + (removed.name||'Player') + (LANG==='ar'?' غادر اللعبة':' left the game'), announceId: Date.now() });
           setTimeout(() => updateMirror({ announce: null, announceId: null }), 4000);
           // Unstick any in-flight collection (vote/write phase) that was
-          // waiting on this pid to submit -- without this, the offline
+          // waiting on THIS pid specifically -- without this, the offline
           // watcher correctly detects and removes them, but the round
           // itself keeps waiting for a submission that will never come.
-          if (window.__hypoxForceCollect) window.__hypoxForceCollect();
+          // Scoped to only the removed pid: an unrelated spectator
+          // disconnecting during e.g. a hot-seat round (where only one
+          // target is actually answering) must not cut off that target's
+          // still-pending answer just because someone else dropped.
+          if (activeCollectionPids && activeCollectionPids.includes(pid) && window.__hypoxForceCollect) {
+            window.__hypoxForceCollect();
+          }
         }
       });
     }
