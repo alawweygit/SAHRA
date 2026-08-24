@@ -593,7 +593,7 @@ const Controller = (() => {
       wrap.appendChild(header);
 
       const answers = new Array(spec.questions.length).fill(null);
-      const btnStyle = (bg, fg) => `flex:1;min-width:0;min-height:52px;padding:10px 8px;border-radius:14px;background:${bg};color:${fg};font-family:'Fredoka One',sans-serif;font-size:clamp(12px,3.2vw,15px);border:none;cursor:pointer;line-height:1.3;word-break:break-word;overflow-wrap:break-word;font-weight:700;transition:opacity 0.2s;`;
+      const btnStyle = (bg, fg) => `position:relative;flex:1;min-width:0;min-height:52px;padding:10px 8px;border-radius:14px;background:${bg};color:${fg};font-family:'Fredoka One',sans-serif;font-size:clamp(12px,3.2vw,15px);border:3px solid transparent;cursor:pointer;line-height:1.3;word-break:break-word;overflow-wrap:break-word;font-weight:700;transition:border-color 0.2s;`;
 
       spec.questions.forEach((Q, qi) => {
         const qWrap = document.createElement('div');
@@ -605,8 +605,21 @@ const Controller = (() => {
           answers[qi] = v;
           const btnA = document.getElementById(`wm_${qi}_a`);
           const btnB = document.getElementById(`wm_${qi}_b`);
-          if (btnA) { btnA.style.opacity = v==='a'?'1':'0.35'; btnA.style.outline = v==='a'?'3px solid #fff':'none'; btnA.disabled=true; }
-          if (btnB) { btnB.style.opacity = v==='b'?'1':'0.35'; btnB.style.outline = v==='b'?'3px solid #fff':'none'; btnB.disabled=true; }
+          // Both buttons stay fully visible regardless of which was picked --
+          // only the chosen one gets a border highlight + checkmark badge.
+          // Dimming the unchosen one (previous behaviour) could read as "this
+          // got hidden/disabled" rather than simply "not picked".
+          [[btnA,'a'],[btnB,'b']].forEach(([btn,key])=>{
+            if (!btn) return;
+            btn.disabled = true;
+            if (key === v) {
+              btn.style.borderColor = '#fff';
+              const badge = document.createElement('span');
+              badge.textContent = '✓';
+              badge.style.cssText = 'position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;background:#fff;color:#111;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;box-shadow:0 2px 6px rgba(0,0,0,0.3);';
+              btn.appendChild(badge);
+            }
+          });
           if (answers.every(a => a !== null)) {
             lock(wrap);
             onSubmit(answers.join(','));
