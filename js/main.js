@@ -808,8 +808,15 @@
       pregameBack.style.setProperty('visibility','visible');
       pregameBack.onclick=()=>{
         Audio_.sfx.blip();
-        pregameBack.style.setProperty('visibility','hidden');
         show('#scr-games');
+        // Re-wire the back button for #scr-games (-> #scr-title) instead
+        // of just hiding it with nothing to ever restore it -- same class
+        // of bug as the avatar/lobby transitions fixed in v178.
+        const tb=document.getElementById('topbarBack');
+        if(tb){
+          tb.style.setProperty('visibility','visible');
+          tb.onclick=()=>{Audio_.sfx.blip();$('#topbar').classList.remove('show');$('#roundPill').innerHTML='HYPOX';$('#roundPill').style.cssText='';show('#scr-title');};
+        }
       };
     }
     show('#scr-pregame');
@@ -998,7 +1005,15 @@
 
     const backBtn=$('#backFromPregame');
     backBtn.textContent=T.back();
-    backBtn.onclick=()=>{Audio_.sfx.blip();show('#scr-games');};
+    backBtn.onclick=()=>{
+      Audio_.sfx.blip();
+      show('#scr-games');
+      const tb=document.getElementById('topbarBack');
+      if(tb){
+        tb.style.setProperty('visibility','visible');
+        tb.onclick=()=>{Audio_.sfx.blip();$('#topbar').classList.remove('show');$('#roundPill').innerHTML='HYPOX';$('#roundPill').style.cssText='';show('#scr-title');};
+      }
+    };
   }
 
   /* ---- START GAME ---- */
