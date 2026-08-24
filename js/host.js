@@ -709,12 +709,20 @@ const Host = (() => {
         <div class="winner-name display">${w.emoji} ${esc(w.name)}</div>
         <div class="tagline">${esc(t('winner'))}</div>
         <div class="final-lb">${sorted.map((p,i)=>`<div class="final-lb-row"><span class="final-medal">${['🥇','🥈','🥉'][i]||((i+1)+'.')}</span>${avatarHTML(p)}<span class="final-name">${esc(p.name)}</span><span class="final-pts">${p.score}</span></div>`).join('')}</div>
-        <div style="display:flex;flex-direction:column;gap:12px;margin-top:2vmin;align-items:center;width:100%">
-          <button class="big-btn" id="againBtn" style="max-width:340px;width:100%">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
-          <button class="big-btn ghost" id="changeGameBtn" style="max-width:340px;width:100%">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
-        </div>
       </div>`);
     net.setState({ phase: 'winner', name: w.name, emoji: w.emoji });
+    // Buttons live in the fixed #hostDockAction dock (same mechanism as
+    // waitNext()'s 'Next Round' button) rather than inline at the end of
+    // the scrolling leaderboard -- guarantees they're always visible
+    // without requiring the host to scroll past the full player list,
+    // matching the always-visible pattern used everywhere else.
+    const dockAction = document.getElementById('hostDockAction');
+    if (dockAction) {
+      dockAction.classList.add('dock-two-btn');
+      dockAction.innerHTML = `
+        <button class="big-btn" id="againBtn">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
+        <button class="big-btn ghost" id="changeGameBtn">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>`;
+    }
 
     // Wire the result actions as soon as the buttons are visible. Winner
     // banter and effects can take a moment, and taps during that animation
@@ -1595,7 +1603,7 @@ const Host = (() => {
       qs = await Content.get('quiz', LANG, rounds);
     }
     const pids = players.map(p => p.pid);
-    const CORRECT_PTS = 1000; // flat: everyone who answers correctly gets same score
+    const CORRECT_PTS = 1000; // top score for the fastest correct answer; decreases per rank below (see right.forEach)
 
     for (let i = 0; i < qs.length; i++) {
       const Q = qs[i];
@@ -1623,8 +1631,14 @@ const Host = (() => {
 
       const right = pids.filter(pid => val(answers, pid) === Q.correct)
         .sort((a, b) => answers[a].order - answers[b].order);
+      // Speed Trivia is branded 'Fastest fingers win' / 'faster = more
+      // points' -- previously every correct answer got an identical flat
+      // 1000 regardless of speed, with the sort-by-order used only for the
+      // reveal message's name list, never the actual score. Now genuinely
+      // speed-weighted: fastest correct answer scores highest, decreasing
+      // per rank down to a floor, so the tagline is actually true.
       right.forEach((pid, rank) => {
-        addScore(pid, CORRECT_PTS);
+        addScore(pid, Math.max(400, CORRECT_PTS - rank * 150));
       });
       const names = right.map(pid => players.find(p => p.pid === pid)?.name).filter(Boolean).join(', ');
       pushMirror({ headline: `✓ ${Q.options[Q.correct]}` + (right.length ? ` — ${names}` : '') });
@@ -1793,6 +1807,7 @@ const Host = (() => {
   function waitNext(autoSeconds = 6, label = null) {
     return new Promise(res => {
       const action = document.getElementById('hostDockAction');
+      action.classList.remove('dock-two-btn'); // winnerScene's two-button layout must not leak into this single-button use
       const btn = document.createElement('button');
       btn.className = 'big-btn host-only-ui';
       action.innerHTML = '';
@@ -3067,6 +3082,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       const _biSkipTimer = setTimeout(() => {
         const action = document.getElementById('hostDockAction');
         if (!action || action.querySelector('#biSkipBtn')) return;
+        action.classList.remove('dock-two-btn');
         const b = document.createElement('button');
         b.id = 'biSkipBtn';
         b.className = 'big-btn ghost host-only-ui';

@@ -720,7 +720,7 @@
     const modes=Object.keys(MODE_ICONS);
     const modeNamesObj=t('mode_names')||{};
     const modeTagsObj=t('mode_taglines')||{};
-    const COMING_SOON = new Set(['emoji']); // emoji riddle needs redesign
+    const COMING_SOON = new Set(['emoji', 'diss']); // emoji riddle needs redesign; Line Battle removed per Ali's request
     grid.innerHTML=modes.map((m,i)=>{
       const soon = COMING_SOON.has(m);
       return `<button class="title-game-card${soon?' tgc-soon':''}" data-mode="${m}" style="animation-delay:${i*.07}s;--mc:${MODE_COLORS[m]}" ${soon?'disabled':''}>
@@ -880,17 +880,19 @@
       <div class="pg-block full">
         <div class="pg-label">${T.howPlay()}</div>
         <div class="pg-play-modes">
-          <button class="pmm-btn play-mode-btn" id="pgHostBtn">
+          <button class="pmm-btn play-mode-btn pmm-soon" id="pgHostBtn" disabled>
             <span class="pmm-icon">📺</span>
             <div><div class="pmm-name">${T.tvPhones()}</div><div class="pmm-sub">${T.tvSub()}</div></div>
+            <div class="pmm-soon-badge">🔧 Coming Soon</div>
           </button>
           <button class="pmm-btn play-mode-btn" id="pgPhonesBtn">
             <span class="pmm-icon">📱</span>
             <div><div class="pmm-name">${T.phonesOnly()}</div><div class="pmm-sub">${T.phonesSub()}</div></div>
           </button>
-          <button class="pmm-btn play-mode-btn" id="pgOfflineBtn">
+          <button class="pmm-btn play-mode-btn pmm-soon" id="pgOfflineBtn" disabled>
             <span class="pmm-icon">🤝</span>
             <div><div class="pmm-name">${T.oneDevice()}</div><div class="pmm-sub">${T.oneSub()}</div></div>
+            <div class="pmm-soon-badge">🔧 Coming Soon</div>
           </button>
         </div>
       </div>
@@ -958,9 +960,10 @@
       }
       Audio_.sfx.blip();
     }
-    document.getElementById('pgHostBtn').onclick=()=>selectPlayMode('tv');
     document.getElementById('pgPhonesBtn').onclick=()=>selectPlayMode('phones');
-    document.getElementById('pgOfflineBtn').onclick=()=>selectPlayMode('offline');
+    // TV+Phones and One Device are locked as coming-soon for now -- only
+    // Phones Only is wired up and auto-selected so nobody has to tap it.
+    selectPlayMode('phones');
     const testModeBtn=document.getElementById('testModeBtn');
     testModeBtn.onclick=()=>{
       window._hypoxTestMode=!window._hypoxTestMode;
@@ -1947,11 +1950,14 @@
       if(view.pill!==undefined)$('#roundPill').textContent=view.pill||'';
       // Mutation updates inside one scene (avatars, scores, timers) must not
       // yank a player who is choosing below. Only a new game scene goes top.
-      if(sceneChanged){
-        resetScrollPositionAfterLayout();
-      } else if(_prevScroll>0){
+      if(sceneChanged)resetScrollPositionAfterLayout();
+      else if(_prevScroll>0 && Math.abs(shared.scrollTop - _prevScroll) > 1){
+        // Only restore if it actually drifted -- writing the SAME value on
+        // every incremental update (as WYR's reveal does, one tick per
+        // player submission) interrupts native momentum scrolling on real
+        // mobile Safari, which is what made scrolling feel locked/sticky.
         shared.scrollTop=_prevScroll;
-        requestAnimationFrame(()=>{shared.scrollTop=_prevScroll;});
+        requestAnimationFrame(()=>{ if(Math.abs(shared.scrollTop - _prevScroll) > 1) shared.scrollTop=_prevScroll; });
       }
       _afterSharedRender();
       return true;

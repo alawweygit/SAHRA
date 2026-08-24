@@ -593,7 +593,7 @@ const Controller = (() => {
       wrap.appendChild(header);
 
       const answers = new Array(spec.questions.length).fill(null);
-      const btnStyle = (bg, fg) => `flex:1;min-height:52px;padding:10px 8px;border-radius:14px;background:${bg};color:${fg};font-family:'Fredoka One',sans-serif;font-size:clamp(12px,3.2vw,15px);border:none;cursor:pointer;line-height:1.3;word-break:break-word;font-weight:700;transition:opacity 0.2s;`;
+      const btnStyle = (bg, fg) => `flex:1;min-width:0;min-height:52px;padding:10px 8px;border-radius:14px;background:${bg};color:${fg};font-family:'Fredoka One',sans-serif;font-size:clamp(12px,3.2vw,15px);border:none;cursor:pointer;line-height:1.3;word-break:break-word;overflow-wrap:break-word;font-weight:700;transition:opacity 0.2s;`;
 
       spec.questions.forEach((Q, qi) => {
         const qWrap = document.createElement('div');
