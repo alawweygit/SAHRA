@@ -36,7 +36,7 @@ const uniqueAnswerKey = value => encodeURIComponent(normalizeUniqueAnswer(value)
 
 /* ---------------- Firebase (online) ---------------- */
 class FirebaseNet {
-  constructor(db) { this.db = db; this.isOffline = false; this.code = null; this.pid = null; this.isRoomOwner = false; this._collectors = {}; }
+  constructor(db) { this.db = db; this.isOffline = false; this.code = null; this.pid = null; this.isRoomOwner = false; this._collectors = {}; this._removalNotified = new Set(); }
 
   static available() {
     return typeof firebase !== 'undefined'
@@ -146,9 +146,33 @@ class FirebaseNet {
       const v = s.val() || {};
       const arr = Object.entries(v).map(([pid, p]) => ({ pid, ...p }))
         .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+      const previous = this._players || [];
       this._players = arr;
+      // A player who taps Leave Game deletes their own player record. That
+      // bypasses the host's stale-heartbeat remover entirely, so detect the
+      // roster disappearance here and run the exact same host callback that
+      // removes them locally and force-finishes any collection awaiting them.
+      const currentPids = new Set(arr.map(player => player.pid));
+      previous.forEach(player => {
+        if (!currentPids.has(player.pid)) {
+          console.log('[HYPOX] player roster: removed record detected', player.pid);
+          this._notifyPlayerRemoved(player.pid);
+        }
+      });
       cb(arr);
     });
+  }
+
+  _notifyPlayerRemoved(pid) {
+    if (!pid || pid === this.pid || pid === this.hostSelfPid) return;
+    if ((this._botPids || []).includes(pid)) return;
+    // Firebase's onPlayers listener and _removePlayerNow can observe the same
+    // delete. Notify the host once so one departure cannot advance two phases.
+    if (this._removalNotified.has(pid)) return;
+    this._removalNotified.add(pid);
+    if (this._onRemoveCb) {
+      try { this._onRemoveCb(pid); } catch (e) { console.error('[HYPOX] onRemove callback threw', pid, e); }
+    }
   }
 
   setState(obj) { return this.room('state').set({ ...obj, ts: Date.now() }); }
@@ -310,9 +334,7 @@ class FirebaseNet {
         console.error('[HYPOX] failed cleaning presence (non-blocking)', pid, e);
       }
       console.log('[HYPOX] player removed from room', pid);
-      if (this._onRemoveCb) {
-        try { this._onRemoveCb(pid); } catch (e) { console.error('[HYPOX] onRemove callback threw', pid, e); }
-      }
+      this._notifyPlayerRemoved(pid);
     } finally {
       this._removingPids.delete(pid);
     }

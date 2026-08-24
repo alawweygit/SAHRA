@@ -1348,7 +1348,12 @@
     _leaveLoader.style.cssText='position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;';
     _leaveLoader.innerHTML='<svg width="40" height="40" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#ff3d8a" stroke-width="3" stroke-linecap="round"/></svg>';
     document.body.appendChild(_leaveLoader);
-    if(leavingNet)try{leavingNet.setState({phase:'wait',msg:''});}catch(e){}
+    // Only the room owner may replace the shared game phase. A regular
+    // player's Leave Game used to publish {phase:'wait'} to every phone,
+    // instantly interrupting the live vote/input screen before deleting
+    // themselves. The host engine keeps running locally but all remaining
+    // controllers become unusable, which looks exactly like a frozen game.
+    if(leavingNet&&savedRole==='host')try{leavingNet.setState({phase:'wait',msg:''});}catch(e){}
     Audio_.stopMusic();
     // Save resume info BEFORE closing net
     if(savedCode&&savedCode!=='LOCAL'&&savedRole==='host'){

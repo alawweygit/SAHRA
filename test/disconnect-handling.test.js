@@ -109,11 +109,65 @@ function testWarningDoesNotDependOnStatusAvatar() {
     'phones-only host must see the same countdown as surviving players');
 }
 
+function testRosterDeletionNotifiesHost() {
+  const FirebaseNet = loadFirebaseNet();
+  let playersListener = null;
+  const db = {
+    ref(path) {
+      assert.equal(path, 'rooms/TEST/players');
+      return { on(event, listener) { assert.equal(event, 'value'); playersListener = listener; } };
+    },
+  };
+  const net = new FirebaseNet(db);
+  net.code = 'TEST';
+  net.pid = 'host';
+  net._players = [
+    { pid: 'p1', name: 'Stays', joinedAt: 1 },
+    { pid: 'p2', name: 'Leaves', joinedAt: 2 },
+  ];
+  let removedPid = null;
+  net._onRemoveCb = pid => { removedPid = pid; };
+  net.onPlayers(() => {});
+
+  playersListener({ val: () => ({ p1: { name: 'Stays', joinedAt: 1 } }) });
+
+  assert.equal(removedPid, 'p2',
+    'deleting a player record via Leave Game must notify and unstick the host');
+}
+
+function testPlayerLeaveCannotReplaceSharedPhase() {
+  const source = fs.readFileSync(require.resolve('../js/main.js'), 'utf8');
+  const start = source.indexOf('async function leaveGame()');
+  const end = source.indexOf('\n  /* ---- AVATAR ---- */', start);
+  const leaveGame = source.slice(start, end);
+  assert.match(leaveGame, /leavingNet&&savedRole==='host'.*setState/,
+    'only the room owner may publish a wait phase while leaving');
+}
+
+function testEveryCollectionDropsDepartedTargets() {
+  const source = fs.readFileSync(require.resolve('../js/host.js'), 'utf8');
+  const start = source.indexOf('async function collectWithTimer(');
+  const end = source.indexOf('\n  /* ---------- shared frames', start);
+  const collectWithTimer = source.slice(start, end);
+  const liveRosterFilter = collectWithTimer.indexOf(
+    'new Set(players.map(player => player.pid))');
+  const publishPhase = collectWithTimer.indexOf('net.setState({ phase: \'input\'');
+
+  assert.ok(liveRosterFilter >= 0 && publishPhase >= 0);
+  assert.ok(liveRosterFilter < publishPhase,
+    'every new input/vote phase must discard players who already left');
+  assert.match(collectWithTimer, /pids = requestedPids\.filter\(pid => livePids\.has\(pid\)\)/,
+    'stale mode-level target lists must be reconciled with the current roster');
+}
+
 (async () => {
   await testPresenceCleanupCannotBlockCallback();
   await testMissingPresenceStillExpiresPlayer();
   testWarningDoesNotDependOnStatusAvatar();
-  console.log('disconnect handling: 3 tests passed');
+  testRosterDeletionNotifiesHost();
+  testPlayerLeaveCannotReplaceSharedPhase();
+  testEveryCollectionDropsDepartedTargets();
+  console.log('disconnect handling: 6 tests passed');
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;

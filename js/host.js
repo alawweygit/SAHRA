@@ -304,6 +304,18 @@ const Host = (() => {
 
   /* ---------- input collection with big timer ---------- */
   async function collectWithTimer(spec, pids, seconds, statusLabelFn) {
+    // A mode may calculate its targets once and reuse that list for several
+    // phases. Drop anyone who left between those phases so a later collect
+    // cannot wait forever for a player who is no longer in the room.
+    const requestedPids = [...new Set(pids || [])];
+    const livePids = new Set(players.map(player => player.pid));
+    if (net.hostSelfPid) livePids.add(net.hostSelfPid);
+    pids = requestedPids.filter(pid => livePids.has(pid));
+    if (pids.length !== requestedPids.length) {
+      console.log('[HYPOX] collection: dropped departed targets',
+        requestedPids.filter(pid => !livePids.has(pid)));
+    }
+
     const phaseId = 'ph' + (++phaseCounter);
     const deadline = inputDeadline(seconds, spec.forceTimer === true);
     // v135 — attach deadline onto spec itself (not just as a sibling field
