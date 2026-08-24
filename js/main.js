@@ -1068,8 +1068,16 @@
         if(net)try{net.close?.();}catch(e){}
         net=null;currentRoomCode=null;players=[];gameActive=false;
         $('#roundPill').style.visibility='hidden';
-        $('#topbar').classList.remove('show');
         show('#scr-games');
+        // Re-wire the back button for #scr-games (pointing to the true
+        // home screen) instead of hiding the topbar entirely -- previously
+        // this left #scr-games with no back button at all, the same class
+        // of bug reported for the avatar/pregame transition.
+        const tb=document.getElementById('topbarBack');
+        if(tb){
+          tb.style.setProperty('visibility','visible');
+          tb.onclick=()=>{Audio_.sfx.blip();$('#topbar').classList.remove('show');$('#roundPill').innerHTML='HYPOX';$('#roundPill').style.cssText='';show('#scr-title');};
+        }
       };
     }
     updateMenu();
@@ -1185,7 +1193,21 @@
     const lobbyBackEl=document.getElementById('topbarBack');
     if(lobbyBackEl){
       lobbyBackEl.style.setProperty('visibility','visible');
-      lobbyBackEl.onclick=()=>{Audio_.sfx.blip();if(net)try{net.close?.();}catch(e){}net=null;currentRoomCode=null;players=[];gameActive=false;$('#roundPill').style.visibility='hidden';show('#scr-games');};
+      lobbyBackEl.onclick=()=>{
+        Audio_.sfx.blip();
+        if(net)try{net.close?.();}catch(e){}
+        net=null;currentRoomCode=null;players=[];gameActive=false;
+        $('#roundPill').style.visibility='hidden';
+        show('#scr-games');
+        // This assignment runs after (and overwrites) the one earlier in
+        // setupLobby(), so it's the one that actually takes effect --
+        // re-wire the back button here too, for the same reason.
+        const tb2=document.getElementById('topbarBack');
+        if(tb2){
+          tb2.style.setProperty('visibility','visible');
+          tb2.onclick=()=>{Audio_.sfx.blip();$('#topbar').classList.remove('show');$('#roundPill').innerHTML='HYPOX';$('#roundPill').style.cssText='';show('#scr-title');};
+        }
+      };
     }
     if(!net.isOffline&&currentRoomCode){
       const siteUrl=window.location.origin+window.location.pathname;
@@ -1444,8 +1466,22 @@
       avatarBack.style.setProperty('visibility','visible');
       avatarBack.onclick=()=>{
         Audio_.sfx.blip();
-        avatarBack.style.setProperty('visibility','hidden');
-        if(_avatarContext==='offline')show('#scr-lobby');else show('#scr-pregame');
+        if(_avatarContext==='offline'){
+          if(currentGameMode){
+            setupLobby(currentGameMode);
+          }else{
+            avatarBack.style.setProperty('visibility','hidden');
+            show('#scr-lobby');
+          }
+        }else if(currentPregameMode){
+          // Re-run the real pregame setup (not a raw screen swap) so the
+          // back button gets properly re-shown and re-wired to #scr-games
+          // -- a bare show('#scr-pregame') left it permanently hidden after
+          // one back-press, since nothing else ever restores it.
+          showPregame(currentPregameMode);
+        }else{
+          show('#scr-pregame');
+        }
       };
     }
     show('#scr-avatar');
