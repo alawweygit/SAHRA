@@ -271,30 +271,50 @@ class FirebaseNet {
   // callback so host.js can update its local roster / toast / unstick any
   // in-flight collection.
   async _removePlayerNow(pid) {
+    // The 4s watcher can tick again while Firebase writes are still in
+    // flight. Keep one removal per pid active so the callback cannot fire
+    // twice and accidentally advance two phases.
+    if (!this._removingPids) this._removingPids = new Set();
+    if (this._removingPids.has(pid)) return;
+    this._removingPids.add(pid);
     console.log('[HYPOX] removing disconnected player', pid);
-    let pData = null;
     try {
-      const pSnap = await this.room('players/' + pid).get();
-      pData = pSnap.val();
-    } catch (e) { console.error('[HYPOX] failed reading player before removal', pid, e); }
-    // Stash for reclaim -- isolated in its own try/catch so a failure here
-    // (e.g. a permissions issue on this newer path) can never block the
-    // actual removal below, which matters far more.
-    if (pData && pData.name) {
+      let pData = null;
       try {
-        const nameKey = pData.name.trim().toLowerCase();
-        await this.room('disconnected/' + nameKey).set({
-          score: pData.score || 0, disconnectedAt: Date.now(),
-        });
-      } catch (e) { console.error('[HYPOX] failed stashing disconnected record (non-blocking)', pid, e); }
-    }
-    try {
-      await this.room('players/' + pid).remove();
-      await this.room('presence/' + pid).remove();
+        const pSnap = await this.room('players/' + pid).get();
+        pData = pSnap.val();
+      } catch (e) { console.error('[HYPOX] failed reading player before removal', pid, e); }
+      // Stash for reclaim -- isolated in its own try/catch so a failure here
+      // (e.g. a permissions issue on this newer path) can never block the
+      // actual removal below, which matters far more.
+      if (pData && pData.name) {
+        try {
+          const nameKey = pData.name.trim().toLowerCase();
+          await this.room('disconnected/' + nameKey).set({
+            score: pData.score || 0, disconnectedAt: Date.now(),
+          });
+        } catch (e) { console.error('[HYPOX] failed stashing disconnected record (non-blocking)', pid, e); }
+      }
+      // Removing the live player is the only critical write. Presence is
+      // cleanup data: if that second write is denied or transiently fails,
+      // the host must still receive the callback and unstick the round.
+      try {
+        await this.room('players/' + pid).remove();
+      } catch (e) {
+        console.error('[HYPOX] FAILED removing player -- game may stay stuck', pid, e);
+        return;
+      }
+      try {
+        await this.room('presence/' + pid).remove();
+      } catch (e) {
+        console.error('[HYPOX] failed cleaning presence (non-blocking)', pid, e);
+      }
       console.log('[HYPOX] player removed from room', pid);
-    } catch (e) { console.error('[HYPOX] FAILED removing player/presence -- game may stay stuck', pid, e); return; }
-    if (this._onRemoveCb) {
-      try { this._onRemoveCb(pid); } catch (e) { console.error('[HYPOX] onRemove callback threw', pid, e); }
+      if (this._onRemoveCb) {
+        try { this._onRemoveCb(pid); } catch (e) { console.error('[HYPOX] onRemove callback threw', pid, e); }
+      }
+    } finally {
+      this._removingPids.delete(pid);
     }
   }
   // Host-triggered manual removal, e.g. tapping a greyed-out disconnected
@@ -319,14 +339,22 @@ class FirebaseNet {
     this._offlineWatcher = setInterval(async () => {
       if (!this.code) return;
       try {
-        const snap = await this.room('presence').get();
-        const presence = snap.val() || {};
+        // Drive removal from the authoritative player roster, not only from
+        // presence entries. A phone can disappear before its first heartbeat
+        // is written (or a cleanup can remove that heartbeat), and scanning
+        // presence alone leaves that player in the room forever.
+        const [presenceSnap, playersSnap] = await Promise.all([
+          this.room('presence').get(),
+          this.room('players').get(),
+        ]);
+        const presence = presenceSnap.val() || {};
+        const livePlayers = playersSnap.val() || {};
         const now = Date.now();
-        for (const [pid, data] of Object.entries(presence)) {
+        for (const [pid, player] of Object.entries(livePlayers)) {
           if (pid === this.pid || pid === this.hostSelfPid) continue; // never remove self or host
           if ((this._botPids||[]).includes(pid)) continue; // never remove bots
-          if (!data || !data.t) continue; // never remove players with no heartbeat entry (TV mode host)
-          const age = now - (data.t || 0);
+          const lastSeen = presence[pid]?.t || player?.joinedAt || now;
+          const age = now - lastSeen;
           if (age > OFFLINE_MS) {
             console.log('[HYPOX] offline watcher: stale heartbeat detected', pid, 'age(ms)=', age);
             await this._removePlayerNow(pid);
