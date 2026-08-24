@@ -233,7 +233,13 @@
     // .screen), so it isn't covered by the .screen show/hide above — toggle
     // it explicitly with the lobby screen, same as before.
     document.getElementById('lobbyDockAction')?.classList.toggle('hidden',_clean!=='scr-lobby');
-    if(id==='#scr-title')currentViewKind='title';
+    if(id==='#scr-title'){
+      currentViewKind='title';
+      // The home screen must never show a back button, regardless of
+      // which prior screen made it visible -- fixed here once, centrally,
+      // rather than in each of the many individual 'go to title' handlers.
+      document.getElementById('topbarBack')?.style.setProperty('visibility','hidden');
+    }
     else if(id==='#scr-games')currentViewKind='games';
     else if(id==='#scr-join')currentViewKind='join';
     else if(id==='#scr-controller')currentViewKind='controller';
