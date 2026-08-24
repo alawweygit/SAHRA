@@ -94,10 +94,26 @@ async function testMissingPresenceStillExpiresPlayer() {
   assert.equal(removedPid, 'p1', 'players with no heartbeat entry must not remain forever');
 }
 
+function testWarningDoesNotDependOnStatusAvatar() {
+  const source = fs.readFileSync(require.resolve('../js/host.js'), 'utf8');
+  const start = source.indexOf('const paintOffline = () => {');
+  const end = source.indexOf('\n    paintOffline();', start);
+  const paintOffline = source.slice(start, end);
+  const warning = paintOffline.indexOf('if (_off && !_warnedOffline.has(pid))');
+  const missingAvatarReturn = paintOffline.indexOf('if (!el) return;');
+
+  assert.ok(warning >= 0 && missingAvatarReturn >= 0);
+  assert.ok(warning < missingAvatarReturn,
+    'countdown broadcast must run even when a mode has no #statusRow avatar');
+  assert.match(paintOffline, /showHostDisconnectWarning\(p, deadline\)/,
+    'phones-only host must see the same countdown as surviving players');
+}
+
 (async () => {
   await testPresenceCleanupCannotBlockCallback();
   await testMissingPresenceStillExpiresPlayer();
-  console.log('disconnect handling: 2 tests passed');
+  testWarningDoesNotDependOnStatusAvatar();
+  console.log('disconnect handling: 3 tests passed');
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;

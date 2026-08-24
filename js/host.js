@@ -10,6 +10,7 @@ const Host = (() => {
   // force-finishing it (see watchAndRemoveOffline's callback below).
   let activeCollectionPids = null;
   const _warnedOffline = new Set();
+  let _hostDisconnectWarnInt = null;
   // Host (Laith) should only speak before a mode's rounds begin and after
   // its final results — never mid-round. Rather than edit the ~25 scattered
   // say()/hostSay() call sites across every game mode individually (risky,
@@ -197,6 +198,35 @@ const Host = (() => {
   function pushMirror(patch) {
     mirror = { ...mirror, ...patch };
     if (net && net.setMirror) net.setMirror({ ...mirror });
+  }
+  function clearHostDisconnectWarning() {
+    document.getElementById('disconnectWarnBanner')?.remove();
+    if (_hostDisconnectWarnInt) {
+      clearInterval(_hostDisconnectWarnInt);
+      _hostDisconnectWarnInt = null;
+    }
+  }
+  function showHostDisconnectWarning(player, deadline) {
+    clearHostDisconnectWarning();
+    const banner = document.createElement('div');
+    banner.id = 'disconnectWarnBanner';
+    banner.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(200,40,40,0.92);color:#fff;font-family:Fredoka One,sans-serif;font-size:13px;padding:10px 18px;border-radius:14px;z-index:1000;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.4);text-align:center;';
+    const name = player?.name || 'Player';
+    const emoji = player?.emoji || '👤';
+    const label = LANG==='ar'
+      ? seconds => `${emoji} ${name} انقطع اتصاله — تكمل اللعبة خلال ${seconds} ث`
+      : seconds => `${emoji} ${name} disconnected — game continues in ${seconds}s`;
+    const tick = () => {
+      const seconds = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      banner.textContent = label(seconds);
+      if (seconds <= 0 && _hostDisconnectWarnInt) {
+        clearInterval(_hostDisconnectWarnInt);
+        _hostDisconnectWarnInt = null;
+      }
+    };
+    tick();
+    document.body.appendChild(banner);
+    _hostDisconnectWarnInt = setInterval(tick, 1000);
   }
   let fxSeq = 0;
   // Confetti (canvas) and flyPoints (a transient div appended to
@@ -394,10 +424,28 @@ const Host = (() => {
     const paintOffline = () => {
       const _pres = window._hypoxPresence || {};
       pids.forEach(pid => {
-        const el = document.getElementById('mini-' + pid);
-        if (!el) return;
         const _st = _pres[pid];
         const _off = _st === 'away' || _st === 'offline';
+        // Warning delivery must not depend on this particular mode rendering
+        // a #statusRow/#mini-* tracker. Busted and several bespoke modes do
+        // not, which made their disconnected-player countdown silently skip.
+        if (_off && !_warnedOffline.has(pid)) {
+          _warnedOffline.add(pid);
+          const p = safeP(pid);
+          const deadline = Date.now() + 13000;
+          showHostDisconnectWarning(p, deadline);
+          pushMirror({
+            disconnectWarn: { name: p?.name || 'Player', emoji: p?.emoji || '👤', deadline },
+            disconnectWarnId: Date.now(),
+          });
+        } else if (!_off && _warnedOffline.has(pid)) {
+          // Recovered before removal -- clear the banner for everyone.
+          _warnedOffline.delete(pid);
+          clearHostDisconnectWarning();
+          pushMirror({ disconnectWarn: null, disconnectWarnId: Date.now() });
+        }
+        const el = document.getElementById('mini-' + pid);
+        if (!el) return;
         el.classList.toggle('mini-offline', _off);
         el.style.opacity = _off ? '0.4' : '';
         el.style.filter = _off ? 'grayscale(0.8)' : '';
@@ -413,21 +461,6 @@ const Host = (() => {
             const ok = confirm((LANG==='ar'?'إزالة ':'Remove ') + (p?.name || 'player') + (LANG==='ar'?' من اللعبة؟':' from the game?'));
             if (ok && net.forceRemovePlayer) await net.forceRemovePlayer(pid);
           });
-        }
-        // Broadcast a visible countdown to EVERYONE the moment this player
-        // is first detected as away -- not a quiet toast after the fact,
-        // and not repeated on every 3s repaint (guarded by _warnedOffline).
-        if (_off && !_warnedOffline.has(pid)) {
-          _warnedOffline.add(pid);
-          const p = safeP(pid);
-          pushMirror({
-            disconnectWarn: { name: p?.name || 'Player', emoji: p?.emoji || '👤', deadline: Date.now() + 13000 },
-            disconnectWarnId: Date.now(),
-          });
-        } else if (!_off && _warnedOffline.has(pid)) {
-          // Recovered before removal -- clear the banner for everyone.
-          _warnedOffline.delete(pid);
-          pushMirror({ disconnectWarn: null, disconnectWarnId: Date.now() });
         }
       });
     };
@@ -3616,6 +3649,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       net.watchAndRemoveOffline(pid => {
         console.log('[HYPOX] host: onRemove fired for', pid, 'activeCollectionPids=', activeCollectionPids);
         _warnedOffline.delete(pid);
+        clearHostDisconnectWarning();
         const idx = players.findIndex(p => p.pid === pid);
         if (idx !== -1) {
           try {
