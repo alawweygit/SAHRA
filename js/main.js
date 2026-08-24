@@ -721,7 +721,15 @@
     const modeNamesObj=t('mode_names')||{};
     const modeTagsObj=t('mode_taglines')||{};
     const COMING_SOON = new Set(['emoji', 'diss']); // emoji riddle needs redesign; Line Battle removed per Ali's request
-    grid.innerHTML=modes.map((m,i)=>{
+    // Playable games first, coming-soon games grouped below -- otherwise
+    // they'd appear scattered wherever their key happens to sit in
+    // MODE_ICONS' insertion order.
+    const sortedModes = modes.slice().sort((a, b) => {
+      const aSoon = COMING_SOON.has(a) ? 1 : 0;
+      const bSoon = COMING_SOON.has(b) ? 1 : 0;
+      return aSoon - bSoon;
+    });
+    grid.innerHTML=sortedModes.map((m,i)=>{
       const soon = COMING_SOON.has(m);
       return `<button class="title-game-card${soon?' tgc-soon':''}" data-mode="${m}" style="animation-delay:${i*.07}s;--mc:${MODE_COLORS[m]}" ${soon?'disabled':''}>
         <div class="tgc-art">${MODE_ICONS[m]}</div>
