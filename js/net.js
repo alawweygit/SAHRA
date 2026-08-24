@@ -315,7 +315,7 @@ class FirebaseNet {
     // would never run.
     if (onRemove) this._onRemoveCb = onRemove;
     if (this._offlineWatcher) return;
-    const OFFLINE_MS = 30000; // 30s before auto-remove
+    const OFFLINE_MS = 20000; // 20s of missed heartbeats before auto-remove
     this._offlineWatcher = setInterval(async () => {
       if (!this.code) return;
       try {
@@ -345,7 +345,7 @@ class FirebaseNet {
           }
         } catch(e) {}
       } catch(e) { console.error('[HYPOX] offline watcher tick failed', e); }
-    }, 10000);
+    }, 4000);
   }
   stopOfflineWatcher() {
     if (this._offlineWatcher) { clearInterval(this._offlineWatcher); this._offlineWatcher = null; }
@@ -377,7 +377,7 @@ class FirebaseNet {
       const status = {};
       for (const [pid, data] of Object.entries(v)) {
         const age = now - (data.t || 0);
-        status[pid] = age < 15000 ? 'online' : age < 60000 ? 'away' : 'offline';
+        status[pid] = age < 8000 ? 'online' : age < 20000 ? 'away' : 'offline';
       }
       cb(status);
     };

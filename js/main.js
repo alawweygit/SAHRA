@@ -1688,8 +1688,38 @@
     let _lastMirrorKey = '';
     let _lastAnnounceId = null;
     let _lastFxSeq = -1;
+    let _lastDisconnectWarnId = null;
+    let _disconnectWarnInt = null;
     function renderMirror(m){
       if(!m)return;
+      // Prominent, always-visible countdown banner: shown to EVERYONE the
+      // instant the host detects someone going away, not a quiet toast
+      // after the fact. Guarded by disconnectWarnId so it only (re)builds
+      // when the host actually pushes a new state (new warning, recovery
+      // clear, or the final removal replacing it).
+      if(m.disconnectWarnId !== undefined && m.disconnectWarnId !== _lastDisconnectWarnId){
+        _lastDisconnectWarnId = m.disconnectWarnId;
+        const _old = document.getElementById('disconnectWarnBanner');
+        if(_old) _old.remove();
+        if(_disconnectWarnInt){ clearInterval(_disconnectWarnInt); _disconnectWarnInt = null; }
+        if(m.disconnectWarn){
+          const { name, emoji, deadline } = m.disconnectWarn;
+          const banner = document.createElement('div');
+          banner.id = 'disconnectWarnBanner';
+          banner.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(200,40,40,0.92);color:#fff;font-family:Fredoka One,sans-serif;font-size:13px;padding:10px 18px;border-radius:14px;z-index:1000;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.4);text-align:center;';
+          const label = LANG==='ar'
+            ? txt => `${emoji} ${name} انقطع اتصاله — تكمل اللعبة خلال ${txt} ث`
+            : txt => `${emoji} ${name} disconnected — game continues in ${txt}s`;
+          const tick = () => {
+            const secs = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+            banner.textContent = label(secs);
+            if(secs <= 0 && _disconnectWarnInt){ clearInterval(_disconnectWarnInt); _disconnectWarnInt = null; }
+          };
+          tick();
+          document.body.appendChild(banner);
+          _disconnectWarnInt = setInterval(tick, 1000);
+        }
+      }
       // Show player-left toast on phones
       if(m.announce && m.announceId && m.announceId !== _lastAnnounceId){
         _lastAnnounceId = m.announceId;

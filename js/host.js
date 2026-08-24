@@ -9,6 +9,7 @@ const Host = (() => {
   // player who just left is actually relevant to THIS collection before
   // force-finishing it (see watchAndRemoveOffline's callback below).
   let activeCollectionPids = null;
+  const _warnedOffline = new Set();
   // Host (Laith) should only speak before a mode's rounds begin and after
   // its final results — never mid-round. Rather than edit the ~25 scattered
   // say()/hostSay() call sites across every game mode individually (risky,
@@ -412,6 +413,21 @@ const Host = (() => {
             const ok = confirm((LANG==='ar'?'إزالة ':'Remove ') + (p?.name || 'player') + (LANG==='ar'?' من اللعبة؟':' from the game?'));
             if (ok && net.forceRemovePlayer) await net.forceRemovePlayer(pid);
           });
+        }
+        // Broadcast a visible countdown to EVERYONE the moment this player
+        // is first detected as away -- not a quiet toast after the fact,
+        // and not repeated on every 3s repaint (guarded by _warnedOffline).
+        if (_off && !_warnedOffline.has(pid)) {
+          _warnedOffline.add(pid);
+          const p = safeP(pid);
+          pushMirror({
+            disconnectWarn: { name: p?.name || 'Player', emoji: p?.emoji || '👤', deadline: Date.now() + 13000 },
+            disconnectWarnId: Date.now(),
+          });
+        } else if (!_off && _warnedOffline.has(pid)) {
+          // Recovered before removal -- clear the banner for everyone.
+          _warnedOffline.delete(pid);
+          pushMirror({ disconnectWarn: null, disconnectWarnId: Date.now() });
         }
       });
     };
@@ -3599,6 +3615,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     if (net.watchAndRemoveOffline) {
       net.watchAndRemoveOffline(pid => {
         console.log('[HYPOX] host: onRemove fired for', pid, 'activeCollectionPids=', activeCollectionPids);
+        _warnedOffline.delete(pid);
         const idx = players.findIndex(p => p.pid === pid);
         if (idx !== -1) {
           try {
@@ -3609,8 +3626,13 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
             toast.textContent = (removed.emoji||'👤') + ' ' + (removed.name||'Player') + (LANG==='ar'?' غادر اللعبة':' left the game');
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
-            // Broadcast to all players' phones via mirror
-            pushMirror({ announce: (removed.emoji||'👤') + ' ' + (removed.name||'Player') + (LANG==='ar'?' غادر اللعبة':' left the game'), announceId: Date.now() });
+            // Broadcast to all players' phones via mirror — clear the
+            // countdown banner and show the final message in one step.
+            pushMirror({
+              disconnectWarn: null, disconnectWarnId: Date.now(),
+              announce: (removed.emoji||'👤') + ' ' + (removed.name||'Player') + (LANG==='ar'?' غادر اللعبة':' left the game'),
+              announceId: Date.now(),
+            });
             setTimeout(() => pushMirror({ announce: null, announceId: null }), 4000);
           } catch (e) {
             // Cosmetic (toast/announcement) failure must never block the
