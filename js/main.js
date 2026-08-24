@@ -277,6 +277,50 @@
     }catch(e){return null;}
   }
 
+  async function resumeSavedPlayer(session){
+    if(!session?.code||!session?.pid)throw new Error('missing-player-session');
+    net=FirebaseNet.create();
+    const resumed=await net.resumePlayer(session.code,session.pid,session);
+    myPid=resumed.pid;isVip=resumed.isVip;currentRoomCode=session.code;
+    hostMode=resumed.playMode||'tv';
+    selectedAvatar={emoji:resumed.player.emoji,color:resumed.player.color};
+    const restoredSession={
+      ...session,
+      code:session.code,
+      name:resumed.player.name,
+      pid:resumed.pid,
+      isVip:resumed.isVip,
+      emoji:resumed.player.emoji,
+      color:resumed.player.color,
+    };
+    try{
+      const encoded=JSON.stringify(restoredSession);
+      sessionStorage.setItem('hypox_session',encoded);
+      localStorage.setItem('hypox_player_session',encoded);
+    }catch(e){}
+    openPlayerController();
+    return resumed;
+  }
+
+  function showPlayerRejoinToast(){
+    setTimeout(()=>{
+      const _t=document.createElement('div');
+      _t.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:500;background:var(--card);border:2px solid #4ade80;border-radius:20px;padding:10px 22px;font-family:Fredoka One,sans-serif;font-size:15px;color:#4ade80;';
+      _t.textContent=LANG==='ar'?'✓ عدت للعبة!':'✓ Back in the game!';
+      document.body.appendChild(_t);
+      setTimeout(()=>_t.remove(),3000);
+    },500);
+  }
+
+  function showPlayerRejoinFallback(session){
+    net=null;currentRoomCode=null;
+    showHypoxHeader();paintJoin();
+    $('#joinCode').value=session?.code||'';
+    $('#joinName').value=session?.name||'';
+    $('#joinErr').textContent=LANG==='ar'?'تعذر الاتصال تلقائياً. اضغط انضم للعودة.':'Automatic reconnect failed. Tap Join to return.';
+    show('#scr-join');
+  }
+
   async function restoreNavigationState(){
     const saved=readNavigationState();
     if(!saved||saved.screen==='scr-title')return false;
@@ -312,30 +356,17 @@
       try{
         const session=JSON.parse(sessionStorage.getItem('hypox_session')||'null');
         if(!session?.pid)throw new Error('missing-player-session');
-        net=FirebaseNet.create();
-        const resumed=await net.resumePlayer(saved.roomCode,session.pid);
-        myPid=resumed.pid;isVip=resumed.isVip;currentRoomCode=saved.roomCode;
-        selectedAvatar={emoji:session.emoji||resumed.player.emoji,color:session.color||resumed.player.color};
+        session.code=session.code||saved.roomCode;
+        await resumeSavedPlayer(session);
         _removeLoader();
-        openPlayerController();
-        // Show reconnect toast
-        setTimeout(()=>{
-          const _t=document.createElement('div');
-          _t.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:500;background:var(--card);border:2px solid #4ade80;border-radius:20px;padding:10px 22px;font-family:Fredoka One,sans-serif;font-size:15px;color:#4ade80;';
-          _t.textContent=LANG==='ar'?'✓ عدت للعبة!':'✓ Back in the game!';
-          document.body.appendChild(_t);
-          setTimeout(()=>_t.remove(),3000);
-        },500);
+        showPlayerRejoinToast();
         return true;
       }catch(e){
-        net=null;currentRoomCode=null;
-        showHypoxHeader();paintJoin();
-        $('#joinCode').value=saved.roomCode||saved.joinCode||'';
-        $('#joinName').value=saved.joinName||'';
-        $('#joinErr').textContent=LANG==='ar'?'انتهت الغرفة. يمكنك الانضمام من جديد.':'That room ended. You can join again.';
-        // Session missing — go home instead of join screen
         _removeLoader();
-        show('#scr-title');
+        showPlayerRejoinFallback({
+          code:saved.roomCode||saved.joinCode||'',
+          name:JSON.parse(sessionStorage.getItem('hypox_session')||'null')?.name||saved.joinName||'',
+        });
         return true;
       }
     }
@@ -661,15 +692,15 @@
       document.getElementById('rejoinLeave').onclick=()=>{_leftOnPurpose=true;localStorage.removeItem('hypox_player_session');_pb.remove();show('#scr-title');};
       (async()=>{
         try{
-          sessionStorage.setItem('hypox_session',JSON.stringify(_ps));
-          await restoreNavigationState();
+          await resumeSavedPlayer(_ps);
           if(_leftOnPurpose){
             // User chose to leave while restore was in flight — honor that,
             // don't let the completed restore silently drop them into the game.
             try{sessionStorage.removeItem('hypox_session');}catch(e){}
+            try{await net?.close?.();}catch(e){}
             net=null;currentRoomCode=null;show('#scr-title');
-          }
-        }catch(e){localStorage.removeItem('hypox_player_session');if(!_leftOnPurpose){$('#topbar').classList.remove('show');$('#roundPill').innerHTML='HYPOX';$('#roundPill').style.cssText='';show('#scr-title');}}
+          }else showPlayerRejoinToast();
+        }catch(e){if(!_leftOnPurpose)showPlayerRejoinFallback(_ps);}
         setTimeout(()=>_pb?.remove(),1500);
       })();
     } else if(!urlCode) restoreNavigationState();
@@ -1702,7 +1733,7 @@
       // after the fact. Guarded by disconnectWarnId so it only (re)builds
       // when the host actually pushes a new state (new warning, recovery
       // clear, or the final removal replacing it).
-      if(m.disconnectWarnId !== undefined && m.disconnectWarnId !== _lastDisconnectWarnId){
+      if(m.disconnectWarnId !== undefined && (_lastDisconnectWarnId === null || m.disconnectWarnId > _lastDisconnectWarnId)){
         _lastDisconnectWarnId = m.disconnectWarnId;
         const _old = document.getElementById('disconnectWarnBanner');
         if(_old) _old.remove();
@@ -1725,8 +1756,11 @@
           _disconnectWarnInt = setInterval(tick, 1000);
         }
       }
-      // Show player-left toast on phones
-      if(m.announce && m.announceId && m.announceId !== _lastAnnounceId){
+      // Show the newest roster announcement on phones. State snapshots can
+      // contain an older embedded mirror than the live mirror listener; only
+      // accepting increasing ids prevents a just-rejoined phone from showing
+      // the stale "left the game" toast after "is back in the game".
+      if(m.announce && m.announceId && (_lastAnnounceId === null || m.announceId > _lastAnnounceId)){
         _lastAnnounceId = m.announceId;
         const _t = document.createElement('div');
         _t.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#ccc;font-family:Fredoka One,sans-serif;font-size:14px;padding:8px 20px;border-radius:20px;z-index:999;white-space:nowrap;';

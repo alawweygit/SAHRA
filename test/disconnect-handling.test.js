@@ -160,6 +160,41 @@ function testEveryCollectionDropsDepartedTargets() {
     'stale mode-level target lists must be reconciled with the current roster');
 }
 
+function testRemovedAvatarIsPurgedAndRunningRosterAcceptsRejoin() {
+  const source = fs.readFileSync(require.resolve('../js/host.js'), 'utf8');
+  const runStart = source.indexOf('async function run(netInstance, playerList, mode)');
+  const run = source.slice(runStart);
+
+  assert.match(source, /function removePlayerStatusElements\(pid\)/,
+    'host must have a dedicated stale-status cleanup path');
+  assert.match(run, /removePlayerStatusElements\(pid\)/,
+    'disconnect removal must delete the grey avatar from the current phase');
+  assert.match(run, /net\.onPlayers\(liveList =>/,
+    'running games must continue watching for players who rejoin');
+  assert.match(run, /players\.push\(\{ \.\.\.livePlayer \}\)/,
+    'a rejoining player must be restored to the host engine roster');
+}
+
+function testClosedTabReconnectsWithoutSessionNavigationState() {
+  const source = fs.readFileSync(require.resolve('../js/main.js'), 'utf8');
+  const start = source.indexOf('// Player rejoin banner');
+  const end = source.indexOf("window.addEventListener('pagehide'", start);
+  const rejoinBlock = source.slice(start, end);
+
+  assert.match(rejoinBlock, /await resumeSavedPlayer\(_ps\)/,
+    'a reopened tab must reconnect directly from its persistent player session');
+  assert.doesNotMatch(rejoinBlock, /await restoreNavigationState\(\)/,
+    'closed-tab reconnect cannot depend on sessionStorage navigation state');
+}
+
+function testStaleDepartureAnnouncementCannotOverrideRejoin() {
+  const source = fs.readFileSync(require.resolve('../js/main.js'), 'utf8');
+  assert.match(source, /m\.announceId > _lastAnnounceId/,
+    'older embedded state announcements must not replay after a newer rejoin announcement');
+  assert.match(source, /m\.disconnectWarnId > _lastDisconnectWarnId/,
+    'an older disconnect warning must not reappear after its newer clear event');
+}
+
 (async () => {
   await testPresenceCleanupCannotBlockCallback();
   await testMissingPresenceStillExpiresPlayer();
@@ -167,7 +202,10 @@ function testEveryCollectionDropsDepartedTargets() {
   testRosterDeletionNotifiesHost();
   testPlayerLeaveCannotReplaceSharedPhase();
   testEveryCollectionDropsDepartedTargets();
-  console.log('disconnect handling: 6 tests passed');
+  testRemovedAvatarIsPurgedAndRunningRosterAcceptsRejoin();
+  testClosedTabReconnectsWithoutSessionNavigationState();
+  testStaleDepartureAnnouncementCannotOverrideRejoin();
+  console.log('disconnect handling: 9 tests passed');
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;

@@ -171,6 +171,11 @@ const Host = (() => {
   let mirror = { headline: '', sub: '', pill: '' };
   // Safe player lookup — never returns undefined, uses ghost fallback
   const safeP = pid => players.find(x => x.pid === pid) || { pid, name: '?', emoji: '👤', color: '#555', score: 0, isVip: false };
+  function removePlayerStatusElements(pid) {
+    ['mini-', 'vmini-'].forEach(prefix => {
+      document.querySelectorAll(`[id="${prefix}${pid}"]`).forEach(el => el.remove());
+    });
+  }
 
   function addTranslateBtn(factText) {
     if(LANG === 'ar') return;
@@ -436,6 +441,14 @@ const Host = (() => {
     const paintOffline = () => {
       const _pres = window._hypoxPresence || {};
       pids.forEach(pid => {
+        // The collection's pid list is intentionally stable, but its visual
+        // tracker must reflect the live roster. Remove a timed-out player's
+        // node immediately instead of leaving the grey avatar behind for the
+        // rest of the phase.
+        if (!players.some(player => player.pid === pid)) {
+          removePlayerStatusElements(pid);
+          return;
+        }
         const _st = _pres[pid];
         const _off = _st === 'away' || _st === 'offline';
         // Warning delivery must not depend on this particular mode rendering
@@ -3656,6 +3669,26 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
   async function run(netInstance, playerList, mode) {
     net = netInstance;
     players = playerList;
+    // Keep the running host engine open to players who join or rejoin after
+    // the lobby. Removals continue through the dedicated callback below so
+    // its announcement and force-finish logic still run exactly once.
+    if (net.onPlayers && !net.isOffline) {
+      net.onPlayers(liveList => {
+        liveList.forEach(livePlayer => {
+          const current = players.find(player => player.pid === livePlayer.pid);
+          if (current) Object.assign(current, livePlayer);
+          else {
+            players.push({ ...livePlayer });
+            console.log('[HYPOX] host: player joined running game', livePlayer.pid);
+            pushMirror({
+              announce: (livePlayer.emoji || '👤') + ' ' + (livePlayer.name || 'Player') + (LANG === 'ar' ? ' عاد للعبة' : ' is back in the game'),
+              announceId: Date.now(),
+            });
+            setTimeout(() => pushMirror({ announce: null, announceId: null }), 4000);
+          }
+        });
+      });
+    }
     // Start auto-remove watcher for offline players
     if (net.watchAndRemoveOffline) {
       net.watchAndRemoveOffline(pid => {
@@ -3689,6 +3722,10 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
             console.error('[HYPOX] host: toast/announce failed (non-blocking)', pid, e);
           }
         }
+        // Purge the current phase's status tracker as well as the local host
+        // array. Without this, the removed participant remained as the grey
+        // circular avatar visible in Ali's v174 screenshot.
+        removePlayerStatusElements(pid);
         // Unstick any in-flight collection (vote/write phase) that was
         // waiting on THIS pid specifically. Deliberately OUTSIDE the
         // idx check above: the toast/announcement are cosmetic and depend

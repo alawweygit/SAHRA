@@ -36,7 +36,7 @@ const uniqueAnswerKey = value => encodeURIComponent(normalizeUniqueAnswer(value)
 
 /* ---------------- Firebase (online) ---------------- */
 class FirebaseNet {
-  constructor(db) { this.db = db; this.isOffline = false; this.code = null; this.pid = null; this.isRoomOwner = false; this._collectors = {}; this._removalNotified = new Set(); }
+  constructor(db) { this.db = db; this.isOffline = false; this.code = null; this.pid = null; this.isRoomOwner = false; this._collectors = {}; this._removalNotified = new Set(); this._playerIdentity = null; this._closing = false; this._heartbeatBusy = false; }
 
   static available() {
     return typeof firebase !== 'undefined'
@@ -81,14 +81,52 @@ class FirebaseNet {
     return { players: this._players, playMode: this.playMode };
   }
 
-  async resumePlayer(code, pid) {
+  async resumePlayer(code, pid, identity = {}) {
     this.code = code.toUpperCase().trim();
     const roomSnap = await this.room().get();
-    const player = roomSnap.val()?.players?.[pid];
-    if (!roomSnap.exists() || !player) throw new Error('no-room');
+    if (!roomSnap.exists()) throw new Error('no-room');
+    const roomData = roomSnap.val() || {};
+    let player = roomData.players?.[pid];
+    // A timed-out player is deliberately removed from the live roster so
+    // the current collection can continue. If that same phone comes back,
+    // restore its original pid and player data instead of treating the room
+    // as ended or creating a duplicate participant.
+    if (!player) {
+      const disconnected = roomData.disconnected || {};
+      const identityKey = String(identity.name || '').trim().toLowerCase();
+      const disconnectedEntry = Object.entries(disconnected).find(([key, saved]) =>
+        saved?.pid === pid || (identityKey && key === identityKey));
+      const saved = disconnectedEntry?.[1] || {};
+      const name = saved.name || identity.name;
+      if (!name) throw new Error('no-player');
+      const otherPlayers = Object.entries(roomData.players || {}).filter(([otherPid]) => otherPid !== pid);
+      if (otherPlayers.some(([, p]) => p?.name?.trim().toLowerCase() === name.trim().toLowerCase())) {
+        throw new Error('name-taken');
+      }
+      const takenEmojis = new Set(otherPlayers.map(([, p]) => p?.emoji).filter(Boolean));
+      let emoji = saved.emoji || identity.emoji || '👤';
+      let color = saved.color || identity.color || '#64748b';
+      if (takenEmojis.has(emoji)) {
+        const fallback = AVATARS.find(av => !takenEmojis.has(av.emoji));
+        if (fallback) { emoji = fallback.emoji; color = fallback.color; }
+      }
+      player = {
+        name: name.slice(0, 14), emoji, color,
+        score: saved.score || 0,
+        isVip: saved.isVip ?? !!identity.isVip,
+        joinedAt: saved.joinedAt || Date.now(),
+      };
+      await this.room('players/' + pid).set(player);
+      if (disconnectedEntry) {
+        try { await this.room('disconnected/' + disconnectedEntry[0]).remove(); } catch (e) {}
+      }
+    }
     this.pid = pid;
     this.isRoomOwner = false;
+    this._closing = false;
     this.playMode = roomSnap.val()?.playMode || 'tv';
+    this._playerIdentity = { ...player, pid };
+    this._removalNotified.delete(pid);
     return { pid, isVip: !!player.isVip, player, playMode: this.playMode };
   }
 
@@ -105,40 +143,47 @@ class FirebaseNet {
     const nameKey = name.trim().toLowerCase();
     const nameTaken = existingArr.some(p => p.name && p.name.trim().toLowerCase() === nameKey);
     if (nameTaken) throw new Error('name-taken');
-    // Reclaim: someone who disconnected (auto-removed after ~30s of no
-    // heartbeat) gets their score back if they rejoin with the exact same
-    // name within the grace window -- see watchAndRemoveOffline, which
-    // stashes this record instead of just deleting the player outright.
+    // Reclaim: someone who disconnected and was auto-removed gets their
+    // original pid, identity, and score back when they rejoin with the exact
+    // same name. The record lives with the room, so they may return at any
+    // later point while that room/game still exists.
     // Uses a transaction (not get-then-remove) so two people rejoining
     // under the identical name at nearly the same instant can't both
     // claim the same stashed score -- whoever's transaction commits first
     // consumes it, the second just finds it already gone.
-    const RECLAIM_GRACE_MS = 150000; // 2.5 minutes
-    let reclaimedScore = 0;
+    let claimedDisc = null;
     try {
-      let claimedDisc = null;
       const discRef = this.room('disconnected/' + nameKey);
       const result = await discRef.transaction(current => {
         if (current == null) return; // nothing stashed, abort
         claimedDisc = current; // capture pre-delete value for use below
         return null; // consume it
       });
-      if (result.committed && claimedDisc && Date.now() - (claimedDisc.disconnectedAt || 0) < RECLAIM_GRACE_MS) {
-        reclaimedScore = claimedDisc.score || 0;
-      }
+      if (!result.committed) claimedDisc = null;
     } catch (e) {}
     if (!av) av = AVATARS[n % AVATARS.length];
-    // Check emoji uniqueness — reject if taken instead of silently swapping
     const takenEmojis = new Set(existingArr.map(p => p.emoji));
-    if (takenEmojis.has(av.emoji)) throw new Error('avatar-taken');
-    this.pid = 'p' + Date.now() + Math.floor(Math.random() * 999);
-    const isVip = n === 0;
-    await this.room('players/' + this.pid).set({
-      name: name.slice(0, 14), emoji: av.emoji, color: av.color, score: reclaimedScore, isVip, joinedAt: Date.now(),
-    });
-    // Player NOT removed on disconnect (iOS backgrounds tab = disconnect)
-    // Player persists until explicit close() call
-    return { pid: this.pid, isVip };
+    let chosenAv = claimedDisc?.emoji ? { emoji: claimedDisc.emoji, color: claimedDisc.color } : av;
+    if (takenEmojis.has(chosenAv.emoji)) {
+      if (!claimedDisc) throw new Error('avatar-taken');
+      chosenAv = AVATARS.find(candidate => !takenEmojis.has(candidate.emoji)) || chosenAv;
+    }
+    this.pid = claimedDisc?.pid || ('p' + Date.now() + Math.floor(Math.random() * 999));
+    const player = {
+      name: (claimedDisc?.name || name).slice(0, 14),
+      emoji: chosenAv.emoji,
+      color: chosenAv.color,
+      score: claimedDisc?.score || 0,
+      isVip: claimedDisc?.isVip ?? (n === 0),
+      joinedAt: claimedDisc?.joinedAt || Date.now(),
+    };
+    await this.room('players/' + this.pid).set(player);
+    this._playerIdentity = { ...player, pid: this.pid };
+    this._closing = false;
+    this._removalNotified.delete(this.pid);
+    // The host may temporarily remove this record after a long heartbeat
+    // outage; the saved identity above lets the same player reclaim it.
+    return { pid: this.pid, isVip: !!player.isVip };
   }
 
   onPlayers(cb) {
@@ -148,6 +193,9 @@ class FirebaseNet {
         .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
       const previous = this._players || [];
       this._players = arr;
+      // A pid may legitimately return after an earlier disconnect removal.
+      // Re-arm its removal notification so a later disconnect is handled too.
+      arr.forEach(player => this._removalNotified.delete(player.pid));
       // A player who taps Leave Game deletes their own player record. That
       // bypasses the host's stale-heartbeat remover entirely, so detect the
       // roster disappearance here and run the exact same host callback that
@@ -290,7 +338,7 @@ class FirebaseNet {
 
   // Shared removal path used by both the automatic offline watcher and a
   // manual host-triggered removal (tapping a disconnected player's avatar).
-  // Stashes {score, disconnectedAt} for the reclaim window, removes the
+  // Stashes the full player identity for a later rejoin, removes the
   // live player + presence records, then fires the registered onRemove
   // callback so host.js can update its local roster / toast / unstick any
   // in-flight collection.
@@ -315,7 +363,14 @@ class FirebaseNet {
         try {
           const nameKey = pData.name.trim().toLowerCase();
           await this.room('disconnected/' + nameKey).set({
-            score: pData.score || 0, disconnectedAt: Date.now(),
+            pid,
+            name: pData.name,
+            emoji: pData.emoji,
+            color: pData.color,
+            score: pData.score || 0,
+            isVip: !!pData.isVip,
+            joinedAt: pData.joinedAt || Date.now(),
+            disconnectedAt: Date.now(),
           });
         } catch (e) { console.error('[HYPOX] failed stashing disconnected record (non-blocking)', pid, e); }
       }
@@ -382,18 +437,6 @@ class FirebaseNet {
             await this._removePlayerNow(pid);
           }
         }
-        // Sweep out stashed disconnected-player records once their reclaim
-        // grace window has fully passed, so this doesn't grow unbounded
-        // across a long session for names nobody rejoins with.
-        try {
-          const discSnap = await this.room('disconnected').get();
-          const disc = discSnap.val() || {};
-          for (const [nameKey, d] of Object.entries(disc)) {
-            if (now - (d.disconnectedAt || 0) > 150000) {
-              try { await this.room('disconnected/' + nameKey).remove(); } catch(e) {}
-            }
-          }
-        } catch(e) {}
       } catch(e) { console.error('[HYPOX] offline watcher tick failed', e); }
     }, 4000);
   }
@@ -404,9 +447,24 @@ class FirebaseNet {
   // ── PRESENCE / HEARTBEAT ──
   startHeartbeat() {
     if (this._heartbeatInt) return;
-    const write = () => {
-      if (!this.code || !this.pid) return;
-      try { this.room('presence/' + this.pid).set({ t: Date.now() }); } catch(e) {}
+    const write = async () => {
+      if (!this.code || !this.pid || this._closing || this._heartbeatBusy) return;
+      this._heartbeatBusy = true;
+      try {
+        // A tab can regain connectivity without reloading after the host has
+        // already timed it out. Detect that missing self-record and restore
+        // it before publishing the next heartbeat.
+        if (!this.isRoomOwner && this._playerIdentity) {
+          const selfSnap = await this.room('players/' + this.pid).get();
+          if (!selfSnap.exists() && !this._closing) {
+            await this.resumePlayer(this.code, this.pid, this._playerIdentity);
+          }
+        }
+        if (!this._closing) await this.room('presence/' + this.pid).set({ t: Date.now() });
+      } catch(e) {
+      } finally {
+        this._heartbeatBusy = false;
+      }
     };
     write();
     this._heartbeatInt = setInterval(write, 5000);
@@ -450,6 +508,7 @@ class FirebaseNet {
 
   async close() {
     if (!this.code) return;
+    this._closing = true;
     const roomRef = this.room();
     const playerRef = this.pid ? this.room('players/' + this.pid) : null;
     this.stopHeartbeat();
@@ -469,6 +528,8 @@ class FirebaseNet {
       this.pid = null;
       this.isRoomOwner = false;
       this._players = [];
+      this._playerIdentity = null;
+      this._heartbeatBusy = false;
     }
   }
 }
