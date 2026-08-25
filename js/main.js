@@ -19,8 +19,9 @@
     {id:'science',icon:'🔬',name:'Science',nameAr:'علوم'},
     {id:'gulf',icon:'🕌',name:'Gulf & Arab',nameAr:'خليج وعرب'},
     {id:'pop',icon:'🎬',name:'Pop Culture',nameAr:'ثقافة شعبية'},
-    {id:'sports',icon:'⚽',name:'Sports',nameAr:'رياضة'},
+    {id:'sports',icon:'🏅',name:'Sports',nameAr:'رياضة'},
     {id:'football',icon:'⚽',name:'Football',nameAr:'كرة القدم'},
+    {id:'history',icon:'📜',name:'History',nameAr:'تاريخ'},
   ];
 
   window.HYPOX_STATE = window.HYPOX_STATE || {region:null,rounds:5,category:'general',flavor:'global',autoplay:false,aiEnabled:true};
