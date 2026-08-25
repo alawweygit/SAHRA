@@ -721,8 +721,8 @@ const Controller = (() => {
           // still zoom the geography for accurate pin placement, but it only
           // enlarges the same plain country/land shapes instead of fetching
           // street, route, building, city, or POI detail.
-          L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd', maxZoom: 10, maxNativeZoom: 3,
+          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 10, maxNativeZoom: 3,
             keepBuffer: 6, updateWhenIdle: false,
           }).addTo(m);
           return m;

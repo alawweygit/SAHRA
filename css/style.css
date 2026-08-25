@@ -1540,9 +1540,12 @@ html{font-size:17px;}
   border-radius:14px!important;box-sizing:border-box!important;overflow:hidden!important;
 }
 .leaflet-container{width:100%!important;max-width:100%!important;}
-.hypox-plain-map{background:#091521!important;}
+.hypox-plain-map{background:#9fd8ef!important;}
 .hypox-plain-map .leaflet-tile-pane{
-  filter:saturate(.18) contrast(1.18) brightness(.82);
+  /* Colorful geography without the visual noise: the no-label source stays
+     clean, while a world-scale native tile cap prevents streets/buildings
+     from appearing as players zoom further in. */
+  filter:saturate(1.18) contrast(1.05) brightness(1.03);
 }
 .map-fs-btn{margin-top:4px!important;opacity:.85;}
 

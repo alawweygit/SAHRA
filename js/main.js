@@ -2127,8 +2127,8 @@
             dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
             worldCopyJump: false, maxBounds: [[-90,-180],[90,180]], maxBoundsViscosity: 1.0,
           });
-          L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd', maxZoom: 10, maxNativeZoom: 3, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]]
+          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 10, maxNativeZoom: 3, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]]
           }).addTo(rm);
           // Single city marker — star-in-a-dot with its name attached
           // directly below it, so it reads as one mark instead of a plain

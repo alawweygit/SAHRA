@@ -1763,7 +1763,7 @@ const Host = (() => {
       scene(`
         <div class="eyebrow">${esc(cityName)}</div>
         <div class="pinpoint-reveal-shell">
-          <div id="revealMap" class="pinpoint-reveal-map hypox-plain-map" style="height:36vh;min-height:220px;border-radius:16px;overflow:hidden;background:#0e1626"></div>
+          <div id="revealMap" class="pinpoint-reveal-map hypox-plain-map" style="height:36vh;min-height:220px;border-radius:16px;overflow:hidden;background:#9fd8ef"></div>
           <div class="pp-country-banner">🌍 ${esc(countryName)}</div>
         </div>
         <div class="score-list">
@@ -1790,7 +1790,7 @@ const Host = (() => {
           dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
           worldCopyJump: false, maxBounds: [[-90,-180],[90,180]], maxBoundsViscosity: 1.0,
         });
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 10, maxNativeZoom: 3, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]] }).addTo(rm);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 10, maxNativeZoom: 3, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]] }).addTo(rm);
         // Single city marker — a star-in-a-dot with its name label attached
         // directly beneath it, so it reads as ONE unmistakable mark instead
         // of a plain circle plus a separately-floating text label.

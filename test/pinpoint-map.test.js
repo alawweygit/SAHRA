@@ -9,13 +9,17 @@ const backend = fs.readFileSync(require.resolve('../backend/server.js'), 'utf8')
 const css = fs.readFileSync(require.resolve('../css/style.css'), 'utf8');
 
 for (const [name, source] of Object.entries({ controller, host, main })) {
-  assert.doesNotMatch(source, /voyager_nolabels/,
-    `${name} must not load the detailed road/building map`);
-  assert.match(source, /dark_nolabels/,
-    `${name} must use the clue-free map style`);
+  assert.doesNotMatch(source, /dark_nolabels/,
+    `${name} must not use the unreadable black map style`);
+  assert.match(source, /World_Physical_Map/,
+    `${name} must use the colorful physical geography style`);
   assert.match(source, /maxNativeZoom:\s*3/,
     `${name} must never fetch local street-level tiles while zooming`);
 }
+assert.match(css, /\.hypox-plain-map\{background:#9fd8ef!important;\}/,
+  'the map must retain a clearly visible blue-water fallback');
+assert.match(css, /filter:saturate\(1\.18\) contrast\(1\.05\) brightness\(1\.03\)/,
+  'the map colors must stay clear and readable');
 
 const citiesBlock = content.slice(content.indexOf('const PINPOINT_CITIES'), content.indexOf('/* ===== EMOJI RIDDLE'));
 const placesBlock = content.slice(content.indexOf('const PINPOINT_PLACES'), content.indexOf('/* ===== MOST LIKELY'));
@@ -36,4 +40,4 @@ assert.ok((host.match(/duration:\s*3\.2/g) || []).length >= 1);
 assert.ok((main.match(/duration:\s*3\.2/g) || []).length >= 1);
 assert.match(css, /@keyframes ppCountryReveal/);
 
-console.log('Pin Point plain-map + country reveal: 18 checks passed');
+console.log('Pin Point clean colorful map + country reveal: 20 checks passed');
