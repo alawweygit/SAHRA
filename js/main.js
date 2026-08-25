@@ -849,13 +849,13 @@
             ${[5,10,15].map(n=>`<button class="round-btn${window.HYPOX_STATE.rounds===n?' selected':''}" data-r="${n}">${n}</button>`).join('')}
           </div>
         </div>`:''}
-        <div class="pg-block">
+        ${!isTrivia?`<div class="pg-block">
           <div class="pg-label">${T.content()}</div>
           <div class="content-btns">
             <button class="content-btn${window.HYPOX_STATE.flavor==='arab'?' selected':''}" data-flavor="arab">${T.arabFlavor()}</button>
             <button class="content-btn${window.HYPOX_STATE.flavor!=='arab'?' selected':''}" data-flavor="global">${T.globalMix()}</button>
           </div>
-        </div>
+        </div>`:''}
         <div class="pg-block full">
           <div class="pg-label">${LANG==='ar'?'وتيرة اللعب':'GAME PACING'}</div>
           <div class="content-btns">
