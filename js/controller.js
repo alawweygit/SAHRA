@@ -712,12 +712,18 @@ const Controller = (() => {
 
       function initMap(el) {
         try {
+          el.classList.add('hypox-plain-map');
           const m = L.map(el, {
             center: [22, 25], zoom: 2, minZoom: 2, maxZoom: 10,
             worldCopyJump: true, attributionControl: false, zoomSnap: 0.5,
           });
-          L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd', maxZoom: 10, keepBuffer: 6, updateWhenIdle: false,
+          // Deliberately cap the source at a world-scale zoom. Leaflet can
+          // still zoom the geography for accurate pin placement, but it only
+          // enlarges the same plain country/land shapes instead of fetching
+          // street, route, building, city, or POI detail.
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd', maxZoom: 10, maxNativeZoom: 3,
+            keepBuffer: 6, updateWhenIdle: false,
           }).addTo(m);
           return m;
         } catch(e) { console.error('map init failed', e); return null; }

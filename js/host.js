@@ -1670,9 +1670,11 @@ const Host = (() => {
     let aiCities = [];
     try {
       const aiRaw = await Content.get('pinpoint', LANG, rounds);
-      // AI returns {en, ar, lat, lon} — filter out entries with invalid/missing coordinates
+      // Country names are required so every reveal can explicitly orient the
+      // room. Older cached AI entries without them fall back to the complete
+      // static pool instead of producing an ambiguous reveal.
       aiCities = aiRaw.filter(c =>
-        c.en && c.ar &&
+        c.en && c.ar && c.countryEn && c.countryAr &&
         typeof c.lat === 'number' && typeof c.lon === 'number' &&
         c.lat >= -90 && c.lat <= 90 &&
         c.lon >= -180 && c.lon <= 180 &&
@@ -1687,6 +1689,7 @@ const Host = (() => {
     for (let r = 0; r < pool.length; r++) {
       const city = pool[r];
       const cityName = LANG === 'ar' ? city.ar : city.en;
+      const countryName = LANG === 'ar' ? city.countryAr : city.countryEn;
       setPill(`${t('round')} ${r+1} ${t('of')} ${pool.length}`);
       scene(`
         <div class="eyebrow">📍 ${esc(t('mode_names').pinpoint || 'PIN POINT')}</div>
@@ -1734,7 +1737,7 @@ const Host = (() => {
         msg: LANG === 'ar' ? '👆 تابع الشاشة' : '👆 Watch the screen',
         mirror: { ...mirror },
         pinpointReveal: {
-          city: { lat: city.lat, lon: city.lon, name: cityName },
+          city: { lat: city.lat, lon: city.lon, name: cityName, country: countryName },
           guesses: results.filter(r2 => r2.guess).map(r2 => ({
             lat: r2.guess.lat, lon: r2.guess.lon,
             name: r2.p.name, color: r2.p.color, emoji: r2.p.emoji, km: r2.km
@@ -1743,7 +1746,10 @@ const Host = (() => {
       });
       scene(`
         <div class="eyebrow">${esc(cityName)}</div>
-        <div id="revealMap" class="pinpoint-reveal-map" style="height:36vh;min-height:220px;border-radius:16px;overflow:hidden;margin:1vmin auto 2vmin;max-width:900px;background:#0e1626"></div>
+        <div class="pinpoint-reveal-shell">
+          <div id="revealMap" class="pinpoint-reveal-map hypox-plain-map" style="height:36vh;min-height:220px;border-radius:16px;overflow:hidden;background:#0e1626"></div>
+          <div class="pp-country-banner">🌍 ${esc(countryName)}</div>
+        </div>
         <div class="score-list">
           ${results.map((r2, i) => `
             <div class="score-row" style="animation-delay:${i*.12}s">
@@ -1758,23 +1764,23 @@ const Host = (() => {
         // Fixed close zoom for every reveal — no longer computed from the
         // farthest guess, so one wildly-off guess can't force the whole map
         // to zoom out and make everything else tiny/illegible.
-        const REVEAL_ZOOM = 6;
+        const REVEAL_ZOOM = 5;
         // Guesses farther than this aren't plotted on the map (they'd land
         // off-frame at REVEAL_ZOOM anyway) — they're still fully visible in
         // the score list below with their name and distance.
-        const REVEAL_VISIBLE_KM = 700;
+        const REVEAL_VISIBLE_KM = 1100;
         const rm = L.map(document.getElementById('revealMap'), {
           center: [city.lat, city.lon], zoom: 2, minZoom: 2, zoomControl: false, attributionControl: false,
           dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
           worldCopyJump: false, maxBounds: [[-90,-180],[90,180]], maxBoundsViscosity: 1.0,
         });
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 10, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]] }).addTo(rm);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 10, maxNativeZoom: 3, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]] }).addTo(rm);
         // Single city marker — a star-in-a-dot with its name label attached
         // directly beneath it, so it reads as ONE unmistakable mark instead
         // of a plain circle plus a separately-floating text label.
         L.marker([city.lat, city.lon], {
           icon: L.divIcon({
-            html: `<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name">${esc(cityName)}</div></div>`,
+            html: `<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name">${esc(cityName)} · ${esc(countryName)}</div></div>`,
             className: '', iconSize: [160, 70], iconAnchor: [80, 15]
           }),
           interactive: false
@@ -1795,7 +1801,7 @@ const Host = (() => {
         // measured against.
         setTimeout(() => {
           rm.invalidateSize();
-          rm.flyTo([city.lat, city.lon], REVEAL_ZOOM, { duration: 1.2 });
+          rm.flyTo([city.lat, city.lon], REVEAL_ZOOM, { duration: 3.2, easeLinearity: 0.2 });
         }, 60);
       } catch(e) { console.error('reveal map failed', e); }
       pushMirror({ headline: results.slice(0,3).map((r2,i)=>`${i+1}. ${r2.p.name} ${r2.guessed?r2.km+'km':'—'}`).join(' · ') });
