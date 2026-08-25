@@ -4,10 +4,9 @@
 
 const Host = (() => {
   let net = null, players = [], phaseCounter = Date.now(), skipResolve = null;
-  // Tracks the pids the currently in-flight collectWithTimer() call is
-  // waiting on, so the offline-disconnect handler can tell whether the
-  // player who just left is actually relevant to THIS collection before
-  // force-finishing it (see watchAndRemoveOffline's callback below).
+  // Diagnostic snapshot for the standard timed collector. The network
+  // collector itself owns the authoritative mutable target list so bespoke
+  // mode collectors get the same disconnect behavior too.
   let activeCollectionPids = null;
   const _warnedOffline = new Set();
   let _hostDisconnectWarnInt = null;
@@ -19,6 +18,7 @@ const Host = (() => {
   // right at final results (showScores(true)).
   let hostSpeechEnabled = true;
   let currentHost = null;
+  let currentRoundIsFinal = false;
 
   /* Pick a random host persona for this game and repaint the blob */
   function pickHost() {
@@ -80,6 +80,7 @@ const Host = (() => {
     // on every input/timer update.
     clone.querySelectorAll('script,style,iframe,object,embed,.leaflet-pane,.leaflet-control-container,.host-only-ui').forEach(el => el.remove());
     clone.querySelectorAll('*').forEach(el => {
+      if (el.id) el.dataset.fxTargetId = el.id;
       el.removeAttribute('id');
       [...el.attributes].forEach(a => {
         if (/^on/i.test(a.name) || /javascript:/i.test(a.value)) el.removeAttribute(a.name);
@@ -233,7 +234,7 @@ const Host = (() => {
     document.body.appendChild(banner);
     _hostDisconnectWarnInt = setInterval(tick, 1000);
   }
-  let fxSeq = 0;
+  let fxSeq = 0, fxQueue = [], fxPublishTimer = null;
   // Confetti (canvas) and flyPoints (a transient div appended to
   // document.body, auto-removed after 1.3s) are both invisible to the
   // DOM-clone mirror players see in phones-only mode -- canvas pixels
@@ -242,7 +243,16 @@ const Host = (() => {
   // player's own device replays the same effect locally, anchored to
   // their own copy of the card.
   function broadcastFx(fx) {
-    pushMirror({ fx: { ...fx, seq: ++fxSeq } });
+    pushMirror({ fx: { ...fx, seq: ++fxSeq, ts: Date.now() } });
+  }
+  function publishFx(effect) {
+    fxQueue.push(effect);
+    if (fxPublishTimer) return;
+    fxPublishTimer = setTimeout(() => {
+      fxPublishTimer = null;
+      const events = fxQueue.splice(0);
+      if (events.length) broadcastFx({ type: 'batch', events });
+    }, 16);
   }
 
   function scene(html) {
@@ -260,7 +270,11 @@ const Host = (() => {
     window.__hypoxResetScroll?.();
   }
 
-  function setPill(text) { $('#roundPill').textContent = text; pushMirror({ pill: text }); publishSharedScreen(); }
+  function setPill(text) {
+    const numbers = String(text ?? '').match(/\d+/g);
+    if (numbers && numbers.length >= 2) currentRoundIsFinal = Number(numbers[0]) === Number(numbers[1]);
+    $('#roundPill').textContent = text; pushMirror({ pill: text }); publishSharedScreen();
+  }
 
   let _sayToken = 0;
   async function say(text, { speed = 24, autoHide = 4000 } = {}) {
@@ -564,6 +578,7 @@ const Host = (() => {
   }
 
   async function modeTitleCard(mode) {
+    currentRoundIsFinal = false;
     // Skip tutorial on play again
     if (window.__hypoxSkipTutorial) {
       const contentMode = mode === 'trivia' ? 'quiz' : mode;
@@ -720,8 +735,8 @@ const Host = (() => {
     if (dockAction) {
       dockAction.classList.add('dock-two-btn');
       dockAction.innerHTML = `
-        <button class="big-btn" id="againBtn">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
-        <button class="big-btn ghost" id="changeGameBtn">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>`;
+        <button class="big-btn final-action-btn" id="againBtn">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
+        <button class="big-btn ghost final-action-btn" id="changeGameBtn">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>`;
     }
 
     // Wire the result actions as soon as the buttons are visible. Winner
@@ -912,9 +927,6 @@ const Host = (() => {
           addScore(a.by, fooled * 500);
           const flyText = `+${fooled * 500} ${author.name}`;
           FX.flyPoints(card, flyText);
-          broadcastFx({ type: 'burstAt', cardIndex: i, n: 26, text: flyText });
-        } else {
-          broadcastFx({ type: 'burstAt', cardIndex: i, n: 26 });
         }
         await sleep(850);
       }
@@ -938,9 +950,6 @@ const Host = (() => {
         const names = allWinners.map(pid => safeP(pid)?.name).filter(Boolean).join(' & ');
         const flyText = `+1000 ${names}`;
         FX.flyPoints(tCard, flyText);
-        broadcastFx({ type: 'truthBurst', cardIndex: ti, n: 150, n2: 40, text: flyText });
-      } else {
-        broadcastFx({ type: 'truthBurst', cardIndex: ti, n: 150, n2: 40 });
       }
       // Special callout for truth writers
       if (writerPids.length) {
@@ -1805,8 +1814,10 @@ const Host = (() => {
       btn.className = 'big-btn host-only-ui';
       action.innerHTML = '';
       action.appendChild(btn);
-      const baseLabel = label || t('next_round');
-      const done = () => { window.__hypoxSkip = null; if (timer) clearInterval(timer); action.innerHTML = ''; res(); };
+      const nextLike = !label || /^(next|التالي)$/i.test(String(label).trim());
+      const baseLabel = currentRoundIsFinal && nextLike ? t('final_results') : (label || t('next_round'));
+      window.__hypoxNextLabel = baseLabel;
+      const done = () => { window.__hypoxSkip = null; window.__hypoxNextLabel = null; if (timer) clearInterval(timer); action.innerHTML = ''; res(); };
       let timer = null;
       const isAutoplay = window.HYPOX_STATE?.autoplay === true; // explicit check
       if (isAutoplay) {
@@ -2921,9 +2932,6 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
           addScore(a.by, bonus);
           const flyText = `+${bonus} ${author.name}`;
           FX.flyPoints(card, flyText);
-          broadcastFx({ type: 'burstAt', cardIndex: i, n: 26, text: flyText });
-        } else {
-          broadcastFx({ type: 'burstAt', cardIndex: i, n: 26 });
         }
         await sleep(850);
       }
@@ -2936,7 +2944,6 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         tCard.classList.add('flipped');
         await sleep(350);
         Audio_.sfx.reveal(); FX.shake(); FX.burst(150); FX.burstAt(tCard, 40);
-        broadcastFx({ type: 'truthBurst', cardIndex: ti, n: 150, n2: 40 });
       }
 
       // Exact-match bonus — flat, regardless of votes.
@@ -2946,7 +2953,6 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         const names = truthAns.writers.map(pid => safeP(pid)?.name).filter(Boolean).join(' & ');
         const flyText = `+${EXACT_MATCH_BONUS} ${names}`;
         FX.flyPoints(tCard, flyText);
-        broadcastFx({ type: 'flyOnly', cardIndex: ti, text: flyText });
         await sleep(500);
       }
 
@@ -2958,14 +2964,12 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         if (tCard) {
           const flyText1 = `+${CORRECT_VOTER_BONUS} ${voterNames}`;
           FX.flyPoints(tCard, flyText1);
-          broadcastFx({ type: 'flyOnly', cardIndex: ti, text: flyText1 });
         }
         await sleep(500);
         addScore(subject.pid, SUBJECT_PER_VOTER_BONUS * correctVoters.length);
         if (tCard) {
           const flyText2 = `+${SUBJECT_PER_VOTER_BONUS * correctVoters.length} ${subject.name}`;
           FX.flyPoints(tCard, flyText2);
-          broadcastFx({ type: 'flyOnly', cardIndex: ti, text: flyText2 });
         }
       } else if (!truthAns.writers?.length) {
         await sleep(400);
@@ -3643,8 +3647,8 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         <div class="lobby-title display">${LANG==='ar'?'خلصت اللعبة!':'That\'s a wrap!'}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px;margin-top:2vmin;align-items:center;">
-        <button class="big-btn" id="againBtnSL" style="max-width:340px;width:100%">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
-        <button class="big-btn ghost" id="changeGameBtnSL" style="max-width:340px;width:100%">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
+        <button class="big-btn final-action-btn" id="againBtnSL">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
+        <button class="big-btn ghost final-action-btn" id="changeGameBtnSL">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
       </div>`);
     net.setState({ phase: 'session-end-scoreless' });
     return new Promise(resolve => {
@@ -3678,6 +3682,8 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
   async function run(netInstance, playerList, mode) {
     net = netInstance;
     players = playerList;
+    currentRoundIsFinal = false;
+    FX.setPublisher?.(publishFx);
     // Keep the running host engine open to players who join or rejoin after
     // the lobby. Removals continue through the dedicated callback below so
     // its announcement and force-finish logic still run exactly once.
@@ -3724,10 +3730,10 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
             setTimeout(() => pushMirror({ announce: null, announceId: null }), 4000);
           } catch (e) {
             // Cosmetic (toast/announcement) failure must never block the
-            // force-finish below -- this whole block used to call a
+            // collection cleanup below -- this whole block used to call a
             // function (updateMirror) that never existed in this file,
             // which silently killed the entire callback before it ever
-            // reached the force-finish, regardless of code order.
+            // reached the cleanup, regardless of code order.
             console.error('[HYPOX] host: toast/announce failed (non-blocking)', pid, e);
           }
         }
@@ -3743,11 +3749,11 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         // Still scoped to the removed pid: an unrelated spectator dropping
         // during e.g. a hot-seat round (where only one target is answering)
         // must not cut off that target's still-pending answer.
-        if (activeCollectionPids && activeCollectionPids.includes(pid) && window.__hypoxForceCollect) {
-          console.log('[HYPOX] host: force-finishing collection due to disconnect', pid);
-          window.__hypoxForceCollect();
+        if (window.__hypoxDropCollectPid) {
+          console.log('[HYPOX] host: dropping disconnected player from collection', pid);
+          window.__hypoxDropCollectPid(pid);
         } else {
-          console.log('[HYPOX] host: disconnect did not match an active collection (nothing to unstick)', pid);
+          console.log('[HYPOX] host: no active collection contains disconnected player', pid);
         }
       });
     }

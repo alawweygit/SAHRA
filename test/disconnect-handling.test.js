@@ -17,6 +17,7 @@ function loadFirebaseNet({ now = 100_000, intervals = [] } = {}) {
     window: {},
   };
   vm.runInNewContext(`${source}\nglobalThis.__FirebaseNet = FirebaseNet;`, context);
+  context.__FirebaseNet.__testWindow = context.window;
   return context.__FirebaseNet;
 }
 
@@ -160,6 +161,44 @@ function testEveryCollectionDropsDepartedTargets() {
     'stale mode-level target lists must be reconciled with the current roster');
 }
 
+async function testDisconnectDropsOnlyThatPlayerFromCollection() {
+  const FirebaseNet = loadFirebaseNet();
+  let inputListener = null;
+  const inputRef = {
+    on(event, listener) { assert.equal(event, 'value'); inputListener = listener; },
+    off() {},
+  };
+  const net = new FirebaseNet({});
+  net.room = path => {
+    assert.equal(path, 'inputs/round-1');
+    return inputRef;
+  };
+
+  let resolved = false;
+  const resultPromise = net.collect('round-1', null, ['host', 'stays', 'leaves'], 60_000)
+    .then(result => { resolved = true; return result; });
+  inputListener({ val: () => ({ stays: { v: 'B', t: 1 } }) });
+  assert.equal(FirebaseNet.__testWindow.__hypoxDropCollectPid('leaves'), true);
+  await Promise.resolve();
+  assert.equal(resolved, false,
+    'disconnecting one player must not reveal while another live player is unanswered');
+
+  inputListener({ val: () => ({ stays: { v: 'B', t: 1 }, host: { v: 'A', t: 2 } }) });
+  const result = await resultPromise;
+  assert.deepEqual(Object.keys(result).sort(), ['host', 'stays']);
+  assert.equal(result.host.value, 'A', 'the host answer must remain their own submitted answer');
+}
+
+function testEveryModeUsesPidDropInsteadOfForceReveal() {
+  const source = fs.readFileSync(require.resolve('../js/host.js'), 'utf8');
+  const runStart = source.indexOf('async function run(netInstance, playerList, mode)');
+  const run = source.slice(runStart);
+  assert.match(run, /window\.__hypoxDropCollectPid\(pid\)/,
+    'the shared disconnect handler must shrink any active collection in every mode');
+  assert.doesNotMatch(run, /force-finishing collection due to disconnect/,
+    'disconnect must never finish the entire question with partial answers');
+}
+
 function testRemovedAvatarIsPurgedAndRunningRosterAcceptsRejoin() {
   const source = fs.readFileSync(require.resolve('../js/host.js'), 'utf8');
   const runStart = source.indexOf('async function run(netInstance, playerList, mode)');
@@ -202,10 +241,12 @@ function testStaleDepartureAnnouncementCannotOverrideRejoin() {
   testRosterDeletionNotifiesHost();
   testPlayerLeaveCannotReplaceSharedPhase();
   testEveryCollectionDropsDepartedTargets();
+  await testDisconnectDropsOnlyThatPlayerFromCollection();
+  testEveryModeUsesPidDropInsteadOfForceReveal();
   testRemovedAvatarIsPurgedAndRunningRosterAcceptsRejoin();
   testClosedTabReconnectsWithoutSessionNavigationState();
   testStaleDepartureAnnouncementCannotOverrideRejoin();
-  console.log('disconnect handling: 9 tests passed');
+  console.log('disconnect handling: 11 tests passed');
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;

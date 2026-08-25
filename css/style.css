@@ -147,6 +147,13 @@ body.game-screen-active .deco-float{animation:none;opacity:.14;}
 #topbarBack,#menuBtn{/* both fixed via inline styles in HTML */}
 #roundPill{text-align:center;pointer-events:auto;opacity:0;transition:opacity 0.3s;}
 #topbar.show #roundPill{opacity:1;}
+#hostRoomCodeBadge{
+  display:none;position:fixed;top:max(50px,calc(env(safe-area-inset-top,0px) + 44px));left:50%;
+  transform:translateX(-50%);pointer-events:none;color:var(--text3);opacity:.62;
+  font:700 10px/1.2 'Fredoka One',sans-serif;letter-spacing:2px;white-space:nowrap;
+  text-shadow:0 1px 6px rgba(0,0,0,.75);
+}
+#hostRoomCodeBadge.show{display:block;}
 .room-pill{
   display:flex;align-items:center;gap:1.2vmin;
   background:var(--btn-secondary-bg);border:1.5px solid var(--border-hi);
@@ -545,6 +552,11 @@ body.ar .eyebrow{letter-spacing:0;}
   display:flex;flex-direction:column;gap:10px;padding:6px 0;
 }
 #hostDockAction.dock-two-btn .big-btn{width:100%;}
+#hostDockAction.dock-two-btn:has(.final-action-btn){max-width:300px;}
+.big-btn.final-action-btn{
+  width:min(82vw,300px)!important;max-width:300px!important;min-height:48px!important;
+  padding:11px 18px!important;font-size:clamp(15px,4vw,19px)!important;
+}
 #lobbyDockAction.hidden{display:none;}
 #lobbyDockAction #startGameBtn{margin:0;width:auto;max-width:100%;}
 #lobbyHint{white-space:normal;text-align:right;max-width:40vw;}

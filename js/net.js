@@ -283,21 +283,33 @@ class FirebaseNet {
     return new Promise(resolve => {
       const ref = this.room(`inputs/${phaseId}`);
       const out = {}; let done = false; let order = 0;
+      let expectedPids = [...pids];
       const finish = () => {
         if (done) return; done = true;
         ref.off(); clearTimeout(timer);
         // v118 — clear the force-finish hook so a stale one can't end the
         // NEXT phase early.
         if (typeof window !== 'undefined' && window.__hypoxForceCollect === finish) window.__hypoxForceCollect = null;
+        if (typeof window !== 'undefined' && window.__hypoxDropCollectPid === dropPid) window.__hypoxDropCollectPid = null;
         // Close the host's own input overlay if it's still open (timer expired).
         if (this.hostSelfPid && typeof window !== 'undefined' && window.__hypoxDismissPP) window.__hypoxDismissPP();
         resolve(out);
+      };
+      const dropPid = pid => {
+        if (done || !expectedPids.includes(pid)) return false;
+        expectedPids = expectedPids.filter(expectedPid => expectedPid !== pid);
+        delete out[pid];
+        if (expectedPids.every(expectedPid => expectedPid in out)) finish();
+        return true;
       };
       const timer = setTimeout(finish, ms);
       // v118 — lets the host end collection early with whatever has arrived.
       // Without this, one unreachable player (dropped connection, closed tab)
       // stalls the whole room for the full timeout with no way to advance.
-      if (typeof window !== 'undefined') window.__hypoxForceCollect = finish;
+      if (typeof window !== 'undefined') {
+        window.__hypoxForceCollect = finish;
+        window.__hypoxDropCollectPid = dropPid;
+      }
 
       // Phones-only: the host is also a player. Collect their own input via the
       // local overlay and write it in, just like a remote submission.
@@ -312,12 +324,12 @@ class FirebaseNet {
       ref.on('value', s => {
         const v = s.val() || {};
         for (const [pid, entry] of Object.entries(v)) {
-          if (!(pid in out) && pids.includes(pid)) {
+          if (!(pid in out) && expectedPids.includes(pid)) {
             out[pid] = { value: entry.v, order: order++, t: entry.t, receivedAt: Date.now() };
             if (this._onEach) this._onEach(pid, entry.v);
           }
         }
-        if (pids.every(p => p in out)) finish();
+        if (expectedPids.every(p => p in out)) finish();
       });
     });
   }

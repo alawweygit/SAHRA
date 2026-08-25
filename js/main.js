@@ -1305,6 +1305,12 @@
     if(window.__hypoxAbort||!runningNet||net!==runningNet)return;
     Host.hideHost();
     show('#scr-game');gameActive=true;document.getElementById('topbarBack')?.style.setProperty('visibility','hidden');$('#topbar').classList.add('show');$('#roundPill').style.visibility='visible';
+    const roomBadge=document.getElementById('hostRoomCodeBadge');
+    if(roomBadge){
+      const showCode=Boolean(currentRoomCode&&currentRoomCode!=='LOCAL'&&(net?.isRoomOwner||net?.isOffline));
+      roomBadge.textContent=showCode?`ROOM ${currentRoomCode}`:'';
+      roomBadge.classList.toggle('show',showCode);
+    }
     
     $('#roundPill').textContent=(t('mode_names')||{})[gameMode]||gameMode;
     const _isPhones=net.playMode==='phones';
@@ -1401,6 +1407,7 @@
     const sharedHost=$('#phoneSharedHost');if(sharedHost){sharedHost.className='phone-shared-host hidden';sharedHost.innerHTML='';}
     const mirror=$('#phoneMirror');if(mirror){mirror.classList.add('hidden');mirror.querySelectorAll('#pmPill,#pmHeadline,#pmSpeech').forEach(el=>el.textContent='');}
     const stage=$('#hostStage');if(stage)stage.innerHTML='';
+    const roomBadge=document.getElementById('hostRoomCodeBadge');if(roomBadge){roomBadge.textContent='';roomBadge.classList.remove('show');}
     $('#scr-game')?.classList.remove('rebus-input-active','pack-picker-active');
     document.body.classList.remove('phones-only-player','phones-host-answering','phones-host-inline-answering','phones-host-docked','phones-player-answering');
     Host.hideHost?.();
@@ -1793,10 +1800,13 @@
     let _lastMirrorKey = '';
     let _lastAnnounceId = null;
     let _lastFxSeq = -1;
+    let _mirrorInitialized = false;
     let _lastDisconnectWarnId = null;
     let _disconnectWarnInt = null;
     function renderMirror(m){
       if(!m)return;
+      const _isInitialMirror = !_mirrorInitialized;
+      _mirrorInitialized = true;
       // Prominent, always-visible countdown banner: shown to EVERYONE the
       // instant the host detects someone going away, not a quiet toast
       // after the fact. Guarded by disconnectWarnId so it only (re)builds
@@ -1837,23 +1847,26 @@
         document.body.appendChild(_t);
         setTimeout(() => _t.remove(), 3000);
       }
-      // Replay Lie Detector reveal fx (confetti + fly-points) locally --
-      // canvas/body-level effects the host plays never reach players via
-      // the DOM-clone mirror, so this triggers an equivalent on THIS
-      // device, positioned against this device's own copy of the card.
-      if(phonesOnly && m.fx && m.fx.seq !== undefined && m.fx.seq !== _lastFxSeq){
-        const _firstMirror = _lastFxSeq === -1;
+      // Canvas/body-level effects are not part of the mirrored stage. Replay
+      // every host effect locally on every non-host player device, in both
+      // Phones Only and TV + Phones modes.
+      if(!(net.hostSelfPid&&net.hostSelfPid===myPid) && m.fx && m.fx.seq !== undefined && m.fx.seq !== _lastFxSeq){
+        const _isStaleInitialFx = _isInitialMirror && (!m.fx.ts || Date.now()-m.fx.ts>5000);
         _lastFxSeq = m.fx.seq;
-        // On this device's FIRST mirror render, just adopt whatever seq is
-        // already in the mirror without playing it. The fx field persists in
-        // Firebase after its moment has passed, so a player who reloads or
-        // reconnects mid-game would otherwise replay a burst for a reveal
-        // that already finished -- possibly over an unrelated screen.
-        if(!_firstMirror){
-          const _fxCard = m.fx.cardIndex!==undefined ? shared.querySelector('#card-'+m.fx.cardIndex) : null;
-          if(m.fx.type==='burstAt'){ FX.shake(); if(_fxCard) FX.burstAt(_fxCard, m.fx.n||26); }
-          else if(m.fx.type==='truthBurst'){ FX.shake(); FX.burst(m.fx.n||150); if(_fxCard) FX.burstAt(_fxCard, m.fx.n2||40); }
-          if(m.fx.text && _fxCard) FX.flyPoints(_fxCard, m.fx.text);
+        if(!_isStaleInitialFx){
+          const _events=m.fx.type==='batch'?(m.fx.events||[]):[m.fx];
+          FX.replay(()=>_events.forEach(_event=>{
+            const _target=_event.targetId
+              ? shared.querySelector(`[data-fx-target-id="${CSS.escape(_event.targetId)}"]`)
+              : (_event.cardIndex!==undefined?shared.querySelector(`[data-fx-target-id="card-${_event.cardIndex}"]`):null);
+            if(_event.type==='shake') FX.shake();
+            else if(_event.type==='burst') FX.burst(_event.n||140,Boolean(_event.big));
+            else if(_event.type==='burstAt') _target?FX.burstAt(_target,_event.n||36):FX.burst(Math.max(36,_event.n||36));
+            else if(_event.type==='flyPoints'&&_target) FX.flyPoints(_target,_event.text||'');
+            else if(_event.type==='truthBurst'){ FX.shake();FX.burst(_event.n||150);if(_target)FX.burstAt(_target,_event.n2||40); }
+            if(_event.text&&_target&&!['flyPoints','truthBurst'].includes(_event.type))FX.flyPoints(_target,_event.text);
+          }));
+          document.body.dataset.hypoxLastFxSeq=String(m.fx.seq);
         }
       }
       // Update the small strip
@@ -2513,7 +2526,7 @@
             if(!ctrl.querySelector('#phonesNextBtn')){
               ctrl.innerHTML=`<div style="padding:4px 16px">
                 <button id="phonesNextBtn" class="big-btn" style="width:100%;max-width:400px;margin:0 auto;display:block">
-                  ▶ ${t('next_round')||'Next Round'}
+                  ▶ ${window.__hypoxNextLabel||t('next_round')||'Next Round'}
                 </button>
               </div>`;
               document.getElementById('phonesNextBtn')?.addEventListener('click',()=>{
@@ -2630,8 +2643,8 @@
         ctrl.innerHTML=_isHostPhoneSL
           ?`<div class="ctrl-wrap" style="text-align:center">
             <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:340px;margin:0 auto">
-              <button id="phoneAgainBtnSL" class="big-btn">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
-              <button id="phoneChangeBtnSL" class="big-btn ghost">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
+              <button id="phoneAgainBtnSL" class="big-btn final-action-btn">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
+              <button id="phoneChangeBtnSL" class="big-btn ghost final-action-btn">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
             </div>
           </div>`
           :`<div class="ctrl-wrap" style="text-align:center">
@@ -2664,8 +2677,8 @@
         ctrl.innerHTML=_isHostPhone
           ?`<div class="ctrl-wrap" style="text-align:center">
             <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:340px;margin:0 auto">
-              <button id="phoneAgainBtn" class="big-btn">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
-              <button id="phoneChangeBtn" class="big-btn ghost">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
+              <button id="phoneAgainBtn" class="big-btn final-action-btn">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
+              <button id="phoneChangeBtn" class="big-btn ghost final-action-btn">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
             </div>
           </div>`
           :`<div class="ctrl-wrap" style="text-align:center">

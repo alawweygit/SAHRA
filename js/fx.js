@@ -1,6 +1,7 @@
 /* HYPOX — visual FX: confetti + transitions */
 const FX = (() => {
   let canvas, ctx, parts = [], raf = null;
+  let publisher = null, replayDepth = 0;
   // One physical wipe can serve several simultaneous scene listeners. Keep
   // the cycle alive through its EXIT as well as its covered midpoint, so a
   // late update cannot restart the bar while the first animation is leaving.
@@ -15,6 +16,10 @@ const FX = (() => {
   }
 
   const COLORS = ['#ff3d8a', '#ffd23f', '#2de1fc', '#7dff6a', '#b78bff', '#fff6e9'];
+  function publish(effect) {
+    if (!replayDepth && publisher) publisher(effect);
+  }
+  function targetId(el) { return el?.id || null; }
   function spawn(x, y, big) {
     const shape = Math.random();
     parts.push({
@@ -33,17 +38,20 @@ const FX = (() => {
     if (!ctx) return;
     for (let i = 0; i < n; i++) spawn(Math.random() * canvas.width, big ? -20 : canvas.height * .35, big);
     if (!raf) loop();
+    publish({ type: 'burst', n, big });
   }
   function burstAt(el, n = 36) {
     if (!ctx || !el) return;
     const r = el.getBoundingClientRect();
     for (let i = 0; i < n; i++) spawn(r.left + Math.random() * r.width, r.top + r.height / 2, false);
     if (!raf) loop();
+    publish({ type: 'burstAt', n, targetId: targetId(el) });
   }
   function shake() {
     const app = document.getElementById('app');
     if (!app) return;
     app.classList.remove('shaking'); void app.offsetWidth; app.classList.add('shaking');
+    publish({ type: 'shake' });
   }
 
   function loop() {
@@ -158,9 +166,17 @@ const FX = (() => {
     el.style.top = r.top + 'px';
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 1300);
+    publish({ type: 'flyPoints', targetId: targetId(anchorEl), text: String(text ?? '') });
   }
 
-  return { init, burst, burstAt, shake, wipe, flyPoints };
+  function setPublisher(fn) { publisher = typeof fn === 'function' ? fn : null; }
+  function replay(fn) {
+    replayDepth++;
+    try { return fn(); }
+    finally { replayDepth--; }
+  }
+
+  return { init, burst, burstAt, shake, wipe, flyPoints, setPublisher, replay };
 })();
 
 /* shared helpers */
