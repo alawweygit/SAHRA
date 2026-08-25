@@ -2119,23 +2119,23 @@
         mapEl.dataset.leafletInited = '1';
         const { city, guesses } = window._pinpointReveal;
         try {
-          const REVEAL_ZOOM = 5;
-          const REVEAL_VISIBLE_KM = 1100;
+          const REVEAL_ZOOM = 6;
+          const REVEAL_VISIBLE_KM = 700;
           const rm = L.map(mapEl, {
             center: [city.lat, city.lon], zoom: 2, minZoom: 2,
             zoomControl: false, attributionControl: false,
             dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
             worldCopyJump: false, maxBounds: [[-90,-180],[90,180]], maxBoundsViscosity: 1.0,
           });
-          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 10, maxNativeZoom: 3, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]]
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd', maxZoom: 10, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]]
           }).addTo(rm);
           // Single city marker — star-in-a-dot with its name attached
           // directly below it, so it reads as one mark instead of a plain
           // circle plus a separately-floating text label.
           L.marker([city.lat, city.lon], {
             icon: L.divIcon({
-              html: '<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name">' + esc(city.name) + ' · ' + esc(city.country) + '</div></div>',
+              html: '<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name">' + esc(city.name) + '</div></div>',
               className: '', iconSize: [160, 70], iconAnchor: [80, 15]
             }),
             interactive: false
@@ -2154,7 +2154,7 @@
           // fixed close zoom.
           setTimeout(() => {
             rm.invalidateSize();
-            rm.flyTo([city.lat, city.lon], REVEAL_ZOOM, { duration: 3.2, easeLinearity: 0.2 });
+            rm.flyTo([city.lat, city.lon], REVEAL_ZOOM, { duration: 1.2 });
           }, 60);
         } catch(e) { console.error('player reveal map failed', e); }
       }

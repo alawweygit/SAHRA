@@ -1540,14 +1540,14 @@ html{font-size:17px;}
   border-radius:14px!important;box-sizing:border-box!important;overflow:hidden!important;
 }
 .leaflet-container{width:100%!important;max-width:100%!important;}
-.hypox-plain-map{background:#9fd8ef!important;}
-.hypox-plain-map .leaflet-tile-pane{
-  /* Colorful geography without the visual noise: the no-label source stays
-     clean, while a world-scale native tile cap prevents streets/buildings
-     from appearing as players zoom further in. */
-  filter:saturate(1.18) contrast(1.05) brightness(1.03);
-}
 .map-fs-btn{margin-top:4px!important;opacity:.85;}
+.map-fullscreen-bar{
+  box-sizing:border-box;
+  padding-right:max(112px,calc(env(safe-area-inset-right) + 96px))!important;
+  min-height:max(68px,calc(env(safe-area-inset-top) + 58px));
+  padding-top:max(10px,env(safe-area-inset-top))!important;
+}
+.map-fullscreen-confirm{flex:0 0 auto;}
 
 /* Menu button always on top, visible during game */
 #topbar { z-index: 100 !important; }
@@ -2256,16 +2256,6 @@ body.ar .tutorial-bullets { text-align: right; }
   padding:3px 10px;border-radius:20px;white-space:nowrap;
   box-shadow:0 2px 10px rgba(0,0,0,.5);border:2px solid #fff;
 }
-.pinpoint-reveal-shell{position:relative;width:min(94vw,900px);margin:1vmin auto 2vmin;}
-.pp-country-banner{
-  position:absolute;z-index:700;left:50%;bottom:14px;transform:translate(-50%,12px) scale(.94);
-  opacity:0;pointer-events:none;white-space:nowrap;text-align:center;
-  color:#fff;background:rgba(9,21,33,.92);border:2px solid rgba(250,204,21,.8);
-  border-radius:999px;padding:8px 18px;font-family:'Fredoka One','Lalezar',sans-serif;
-  font-size:clamp(14px,2.4vw,22px);letter-spacing:.8px;box-shadow:0 6px 24px rgba(0,0,0,.55);
-  animation:ppCountryReveal .45s 1.25s var(--ease-out) forwards;
-}
-@keyframes ppCountryReveal{to{opacity:1;transform:translate(-50%,0) scale(1);}}
 
 /* =====================================================================
    TRUE HEADER / MAIN / FOOTER LAYOUT  (controller screen)

@@ -712,18 +712,12 @@ const Controller = (() => {
 
       function initMap(el) {
         try {
-          el.classList.add('hypox-plain-map');
           const m = L.map(el, {
             center: [22, 25], zoom: 2, minZoom: 2, maxZoom: 10,
             worldCopyJump: true, attributionControl: false, zoomSnap: 0.5,
           });
-          // Deliberately cap the source at a world-scale zoom. Leaflet can
-          // still zoom the geography for accurate pin placement, but it only
-          // enlarges the same plain country/land shapes instead of fetching
-          // street, route, building, city, or POI detail.
-          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 10, maxNativeZoom: 3,
-            keepBuffer: 6, updateWhenIdle: false,
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd', maxZoom: 10, keepBuffer: 6, updateWhenIdle: false,
           }).addTo(m);
           return m;
         } catch(e) { console.error('map init failed', e); return null; }
@@ -756,9 +750,11 @@ const Controller = (() => {
         const ov = document.createElement('div');
         ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;';
         const closeBar = document.createElement('div');
+        closeBar.className = 'map-fullscreen-bar';
         closeBar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(0,0,0,.7);color:#fff;font-family:Fredoka One,sans-serif;font-size:18px;';
         closeBar.innerHTML = `<span>${spec.title||''}</span>`;
         const closeBtn = document.createElement('button');
+        closeBtn.className = 'map-fullscreen-confirm';
         closeBtn.textContent = typeof LANG!=='undefined'&&LANG==='ar'?'✕ تأكيد':'✕ Confirm';
         closeBtn.style.cssText = 'background:var(--pink,#f472b6);color:#fff;border:none;border-radius:50px;padding:8px 20px;font-size:15px;cursor:pointer;font-family:Fredoka One,sans-serif;';
         closeBar.appendChild(closeBtn);
