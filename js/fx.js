@@ -109,6 +109,12 @@ const FX = (() => {
       done:new Promise(resolve=>{resolveDone=resolve;}),
     };
     _wipeCycle=cycle;
+    // Tell player devices at the START of the transition, not after the host
+    // has already replaced its scene. renderShared() will join this same
+    // in-flight wipe when the new shared HTML arrives, so host and players
+    // reveal the next page together instead of players starting a second
+    // 320ms cover animation after the network update.
+    publish({ type: 'wipe' });
     Audio_.sfx.whoosh();
     w.classList.remove('go');
     requestAnimationFrame(()=>{
@@ -157,6 +163,14 @@ const FX = (() => {
     return cycle.cover;
   }
 
+  // Player-side shared scenes use this entry point. A broadcast wipe may
+  // already be covering or exiting by the time Firebase delivers the new
+  // HTML; in that case the correct action is to join that transition, never
+  // wait for it to finish and start a second late wipe.
+  function syncWipe() {
+    return _wipeCycle ? _wipeCycle.cover : wipe();
+  }
+
   function flyPoints(anchorEl, text) {
     if (!anchorEl) return;
     const r = anchorEl.getBoundingClientRect();
@@ -176,7 +190,7 @@ const FX = (() => {
     finally { replayDepth--; }
   }
 
-  return { init, burst, burstAt, shake, wipe, flyPoints, setPublisher, replay };
+  return { init, burst, burstAt, shake, wipe, syncWipe, flyPoints, setPublisher, replay };
 })();
 
 /* shared helpers */

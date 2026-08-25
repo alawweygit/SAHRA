@@ -1400,7 +1400,7 @@
     if(_ppDismiss)try{_ppDismiss();}catch(e){}
     _ppDismiss=null;window.__hypoxDismissPP=null;
     document.querySelectorAll('.phones-host-input-overlay').forEach(overlay=>overlay.remove());
-    const dock=$('#hostInputDock');if(dock){dock.removeAttribute('style');const action=$('#hostDockAction');if(action)action.innerHTML='';const hostEl=$('#host');if(hostEl)hostEl.classList.remove('show','talking');}
+    const dock=$('#hostInputDock');if(dock){dock.removeAttribute('style');dock.classList.remove('final-results-dock');const action=$('#hostDockAction');if(action)action.innerHTML='';const hostEl=$('#host');if(hostEl)hostEl.classList.remove('show','talking');}
     const pp=$('#ppOverlay');if(pp){pp.classList.remove('show');pp.innerHTML='';}
     const ctrl=$('#ctrlArea');if(ctrl){ctrl.classList.add('hidden');ctrl.innerHTML='';}
     const shared=$('#phoneSharedStage');if(shared){shared.classList.add('hidden');shared.style.removeProperty('display');shared.innerHTML='';shared.dataset.sharedReady='';shared.dataset.gameStarted='';shared.dataset.sceneId='';}
@@ -1860,6 +1860,7 @@
               ? shared.querySelector(`[data-fx-target-id="${CSS.escape(_event.targetId)}"]`)
               : (_event.cardIndex!==undefined?shared.querySelector(`[data-fx-target-id="card-${_event.cardIndex}"]`):null);
             if(_event.type==='shake') FX.shake();
+            else if(_event.type==='wipe') FX.wipe();
             else if(_event.type==='burst') FX.burst(_event.n||140,Boolean(_event.big));
             else if(_event.type==='burstAt') _target?FX.burstAt(_target,_event.n||36):FX.burst(Math.max(36,_event.n||36));
             else if(_event.type==='flyPoints'&&_target) FX.flyPoints(_target,_event.text||'');
@@ -1877,7 +1878,13 @@
       if(phonesOnly&&m.hostVisible&&m.speech){
         sharedHost.className=`phone-shared-host ${esc(m.hostColor||'host-purple')}`;
         sharedHost.innerHTML=`<div class="psh-face"><span class="psh-eye">•</span><span class="psh-eye">•</span><span class="psh-smile">⌣</span><span class="psh-bow">◆</span></div><div class="psh-speech"><div class="psh-name">${esc(m.hostName||'')}</div>${esc(m.speech)}</div>`;
-      }else if(phonesOnly&&m.hostVisible===false){sharedHost.classList.add('hidden');}
+      }else if(phonesOnly&&m.hostVisible===false){
+        // Keep the final winner comment visible for players. The host's own
+        // bubble auto-dismisses after a few seconds, but this compact footer
+        // is their only result-screen commentary and must remain available
+        // while they scroll the leaderboard.
+        if(!document.getElementById('playerDock')?.classList.contains('results-commentary')) sharedHost.classList.add('hidden');
+      }
       // Full-screen mirror: skip re-render if content unchanged (prevents emoji/score blinking)
       // Phones-only: #ctrlArea is owned by the phase handlers (input UI / Next
       // button / waiting message) — never let the mirror listener (which fires
@@ -2007,7 +2014,7 @@
       // mirroring the host's own sequencing.
       const _isHostDevice = net?.hostSelfPid && net.hostSelfPid === myPid;
       if(sceneChanged && !_isHostDevice){
-        await FX.wipe();
+        await FX.syncWipe();
       }
       if(renderSeq!==_sharedRenderSeq)return false;
       if(sceneChanged&&sharedStageSuppressed()){
@@ -2311,7 +2318,7 @@
       }
       else if(state.phase==='input') window._pinpointReveal = null;
       // Default to undocked; only the wait/scores branch below re-engages it.
-      document.getElementById('playerDock')?.classList.remove('docked');
+      document.getElementById('playerDock')?.classList.remove('docked','results-commentary');
       document.getElementById('scr-controller')?.classList.remove('has-docked-footer');
       if(state.phase==='input'){
         const _isNewPhase1 = state.phaseId!==lastPhaseId;
@@ -2647,12 +2654,12 @@
               <button id="phoneChangeBtnSL" class="big-btn ghost final-action-btn">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
             </div>
           </div>`
-          :`<div class="ctrl-wrap" style="text-align:center">
-            <div class="wait-host-card">
-              <div class="wait-host-dots"><span></span><span></span><span></span></div>
-              <div class="wait-host-text">${LANG==='ar'?'بانتظار المضيف':'Waiting for the host'}</div>
-            </div>
-          </div>`;
+          :'';
+        if(!_isHostPhoneSL&&phonesOnly){
+          ctrl.classList.add('hidden');
+          document.getElementById('playerDock')?.classList.add('docked','results-commentary');
+          document.getElementById('scr-controller')?.classList.add('has-docked-footer');
+        }
         resetScrollPositionAfterLayout();
         if(_isHostPhoneSL){
           document.getElementById('phoneAgainBtnSL')?.addEventListener('click',()=>{
@@ -2681,12 +2688,15 @@
               <button id="phoneChangeBtn" class="big-btn ghost final-action-btn">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>
             </div>
           </div>`
-          :`<div class="ctrl-wrap" style="text-align:center">
-            <div class="wait-host-card">
-              <div class="wait-host-dots"><span></span><span></span><span></span></div>
-              <div class="wait-host-text">${LANG==='ar'?'بانتظار المضيف':'Waiting for the host'}</div>
-            </div>
-          </div>`;
+          :'';
+        if(!_isHostPhone&&phonesOnly){
+          // Final results keep the commentator in a real fixed footer. The
+          // leaderboard owns the scroll area above it; only the room owner
+          // receives the Play Again / Play Another Game controls.
+          ctrl.classList.add('hidden');
+          document.getElementById('playerDock')?.classList.add('docked','results-commentary');
+          document.getElementById('scr-controller')?.classList.add('has-docked-footer');
+        }
         resetScrollPositionAfterLayout();
         Audio_.sfx.fanfare();
         if(_isHostPhone){

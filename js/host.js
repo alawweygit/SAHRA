@@ -108,12 +108,23 @@ const Host = (() => {
     if (!net?.phonesOnly || !net.setSharedScreen) return;
     clearTimeout(sharedTimer);
     const strip = opts.strip !== undefined ? opts.strip : !force;
-    sharedTimer = setTimeout(() => {
+    const send = () => {
       const html = sharedHTML(strip);
       if (!force && html === lastSharedHTML) return;
       lastSharedHTML = html;
       net.setSharedScreen({ html, pill: $('#roundPill')?.textContent || '', sceneId: sharedSceneId });
-    }, force ? 0 : 400);
+    };
+    // A forced scene publish must really be immediate. showScores() calls
+    // scene() and then suspendSharedScreen() in the same task; the old
+    // setTimeout(..., 0) was cleared by that suspension before it ever ran,
+    // so players saw no score page until the settled animation snapshot
+    // roughly two seconds later. Send now, before suspension can cancel it.
+    if (force) {
+      sharedTimer = null;
+      send();
+    } else {
+      sharedTimer = setTimeout(send, 400);
+    }
   }
   function startSharedScreen() {
     if (!net?.phonesOnly || sharedObserver) return;
@@ -277,7 +288,7 @@ const Host = (() => {
   }
 
   let _sayToken = 0;
-  async function say(text, { speed = 24, autoHide = 4000 } = {}) {
+  async function say(text, { speed = 24, autoHide = 4000, keepMirror = false } = {}) {
     if (!hostSpeechEnabled) return; // muted mid-round — see flag comment above
     const myToken = ++_sayToken; // invalidates any in-flight say() call below
     const host = $('#host'), out = $('#speechText');
@@ -297,7 +308,7 @@ const Host = (() => {
     setTimeout(() => {
       if (myToken !== _sayToken) return;
       host.classList.remove('show');
-      pushMirror({ speech: '', hostVisible: false });
+      if (!keepMirror) pushMirror({ speech: '', hostVisible: false });
     }, autoHide);
   }
   const hideHost = () => { $('#host').classList.remove('show'); pushMirror({ hostVisible: false }); };
@@ -733,6 +744,7 @@ const Host = (() => {
     // matching the always-visible pattern used everywhere else.
     const dockAction = document.getElementById('hostDockAction');
     if (dockAction) {
+      document.getElementById('hostInputDock')?.classList.add('final-results-dock');
       dockAction.classList.add('dock-two-btn');
       dockAction.innerHTML = `
         <button class="big-btn final-action-btn" id="againBtn">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
@@ -763,6 +775,7 @@ const Host = (() => {
             : (LANG === 'ar' ? '⏳ جاري فتح الألعاب…' : '⏳ Opening games…');
         }
         window.__hypoxPlayAgain = action === 'again';
+        document.getElementById('hostInputDock')?.classList.remove('final-results-dock');
         players.forEach(p => p.score = 0);
         resolve(action);
       };
@@ -781,7 +794,10 @@ const Host = (() => {
     });
 
     Audio_.sfx.crown(); Audio_.sfx.fanfare();
-    await say(tPick('banter_winner')||'');
+    // Keep this last line in the network mirror for the whole result screen.
+    // A player who refreshes or rejoins during results should receive the
+    // same compact commentator footer as everyone who stayed connected.
+    await say(tPick('banter_winner')||'', { keepMirror: true });
     FX.shake(); FX.burst(260, true);
     setTimeout(() => FX.burst(180, true), 900);
     return await resultAction;

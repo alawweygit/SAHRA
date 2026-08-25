@@ -557,6 +557,29 @@ body.ar .eyebrow{letter-spacing:0;}
   width:min(82vw,300px)!important;max-width:300px!important;min-height:48px!important;
   padding:11px 18px!important;font-size:clamp(15px,4vw,19px)!important;
 }
+/* Final results use a deliberately compact footer. When Laith's last line
+   has finished, his invisible 128px body must not keep reserving space above
+   the two actions. While he is speaking, scale the character and bubble down
+   so the leaderboard still owns most of the viewport. */
+.host-input-dock.final-results-dock{
+  padding:4px 10px max(6px,env(safe-area-inset-bottom));
+  align-items:center;flex-wrap:nowrap;
+}
+.host-input-dock.final-results-dock #host:not(.show){display:none;}
+.host-input-dock.final-results-dock .host-body{width:56px;height:56px;}
+.host-input-dock.final-results-dock .speech{
+  min-width:120px;min-height:0;max-width:min(38vw,360px);
+  margin-bottom:0;padding:8px 12px;font-size:clamp(11px,1.5vmin,14px);
+}
+.host-input-dock.final-results-dock .host-name{top:-10px;font-size:8px;padding:2px 7px;}
+.host-input-dock.final-results-dock #hostDockAction.dock-two-btn{
+  max-width:270px;gap:5px;padding:0;
+}
+.host-input-dock.final-results-dock .final-action-btn{
+  width:min(76vw,270px)!important;max-width:270px!important;
+  min-height:40px!important;padding:7px 14px!important;
+  font-size:clamp(14px,2vw,17px)!important;
+}
 #lobbyDockAction.hidden{display:none;}
 #lobbyDockAction #startGameBtn{margin:0;width:auto;max-width:100%;}
 #lobbyHint{white-space:normal;text-align:right;max-width:40vw;}
@@ -589,6 +612,23 @@ body.ar .eyebrow{letter-spacing:0;}
    uniformly instead of needing per-screen padding/height compensation. */
 #playerDock.docked{position:sticky;bottom:0;left:0;right:0;z-index:400;display:flex;flex-direction:column;align-items:center;gap:0;padding-top:4px;background:var(--card);border-top:1px solid rgba(255,255,255,.12);box-shadow:0 -8px 24px rgba(0,0,0,.35);width:100%;}
 #playerDock.docked .phone-shared-host{margin:0;}
+/* Player final results: the same commentator strip as the host, anchored at
+   the bottom, but never expose the room-owner action buttons here. */
+#playerDock.docked.results-commentary:has(.phone-shared-host.hidden){display:none;}
+#playerDock.docked.results-commentary{
+  padding:5px 10px max(7px,env(safe-area-inset-bottom));
+}
+#playerDock.results-commentary .phone-shared-host{width:min(96vw,620px);gap:7px;}
+#playerDock.results-commentary .psh-face{
+  width:52px;height:50px;flex-basis:52px;padding-top:13px;gap:11px;font-size:13px;
+}
+#playerDock.results-commentary .psh-smile{top:24px;left:20px;font-size:18px;}
+#playerDock.results-commentary .psh-bow{bottom:-7px;left:20px;font-size:15px;}
+#playerDock.results-commentary .psh-speech{
+  max-width:min(76vw,500px);padding:9px 12px;border-radius:14px 14px 14px 4px;
+  font-size:clamp(11px,3vw,14px);line-height:1.3;
+}
+#playerDock.results-commentary .psh-name{margin:-22px 0 4px;padding:2px 9px;font-size:9px;}
 /* No more padding-bottom/height compensation needed on #scr-controller or
    #phoneSharedStage — sticky positioning (above) means the dock naturally
    sits after the content, whether that content is short or long. */
@@ -2272,6 +2312,12 @@ body.ar .tutorial-bullets { text-align: right; }
   flex:0 0 auto!important;
   width:100%;
   overflow:visible!important;
+}
+/* A docked footer belongs at the physical bottom of the player screen even
+   when the leaderboard is short. Let the main region absorb the spare height
+   instead of leaving an empty strip underneath the commentator. */
+#scr-controller.active:has(#playerDock.docked) #phoneSharedStage{
+  flex:1 1 auto!important;
 }
 /* Footer, input state (the answer form): may be tall, so allow it to
    shrink and scroll internally rather than pushing main off-screen.
