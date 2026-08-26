@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const controller = fs.readFileSync(require.resolve('../js/controller.js'), 'utf8');
 const host = fs.readFileSync(require.resolve('../js/host.js'), 'utf8');
 const main = fs.readFileSync(require.resolve('../js/main.js'), 'utf8');
+const net = fs.readFileSync(require.resolve('../js/net.js'), 'utf8');
 const css = fs.readFileSync(require.resolve('../css/style.css'), 'utf8');
 
 for (const [name, source] of Object.entries({ controller, host, main })) {
@@ -32,5 +33,13 @@ assert.match(controller, /closeBar\.className = 'map-fullscreen-bar'/);
 assert.match(controller, /closeBtn\.className = 'map-fullscreen-confirm'/);
 assert.match(css, /\.map-fullscreen-bar[\s\S]*padding-right:max\(112px/,
   'fullscreen Confirm must reserve a separate safe area from the menu button');
+assert.match(main, /pinpoint-reveal-map'[\s\S]*leafletInited==='1'[\s\S]*continue;/,
+  'same-scene updates must preserve the live player Leaflet map');
+assert.match(main, /const rm = L\.map\(mapEl,[\s\S]*mapEl\.dataset\.leafletInited = '1'/,
+  'the player map must only be marked initialized after Leaflet succeeds');
+assert.ok((host.match(/host-only-ui,\.leaflet-container/g) || []).length >= 2,
+  'both host shared-screen observers must ignore Leaflet rendering mutations');
+assert.doesNotMatch(host + net, /console\.log\('\[HYPOX\]/,
+  'routine disconnect diagnostics must not clutter the console');
 
-console.log('Pin Point v184 map restore + fullscreen separation: 17 checks passed');
+console.log('Pin Point map, player reveal persistence, and clean console: 21 checks passed');

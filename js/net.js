@@ -203,7 +203,6 @@ class FirebaseNet {
       const currentPids = new Set(arr.map(player => player.pid));
       previous.forEach(player => {
         if (!currentPids.has(player.pid)) {
-          console.log('[HYPOX] player roster: removed record detected', player.pid);
           this._notifyPlayerRemoved(player.pid);
         }
       });
@@ -361,7 +360,6 @@ class FirebaseNet {
     if (!this._removingPids) this._removingPids = new Set();
     if (this._removingPids.has(pid)) return;
     this._removingPids.add(pid);
-    console.log('[HYPOX] removing disconnected player', pid);
     try {
       let pData = null;
       try {
@@ -400,7 +398,6 @@ class FirebaseNet {
       } catch (e) {
         console.error('[HYPOX] failed cleaning presence (non-blocking)', pid, e);
       }
-      console.log('[HYPOX] player removed from room', pid);
       this._notifyPlayerRemoved(pid);
     } finally {
       this._removingPids.delete(pid);
@@ -445,7 +442,6 @@ class FirebaseNet {
           const lastSeen = presence[pid]?.t || player?.joinedAt || now;
           const age = now - lastSeen;
           if (age > OFFLINE_MS) {
-            console.log('[HYPOX] offline watcher: stale heartbeat detected', pid, 'age(ms)=', age);
             await this._removePlayerNow(pid);
           }
         }

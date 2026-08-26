@@ -1947,6 +1947,15 @@
           continue;
         }
         if(o.nodeType!==1) continue; // skip comments etc.
+        // Leaflet owns everything inside an initialized reveal map. A later
+        // shared-screen snapshot contains only the empty map placeholder
+        // (host-side Leaflet panes are intentionally stripped), so morphing
+        // that snapshot into this live node would delete all player-side
+        // tiles and markers and leave a blank rectangle. New scenes still do
+        // a full mount above; only preserve a map within the same scene.
+        if(o.classList?.contains('pinpoint-reveal-map') && o.dataset.leafletInited==='1'){
+          continue;
+        }
         // Sync attributes
         const oldAttrs = o.attributes ? Array.from(o.attributes) : [];
         const newAttrs = n.attributes ? Array.from(n.attributes) : [];
@@ -2116,7 +2125,6 @@
       function tryInitRevealMap() {
         const mapEl = shared.querySelector('.pinpoint-reveal-map');
         if (!mapEl || !window._pinpointReveal || mapEl.dataset.leafletInited) return;
-        mapEl.dataset.leafletInited = '1';
         const { city, guesses } = window._pinpointReveal;
         try {
           const REVEAL_ZOOM = 6;
@@ -2127,6 +2135,10 @@
             dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
             worldCopyJump: false, maxBounds: [[-90,-180],[90,180]], maxBoundsViscosity: 1.0,
           });
+          // Mark successful ownership only after Leaflet accepts the
+          // container. If initialization ever throws, a later state/shared
+          // update can retry instead of leaving a permanently blank panel.
+          mapEl.dataset.leafletInited = '1';
           L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
             subdomains: 'abcd', maxZoom: 10, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]]
           }).addTo(rm);

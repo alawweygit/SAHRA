@@ -137,7 +137,10 @@ const Host = (() => {
       // as "blinking" throughout every reveal/scores countdown.
       const meaningful = records.some(r => {
         const n = r.target.nodeType === 1 ? r.target : r.target.parentElement;
-        return !n?.closest?.('.host-only-ui');
+        // Leaflet rebuilds these details locally on every device. Publishing
+        // its pane/tile mutations would send players an empty placeholder
+        // over the live result map they already initialized.
+        return !n?.closest?.('.host-only-ui,.leaflet-container');
       });
       if (meaningful) publishSharedScreen();
     });
@@ -168,7 +171,7 @@ const Host = (() => {
         sharedObserver = new MutationObserver((records) => {
           const meaningful = records.some(r => {
             const n = r.target.nodeType === 1 ? r.target : r.target.parentElement;
-            return !n?.closest?.('.host-only-ui');
+            return !n?.closest?.('.host-only-ui,.leaflet-container');
           });
           if (meaningful) publishSharedScreen();
         });
@@ -341,10 +344,6 @@ const Host = (() => {
     const livePids = new Set(players.map(player => player.pid));
     if (net.hostSelfPid) livePids.add(net.hostSelfPid);
     pids = requestedPids.filter(pid => livePids.has(pid));
-    if (pids.length !== requestedPids.length) {
-      console.log('[HYPOX] collection: dropped departed targets',
-        requestedPids.filter(pid => !livePids.has(pid)));
-    }
 
     const phaseId = 'ph' + (++phaseCounter);
     const deadline = inputDeadline(seconds, spec.forceTimer === true);
@@ -3709,7 +3708,6 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
           if (current) Object.assign(current, livePlayer);
           else {
             players.push({ ...livePlayer });
-            console.log('[HYPOX] host: player joined running game', livePlayer.pid);
             pushMirror({
               announce: (livePlayer.emoji || '👤') + ' ' + (livePlayer.name || 'Player') + (LANG === 'ar' ? ' عاد للعبة' : ' is back in the game'),
               announceId: Date.now(),
@@ -3722,7 +3720,6 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     // Start auto-remove watcher for offline players
     if (net.watchAndRemoveOffline) {
       net.watchAndRemoveOffline(pid => {
-        console.log('[HYPOX] host: onRemove fired for', pid, 'activeCollectionPids=', activeCollectionPids);
         _warnedOffline.delete(pid);
         clearHostDisconnectWarning();
         const idx = players.findIndex(p => p.pid === pid);
@@ -3765,10 +3762,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         // during e.g. a hot-seat round (where only one target is answering)
         // must not cut off that target's still-pending answer.
         if (window.__hypoxDropCollectPid) {
-          console.log('[HYPOX] host: dropping disconnected player from collection', pid);
           window.__hypoxDropCollectPid(pid);
-        } else {
-          console.log('[HYPOX] host: no active collection contains disconnected player', pid);
         }
       });
     }
