@@ -1563,6 +1563,8 @@
       const isFullscreenInput=spec?.fullscreenInput===true;
       const _hExclude=spec?.playerExcludes?.[net?.hostSelfPid];
 
+      const isTimeMachine=spec?.customRenderer==='timeMachine';
+
       // Choice rounds used to keep the host's display-only question in
       // #hostStage, hide its answers, then mount a second controls-only dock
       // at the bottom of the viewport. That was the host/player mismatch:
@@ -1596,6 +1598,36 @@
           done(value);
           return result;
         });
+        return;
+      }
+      if(isTimeMachine){
+        const stage=document.getElementById('hostStage');
+        if(!stage){resolve(null);return;}
+        const panel=document.createElement('div');
+        panel.className='host-only-ui';
+        stage.appendChild(panel);
+        let settled=false;
+        const done=value=>{
+          if(settled)return;
+          settled=true;
+          _ppDismiss=null;
+          panel.remove();
+          resolve(value);
+        };
+        _ppDismiss=()=>done(null);
+        window.__hypoxDismissPP=()=>{if(_ppDismiss)_ppDismiss();};
+        // Statement already sits directly above in #hostStage (host.js's own
+        // scene() render) -- showStatement:false so it isn't repeated, same
+        // as the previous bottom-dock version. Only the container changed:
+        // inline right after the existing statement instead of a fixed
+        // overlay pinned to the bottom of the viewport, which is what left
+        // a large dead gap between the two on tall (desktop) screens.
+        renderTimeMachineInput(panel,spec,async value=>{
+          const result=submitInput?await submitInput(value):{accepted:true};
+          if(result?.accepted===false)return result;
+          done(value);
+          return result;
+        },{showStatement:false});
         return;
       }
       // v96 — 'phones-host-answering' means "hide the answers on stage", and
@@ -1670,15 +1702,7 @@
         done(value);
         return result;
       };
-      if(spec?.customRenderer==='timeMachine'){
-        // The host already has the Time Machine title and statement directly
-        // above this bottom panel. Render controls only here so the lower
-        // section never repeats either row or needs its own scrollbar.
-        panel.classList.add('tm-host-input-panel');
-        renderTimeMachineInput(panel,spec,finishHostInput,{showStatement:false});
-      }else{
-        Controller.render(panel,hostSpec,finishHostInput);
-      }
+      Controller.render(panel,hostSpec,finishHostInput);
     });
   }
 

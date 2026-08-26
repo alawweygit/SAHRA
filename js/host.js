@@ -2023,7 +2023,7 @@ const Host = (() => {
         raw = raw.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)); // Arabic-Indic → Latin digits
         const yr = parseInt(raw, 10);
         const ok = !isNaN(yr) && yr > 0;
-        return { p, yr: ok ? yr : null, diff: ok ? Math.abs(yr - Q.y) : 99999 };
+        return { p, yr: ok ? yr : null, diff: ok ? Math.abs(yr - Q.y) : 99999, signedDiff: ok ? (yr - Q.y) : 0 };
       }).sort((a, b) => a.diff - b.diff);
       const AWARD = [1000, 700, 500];
       results.forEach((r2, idx) => {
@@ -2048,7 +2048,7 @@ const Host = (() => {
                 <div class="tm-score-avatar" style="background:${r2.p.color}">${r2.p.emoji}</div>
                 <div class="tm-score-info">
                   <div class="tm-score-name">${esc(r2.p.name)}</div>
-                  <div class="tm-score-guess">${r2.yr !== null ? r2.yr + (r2.diff===0 ? ' 🎯 '+(LANG==='ar'?'بالضبط!':'Exact!') : ' (±'+r2.diff+')') : (LANG==='ar'?'ما جاوب':'No guess')}</div>
+                  <div class="tm-score-guess">${r2.yr !== null ? r2.yr + (r2.diff===0 ? ' 🎯 '+(LANG==='ar'?'بالضبط!':'Exact!') : ' ('+(r2.signedDiff>0?'+':'')+r2.signedDiff+')') : (LANG==='ar'?'ما جاوب':'No guess')}</div>
                 </div>
                 <div class="tm-score-pts${r2.pts===0?' tm-zero':''}">${r2.pts} ${LANG==='ar'?'نقطة':'pts'}</div>
               </div>`).join('')}
