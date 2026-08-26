@@ -696,14 +696,14 @@
       _pb.innerHTML='<div style="color:var(--pink);font-size:15px">'+(LANG==='ar'?'رجعناك للغرفة':'Reconnecting to room')+'&nbsp;<b style="color:var(--yellow)">'+_ps.code+'</b>…</div><button id="rejoinLeave" style="margin-top:8px;background:var(--card2,#2a2a3e);color:var(--text2);border:1.5px solid var(--border);border-radius:10px;padding:5px 14px;font-family:Fredoka One,sans-serif;font-size:12px;cursor:pointer">'+(LANG==='ar'?'لا، اطلع':"No, leave")+'</button>';
       document.body.appendChild(_pb);
       let _leftOnPurpose=false;
-      document.getElementById('rejoinLeave').onclick=()=>{_leftOnPurpose=true;localStorage.removeItem('hypox_player_session');_pb.remove();show('#scr-title');};
+      document.getElementById('rejoinLeave').onclick=()=>{_leftOnPurpose=true;localStorage.removeItem('hypox_player_session');try{sessionStorage.removeItem(NAV_STATE_KEY);}catch(e){}_pb.remove();show('#scr-title');};
       (async()=>{
         try{
           await resumeSavedPlayer(_ps);
           if(_leftOnPurpose){
             // User chose to leave while restore was in flight — honor that,
             // don't let the completed restore silently drop them into the game.
-            try{sessionStorage.removeItem('hypox_session');}catch(e){}
+            try{sessionStorage.removeItem('hypox_session');sessionStorage.removeItem(NAV_STATE_KEY);}catch(e){}
             try{await net?.close?.();}catch(e){}
             net=null;currentRoomCode=null;show('#scr-title');
           }else showPlayerRejoinToast();
@@ -1454,7 +1454,7 @@
         code:savedCode,mode:savedMode,hostSelfPid:savedHostSelfPid,savedAt:Date.now()
       }));}catch(e){}
     }
-    try{sessionStorage.removeItem('hypox_session');localStorage.removeItem('hypox_player_session');}catch(e){}
+    try{sessionStorage.removeItem('hypox_session');localStorage.removeItem('hypox_player_session');sessionStorage.removeItem(NAV_STATE_KEY);}catch(e){}
     // Race close() against a timeout — on a connection that's been open for
     // hours, Firebase's onDisconnect/remove calls can hang indefinitely on a
     // stale socket. Without this, the await below never resolves and the
@@ -2326,7 +2326,7 @@
         resetScrollPositionAfterLayout();
         document.getElementById('becomeHostBtn')?.addEventListener('click',()=>_claimHost());
         if(!hostLeftTimer)hostLeftTimer=setTimeout(()=>{
-          try{sessionStorage.removeItem('hypox_session');localStorage.removeItem('hypox_player_session');}catch(e){}
+          try{sessionStorage.removeItem('hypox_session');localStorage.removeItem('hypox_player_session');sessionStorage.removeItem(NAV_STATE_KEY);}catch(e){}
           clearGameUI();currentRoomCode=null;net=null;players=[];gameActive=false;
           currentGameMode=null;currentPregameMode=null;currentViewKind='title';
           show('#scr-title');
