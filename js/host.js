@@ -658,6 +658,10 @@ const Host = (() => {
   }
 
   async function showScores(final = false) {
+    // The final round goes directly to the single champion leaderboard.
+    // Showing this generic bar chart first created two consecutive "final
+    // results" pages with the same information in different designs.
+    if (!final && currentRoundIsFinal) return;
     if (final) hostSpeechEnabled = true; // final results — speech allowed again
     await FX.wipe();
     setPill(final ? t('final_results') : t('scores'));
@@ -721,12 +725,11 @@ const Host = (() => {
     }
   }
 
-  async function winnerScene() {
-    await showScores(true);
+  async function winnerScene(championPid = null) {
     await FX.wipe();
     hideHost();
     const sorted = players.slice().sort((a, b) => b.score - a.score);
-    const w = sorted[0];
+    const w = players.find(p => p.pid === championPid) || sorted[0];
     setPill(t('final_results'));
     scene(`
       <div class="winner-wrap">
@@ -800,6 +803,33 @@ const Host = (() => {
     FX.shake(); FX.burst(260, true);
     setTimeout(() => FX.burst(180, true), 900);
     return await resultAction;
+  }
+
+  // Play Again must enter the same clean presentation path as the first
+  // game. Winner controls, commentator speech, mirror fields and answering
+  // classes are all session UI; none may survive into replay round 1.
+  function resetReplayPresentation() {
+    currentRoundIsFinal = false;
+    hostSpeechEnabled = true;
+    _sayToken++;
+    const host = $('#host');
+    host?.classList.remove('show', 'talking');
+    const speech = $('#speechText');
+    if (speech) speech.textContent = '';
+    const dock = document.getElementById('hostInputDock');
+    dock?.classList.remove('final-results-dock');
+    const action = document.getElementById('hostDockAction');
+    if (action) {
+      action.innerHTML = '';
+      action.classList.remove('dock-two-btn');
+    }
+    document.querySelectorAll('.phones-host-input-overlay').forEach(el => el.remove());
+    document.body.classList.remove('phones-host-answering', 'phones-host-inline-answering', 'phones-host-docked');
+    window.__hypoxSkip = null;
+    window.__hypoxNextLabel = null;
+    window.__hypoxWinnerChoice = null;
+    mirror = { headline:'', sub:'', pill:'', speech:'', hostVisible:false, scores:null, announce:null, fx:null };
+    if (net?.setMirror) net.setMirror({ ...mirror });
   }
 
   function addScore(pid, pts) {
@@ -3571,19 +3601,9 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       championPid = await runHarfSuddenDeath(tied, usedCategories, answerSeqRef);
     }
 
-    await showScores(true);
-    const champion = safeP(championPid);
-    Audio_.sfx.crown(); Audio_.sfx.fanfare(); FX.burst(220, true);
-    scene(`
-      <div class="harf-final">
-        <div class="eyebrow">🏆 ${LANG === 'ar' ? 'بطل هارف هنت' : 'HARFHUNT CHAMPION'}</div>
-        <div class="harf-final-champ">${avatarHTML(champion, 'avatar')}<div class="mode-title display">${esc(champion.name)} — ${champion.score}</div></div>
-        <div class="harf-final-rest">
-          ${sorted.filter(p => p.pid !== championPid).map(p => `<div class="harf-final-row">${esc(p.name)} — ${p.score}</div>`).join('')}
-        </div>
-      </div>`);
-    net.setState({ phase: 'finalResults', championPid, standings: sorted.map(p => ({ pid: p.pid, name: p.name, score: p.score })) });
-    await waitNext();
+    // The shared winner scene below is the one and only final-results page.
+    // Return the sudden-death winner so that page crowns the correct player.
+    return championPid;
   }
 
   async function playHarfhunt() {
@@ -3646,7 +3666,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       if (roundNum < roundCount) await showScores();
     }
 
-    await harfFinalResults(usedCategories, answerSeqRef);
+    return { championPid: await harfFinalResults(usedCategories, answerSeqRef) };
   }
 
   const SCORELESS_MODES = new Set(['blendin']);
@@ -3774,13 +3794,17 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     while(playAgain && !window.__hypoxAbort) {
       playAgain = false;
       window.__hypoxPlayAgain = false;
-      window.__hypoxSkipTutorial = !isFirstRound; // skip tutorial on play again
+      if (!isFirstRound) resetReplayPresentation();
+      // Replay follows the same tutorial/start path and UI lifecycle as a
+      // first game. There is no separate reduced replay renderer anymore.
+      window.__hypoxSkipTutorial = false;
       isFirstRound = false;
       players.forEach(p=>p.score=0);
       pickHost();
+      let modeResult = null;
       try {
         if (!MODES[mode]) throw new Error(`Unknown mode: "${mode}" (available: ${Object.keys(MODES).join(', ')})`);
-        await MODES[mode]();
+        modeResult = await MODES[mode]();
       } catch(e) {
         if (window.__hypoxAbort) { stopSharedScreen(); return; }
         console.error('Game mode error:', e);
@@ -3790,7 +3814,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         await new Promise(r => document.getElementById('errContinueBtn')?.addEventListener('click', r, {once:true}));
       }
       if (window.__hypoxAbort) { stopSharedScreen(); return; }
-      const resultAction = SCORELESS_MODES.has(mode) ? await scorelessEndScreen() : await winnerScene();
+      const resultAction = SCORELESS_MODES.has(mode) ? await scorelessEndScreen() : await winnerScene(modeResult?.championPid);
       if(resultAction === 'again') {
         playAgain = true;
       }

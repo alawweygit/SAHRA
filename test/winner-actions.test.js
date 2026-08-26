@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const host = fs.readFileSync(path.join(__dirname, '..', 'js', 'host.js'), 'utf8');
-const winnerStart = host.indexOf('async function winnerScene()');
+const winnerStart = host.indexOf('async function winnerScene(');
 const winnerEnd = host.indexOf('\n  function addScore(', winnerStart);
 const runStart = host.indexOf('async function run(');
 const runEnd = host.indexOf('\n  return { run,', runStart);
@@ -41,6 +41,28 @@ if (winner.includes('window.__hypoxAbort = true')) {
 }
 if (!run.includes("if(resultAction === 'again')")) {
   throw new Error('Play Again no longer loops through the shared game runner');
+}
+if (!run.includes('if (!isFirstRound) resetReplayPresentation()')) {
+  throw new Error('Play Again does not clear the previous winner presentation');
+}
+if (!run.includes('window.__hypoxSkipTutorial = false')) {
+  throw new Error('Play Again does not use the same startup path as the first game');
+}
+if (!host.includes('if (!final && currentRoundIsFinal) return')) {
+  throw new Error('The final round still renders an extra generic score page');
+}
+if (winner.includes('await showScores(true)')) {
+  throw new Error('Winner flow still shows duplicate final-results pages');
+}
+for (const staleUiReset of [
+  "action.innerHTML = ''",
+  "action.classList.remove('dock-two-btn')",
+  "speech:'', hostVisible:false",
+  'window.__hypoxWinnerChoice = null',
+]) {
+  if (!host.includes(staleUiReset)) {
+    throw new Error(`Replay presentation reset is incomplete: ${staleUiReset}`);
+  }
 }
 
 // Would You Rather uses a custom split-input broadcast online, but One Device

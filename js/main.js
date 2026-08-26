@@ -2356,6 +2356,13 @@
       // Default to undocked; only the wait/scores branch below re-engages it.
       document.getElementById('playerDock')?.classList.remove('docked','results-commentary');
       document.getElementById('scr-controller')?.classList.remove('has-docked-footer');
+      // A winner comment is intentionally retained on the results page, but
+      // once any new game phase arrives it must disappear even if the mirror
+      // reset and footer-class removal happen in the same state callback.
+      if(state.phase!=='winner'&&state.phase!=='session-end-scoreless'&&!state.mirror?.hostVisible){
+        sharedHost.classList.add('hidden');
+        sharedHost.innerHTML='';
+      }
       if(state.phase==='input'){
         const _isNewPhase1 = state.phaseId!==lastPhaseId;
         if(_isNewPhase1){

@@ -48,5 +48,7 @@ assert.match(css, /\.host-input-dock\.final-results-dock #host:not\(\.show\)\{di
   'hidden host avatar must not reserve dead space in the final-results footer');
 assert.match(host, /banter_winner'\)\|\|'', \{ keepMirror: true \}/,
   'the winner comment must remain available to players who refresh or rejoin on results');
+assert.match(main, /state\.phase!=='winner'.*state\.phase!=='session-end-scoreless'.*!state\.mirror\?\.hostVisible/s,
+  'winner commentary must be cleared when a replay begins');
 
 console.log('player FX + final UI: 22 checks passed');
