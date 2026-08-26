@@ -2163,8 +2163,8 @@
           // container. If initialization ever throws, a later state/shared
           // update can retry instead of leaving a permanently blank panel.
           mapEl.dataset.leafletInited = '1';
-          L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd', maxZoom: 10, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]]
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            subdomains: 'abc', maxZoom: 10, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]]
           }).addTo(rm);
           // Single city marker — star-in-a-dot with its name attached
           // directly below it, so it reads as one mark instead of a plain

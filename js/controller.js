@@ -716,8 +716,8 @@ const Controller = (() => {
             center: [22, 25], zoom: 2, minZoom: 2, maxZoom: 10,
             worldCopyJump: true, attributionControl: false, zoomSnap: 0.5,
           });
-          L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd', maxZoom: 10, keepBuffer: 6, updateWhenIdle: false,
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            subdomains: 'abc', maxZoom: 10, keepBuffer: 6, updateWhenIdle: false,
           }).addTo(m);
           return m;
         } catch(e) { console.error('map init failed', e); return null; }
@@ -755,8 +755,11 @@ const Controller = (() => {
         closeBar.innerHTML = `<span>${spec.title||''}</span>`;
         const closeBtn = document.createElement('button');
         closeBtn.className = 'map-fullscreen-confirm';
-        closeBtn.textContent = typeof LANG!=='undefined'&&LANG==='ar'?'✕ تأكيد':'✕ Confirm';
+        const _lockLabel = spec.submitLabel || (typeof LANG!=='undefined'&&LANG==='ar'?'ثبّت الدبوس':'LOCK IT IN');
+        closeBtn.textContent = _lockLabel;
+        closeBtn.disabled = !guess;
         closeBtn.style.cssText = 'background:var(--pink,#f472b6);color:#fff;border:none;border-radius:50px;padding:8px 20px;font-size:15px;cursor:pointer;font-family:Fredoka One,sans-serif;';
+        closeBtn.style.opacity = closeBtn.disabled ? '0.5' : '1';
         closeBar.appendChild(closeBtn);
         ov.appendChild(closeBar);
         const mapEl = document.createElement('div');
@@ -777,10 +780,18 @@ const Controller = (() => {
             if (marker && mainMap) { marker.setLatLng(e.latlng); }
             else if (mainMap) { marker = L.marker(e.latlng, { icon: pinIcon }).addTo(mainMap); }
             btn.disabled = false;
+            closeBtn.disabled = false;
+            closeBtn.style.opacity = '1';
             if (navigator.vibrate) navigator.vibrate(15);
           });
         }
-        closeBtn.addEventListener('click', () => { document.body.removeChild(ov); });
+        closeBtn.addEventListener('click', () => {
+          if (!guess) return;
+          btn.disabled = true;
+          closeBtn.disabled = true;
+          document.body.removeChild(ov);
+          onSubmit(JSON.stringify(guess));
+        });
       });
 
       btn.addEventListener('click', () => {

@@ -8,14 +8,14 @@ const net = fs.readFileSync(require.resolve('../js/net.js'), 'utf8');
 const css = fs.readFileSync(require.resolve('../css/style.css'), 'utf8');
 
 for (const [name, source] of Object.entries({ controller, host, main })) {
-  assert.match(source, /rastertiles\/voyager_nolabels/,
-    `${name} must use the exact v184 Pin Point tiles`);
-  assert.doesNotMatch(source, /World_Physical_Map|World_Terrain_Base|dark_nolabels/,
-    `${name} must not retain a post-v184 map source`);
+  assert.match(source, /tile\.openstreetmap\.org/,
+    `${name} must use the v190 OpenStreetMap tiles (CARTO's voyager_nolabels now requires an API key and shows a watermark instead of the map)`);
+  assert.doesNotMatch(source, /basemaps\.cartocdn\.com|World_Physical_Map|World_Terrain_Base|dark_nolabels/,
+    `${name} must not retain a map source that requires an API key or was previously reverted`);
 }
 
-assert.match(controller, /subdomains: 'abcd', maxZoom: 10, keepBuffer: 6, updateWhenIdle: false/,
-  'the interactive map must restore the exact v184 tile settings');
+assert.match(controller, /subdomains: 'abc', maxZoom: 10, keepBuffer: 6, updateWhenIdle: false/,
+  'the interactive map must use OSM\'s 3 subdomains (a/b/c, not CARTO\'s a/b/c/d)');
 assert.doesNotMatch(controller, /hypox-plain-map/,
   'the post-v184 visual filter must be removed');
 assert.match(host, /const REVEAL_ZOOM = 6/);

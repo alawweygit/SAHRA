@@ -1812,7 +1812,7 @@ const Host = (() => {
           dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
           worldCopyJump: false, maxBounds: [[-90,-180],[90,180]], maxBoundsViscosity: 1.0,
         });
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 10, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]] }).addTo(rm);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { subdomains: 'abc', maxZoom: 10, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]] }).addTo(rm);
         // Single city marker — a star-in-a-dot with its name label attached
         // directly beneath it, so it reads as ONE unmistakable mark instead
         // of a plain circle plus a separately-floating text label.
