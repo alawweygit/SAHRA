@@ -420,13 +420,9 @@
       if(modeButton)document.getElementById(modeButton)?.click();
       return true;
     }
-    if(saved.screen==='scr-join'){
-      showHypoxHeader();paintJoin();
-      $('#joinCode').value=saved.joinCode||saved.roomCode||'';
-      $('#joinName').value=saved.joinName||'';
-      show('#scr-join');
-      return true;
-    }
+    // Ali's request: refreshing on the Join screen should always land on
+    // home, not restore a possibly-stale pre-filled room code. (Previously
+    // restored scr-join here; removed rather than left dormant.)
     // Non-serializable avatar callbacks cannot be recreated safely; return to
     // the nearest setup screen instead of unexpectedly sending the user home.
     if(saved.screen==='scr-avatar'&&currentPregameMode){
