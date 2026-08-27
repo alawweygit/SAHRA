@@ -405,20 +405,6 @@ const Host = (() => {
               botVal = JSON.stringify([]); // bots never initiate a challenge
             } else if (spec.type === 'harfvote') {
               botVal = Math.random() < 0.8 ? 'accept' : 'reject';
-            } else if (spec.type === 'harfchallenge') {
-              // v133 — was falling into the generic `else { botVal = 'bot' }`
-              // fallback further below, which every bot fired within
-              // ~1.5-4s of the window opening. Combined with onEachInput
-              // force-finishing on ANY submitted value (not just an actual
-              // challenge — also fixed this version), a bot's garbage 'bot'
-              // value was silently ending the challenge window almost
-              // instantly — exactly Ali's "milliseconds, shifts directly
-              // from page to page" report. Bots now rarely challenge (10%)
-              // so the window plays out normally most of the time, and when
-              // they don't, they submit nothing at all rather than a
-              // throwaway value.
-              if (Math.random() < 0.10) botVal = 'challenge';
-              else return; // no submission — let the real window run its course
             } else if (spec.type === 'multitext') {
               // v104 — multitext was added in v102 but never taught to the
               // bots, so bot players submitted nothing and every statement
@@ -3410,132 +3396,60 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       const verdict = await validateHarfAnswer(category, letter, answerText);
       if (verdict === 'invalid') return { failure: { pid: currentP.pid, reason: 'invalid' }, roundAnswers, usedAllLetters: false };
 
-      // v131 — Ali's hybrid redesign, replacing v130's mandatory vote-on-
-      // every-answer entirely. That was too slow: a 15-answer round would
-      // add over a minute of pure voting, breaking the letter-board/turn-
-      // timer momentum that makes the mode tense. This is the compromise:
-      //
-      //  1. Answer shows to everyone with a short CHALLENGE window. If
-      //     nobody challenges, auto-accept immediately — no vote at all.
-      //  2. Only if someone actually challenges does the group stop and
-      //     hold a real ACCEPT/REJECT vote.
-      //  3. Burden of proof is on the CHALLENGE, not the answer: majority
-      //     REJECT is required to overturn it. Ties, "anything else", and
-      //     partial turnout with no clear reject majority all mean the
-      //     answer stands — the OPPOSITE default bias from v130's "silence
-      //     = rejected", which Ali explicitly said was unfair.
-      //
-      // Challenger identity is never shown anywhere in this flow (Ali's
-      // spec: "challenge identity stays anonymous").
-      // v132 — real bug: `order` holds player OBJECTS (see `currentP =
-      // order[turnIdx % order.length]` above), not pid strings. Comparing
-      // one against currentP.pid (a string) never matched, so otherPids was
-      // actually the full array of player objects, answerer included. Used
-      // as Object.fromEntries keys below, each object got coerced to the
-      // literal string "[object Object]" by JS — exactly the Firebase
-      // error Ali hit ("invalid key ([object Object])").
+      // One decision screen only: everyone except the answerer sees the
+      // answer, "Do you agree?", and YES/NO for seven seconds. Silence and
+      // ties accept the answer; a strict majority of all eligible voters is
+      // required to reject it.
       const otherPids = order.filter(p => p.pid !== currentP.pid).map(p => p.pid);
-      let challenged = false;
 
       if (otherPids.length) {
         await FX.wipe();
-        // v133 — CHALLENGE_WINDOW_SECONDS: 4 -> 7, per Ali's "give it more
-        // time" (currently felt instant, not a real usable window). Also
-        // added a live, visibly ticking countdown (harfCwT) — there was
-        // previously no number on screen at all, just a static hint line,
-        // so even with a real 4-7s window running correctly there was
-        // nothing showing the player HOW long they had.
-        const CHALLENGE_WINDOW_SECONDS = 7;
-        scene(`
-          <div class="harf-reveal">
-            <div class="harf-reveal-letter">${esc(letter)}</div>
-            <div class="harf-reveal-answer display">${esc(answerText.toUpperCase())}</div>
-            <div class="harf-reveal-by">${avatarHTML(currentP, 'avatar')}<span>${esc(currentP.name)}</span></div>
-            <div class="harf-challenge-hint">${LANG === 'ar' ? 'اعتراض على الجواب؟' : 'Disagree with this?'}</div>
-            <div class="year-reveal" id="harfCwT" style="font-size:clamp(32px,6vmin,64px)!important">${CHALLENGE_WINDOW_SECONDS}</div>
-          </div>`);
-        pushMirror({ headline: `${letter} — ${answerText}`, sub: currentP.name });
-        Audio_.sfx.correct(); FX.burst(40);
-        // v138 — removed a dead net.setState({phase:'harf-challenge-window'})
-        // call that used to sit here. Nothing anywhere ever read that phase
-        // name; it was immediately overwritten by the very next setState
-        // call below (phase:'input-split'), so it was a spurious extra
-        // state write on every single challenge window — two Firebase
-        // writes in quick succession instead of one, which is exactly the
-        // kind of thing that can cause a premature/duplicate render on a
-        // receiving device. Confirmed dead, not just suspected.
-
-        const cwPhaseId = 'hcw' + Date.now();
-        const cwDeadline = Date.now() + CHALLENGE_WINDOW_SECONDS * 1000;
-        net.setState({ phase: 'input-split', phaseId: cwPhaseId, deadline: cwDeadline, targets: otherPids,
-          specs: Object.fromEntries(otherPids.map(pid => [pid, { type: 'harfchallenge' }])) });
-
-        let cwLeft = CHALLENGE_WINDOW_SECONDS;
-        const cwInterval = setInterval(() => {
-          cwLeft--;
-          const el = $('#harfCwT');
-          if (el) el.textContent = Math.max(0, cwLeft);
-          if (cwLeft <= 0) clearInterval(cwInterval);
-        }, 1000);
-
-        net.onEachInput((pid, v) => {
-          if (v === 'challenge' && window.__hypoxForceCollect) window.__hypoxForceCollect();
-        });
-        // net.collect takes milliseconds. Passing the seven-second constant
-        // directly made this window resolve after roughly 7 ms.
-        const cwResult = await net.collect(
-          cwPhaseId,
-          { type: 'harfchallenge' },
-          otherPids,
-          CHALLENGE_WINDOW_SECONDS * 1000,
-        );
-        net.onEachInput(null);
-        clearInterval(cwInterval);
-        challenged = otherPids.some(pid => val(cwResult, pid) === 'challenge');
-      }
-
-      if (challenged) {
-        Audio_.sfx.buzzer(); FX.shake();
-        await FX.wipe();
+        const VOTE_WINDOW_SECONDS = 7;
         scene(`
           <div class="harf-appeal">
-            <div class="eyebrow">${LANG === 'ar' ? '⚠️ اعتراض على الجواب' : '⚠️ ANSWER CHALLENGED'}</div>
             <div class="harf-appeal-cat">${esc(category)}</div>
             <div class="harf-appeal-letter">${esc(letter)}</div>
             <div class="harf-appeal-answer display">${esc(answerText.toUpperCase())}</div>
             <div class="harf-appeal-by">${avatarHTML(currentP, 'avatar')}<span>${esc(currentP.name)}</span></div>
-            <div class="pick-sub">${LANG === 'ar' ? 'هل الجواب صح؟' : 'Does this answer count?'}</div>
+            <div class="pick-sub">${LANG === 'ar' ? 'هل توافق؟' : 'Do you agree?'}</div>
+            <div class="harf-vote-countdown" id="harfVoteT">${VOTE_WINDOW_SECONDS}</div>
           </div>`);
-        pushMirror({ headline: LANG === 'ar' ? 'اعتراض!' : 'CHALLENGED!', sub: `${letter} — ${answerText}` });
-        net.setState({ phase: 'appealVote', category, letter, answer: answerText, pid: currentP.pid, eligibleVoters: otherPids });
+        pushMirror({ headline: `${letter} — ${answerText}`, sub: LANG === 'ar' ? 'هل توافق؟' : 'Do you agree?' });
 
-        // No timer pressure on the actual vote (Ali: "there isn't necessarily
-        // a need for a timer during the actual vote") — net.collect already
-        // resolves as soon as everyone targeted has voted; the 60s figure
-        // here is purely a safety ceiling in case someone drops.
-        const votes = await collectWithTimer({ type: 'harfvote', category, answerText: `${letter} — ${answerText.toUpperCase()}`, byName: currentP.name, fullscreenInput: true }, otherPids, 60);
-        let accept = 0, reject = 0;
+        let voteLeft = VOTE_WINDOW_SECONDS;
+        const voteInterval = setInterval(() => {
+          voteLeft--;
+          const el = $('#harfVoteT');
+          if (el) el.textContent = Math.max(0, voteLeft);
+          if (voteLeft <= 0) clearInterval(voteInterval);
+        }, 1000);
+
+        let votes;
+        try {
+          votes = await collectWithTimer({
+            type: 'harfvote',
+            category,
+            answerText: `${letter} — ${answerText.toUpperCase()}`,
+            byName: currentP.name,
+            fullscreenInput: true,
+            forceTimer: true,
+          }, otherPids, VOTE_WINDOW_SECONDS);
+        } finally {
+          clearInterval(voteInterval);
+        }
+
+        let reject = 0;
         for (const pid of otherPids) {
           const v = val(votes, pid);
-          if (v === 'reject') reject++; else if (v === 'accept') accept++;
+          if (v === 'reject') reject++;
         }
-        const rejected = reject > accept; // burden of proof is on the challenge
+        const rejected = reject > otherPids.length / 2;
         if (rejected) return { failure: { pid: currentP.pid, reason: 'rejected' }, roundAnswers, usedAllLetters: false };
-
-        // Challenged but the vote didn't overturn it — answer stands.
-        await sleep(300);
         Audio_.sfx.correct();
-        scene(`
-          <div class="harf-appeal-result stands">
-            <div class="harf-fail-label" style="color:var(--green,#34d399)">${LANG === 'ar' ? 'الجواب صح' : 'ANSWER STANDS'}</div>
-          </div>`);
-        await sleep(900);
+        FX.burst(40);
       }
 
-      // Accepted — either nobody challenged, or a challenge failed to
-      // overturn it. The reveal itself already played before the challenge
-      // window opened (or, if there were no other players to challenge,
-      // play it now) — don't show it a second time.
+      // Accepted by the vote, or automatically when nobody else can vote.
       available = available.filter(L => L !== letter);
       answerSeqRef.n++;
       roundAnswers.push({ answerId: 'a' + answerSeqRef.n, pid: currentP.pid, letter, answer: answerText, order: roundAnswers.length });

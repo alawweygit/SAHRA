@@ -2490,7 +2490,7 @@
         // return) — not a delivery/timing problem at all, the v145/v146
         // watchdog was solving a different bug and could never have fixed
         // this one, since the state WAS arriving correctly every time.
-        const _needsInput = rawSpec.type==='choice'||rawSpec.type==='text'||rawSpec.type==='higherlow'||rawSpec.type==='number'||rawSpec.type==='multitext'||rawSpec.type==='wyr-multi'||rawSpec.type==='harfchallenge';
+        const _needsInput = rawSpec.type==='choice'||rawSpec.type==='text'||rawSpec.type==='higherlow'||rawSpec.type==='number'||rawSpec.type==='multitext'||rawSpec.type==='wyr-multi';
         const spec = phonesOnly && _needsInput
           ? {...rawSpec, controlsOnly:false}
           : phonesOnly

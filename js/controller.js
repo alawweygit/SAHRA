@@ -374,54 +374,8 @@ const Controller = (() => {
       return;
     }
 
-    // HarfHunt appeal vote: binary ACCEPT/REJECT, one tap and locked.
-    // v131 — Ali's hybrid redesign: after an answer clears the AI check, it
-    // shows to everyone with a brief CHALLENGE window. No challenge =
-    // auto-accept, no vote needed at all. This is that button. Submits the
-    // instant it's tapped — host.js short-circuits collection on the FIRST
-    // challenge via window.__hypoxForceCollect (v118), it doesn't wait for
-    // everyone. Deliberately minimal: one button, no context duplication —
-    // the answer itself is already shown on the shared stage above.
-    if (spec.type === 'harfchallenge') {
-      wrap.classList.add('ctrl-harfchallenge');
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;gap:10px;width:100%;';
-      const agreeBtn = document.createElement('button');
-      agreeBtn.className = 'big-btn harf-agree-btn';
-      agreeBtn.textContent = LANG === 'ar' ? '✓ أوافق' : '✓ Agree';
-      const disagreeBtn = document.createElement('button');
-      disagreeBtn.className = 'big-btn harf-challenge-btn';
-      disagreeBtn.textContent = LANG === 'ar' ? '✗ لا أوافق' : '✗ Disagree';
-      const lockBoth = (picked) => {
-        agreeBtn.disabled = true; disagreeBtn.disabled = true;
-        picked.classList.add('picked');
-      };
-      agreeBtn.addEventListener('click', () => {
-        Audio_.sfx.vote && Audio_.sfx.vote();
-        lockBoth(agreeBtn);
-        onSubmit('agree');
-      }, { once: true });
-      disagreeBtn.addEventListener('click', () => {
-        Audio_.sfx.vote && Audio_.sfx.vote();
-        lockBoth(disagreeBtn);
-        onSubmit('challenge');
-      }, { once: true });
-      row.appendChild(agreeBtn); row.appendChild(disagreeBtn);
-      wrap.appendChild(row);
-      container.replaceChildren(wrap);
-      scrollInputIntoView(wrap);
-      return;
-    }
-
     if (spec.type === 'harfvote') {
       wrap.classList.add('ctrl-harfvote');
-      // v129 — was rendering ONLY the two buttons with zero context. This
-      // input type uses fullscreenInput, which takes over the whole screen
-      // and hides the shared stage — so the letter/answer/category/answerer
-      // that ARE shown correctly on the host's stage were completely
-      // invisible on the voter's own phone. They were being asked to accept
-      // or reject something they couldn't see. Now shown directly on the
-      // card, from the same data host.js already broadcasts in the spec.
       if (spec.category || spec.letter || spec.answer) {
         const ctx = document.createElement('div');
         ctx.className = 'harf-vote-context';
@@ -431,6 +385,24 @@ const Controller = (() => {
           ${spec.byName ? `<div class="harf-vote-by">${esc(spec.byName)}</div>` : ''}
         `;
         wrap.appendChild(ctx);
+      }
+      const question = document.createElement('div');
+      question.className = 'harf-vote-question';
+      question.textContent = LANG === 'ar' ? 'هل توافق؟' : 'Do you agree?';
+      wrap.appendChild(question);
+      if (spec.deadline) {
+        const countdown = document.createElement('div');
+        countdown.className = 'harf-vote-countdown';
+        const tick = () => {
+          const left = Math.max(0, Math.ceil((spec.deadline - Date.now()) / 1000));
+          countdown.textContent = left;
+        };
+        tick();
+        const countdownInterval = setInterval(() => {
+          tick();
+          if (spec.deadline - Date.now() <= 0) clearInterval(countdownInterval);
+        }, 1000);
+        wrap.appendChild(countdown);
       }
       const row = document.createElement('div');
       row.className = 'harf-vote-row';
@@ -446,8 +418,8 @@ const Controller = (() => {
         });
         return b;
       };
-      row.appendChild(mk('accept', LANG === 'ar' ? 'يصح ✅' : 'ACCEPT', 'harf-vote-accept'));
-      row.appendChild(mk('reject', LANG === 'ar' ? 'ما يصح ❌' : 'REJECT', 'harf-vote-reject'));
+      row.appendChild(mk('accept', LANG === 'ar' ? 'نعم' : 'YES', 'harf-vote-accept'));
+      row.appendChild(mk('reject', LANG === 'ar' ? 'لا' : 'NO', 'harf-vote-reject'));
       wrap.appendChild(row);
       container.replaceChildren(wrap);
       scrollInputIntoView(wrap);
