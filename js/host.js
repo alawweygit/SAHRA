@@ -3709,10 +3709,12 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     while(playAgain && !window.__hypoxAbort) {
       playAgain = false;
       window.__hypoxPlayAgain = false;
-      if (!isFirstRound) resetReplayPresentation();
-      // Replay follows the same tutorial/start path and UI lifecycle as a
-      // first game. There is no separate reduced replay renderer anymore.
-      window.__hypoxSkipTutorial = false;
+      const isReplay = !isFirstRound;
+      if (isReplay) resetReplayPresentation();
+      // Play Again means exactly that: restart the same configured game
+      // immediately. The first run keeps its tutorial/START screen; replays
+      // skip it and begin round one automatically.
+      window.__hypoxSkipTutorial = isReplay;
       isFirstRound = false;
       players.forEach(p=>p.score=0);
       pickHost();

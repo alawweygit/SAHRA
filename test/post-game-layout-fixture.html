@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
+  <title>Post-game mobile layout fixture</title>
+</head>
+<body class="theme-dark phones-only-player">
+  <div id="app">
+    <div id="topbar" class="show">
+      <button id="topbarBack" style="visibility:hidden"></button>
+      <div id="roundPill">Turn 1 of 8</div>
+      <button id="menuBtn">☰</button>
+    </div>
+    <div class="screen active" id="scr-controller">
+      <div id="phoneSharedStage" class="phone-shared-stage">
+        <div class="hotseat">
+          <div class="avatar" style="background:#22d3ee">🐬</div>
+          <div class="pname">Pho</div>
+        </div>
+        <div class="wyr-reveal-block">
+          <div class="wyr-reveal-row">
+            <div class="wyr-reveal-q"><span class="wyr-reveal-b">One business-class trip per year</span></div>
+            <div class="wyr-reveal-predictors">
+              <div class="wyr-reveal-predictor correct"><div class="avatar" style="background:#34d399">🦾</div><div class="wyr-reveal-check">✓</div></div>
+              <div class="wyr-reveal-predictor wrong"><div class="avatar" style="background:#22d3ee">👾</div><div class="wyr-reveal-check">✗</div></div>
+              <div class="wyr-reveal-predictor correct"><div class="avatar" style="background:#34d399">🦾</div><div class="wyr-reveal-check">✓</div></div>
+              <div class="wyr-reveal-predictor wrong"><div class="avatar" style="background:#a78bfa">🤖</div><div class="wyr-reveal-check">✗</div></div>
+              <div class="wyr-reveal-predictor correct"><div class="avatar" style="background:#34d399">🦾</div><div class="wyr-reveal-check">✓</div></div>
+              <div class="wyr-reveal-predictor wrong"><div class="avatar" style="background:#a78bfa">🤖</div><div class="wyr-reveal-check">✗</div></div>
+              <div class="wyr-reveal-predictor correct"><div class="avatar" style="background:#34d399">🦾</div><div class="wyr-reveal-check">✓</div></div>
+            </div>
+          </div>
+          <div class="wyr-reveal-row">
+            <div class="wyr-reveal-q"><span class="wyr-reveal-b">Be the smartest person in the room</span></div>
+            <div class="wyr-reveal-predictors">
+              <div class="wyr-reveal-predictor correct"><div class="avatar" style="background:#22d3ee">👾</div><div class="wyr-reveal-check">✓</div></div>
+              <div class="wyr-reveal-predictor correct"><div class="avatar" style="background:#34d399">🦾</div><div class="wyr-reveal-check">✓</div></div>
+              <div class="wyr-reveal-predictor wrong"><div class="avatar" style="background:#a78bfa">🤖</div><div class="wyr-reveal-check">✗</div></div>
+              <div class="wyr-reveal-predictor correct"><div class="avatar" style="background:#34d399">🦾</div><div class="wyr-reveal-check">✓</div></div>
+              <div class="wyr-reveal-predictor wrong"><div class="avatar" style="background:#a78bfa">🤖</div><div class="wyr-reveal-check">✗</div></div>
+            </div>
+          </div>
+          <div class="wyr-reveal-row">
+            <div class="wyr-reveal-q"><span class="wyr-reveal-a">Know every language</span></div>
+            <div class="wyr-reveal-predictors">
+              <div class="wyr-reveal-predictor correct"><div class="avatar" style="background:#22d3ee">👾</div><div class="wyr-reveal-check">✓</div></div>
+              <div class="wyr-reveal-predictor correct"><div class="avatar" style="background:#34d399">🦾</div><div class="wyr-reveal-check">✓</div></div>
+              <div class="wyr-reveal-predictor wrong"><div class="avatar" style="background:#a78bfa">🤖</div><div class="wyr-reveal-check">✗</div></div>
+              <div class="wyr-reveal-predictor correct"><div class="avatar" style="background:#34d399">🦾</div><div class="wyr-reveal-check">✓</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="playerDock" class="docked">
+        <div id="phoneSharedHost" class="phone-shared-host hidden"></div>
+        <div id="ctrlArea"><div><button class="big-btn">Next Round</button></div></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

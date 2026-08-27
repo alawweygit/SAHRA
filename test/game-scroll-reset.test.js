@@ -28,7 +28,7 @@ if (config.includes('MutationObserver')) {
 
 // Pregame actions must exist before the first play-mode tap. Appending either
 // control during the tap changes layout at the exact moment iOS starts a gesture.
-const pregameStart = main.indexOf('function showPregame(mode)');
+const pregameStart = main.indexOf('function showPregame(');
 const pregameEnd = main.indexOf('/* ---- START GAME ---- */', pregameStart);
 const pregame = main.slice(pregameStart, pregameEnd);
 for (const id of ['id="pgStartBtn"', 'id="testModeBtn"']) {

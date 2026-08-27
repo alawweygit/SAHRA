@@ -42,11 +42,11 @@ if (winner.includes('window.__hypoxAbort = true')) {
 if (!run.includes("if(resultAction === 'again')")) {
   throw new Error('Play Again no longer loops through the shared game runner');
 }
-if (!run.includes('if (!isFirstRound) resetReplayPresentation()')) {
+if (!run.includes('if (isReplay) resetReplayPresentation()')) {
   throw new Error('Play Again does not clear the previous winner presentation');
 }
-if (!run.includes('window.__hypoxSkipTutorial = false')) {
-  throw new Error('Play Again does not use the same startup path as the first game');
+if (!run.includes('window.__hypoxSkipTutorial = isReplay')) {
+  throw new Error('Play Again does not skip the tutorial and restart automatically');
 }
 if (!host.includes('if (!final && currentRoundIsFinal) return')) {
   throw new Error('The final round still renders an extra generic score page');

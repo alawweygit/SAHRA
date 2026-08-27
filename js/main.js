@@ -804,7 +804,7 @@
   }
 
   /* ---- PREGAME: single page, no scroll ---- */
-  function showPregame(mode){
+  function showPregame(mode,{reuseRoom=false}={}){
     currentPregameMode=mode;currentGameMode=mode;currentViewKind='pregame';
     document.getElementById('pgStickyBar')?.remove(); // clean up from previous
     // Start AI preload immediately when user picks a game — maximizes loading time
@@ -823,6 +823,7 @@
       pregameBack.style.setProperty('visibility','visible');
       pregameBack.onclick=()=>{
         Audio_.sfx.blip();
+        if(reuseRoom){showPackPicker();return;}
         show('#scr-games');
         // Re-wire the back button for #scr-games (-> #scr-title) instead
         // of just hiding it with nothing to ever restore it -- same class
@@ -1015,13 +1016,15 @@
       }
       _sl.remove();
       startBtn.disabled=false;
-      startGameWithMode(selectedPlayMode,mode);
+      if(reuseRoom)startDirectGame(mode);
+      else startGameWithMode(selectedPlayMode,mode);
     };
 
     const backBtn=$('#backFromPregame');
     backBtn.textContent=T.back();
     backBtn.onclick=()=>{
       Audio_.sfx.blip();
+      if(reuseRoom){showPackPicker();return;}
       show('#scr-games');
       const tb=document.getElementById('topbarBack');
       if(tb){
@@ -1029,6 +1032,23 @@
         tb.onclick=()=>{Audio_.sfx.blip();$('#topbar').classList.remove('show');$('#roundPill').innerHTML='HYPOX';$('#roundPill').style.cssText='';show('#scr-title');};
       }
     };
+  }
+
+  function clearFinishedGameActions(){
+    const hostDock=document.getElementById('hostInputDock');
+    hostDock?.classList.remove('final-results-dock');
+    const hostAction=document.getElementById('hostDockAction');
+    if(hostAction){hostAction.innerHTML='';hostAction.classList.remove('dock-two-btn');}
+
+    const ctrl=document.getElementById('ctrlArea');
+    if(ctrl){ctrl.innerHTML='';ctrl.classList.add('hidden');}
+    const playerDock=document.getElementById('playerDock');
+    playerDock?.classList.remove('docked','results-commentary');
+    const controllerScreen=document.getElementById('scr-controller');
+    controllerScreen?.classList.remove('has-docked-footer');
+    controllerScreen?.style.removeProperty('--docked-footer-h');
+    const sharedHost=document.getElementById('phoneSharedHost');
+    if(sharedHost){sharedHost.innerHTML='';sharedHost.classList.add('hidden');}
   }
 
   /* ---- START GAME ---- */
@@ -1307,6 +1327,7 @@
 
   async function startDirectGame(gameMode){
     const runningNet=net;
+    clearFinishedGameActions();
     $('#scr-game')?.classList.remove('pack-picker-active');
     currentGameMode=gameMode;currentViewKind='game';saveNavigationState('scr-game');
     Audio_.stopMusic();await FX.wipe();
@@ -1337,6 +1358,7 @@
   async function showPackPicker(){
     const runningNet=net;
     currentViewKind='pack-picker';saveNavigationState('scr-game');
+    clearFinishedGameActions();
     Audio_.stopMusic();await FX.wipe();
     if(window.__hypoxAbort||!runningNet||net!==runningNet)return;
     Host.hideHost();
@@ -1367,7 +1389,9 @@
         err.style.cssText='position:fixed;bottom:4vmin;left:50%;transform:translateX(-50%);background:var(--pink);color:#fff;font-family:Fredoka One,sans-serif;font-size:18px;padding:12px 28px;border-radius:50px;z-index:50;animation:popIn .3s both';
         err.textContent=T.needPlayers();document.body.appendChild(err);setTimeout(()=>err.remove(),2200);return;
       }
-      Audio_.sfx.submit();await startDirectGame(mode);
+      Audio_.sfx.submit();
+      showHypoxHeader();
+      showPregame(mode,{reuseRoom:true});
     },{once:true}));
     document.getElementById('backToLobbyBtn')?.addEventListener('click',()=>{show('#scr-lobby');},{once:true});
   }
@@ -2542,6 +2566,7 @@
       }else if(state.phase==='packpicker'){
         // Game ended — host is showing next game picker
         gameActive=false;
+        clearFinishedGameActions();
         document.getElementById('hostGoneBanner')?.remove();
         if(window._hypoxHostGone){
           window._hypoxHostGone=false;
@@ -2675,6 +2700,7 @@
           resetScrollPositionAfterLayout();
         }
       }else if(state.phase==='gameinfo'){
+        clearFinishedGameActions();
         if(phonesOnly){
           // Show shared stage with tutorial, hide controller
           shared.classList.remove('hidden');
