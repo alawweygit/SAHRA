@@ -3478,16 +3478,18 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
           if (cwLeft <= 0) clearInterval(cwInterval);
         }, 1000);
 
-        // v133 — real bug: this fired on ANY submitted input, value
-        // unchecked. A bot's fallback garbage submission (or literally
-        // anything) was enough to force-finish the window almost
-        // instantly — that's what turned a real 4s window into what Ali
-        // saw as milliseconds. Only an actual 'challenge' should cut the
-        // window short now.
+        console.log('[HYPOX-DEBUG][harfchallenge] window starting', { otherPids, seconds: CHALLENGE_WINDOW_SECONDS, startedAt: Date.now() });
         net.onEachInput((pid, v) => {
+          console.log('[HYPOX-DEBUG][harfchallenge] input received', pid, v, 'at', Date.now());
           if (v === 'challenge' && window.__hypoxForceCollect) window.__hypoxForceCollect();
         });
+        const _cwStart = Date.now();
         const cwResult = await net.collect(cwPhaseId, { type: 'harfchallenge' }, otherPids, CHALLENGE_WINDOW_SECONDS);
+        console.log('[HYPOX-DEBUG][harfchallenge] window resolved', {
+          elapsedMs: Date.now() - _cwStart,
+          expectedSeconds: CHALLENGE_WINDOW_SECONDS,
+          result: cwResult,
+        });
         net.onEachInput(null);
         clearInterval(cwInterval);
         challenged = otherPids.some(pid => val(cwResult, pid) === 'challenge');
@@ -3782,6 +3784,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         // during e.g. a hot-seat round (where only one target is answering)
         // must not cut off that target's still-pending answer.
         if (window.__hypoxDropCollectPid) {
+          console.log('[HYPOX-DEBUG] dropping disconnected pid from any active collection', pid, 'at', Date.now());
           window.__hypoxDropCollectPid(pid);
         }
       });
