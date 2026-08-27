@@ -1463,6 +1463,14 @@
       }));}catch(e){}
     }
     try{sessionStorage.removeItem('hypox_session');localStorage.removeItem('hypox_player_session');sessionStorage.removeItem(NAV_STATE_KEY);}catch(e){}
+    // Actually null the globals (not just the local snapshots above) before
+    // the reload below -- window.location.href triggers the same global
+    // beforeunload/pagehide listeners that call saveNavigationState() on
+    // ANY unload, and that handler reads these live globals. Leaving them
+    // intact meant it silently re-saved a fresh, stale nav-state snapshot
+    // (still pointing at this room) right before the reload landed, undoing
+    // the clear above a fraction of a second later.
+    net=null;currentRoomCode=null;gameActive=false;currentViewKind='title';
     // Race close() against a timeout — on a connection that's been open for
     // hours, Firebase's onDisconnect/remove calls can hang indefinitely on a
     // stale socket. Without this, the await below never resolves and the
