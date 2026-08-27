@@ -2716,8 +2716,12 @@ body.hide-tracker .status-row{display:none!important;}
 .harf-reveal-by{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--text2);}
 /* v131 — challenge-window hint (on stage) + the CHALLENGE button (phone) */
 .harf-challenge-hint{margin-top:1vmin;font-size:clamp(12px,2.4vw,15px);color:var(--text3);opacity:0.85;animation:fadeSlideUp 0.4s 0.3s both;}
+.ctrl-harfchallenge{max-width:340px;margin:0 auto;}
+.ctrl-harfchallenge>div{display:flex;gap:10px;width:100%;}
+.ctrl-harfchallenge .harf-challenge-btn,.ctrl-harfchallenge .harf-agree-btn{flex:1;width:auto;max-width:none;}
 .harf-challenge-btn{background:linear-gradient(135deg,var(--pink,#f472b6),#dc2662);width:100%;max-width:280px;}
-.harf-challenge-btn.picked{opacity:0.6;filter:grayscale(0.4);}
+.harf-agree-btn{background:linear-gradient(135deg,#4ade80,#16a34a);}
+.harf-challenge-btn.picked,.harf-agree-btn.picked{opacity:0.6;filter:grayscale(0.4);}
 
 /* failure */
 .harf-fail-label{font-family:'Fredoka One',sans-serif;color:#ef4444;

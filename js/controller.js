@@ -384,16 +384,30 @@ const Controller = (() => {
     // the answer itself is already shown on the shared stage above.
     if (spec.type === 'harfchallenge') {
       wrap.classList.add('ctrl-harfchallenge');
-      const btn = document.createElement('button');
-      btn.className = 'big-btn harf-challenge-btn';
-      btn.textContent = LANG === 'ar' ? '⚑ اعتراض' : '⚑ CHALLENGE';
-      btn.addEventListener('click', () => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:10px;width:100%;';
+      const agreeBtn = document.createElement('button');
+      agreeBtn.className = 'big-btn harf-agree-btn';
+      agreeBtn.textContent = LANG === 'ar' ? '✓ أوافق' : '✓ Agree';
+      const disagreeBtn = document.createElement('button');
+      disagreeBtn.className = 'big-btn harf-challenge-btn';
+      disagreeBtn.textContent = LANG === 'ar' ? '✗ لا أوافق' : '✗ Disagree';
+      const lockBoth = (picked) => {
+        agreeBtn.disabled = true; disagreeBtn.disabled = true;
+        picked.classList.add('picked');
+      };
+      agreeBtn.addEventListener('click', () => {
         Audio_.sfx.vote && Audio_.sfx.vote();
-        btn.disabled = true;
-        btn.classList.add('picked');
+        lockBoth(agreeBtn);
+        onSubmit('agree');
+      }, { once: true });
+      disagreeBtn.addEventListener('click', () => {
+        Audio_.sfx.vote && Audio_.sfx.vote();
+        lockBoth(disagreeBtn);
         onSubmit('challenge');
       }, { once: true });
-      wrap.appendChild(btn);
+      row.appendChild(agreeBtn); row.appendChild(disagreeBtn);
+      wrap.appendChild(row);
       container.replaceChildren(wrap);
       scrollInputIntoView(wrap);
       return;
