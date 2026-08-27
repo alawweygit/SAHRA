@@ -1256,8 +1256,18 @@ const Host = (() => {
       'شنو [NAME] ما يقوله لنا؟',
     ];
 
-    const prompts = LANG === 'ar' ? PROMPTS_AR : PROMPTS_EN;
     const shuffledPlayers = shuffle(players.slice());
+    const fallbackPrompts = LANG === 'ar' ? PROMPTS_AR : PROMPTS_EN;
+    let prompts = [];
+    try {
+      const generated = await Content.get('interrogation', LANG, shuffledPlayers.length);
+      prompts = (generated || []).map(item => item && item.q).filter(q => typeof q === 'string' && q.trim());
+    } catch (e) {
+      console.error('[HYPOX] interrogation content failed:', e.message);
+    }
+    // AI prompts may be written generically. Make the subject placeholder
+    // explicit so every question still reads naturally in hot-seat mode.
+    if (!prompts.length) prompts = fallbackPrompts;
     const usedPromptIdxs = new Set();
 
     for (let r = 0; r < shuffledPlayers.length; r++) {
@@ -1271,7 +1281,10 @@ const Host = (() => {
       do { promptIdx = Math.floor(Math.random() * prompts.length); } while (usedPromptIdxs.has(promptIdx) && usedPromptIdxs.size < prompts.length);
       usedPromptIdxs.add(promptIdx);
       const _hotName = hotSeat.name.charAt(0).toUpperCase() + hotSeat.name.slice(1);
-      const promptText = prompts[promptIdx].replace(/\[NAME\]/g, _hotName);
+      let promptText = prompts[promptIdx].replace(/\[NAME\]|\{name\}/gi, _hotName);
+      if (!promptText.includes(_hotName)) {
+        promptText = LANG === 'ar' ? `${promptText} — ${_hotName}` : `${promptText} — ${_hotName}`;
+      }
 
       // Phase 1: Hot seat announcement — WYR style
       await FX.wipe();

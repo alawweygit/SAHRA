@@ -4,9 +4,8 @@
    If unset or the request fails, local packs are used. */
 
 const PACKS = {
-  /* ---- HARFHUNT: category strings only. Deliberately curated, NOT
-     AI-generated (see Content._load — harfhunt is never sent to the AI
-     backend, so it always falls through to this static pool). Broad,
+  /* ---- HARFHUNT: category strings only. The AI backend can extend this
+     pool; these curated categories remain the offline/error fallback. Broad,
      social categories with many plausible letters, so a round doesn't die
      to an unlucky/impossible category. ---- */
   harfhunt: {
@@ -354,8 +353,10 @@ const Content = (() => {
     const flavor = window.HYPOX_STATE && window.HYPOX_STATE.flavor;
     return flavor === 'arab' ? 'mena' : null;
   };
+  const cachePrefix = (mode, lang, region) =>
+    [mode, lang, region || 'global', window._hypoxSession || '0'].join(':');
   const cacheKey = (mode, lang, count, region) =>
-    [mode, lang, count, region || 'global', window._hypoxSession || '0'].join(':');
+    `${cachePrefix(mode, lang, region)}:${count}`;
   // Clear preload cache on game start (called from host.js via window._clearContentCache)
   window._clearContentCache = () => _preloadCache.clear();
 
@@ -379,6 +380,20 @@ const Content = (() => {
       _preloadCache.delete(key);
       return await preloaded; // must await — preloaded is a Promise
     }
+    // A few modes need a player-dependent quantity (for example WYR needs
+    // more prompts than the generic pregame preload). Reuse what is already
+    // loading, then fetch only the missing remainder instead of throwing the
+    // preload away and starting another full request from zero.
+    const prefix = `${cachePrefix(mode, lang, resolvedRegion)}:`;
+    const compatibleKey = [..._preloadCache.keys()].find(candidate => candidate.startsWith(prefix));
+    if (compatibleKey) {
+      const preloaded = _preloadCache.get(compatibleKey);
+      _preloadCache.delete(compatibleKey);
+      const first = await preloaded;
+      if (first.length >= count) return first.slice(0, count);
+      const rest = await this._load(mode, lang, count - first.length, resolvedRegion);
+      return [...first, ...rest].slice(0, count);
+    }
     return this._load(mode, lang, count, resolvedRegion);
   },
 
@@ -392,7 +407,7 @@ const Content = (() => {
       let timeoutId;
       try {
         const controller = new AbortController();
-        timeoutId = setTimeout(() => controller.abort(), 60000); // 60s max wait for AI
+        timeoutId = setTimeout(() => controller.abort(), 30000); // keep game startup responsive
         const res = await fetch(cfg.aiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
