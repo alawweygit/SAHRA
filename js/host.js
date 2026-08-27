@@ -3478,18 +3478,17 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
           if (cwLeft <= 0) clearInterval(cwInterval);
         }, 1000);
 
-        console.log('[HYPOX-DEBUG][harfchallenge] window starting', { otherPids, seconds: CHALLENGE_WINDOW_SECONDS, startedAt: Date.now() });
         net.onEachInput((pid, v) => {
-          console.log('[HYPOX-DEBUG][harfchallenge] input received', pid, v, 'at', Date.now());
           if (v === 'challenge' && window.__hypoxForceCollect) window.__hypoxForceCollect();
         });
-        const _cwStart = Date.now();
-        const cwResult = await net.collect(cwPhaseId, { type: 'harfchallenge' }, otherPids, CHALLENGE_WINDOW_SECONDS);
-        console.log('[HYPOX-DEBUG][harfchallenge] window resolved', {
-          elapsedMs: Date.now() - _cwStart,
-          expectedSeconds: CHALLENGE_WINDOW_SECONDS,
-          result: cwResult,
-        });
+        // net.collect takes milliseconds. Passing the seven-second constant
+        // directly made this window resolve after roughly 7 ms.
+        const cwResult = await net.collect(
+          cwPhaseId,
+          { type: 'harfchallenge' },
+          otherPids,
+          CHALLENGE_WINDOW_SECONDS * 1000,
+        );
         net.onEachInput(null);
         clearInterval(cwInterval);
         challenged = otherPids.some(pid => val(cwResult, pid) === 'challenge');
@@ -3784,7 +3783,6 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         // during e.g. a hot-seat round (where only one target is answering)
         // must not cut off that target's still-pending answer.
         if (window.__hypoxDropCollectPid) {
-          console.log('[HYPOX-DEBUG] dropping disconnected pid from any active collection', pid, 'at', Date.now());
           window.__hypoxDropCollectPid(pid);
         }
       });
