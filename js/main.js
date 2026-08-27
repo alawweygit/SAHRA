@@ -679,7 +679,19 @@
     // Clear saved nav state when opening via QR/link so spinner never blocks
     if(urlCode){try{sessionStorage.removeItem(NAV_STATE_KEY);}catch(e){}}
     const savedNav=readNavigationState();
-    if(urlCode&&savedNav?.roomCode!==urlCode.toUpperCase()){$('#joinCode').value=urlCode.toUpperCase();showHypoxHeader();paintJoin();show('#scr-join');}
+    if(urlCode&&savedNav?.roomCode!==urlCode.toUpperCase()){
+      $('#joinCode').value=urlCode.toUpperCase();showHypoxHeader();paintJoin();show('#scr-join');
+      // Strip ?room= from the URL after using it once, so a plain refresh of
+      // this same tab doesn't perpetually re-trigger the invite-link flow --
+      // without this, the Join screen kept reappearing on every refresh as
+      // long as the URL still carried the parameter, regardless of any
+      // session/nav-state fixes (this reads straight from the URL, every load).
+      try{
+        const _u=new URL(window.location.href);
+        _u.searchParams.delete('room');
+        window.history.replaceState(null,'',_u.toString());
+      }catch(e){}
+    }
     // Player rejoin banner — shows if tab was closed but localStorage has a session
     const _ps=JSON.parse(localStorage.getItem('hypox_player_session')||'null');
     const _noSession=!sessionStorage.getItem('hypox_session');
