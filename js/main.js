@@ -37,6 +37,10 @@
   let selectedAvatar=AVATARS_LIST[0];
   let _ppDismiss=null, _avatarCallback=null, _avatarContext=null;
   let gameActive=false, currentRoomCode=null;
+  // True only while the host is choosing another game for the existing
+  // room.  The same colourful home picker is reused, but its card clicks
+  // preserve the current network session instead of creating a new room.
+  let retainedRoomPickerActive=false;
   let _menuScrollY=0;
   if('scrollRestoration' in history)history.scrollRestoration='manual';
 
@@ -765,21 +769,9 @@
     const joinBtn=$('#joinBtn');
     if(joinBtn){joinBtn.textContent=T.joinGame();joinBtn.onclick=()=>{Audio_.sfx.blip();showHypoxHeader();show('#scr-join');paintJoin();};}
     const hstart=$('#heroStart');
-    if(hstart){hstart.textContent=LANG==='ar'?'▶ ابدأ لعبة':'START A GAME ▶';hstart.onclick=()=>{Audio_.sfx.pop();$('#roundPill').innerHTML='<span class="logo-letters display" style="justify-content:center;gap:3px;font-size:clamp(18px,4vw,26px)"><span class="logo-lt" style="--i:0">H</span><span class="logo-lt" style="--i:1">Y</span><span class="logo-lt" style="--i:2">P</span><span class="logo-lt" style="--i:3">O</span><span class="logo-lt" style="--i:4">X</span></span>';$('#roundPill').style.visibility='visible';$('#roundPill').style.background='none';$('#roundPill').style.border='none';$('#roundPill').style.boxShadow='none';$('#topbar').classList.add('show');const tb=document.getElementById('topbarBack');
-      if(tb){
-        tb.style.setProperty('visibility','visible');
-        tb.onclick=()=>{Audio_.sfx.blip();$('#topbar').classList.remove('show');$('#roundPill').innerHTML='HYPOX';$('#roundPill').style.cssText='';show('#scr-title');};
-      }
-      const bfgEl=$('#backFromGames');if(bfgEl)bfgEl.style.display='none';
-      show('#scr-games');};}
+    if(hstart){hstart.textContent=LANG==='ar'?'▶ ابدأ لعبة':'START A GAME ▶';hstart.onclick=()=>{Audio_.sfx.pop();openGamePicker({reuseRoom:false});};}
     const hstart2=$('#heroStart2');
-    if(hstart2){hstart2.textContent=LANG==='ar'?'▶ ابدأ لعبة':'START A GAME ▶';hstart2.onclick=()=>{Audio_.sfx.pop();$('#roundPill').innerHTML='<span class="logo-letters display" style="justify-content:center;gap:3px;font-size:clamp(18px,4vw,26px)"><span class="logo-lt" style="--i:0">H</span><span class="logo-lt" style="--i:1">Y</span><span class="logo-lt" style="--i:2">P</span><span class="logo-lt" style="--i:3">O</span><span class="logo-lt" style="--i:4">X</span></span>';$('#roundPill').style.visibility='visible';$('#roundPill').style.background='none';$('#roundPill').style.border='none';$('#roundPill').style.boxShadow='none';$('#topbar').classList.add('show');const tb=document.getElementById('topbarBack');
-      if(tb){
-        tb.style.setProperty('visibility','visible');
-        tb.onclick=()=>{Audio_.sfx.blip();$('#topbar').classList.remove('show');$('#roundPill').innerHTML='HYPOX';$('#roundPill').style.cssText='';show('#scr-title');};
-      }
-      const bfgEl=$('#backFromGames');if(bfgEl)bfgEl.style.display='none';
-      show('#scr-games');};}
+    if(hstart2){hstart2.textContent=LANG==='ar'?'▶ ابدأ لعبة':'START A GAME ▶';hstart2.onclick=()=>{Audio_.sfx.pop();openGamePicker({reuseRoom:false});};}
     const LS={howTitle:['HOW IT WORKS','كيف تلعب؟'],how1:['📺 TV + Phones','📺 شاشة + جوالات'],how1d:['Host opens on laptop or TV, shares screen. Everyone joins by QR or link. Phones = controllers, TV = the show.','افتح على اللابتوب أو التلفاز وشارك الشاشة. الكل يدخل عن طريق QR أو رابط. الجوالات للإجابة، التلفاز للعرض.'],how2:['📱 Phones Only','📱 جوالات فقط'],how2d:['No TV? No problem. Everyone plays on their own phone. Share the room code and you are in.','ما في تلفاز؟ لا مشكلة. الكل يلعب من جواله. شارك الكود وابدأ.'],how3:['🤝 One Device','🤝 جهاز واحد'],how3d:['Pass one phone around the table. No internet needed. Perfect for road trips or anywhere.','مرّر جوال واحد على الجميع. بدون إنترنت. مثالية في الرحلات وأي مكان.'],previewTitle:['THE GAMES. INFINITE CHAOS.','الألعاب. فوضى لا تنتهي.'],prev1:['LIE DETECTOR','كاشف الكذب'],prev1d:['Spot the lie. Fool your friends.','اكتشف الكذبة. اخدع ربعك.'],prev2:['WOULD YOU RATHER','يا هذا يا هذا'],prev2d:['How well do you know them?','شكثر تعرفهم صح؟'],prev3:['ROAST BATTLE','حرب القصايد'],prev3d:['One-liner battle. Crowd decides.','مواجهة بسطر واحد. الجمهور يحكم.'],prev4:['PIN POINT','حدد المكان'],prev4d:['Drop your pin. Closest wins.','حط دبوسك. الأقرب يفوز.'],prev5:['EMOJI RIDDLE','فزورة الإيموجي'],prev5d:['Decode the emojis. Beat the clock.','فك رموز الإيموجي قبل غيرك.'],prev6:['TIME MACHINE','آلة الزمن'],prev6d:['Guess the year. Closest wins.','خمّن السنة. الأقرب يفوز.'],proofTitle:['WHAT PEOPLE SAY','شو يقولون عنا؟'],proof1:['"We played for 3 hours straight. Nobody wanted to stop."','"لعبنا ٣ ساعات متواصلة. ما أحد أبى يوقف."'],proof2:['"Finally a party game that actually works in Arabic. The Gulf humor is spot on."','"أخيراً لعبة سهرة تشتغل بالعربي. الروح الخليجية موجودة."'],proof3:['"No app, no login, no drama. Just scan and play."','"بدون تطبيق، بدون تسجيل. بس امسح والعب."'],finalTitle:['READY TO START?','جاهز تبدأ؟']};
     Object.entries(LS).forEach(([id,[en,ar]])=>{const el=document.getElementById(id);if(el)el.textContent=LANG==='ar'?ar:en;});
     const tp=document.querySelectorAll('.trust-pill');
@@ -791,8 +783,46 @@
     $$('.title-game-card').forEach(card=>card.addEventListener('click',()=>{
       Audio_.sfx.pop();Audio_.unlock();
       const m=card.dataset.mode;
+      if(retainedRoomPickerActive){
+        const minP=MODE_MIN[m]||2;
+        if(players.length<minP){
+          Audio_.sfx.buzzer();
+          const err=document.createElement('div');
+          err.className='picker-player-error';
+          err.textContent=T.needPlayers();
+          document.body.appendChild(err);
+          setTimeout(()=>err.remove(),2200);
+          return;
+        }
+        showPregame(m,{reuseRoom:true});
+        return;
+      }
       showPregame(m);
     }));
+  }
+
+  // One picker, one design. The post-game route deliberately reuses the
+  // exact same #scr-games surface as START A GAME; reuseRoom changes only
+  // what happens after a card is selected, never what the player sees.
+  function openGamePicker({reuseRoom=false}={}){
+    retainedRoomPickerActive=reuseRoom;
+    showHypoxHeader();
+    show('#scr-games');
+    currentViewKind=reuseRoom?'pack-picker':'games';
+    saveNavigationState('scr-games');
+    const back=document.getElementById('topbarBack');
+    if(back){
+      back.style.setProperty('visibility','visible');
+      back.onclick=()=>{
+        Audio_.sfx.blip();
+        $('#topbar').classList.remove('show');
+        $('#roundPill').innerHTML='HYPOX';
+        $('#roundPill').style.cssText='';
+        show('#scr-title');
+      };
+    }
+    const bfg=document.getElementById('backFromGames');
+    if(bfg)bfg.style.display='none';
   }
 
   function paintJoin(){
@@ -1049,6 +1079,12 @@
     controllerScreen?.style.removeProperty('--docked-footer-h');
     const sharedHost=document.getElementById('phoneSharedHost');
     if(sharedHost){sharedHost.innerHTML='';sharedHost.classList.add('hidden');}
+    const sharedStage=document.getElementById('phoneSharedStage');
+    if(sharedStage){
+      sharedStage.innerHTML='';
+      sharedStage.removeAttribute('data-scene-id');
+      sharedStage.removeAttribute('data-shared-ready');
+    }
   }
 
   /* ---- START GAME ---- */
@@ -1327,6 +1363,7 @@
 
   async function startDirectGame(gameMode){
     const runningNet=net;
+    retainedRoomPickerActive=false;
     clearFinishedGameActions();
     $('#scr-game')?.classList.remove('pack-picker-active');
     currentGameMode=gameMode;currentViewKind='game';saveNavigationState('scr-game');
@@ -1362,38 +1399,13 @@
     Audio_.stopMusic();await FX.wipe();
     if(window.__hypoxAbort||!runningNet||net!==runningNet)return;
     Host.hideHost();
-    show('#scr-game');gameActive=true;document.getElementById('topbarBack')?.style.setProperty('visibility','hidden');
-    $('#scr-game')?.classList.add('pack-picker-active');
-    $('#roundPill').textContent=T.nextGame();
-    const modeNamesObj=t('mode_names')||{};
-    const modeTagsObj=t('mode_taglines')||{};
-    Host.scene(`
-      <div class="lobby-title display">${T.nextGame()}</div>
-      <div class="pack-grid">
-        ${Object.keys(MODE_ICONS).map((m,i)=>`
-          <button class="pack-card" data-mode="${m}" style="animation-delay:${i*.07}s">
-            <div class="pack-icon">${MODE_ICONS[m]}</div>
-            <div class="pack-name display">${esc(modeNamesObj[m]||m)}</div>
-            <div class="pack-tag">${esc(modeTagsObj[m]||'')}</div>
-            <div class="pack-min">👥 ${T.minPlayers(MODE_MIN[m])}</div>
-          </button>`).join('')}
-      </div>
-      <button class="bar-btn" id="backToLobbyBtn" style="margin-top:2vmin">${T.backLobby()}</button>`);
+    retainedRoomPickerActive=true;
+    gameActive=true;
+    $('#scr-game')?.classList.remove('pack-picker-active');
+    // Keep the room/session alive, but render the exact home picker.
+    openGamePicker({reuseRoom:true});
     Audio_.unlock();
     net.setState({phase:'packpicker',msg:T.watchScreen()});
-    $$('.pack-card').forEach(btn=>btn.addEventListener('click',async()=>{
-      const mode=btn.dataset.mode,minP=MODE_MIN[mode]||2;
-      if(players.length<minP){
-        Audio_.sfx.buzzer();
-        const err=document.createElement('div');
-        err.style.cssText='position:fixed;bottom:4vmin;left:50%;transform:translateX(-50%);background:var(--pink);color:#fff;font-family:Fredoka One,sans-serif;font-size:18px;padding:12px 28px;border-radius:50px;z-index:50;animation:popIn .3s both';
-        err.textContent=T.needPlayers();document.body.appendChild(err);setTimeout(()=>err.remove(),2200);return;
-      }
-      Audio_.sfx.submit();
-      showHypoxHeader();
-      showPregame(mode,{reuseRoom:true});
-    },{once:true}));
-    document.getElementById('backToLobbyBtn')?.addEventListener('click',()=>{show('#scr-lobby');},{once:true});
   }
 
   /* ---- MENU ---- */
@@ -2567,6 +2579,13 @@
         // Game ended — host is showing next game picker
         gameActive=false;
         clearFinishedGameActions();
+        if(phonesOnly){
+          setSharedStageHidden(false);
+          shared.innerHTML=`<div class="picker-wait-screen"><div class="picker-wait-icon">🎮</div><div class="display">${LANG==='ar'?'المضيف يختار اللعبة التالية…':'Host is choosing the next game…'}</div><div>${LANG==='ar'?'أنت ما زلت داخل الغرفة':'You are still in the room'}</div></div>`;
+        }else{
+          ctrl.classList.remove('hidden');
+          ctrl.innerHTML=`<div class="ctrl-wrap"><div class="ctrl-waiting"><span class="dots"><i></i><i></i><i></i></span><span>${LANG==='ar'?'المضيف يختار اللعبة التالية…':'Host is choosing the next game…'}</span></div></div>`;
+        }
         document.getElementById('hostGoneBanner')?.remove();
         if(window._hypoxHostGone){
           window._hypoxHostGone=false;

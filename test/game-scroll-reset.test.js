@@ -50,8 +50,8 @@ for (const required of [
 ]) {
   if (!css.includes(required)) throw new Error(`mobile pack-picker scrolling is missing: ${required}`);
 }
-if (!main.includes("classList.add('pack-picker-active')")) {
-  throw new Error('the game picker never enables its scrolling layout');
+if (!main.includes("openGamePicker({reuseRoom:true})") || !main.includes("show('#scr-games')")) {
+  throw new Error('the retained-room game picker does not use the normal scrolling game screen');
 }
 if (!main.includes("classList.remove('pack-picker-active')")) {
   throw new Error('normal game scenes do not restore their centered layout');

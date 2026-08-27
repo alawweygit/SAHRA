@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <link rel="stylesheet" href="../css/style.css">
+  <title>Blend In input fixture</title>
+</head>
+<body class="theme-dark phones-only-player">
+  <div class="phones-host-input-overlay" style="position:fixed;inset:0;z-index:9999;display:flex;pointer-events:none">
+    <div id="blendPanel" class="phones-host-fullscreen-input-panel" style="pointer-events:auto;background:var(--bg);width:100%;height:100%;overflow-y:auto;padding:90px 12px 12px"></div>
+  </div>
+  <script src="../js/i18n.js"></script><script src="../js/audio.js"></script><script src="../js/controller.js"></script>
+  <script>Controller.render(document.getElementById('blendPanel'),{type:'text',title:'Answer',context:'What makes someone memorable in a room?',placeholder:'…',maxLen:40,fullscreenInput:true},()=>{});</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
+  <title>WYR host results fixture</title>
+</head>
+<body class="theme-dark">
+  <div id="app">
+    <div id="topbar" class="show"><div id="roundPill">Turn 1 of 4</div><button id="menuBtn">☰</button></div>
+    <div class="screen active" id="scr-game">
+      <div id="hostStage">
+        <div class="hotseat"><div class="avatar" style="background:#f472b6">🦊</div><div class="pname">Pho</div></div>
+        <div class="wyr-reveal-block">
+          <div class="wyr-reveal-row"><div class="wyr-reveal-q"><span class="wyr-reveal-b">Never know what anyone thinks</span></div><div class="wyr-reveal-predictors"><div class="wyr-reveal-predictor correct"><div class="avatar">👾</div><div class="wyr-reveal-check">✓</div></div><div class="wyr-reveal-predictor correct"><div class="avatar">🐙</div><div class="wyr-reveal-check">✓</div></div><div class="wyr-reveal-predictor wrong"><div class="avatar">👾</div><div class="wyr-reveal-check">✗</div></div></div></div>
+          <div class="wyr-reveal-row"><div class="wyr-reveal-q"><span class="wyr-reveal-b">Play every instrument perfectly</span></div><div class="wyr-reveal-predictors"><div class="wyr-reveal-predictor wrong"><div class="avatar">👾</div><div class="wyr-reveal-check">✗</div></div><div class="wyr-reveal-predictor correct"><div class="avatar">🐙</div><div class="wyr-reveal-check">✓</div></div><div class="wyr-reveal-predictor wrong"><div class="avatar">👾</div><div class="wyr-reveal-check">✗</div></div></div></div>
+          <div class="wyr-reveal-row"><div class="wyr-reveal-q"><span class="wyr-reveal-b">Only MacBooks forever</span></div><div class="wyr-reveal-predictors"><div class="wyr-reveal-predictor correct"><div class="avatar">👾</div><div class="wyr-reveal-check">✓</div></div><div class="wyr-reveal-predictor correct"><div class="avatar">🐙</div><div class="wyr-reveal-check">✓</div></div><div class="wyr-reveal-predictor wrong"><div class="avatar">👾</div><div class="wyr-reveal-check">✗</div></div></div></div>
+        </div>
+      </div>
+    </div>
+    <div id="hostInputDock" class="host-input-dock"><div id="hostDockAction"><button class="big-btn">Next Round</button></div></div>
+  </div>
+  <script>document.documentElement.style.setProperty('--host-dock-h',document.getElementById('hostInputDock').offsetHeight+'px')</script>
+</body>
+</html>

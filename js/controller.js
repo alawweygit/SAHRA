@@ -21,17 +21,40 @@ const Controller = (() => {
         const vh = window.innerHeight || document.documentElement.clientHeight;
         // Only act when the card actually starts below the visible area.
         if (r.top > vh * 0.75) {
-          wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Do not smooth-scroll a newly rendered form. On iOS Safari a tap
+          // made while that animation is still moving is consumed as a
+          // scroll gesture, so the textarea often needs two or three taps
+          // before the keyboard opens. An immediate reposition is stable
+          // before the player can tap.
+          wrap.scrollIntoView({ behavior: 'auto', block: 'center' });
         }
       } catch (e) { /* non-fatal: scrolling is a nicety, never break input */ }
     };
     requestAnimationFrame(() => requestAnimationFrame(run));
   }
 
+  // Make every shared text control claim focus on the first deliberate tap.
+  // Pointer/touch start is still a direct user gesture on iOS, so it can
+  // open the keyboard; the click fallback covers desktop and older browsers.
+  function makeTextInputResponsive(input) {
+    if (!input) return;
+    const focusNow = () => {
+      if (input.disabled || document.activeElement === input) return;
+      try { input.focus({ preventScroll: true }); }
+      catch (e) { input.focus(); }
+    };
+    // Focus at pointer-down, before iOS can reinterpret the gesture as a
+    // scroll. The click fallback covers keyboards and older browsers.
+    input.addEventListener('pointerdown', focusNow, { passive: true });
+    input.addEventListener('touchstart', focusNow, { passive: true });
+    input.addEventListener('click', focusNow);
+  }
+
   function render(container, spec, onSubmit) {
     if (!container) return;
     const wrap = document.createElement('div');
     wrap.className = 'ctrl-wrap';
+    if (spec.type === 'text' || spec.type === 'multitext') wrap.classList.add('ctrl-text-card');
     if (spec.type === 'choice' || spec.type === 'higherlow' || spec.type === 'wyr-multi') {
       wrap.classList.add('ctrl-choice-card');
     }
@@ -129,6 +152,7 @@ const Controller = (() => {
         ta.maxLength = spec.maxLen || 80;
         ta.rows = 1;
         ta.autocomplete = 'off';
+        makeTextInputResponsive(ta);
         ta.style.borderColor = f.lie ? 'var(--pink)' : 'var(--green)';
         ta.style.borderWidth = '2px';
         row.appendChild(ta);
@@ -433,6 +457,7 @@ const Controller = (() => {
       ta.maxLength = spec.maxLen || 80;
       ta.rows = (spec.numeric || spec.compactRebus) ? 1 : 3;
       ta.autocomplete = 'off';
+      makeTextInputResponsive(ta);
       if (spec.numeric) {
         ta.inputMode = 'numeric';
         ta.classList.add('ctrl-input-year');
