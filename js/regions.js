@@ -48,6 +48,78 @@ const REGION_PACKS = {
         { q: 'أي بحر يحدّ عُمان من الجنوب الشرقي؟', options: ['البحر الأحمر', 'بحر العرب', 'بحر قزوين', 'المتوسط'], correct: 1 },
       ],
     },
+    year: {
+      en: [
+        { q: 'Dubai\'s Burj Khalifa officially opened', y: 2010 },
+        { q: 'Saudi Arabia allowed women to drive', y: 2018 },
+        { q: 'The UAE was founded as a union of emirates', y: 1971 },
+        { q: 'Qatar hosted the FIFA World Cup', y: 2022 },
+        { q: 'Oman\'s Sultan Qaboos began his reign', y: 1970 },
+        { q: 'The GCC (Gulf Cooperation Council) was founded', y: 1981 },
+      ],
+      ar: [
+        { q: 'برج خليفة في دبي افتُتح رسمياً', y: 2010 },
+        { q: 'السعودية سمحت للمرأة بقيادة السيارة', y: 2018 },
+        { q: 'الإمارات تأسست كاتحاد إمارات', y: 1971 },
+        { q: 'قطر استضافت كأس العالم لكرة القدم', y: 2022 },
+        { q: 'السلطان قابوس بدأ حكمه في عُمان', y: 1970 },
+        { q: 'مجلس التعاون الخليجي تأسس', y: 1981 },
+      ],
+    },
+    flaghunt: {
+      en: [
+        { flag: '🇴🇲', options: ['Yemen', 'Oman', 'UAE', 'Qatar'], correct: 1 },
+        { flag: '🇶🇦', options: ['Bahrain', 'UAE', 'Qatar', 'Kuwait'], correct: 2 },
+        { flag: '🇧🇭', options: ['Bahrain', 'Qatar', 'Kuwait', 'Oman'], correct: 0 },
+        { flag: '🇱🇧', options: ['Syria', 'Lebanon', 'Jordan', 'Iraq'], correct: 1 },
+        { flag: '🇯🇴', options: ['Jordan', 'Syria', 'Lebanon', 'Palestine'], correct: 0 },
+        { flag: '🇹🇳', options: ['Algeria', 'Libya', 'Tunisia', 'Morocco'], correct: 2 },
+      ],
+      ar: [
+        { flag: '🇴🇲', options: ['اليمن', 'عُمان', 'الإمارات', 'قطر'], correct: 1 },
+        { flag: '🇶🇦', options: ['البحرين', 'الإمارات', 'قطر', 'الكويت'], correct: 2 },
+        { flag: '🇧🇭', options: ['البحرين', 'قطر', 'الكويت', 'عُمان'], correct: 0 },
+        { flag: '🇱🇧', options: ['سوريا', 'لبنان', 'الأردن', 'العراق'], correct: 1 },
+        { flag: '🇯🇴', options: ['الأردن', 'سوريا', 'لبنان', 'فلسطين'], correct: 0 },
+        { flag: '🇹🇳', options: ['الجزائر', 'ليبيا', 'تونس', 'المغرب'], correct: 2 },
+      ],
+    },
+    higherlow: {
+      en: [
+        { q: 'How many floors does the Burj Khalifa have?', n: 163, unit: 'floors' },
+        { q: 'How many emirates make up the UAE?', n: 7, unit: 'emirates' },
+        { q: 'What year did the GCC form?', n: 1981, unit: 'year' },
+        { q: 'How many countries border Saudi Arabia?', n: 8, unit: 'countries' },
+        { q: 'How tall is the Kingdom Tower in Jeddah, in meters?', n: 267, unit: 'meters' },
+        { q: 'What year did Qatar host the World Cup?', n: 2022, unit: 'year' },
+      ],
+      ar: [
+        { q: 'كم عدد طوابق برج خليفة؟', n: 163, unit: 'طابق' },
+        { q: 'كم إمارة تتكون منها دولة الإمارات؟', n: 7, unit: 'إمارات' },
+        { q: 'في أي سنة تأسس مجلس التعاون الخليجي؟', n: 1981, unit: 'سنة' },
+        { q: 'كم دولة تحد السعودية؟', n: 8, unit: 'دول' },
+        { q: 'كم يبلغ ارتفاع برج المملكة في جدة بالمتر؟', n: 267, unit: 'متر' },
+        { q: 'في أي سنة استضافت قطر كأس العالم؟', n: 2022, unit: 'سنة' },
+      ],
+    },
+    trueorlie: {
+      en: [
+        { s: 'The Burj Khalifa is the tallest building in the world', truth: true },
+        { s: 'Saudi Arabia is the only G20 country with no rivers', truth: true },
+        { s: 'Oman shares no land border with Saudi Arabia', truth: false },
+        { s: 'Qatar has one of the highest GDP per capita in the world', truth: true },
+        { s: 'The UAE has more mosques than any other country', truth: false },
+        { s: 'Kuwait\'s currency is one of the highest-valued in the world', truth: true },
+      ],
+      ar: [
+        { s: 'برج خليفة هو أطول مبنى في العالم', truth: true },
+        { s: 'السعودية هي الدولة الوحيدة في مجموعة العشرين بلا أنهار', truth: true },
+        { s: 'عُمان لا تشترك بحدود برية مع السعودية', truth: false },
+        { s: 'قطر من أعلى دول العالم في نصيب الفرد من الناتج المحلي', truth: true },
+        { s: 'الإمارات فيها أكثر عدد مساجد من أي دولة أخرى', truth: false },
+        { s: 'الدينار الكويتي من أعلى العملات قيمة في العالم', truth: true },
+      ],
+    },
   },
 
   /* ============ USA & EUROPE ============ */

@@ -867,6 +867,11 @@
     }
     show('#scr-pregame');
     const isTrivia=mode==='trivia'||mode==='quiz';
+    // These modes are about the players themselves (personal prompts), not
+    // facts -- there's no "Arab" version of "name 3 things about you" or
+    // "who's most likely to...". Confirmed via audit: none of these have or
+    // could use a regional content pack, so the toggle did nothing for them.
+    const NO_FLAVOR=new Set(['wyr','interrogation','mostlikely','blendin','busted','2t1l']);
     const modeNamesObj=t('mode_names')||{};
     const modeTagsObj=t('mode_taglines')||{};
     const modeRulesObj=t('mode_rules')||{};
@@ -889,7 +894,7 @@
             ${[5,10,15].map(n=>`<button class="round-btn${window.HYPOX_STATE.rounds===n?' selected':''}" data-r="${n}">${n}</button>`).join('')}
           </div>
         </div>`:''}
-        ${!isTrivia?`<div class="pg-block">
+        ${(!isTrivia&&!NO_FLAVOR.has(mode))?`<div class="pg-block">
           <div class="pg-label">${T.content()}</div>
           <div class="content-btns">
             <button class="content-btn${window.HYPOX_STATE.flavor==='arab'?' selected':''}" data-flavor="arab">${T.arabFlavor()}</button>
