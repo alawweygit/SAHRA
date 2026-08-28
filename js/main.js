@@ -1452,7 +1452,7 @@
     const dock=$('#hostInputDock');if(dock){dock.removeAttribute('style');dock.classList.remove('final-results-dock');const action=$('#hostDockAction');if(action)action.innerHTML='';const hostEl=$('#host');if(hostEl)hostEl.classList.remove('show','talking');}
     const pp=$('#ppOverlay');if(pp){pp.classList.remove('show');pp.innerHTML='';}
     const ctrl=$('#ctrlArea');if(ctrl){ctrl.classList.add('hidden');ctrl.innerHTML='';}
-    const shared=$('#phoneSharedStage');if(shared){shared.classList.add('hidden');shared.style.removeProperty('display');shared.innerHTML='';shared.dataset.sharedReady='';shared.dataset.gameStarted='';shared.dataset.sceneId='';}
+    const shared=$('#phoneSharedStage');if(shared){if(typeof HypoxMaps!=='undefined')HypoxMaps.destroyWithin(shared);shared.classList.add('hidden');shared.style.removeProperty('display');shared.innerHTML='';shared.dataset.sharedReady='';shared.dataset.gameStarted='';shared.dataset.sceneId='';}
     const sharedHost=$('#phoneSharedHost');if(sharedHost){sharedHost.className='phone-shared-host hidden';sharedHost.innerHTML='';}
     const mirror=$('#phoneMirror');if(mirror){mirror.classList.add('hidden');mirror.querySelectorAll('#pmPill,#pmHeadline,#pmSpeech').forEach(el=>el.textContent='');}
     const stage=$('#hostStage');if(stage)stage.innerHTML='';
@@ -1995,6 +1995,7 @@
       // already mounted. State and sharedScreen are separate Firebase paths,
       // so either listener can legitimately arrive first on a player phone.
       if(shared.dataset.gameStarted==='1')return;
+      if(typeof HypoxMaps!=='undefined')HypoxMaps.destroyWithin(shared);
       shared.innerHTML=`<div class="shared-status ctrl-wrap"><div class="ctrl-title display">${esc(title)}</div>${sub?`<div class="ctrl-sub">${esc(sub)}</div>`:''}</div>`;
       resetScrollPositionAfterLayout();
     }
@@ -2028,13 +2029,14 @@
           continue;
         }
         if(o.nodeType!==1) continue; // skip comments etc.
-        // Leaflet owns everything inside an initialized reveal map. A later
+        // The local vector renderer owns everything inside an initialized
+        // reveal map. A later
         // shared-screen snapshot contains only the empty map placeholder
-        // (host-side Leaflet panes are intentionally stripped), so morphing
+        // (host-side WebGL canvases are intentionally stripped), so morphing
         // that snapshot into this live node would delete all player-side
         // tiles and markers and leave a blank rectangle. New scenes still do
         // a full mount above; only preserve a map within the same scene.
-        if(o.classList?.contains('pinpoint-reveal-map') && o.dataset.leafletInited==='1'){
+        if(o.classList?.contains('pinpoint-reveal-map') && o.dataset.hypoxMapInited==='1'){
           continue;
         }
         // Sync attributes
@@ -2112,6 +2114,7 @@
         return false;
       }
       if(sceneChanged || !shared.dataset.sharedReady){
+        if(typeof HypoxMaps!=='undefined')HypoxMaps.destroyWithin(shared);
         shared.innerHTML=html; // first paint / genuinely new scene: full mount
         shared.scrollTop=0; // guaranteed floor: a new scene always starts at
                              // its own top, regardless of whether the generic
@@ -2146,6 +2149,7 @@
     }
     function renderSharedLobby(list){
       if(!phonesOnly||shared.dataset.sharedReady==='1')return;
+      if(typeof HypoxMaps!=='undefined')HypoxMaps.destroyWithin(shared);
       shared.innerHTML=`<div class="shared-lobby"><div class="lobby-title display">${LANG==='ar'?'اللاعبون':'PLAYERS'}</div><div class="shared-player-row">${list.map(p=>`<div class="player"><div class="avatar" style="background:${p.color}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}</div></div>`).join('')}</div><div class="shared-lobby-count">${list.length}/20</div></div>`;
       shared.scrollTop=0;requestAnimationFrame(()=>{shared.scrollTop=0;requestAnimationFrame(()=>{shared.scrollTop=0;});});
     }
@@ -2200,53 +2204,43 @@
       renderSharedStatus(LANG==='ar'?'تم الاتصال!':'YOU\'RE IN!',LANG==='ar'?'جاري تحميل الصالة…':'Loading the lobby…');
       net.onPlayers(renderSharedLobby);
       // After each shared-screen render, check if a PinPoint reveal map placeholder
-      // landed in the DOM. If so, initialize a local Leaflet map using the coords
+      // landed in the DOM. If so, initialize a local vector map using the coords
       // pushed via net.setState (window._pinpointReveal). The DOM-clone broadcast
-      // always strips .leaflet-pane, so the host's own map never reaches players.
+      // always strips the host WebGL runtime, so the host's own map never reaches players.
       function tryInitRevealMap() {
         const mapEl = shared.querySelector('.pinpoint-reveal-map');
-        if (!mapEl || !window._pinpointReveal || mapEl.dataset.leafletInited) return;
+        if (!mapEl || !window._pinpointReveal || mapEl.dataset.hypoxMapInited) return;
         const { city, guesses } = window._pinpointReveal;
         try {
           const REVEAL_ZOOM = 6;
           const REVEAL_VISIBLE_KM = 700;
-          const rm = L.map(mapEl, {
-            center: [city.lat, city.lon], zoom: 2, minZoom: 2,
-            zoomControl: false, attributionControl: false,
-            dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
-            worldCopyJump: false, maxBounds: [[-90,-180],[90,180]], maxBoundsViscosity: 1.0,
+          const rm = HypoxMaps.create(mapEl, {
+            center: [city.lat, city.lon], zoom: 1.8, minZoom: 1.2, maxZoom: 10,
+            interactive: false, zoomControl: false, worldCopies: false,
           });
-          // Mark successful ownership only after Leaflet accepts the
+          // Mark successful ownership only after the renderer accepts the
           // container. If initialization ever throws, a later state/shared
           // update can retry instead of leaving a permanently blank panel.
-          mapEl.dataset.leafletInited = '1';
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            subdomains: 'abc', maxZoom: 10, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]]
-          }).addTo(rm);
+          mapEl.dataset.hypoxMapInited = '1';
           // Single city marker — star-in-a-dot with its name attached
           // directly below it, so it reads as one mark instead of a plain
           // circle plus a separately-floating text label.
-          L.marker([city.lat, city.lon], {
-            icon: L.divIcon({
-              html: '<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name">' + esc(city.name) + '</div></div>',
-              className: '', iconSize: [160, 70], iconAnchor: [80, 15]
-            }),
-            interactive: false
-          }).addTo(rm);
+          rm.addHtmlMarker([city.lat, city.lon],
+            '<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name">' + esc(city.name) + '</div></div>',
+            { anchor:'top', offset:[0,-15] });
           // Avatar-emoji pins — since players can't pick duplicate avatars,
           // showing the actual emoji is instantly recognizable without a
           // number lookup. Guesses too far away to usefully show at
           // REVEAL_ZOOM are skipped on the map (still in the score list below).
           guesses.forEach(g => {
             if (g.km > REVEAL_VISIBLE_KM) return;
-            L.marker([g.lat, g.lon], {
-              icon: L.divIcon({ html: '<div class="pp-guess-avatar" style="background:' + g.color + '">' + (g.emoji||'📍') + '</div>', className: '', iconSize: [30,30], iconAnchor: [15,15] }),
-            }).addTo(rm);
+            rm.addHtmlMarker([g.lat, g.lon],
+              '<div class="pp-guess-avatar" style="background:' + g.color + '">' + (g.emoji||'📍') + '</div>');
           });
           // Animated reveal: world view first, then fly into the city at the
           // fixed close zoom.
           setTimeout(() => {
-            rm.invalidateSize();
+            rm.resize();
             rm.flyTo([city.lat, city.lon], REVEAL_ZOOM, { duration: 1.2 });
           }, 60);
         } catch(e) { console.error('player reveal map failed', e); }
@@ -2401,8 +2395,8 @@
       if(state.takenAnswers) window._hypoxTakenAnswers=state.takenAnswers;
       else if(state.phase==='input') window._hypoxTakenAnswers=[];
       if(state.mirror)renderMirror(state.mirror);
-      // Cache PinPoint reveal coords so the player-side Leaflet map can be inited
-      // after the DOM clone arrives (the clone has .leaflet-pane stripped out).
+      // Cache PinPoint reveal coords so the player-side vector map can be initialized
+      // after the DOM clone arrives (the host WebGL runtime is stripped out).
       if(state.pinpointReveal) {
         window._pinpointReveal = state.pinpointReveal;
         // Shared screen may have already arrived before this state update —
@@ -2586,6 +2580,7 @@
         clearFinishedGameActions();
         if(phonesOnly){
           setSharedStageHidden(false);
+          if(typeof HypoxMaps!=='undefined')HypoxMaps.destroyWithin(shared);
           shared.innerHTML=`<div class="picker-wait-screen"><div class="picker-wait-icon">🎮</div><div class="display">${LANG==='ar'?'المضيف يختار اللعبة التالية…':'Host is choosing the next game…'}</div><div>${LANG==='ar'?'أنت ما زلت داخل الغرفة':'You are still in the room'}</div></div>`;
         }else{
           ctrl.classList.remove('hidden');

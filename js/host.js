@@ -78,7 +78,7 @@ const Host = (() => {
     // accidental duplicate on player phones, removing them before the tree
     // walk avoids cloning and diffing a second set of animated answer buttons
     // on every input/timer update.
-    clone.querySelectorAll('script,style,iframe,object,embed,.leaflet-pane,.leaflet-control-container,.host-only-ui').forEach(el => el.remove());
+    clone.querySelectorAll('script,style,iframe,object,embed,.hypox-map-runtime,.host-only-ui').forEach(el => el.remove());
     clone.querySelectorAll('*').forEach(el => {
       if (el.id) el.dataset.fxTargetId = el.id;
       el.removeAttribute('id');
@@ -137,10 +137,10 @@ const Host = (() => {
       // as "blinking" throughout every reveal/scores countdown.
       const meaningful = records.some(r => {
         const n = r.target.nodeType === 1 ? r.target : r.target.parentElement;
-        // Leaflet rebuilds these details locally on every device. Publishing
-        // its pane/tile mutations would send players an empty placeholder
+        // The map renderer rebuilds these details locally on every device.
+        // Publishing its canvas mutations would send players an empty placeholder
         // over the live result map they already initialized.
-        return !n?.closest?.('.host-only-ui,.leaflet-container');
+        return !n?.closest?.('.host-only-ui,.hypox-map-runtime');
       });
       if (meaningful) publishSharedScreen();
     });
@@ -171,7 +171,7 @@ const Host = (() => {
         sharedObserver = new MutationObserver((records) => {
           const meaningful = records.some(r => {
             const n = r.target.nodeType === 1 ? r.target : r.target.parentElement;
-            return !n?.closest?.('.host-only-ui,.leaflet-container');
+            return !n?.closest?.('.host-only-ui,.hypox-map-runtime');
           });
           if (meaningful) publishSharedScreen();
         });
@@ -271,6 +271,7 @@ const Host = (() => {
 
   function scene(html) {
     const s = stage();
+    if (typeof HypoxMaps !== 'undefined') HypoxMaps.destroyWithin(s);
     // Every new scene clears the tracker-hiding state. collectWithTimer()
     // always runs AFTER the scene that shows the question, so it re-arms
     // per round; reveal/score scenes simply stay unaffected. This also
@@ -1776,8 +1777,8 @@ const Host = (() => {
       });
 
       Audio_.sfx.reveal();
-      // Push reveal coords to Firebase so player phones can init their own Leaflet map.
-      // The DOM-clone broadcast (sharedHTML) strips .leaflet-pane elements, leaving the
+      // Push reveal coords to Firebase so player phones can init their own map.
+      // The DOM-clone broadcast strips the host WebGL runtime, leaving the
       // #revealMap div empty on player devices. This state push is the fix for that.
       net.setState({
         phase: 'wait',
@@ -1813,38 +1814,31 @@ const Host = (() => {
         // off-frame at REVEAL_ZOOM anyway) — they're still fully visible in
         // the score list below with their name and distance.
         const REVEAL_VISIBLE_KM = 700;
-        const rm = L.map(document.getElementById('revealMap'), {
-          center: [city.lat, city.lon], zoom: 2, minZoom: 2, zoomControl: false, attributionControl: false,
-          dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false,
-          worldCopyJump: false, maxBounds: [[-90,-180],[90,180]], maxBoundsViscosity: 1.0,
+        const rm = HypoxMaps.create(document.getElementById('revealMap'), {
+          center: [city.lat, city.lon], zoom: 1.8, minZoom: 1.2, maxZoom: 10,
+          interactive: false, zoomControl: false, worldCopies: false,
         });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { subdomains: 'abc', maxZoom: 10, minZoom: 2, noWrap: true, bounds: [[-90,-180],[90,180]] }).addTo(rm);
         // Single city marker — a star-in-a-dot with its name label attached
         // directly beneath it, so it reads as ONE unmistakable mark instead
         // of a plain circle plus a separately-floating text label.
-        L.marker([city.lat, city.lon], {
-          icon: L.divIcon({
-            html: `<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name">${esc(cityName)}</div></div>`,
-            className: '', iconSize: [160, 70], iconAnchor: [80, 15]
-          }),
-          interactive: false
-        }).addTo(rm);
+        rm.addHtmlMarker([city.lat, city.lon],
+          `<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name">${esc(cityName)}</div></div>`,
+          { anchor:'top', offset:[0,-15] });
         // Avatar-emoji pins — since players can't pick duplicate avatars,
         // showing the actual emoji is instantly recognizable without needing
         // to cross-reference a number against the score list below.
         results.forEach(r2 => {
           if (!r2.guess) return;
           if (r2.km > REVEAL_VISIBLE_KM) return; // too far to usefully show at this zoom
-          L.marker([r2.guess.lat, r2.guess.lon], {
-            icon: L.divIcon({ html: `<div class="pp-guess-avatar" style="background:${r2.p.color}">${r2.p.emoji}</div>`, className: '', iconSize: [30,30], iconAnchor: [15,15] }),
-          }).addTo(rm);
+          rm.addHtmlMarker([r2.guess.lat, r2.guess.lon],
+            `<div class="pp-guess-avatar" style="background:${r2.p.color}">${r2.p.emoji}</div>`);
         });
         // Animated reveal: start at a world view, then fly into the city at
         // the fixed close zoom — a bit of drama instead of an instant cut,
         // and the city is always dead-center so it's obvious what's being
         // measured against.
         setTimeout(() => {
-          rm.invalidateSize();
+          rm.resize();
           rm.flyTo([city.lat, city.lon], REVEAL_ZOOM, { duration: 1.2 });
         }, 60);
       } catch(e) { console.error('reveal map failed', e); }

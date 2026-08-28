@@ -52,6 +52,11 @@ const Controller = (() => {
 
   function render(container, spec, onSubmit) {
     if (!container) return;
+    if (typeof HypoxMaps !== 'undefined') HypoxMaps.destroyWithin(container);
+    document.querySelectorAll('.hypox-map-overlay').forEach(overlay => {
+      if (typeof HypoxMaps !== 'undefined') HypoxMaps.destroyWithin(overlay);
+      overlay.remove();
+    });
     const wrap = document.createElement('div');
     wrap.className = 'ctrl-wrap';
     if (spec.type === 'text' || spec.type === 'multitext') wrap.classList.add('ctrl-text-card');
@@ -716,40 +721,37 @@ const Controller = (() => {
       fsBtn.style.cssText = 'margin-top:2px;font-size:13px;';
       mapWrap.appendChild(fsBtn);
 
-      const pinIcon = typeof L !== 'undefined' ? L.divIcon({
-        html: '<div style="font-size:32px;line-height:1;margin-left:-12px;margin-top:-32px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">📍</div>',
-        className: '', iconSize: [0, 0],
-      }) : null;
+      const pinHTML = '<div class="hypox-drop-pin">📍</div>';
 
       function initMap(el) {
         try {
-          const m = L.map(el, {
-            center: [22, 25], zoom: 2, minZoom: 2, maxZoom: 10,
-            worldCopyJump: true, attributionControl: false, zoomSnap: 0.5,
+          return HypoxMaps.create(el, {
+            center: [22, 25], zoom: 1.8, minZoom: 1.2, maxZoom: 10,
+            interactive: true, zoomControl: true, worldCopies: true,
           });
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            subdomains: 'abc', maxZoom: 10, keepBuffer: 6, updateWhenIdle: false,
-          }).addTo(m);
-          return m;
-        } catch(e) { console.error('map init failed', e); return null; }
+        } catch(e) {
+          console.error('map init failed', e);
+          el.innerHTML = `<div class="hypox-map-error">${typeof LANG!=='undefined'&&LANG==='ar'?'تعذّر تحميل الخريطة':'Could not load the map'}</div>`;
+          return null;
+        }
       }
 
       let mainMap = null;
       setTimeout(() => {
         mainMap = initMap(mapWrap.querySelector('.leaf-map'));
         if (!mainMap) return;
-        // Force correct tile layout once the container has settled its final dimensions
-        setTimeout(() => { if (mainMap) mainMap.invalidateSize(); }, 150);
-        mainMap.on('click', e => {
+        // Size the WebGL canvas once the container has settled its final dimensions.
+        setTimeout(() => { if (mainMap) mainMap.resize(); }, 150);
+        mainMap.onClick(e => {
           const lat = e.latlng.lat;
           // Normalize longitude to [-180,180). The old formula was missing a
           // final %360, so wrapping could leave values like 362 instead of 2 —
           // distance math (sin/cos) doesn't care since it's periodic, but
-          // Leaflet's marker projection does, so the pin rendered in the wrong
+          // The map renderer's marker projection does, so the pin rendered in the wrong
           // spot on the reveal map even though the recorded distance was correct.
           const lon = (((e.latlng.lng+180)%360)+360)%360-180;
-          if (marker) { marker.setLatLng(e.latlng); } 
-          else { marker = L.marker(e.latlng, { icon: pinIcon }).addTo(mainMap); }
+          if (marker) { marker.setLatLng({ lat, lng: lon }); }
+          else { marker = mainMap.addHtmlMarker([lat, lon], pinHTML, { anchor:'bottom' }); }
           guess = { lat, lon };
           btn.disabled = false;
           if (navigator.vibrate) navigator.vibrate(15);
@@ -759,6 +761,7 @@ const Controller = (() => {
       // Fullscreen map overlay
       fsBtn.addEventListener('click', () => {
         const ov = document.createElement('div');
+        ov.className = 'hypox-map-overlay';
         ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;';
         const closeBar = document.createElement('div');
         closeBar.className = 'map-fullscreen-bar';
@@ -779,17 +782,20 @@ const Controller = (() => {
         document.body.appendChild(ov);
         let fsMarker = null;
         const fsMap = initMap(mapEl);
-        if (guess && fsMap) fsMap.setView([guess.lat, guess.lon], 4);
+        if (guess && fsMap) {
+          fsMap.setView([guess.lat, guess.lon], 4);
+          fsMarker = fsMap.addHtmlMarker([guess.lat, guess.lon], pinHTML, { anchor:'bottom' });
+        }
         if (fsMap) {
-          fsMap.on('click', e => {
+          fsMap.onClick(e => {
             const lat = e.latlng.lat;
             const lon = (((e.latlng.lng+180)%360)+360)%360-180;
-            if (fsMarker) { fsMarker.setLatLng(e.latlng); }
-            else { fsMarker = L.marker(e.latlng, { icon: pinIcon }).addTo(fsMap); }
+            if (fsMarker) { fsMarker.setLatLng({ lat, lng: lon }); }
+            else { fsMarker = fsMap.addHtmlMarker([lat, lon], pinHTML, { anchor:'bottom' }); }
             guess = { lat, lon };
             // sync to mini map
-            if (marker && mainMap) { marker.setLatLng(e.latlng); }
-            else if (mainMap) { marker = L.marker(e.latlng, { icon: pinIcon }).addTo(mainMap); }
+            if (marker && mainMap) { marker.setLatLng({ lat, lng: lon }); }
+            else if (mainMap) { marker = mainMap.addHtmlMarker([lat, lon], pinHTML, { anchor:'bottom' }); }
             btn.disabled = false;
             closeBtn.disabled = false;
             closeBtn.style.opacity = '1';
@@ -800,6 +806,7 @@ const Controller = (() => {
           if (!guess) return;
           btn.disabled = true;
           closeBtn.disabled = true;
+          fsMap?.remove();
           document.body.removeChild(ov);
           onSubmit(JSON.stringify(guess));
         });
