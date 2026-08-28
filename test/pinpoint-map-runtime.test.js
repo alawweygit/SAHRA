@@ -18,6 +18,11 @@ class FakeMap {
     this.handlers = {};
     this.removed = false;
     this.zoom = options.zoom;
+    this.styleLayers = [
+      { id: 'land', type: 'fill', layout: {} },
+      { id: 'country-label', type: 'symbol', layout: { 'text-field': ['get', 'name'] } },
+      { id: 'road-shield', type: 'symbol', layout: { 'icon-image': 'shield' } },
+    ];
     options.container.appendChild(document.createElement('canvas'));
     maps.push(this);
   }
@@ -26,6 +31,11 @@ class FakeMap {
   on(name, fn) { (this.handlers[name] ||= new Set()).add(fn); return this; }
   off(name, fn) { this.handlers[name]?.delete(fn); return this; }
   fire(name, payload) { this.handlers[name]?.forEach(fn => fn(payload)); }
+  getStyle() { return { layers: this.styleLayers }; }
+  setLayoutProperty(id, property, value) {
+    const layer = this.styleLayers.find(item => item.id === id);
+    if (layer) layer.layout[property] = value;
+  }
   jumpTo(options) { this.jump = options; this.zoom = options.zoom; }
   flyTo(options) { this.flight = options; this.zoom = options.zoom; }
   resize() { this.resizeCount = (this.resizeCount || 0) + 1; }
@@ -60,11 +70,16 @@ window.eval(source);
   document.body.appendChild(container);
   const adapter = window.__HypoxMaps.create(container, { center: [10, 20], zoom: 3 });
   const raw = maps.at(-1);
+  await new Promise(resolve => window.setTimeout(resolve, 5));
   assert.deepEqual(plain(raw.options.center), [20, 10], 'public lat/lon must convert to MapLibre lon/lat');
   assert.equal(raw.options.style, 'https://tiles.openfreemap.org/styles/liberty');
   assert.equal(raw.options.dragRotate, false);
   assert.equal(raw.options.touchZoomRotate, true);
   assert.equal(raw.control.position, 'top-left');
+  assert.equal(raw.styleLayers.find(layer => layer.id === 'country-label').layout['text-field'], '',
+    'every built-in text label must be hidden');
+  assert.notEqual(raw.styleLayers.find(layer => layer.id === 'road-shield').layout.visibility, 'none',
+    'non-text map symbols must not be removed');
 
   let clicked;
   adapter.onClick(value => { clicked = value; });

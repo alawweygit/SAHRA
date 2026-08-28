@@ -59,8 +59,26 @@ const HypoxMaps = (() => {
       }), 'top-left');
     }
 
+    // Pin Point is a geography challenge: built-in place names would reveal
+    // the answer. Hide every style layer that contains map text while keeping
+    // terrain, coastlines, roads and borders. Our own result markers are HTML
+    // elements, so the city name shown after the guess is unaffected.
+    const hideStyleLabels = () => {
+      if (options.labels === true) return;
+      const layers = map.getStyle()?.layers || [];
+      layers.forEach(layer => {
+        if (layer.type !== 'symbol' || layer.layout?.['text-field'] === undefined) return;
+        if (layer.layout['text-field'] === '') return;
+        map.setLayoutProperty(layer.id, 'text-field', '');
+      });
+    };
+    map.on('styledata', hideStyleLabels);
+
     const markers = new Set();
-    map.once('load', () => map.resize());
+    map.once('load', () => {
+      hideStyleLabels();
+      map.resize();
+    });
 
     const adapter = {
       raw: map,

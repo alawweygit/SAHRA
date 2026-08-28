@@ -16,7 +16,7 @@ for (const [name, source] of Object.entries({ controller, host, main, maps })) {
 
 assert.match(index, /maplibre-gl@5\.7\.1\/dist\/maplibre-gl\.js/,
   'the app must load the direct MapLibre renderer');
-assert.match(index, /js\/maps\.js\?v=20260828-fixes-206/,
+assert.match(index, /js\/maps\.js\?v=20260828-fixes-207/,
   'the shared map adapter must load before the game modules');
 assert.doesNotMatch(index, /leaflet/,
   'the removed raster renderer must not add another download to every game');
@@ -32,6 +32,8 @@ assert.match(maps, /touchZoomRotate: interactive/,
   'native touch pinch/zoom must be enabled');
 assert.match(maps, /powerPreference: 'high-performance'/,
   'the renderer must request the high-performance GPU path on phones');
+assert.match(maps, /layer\.type !== 'symbol'[\s\S]*layer\.layout\?\.\['text-field'\][\s\S]*setLayoutProperty\(layer\.id, 'text-field', ''\)/,
+  'all built-in map text layers must be hidden without removing terrain and borders');
 assert.match(maps, /destroyWithin\(root\)/,
   'map scenes must expose deterministic WebGL cleanup');
 assert.match(controller, /HypoxMaps\.create\(el,[\s\S]*mainMap\.onClick/,
