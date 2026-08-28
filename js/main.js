@@ -739,7 +739,7 @@
     const modes=Object.keys(MODE_ICONS);
     const modeNamesObj=t('mode_names')||{};
     const modeTagsObj=t('mode_taglines')||{};
-    const COMING_SOON = new Set(['emoji', 'diss']); // emoji riddle needs redesign; Line Battle removed per Ali's request
+    const COMING_SOON = new Set(['emoji', 'diss', 'emojiplace']); // emoji riddle needs redesign; Line Battle removed; Emoji Place locked per Ali's request
     // Playable games first, coming-soon games grouped below -- otherwise
     // they'd appear scattered wherever their key happens to sit in
     // MODE_ICONS' insertion order.

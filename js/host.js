@@ -1722,7 +1722,14 @@ const Host = (() => {
         !(c.lat === 0 && c.lon === 0) // reject null island
       );
     } catch(e) {}
-    const ALLPP = (typeof PINPOINT_CITIES !== 'undefined' ? PINPOINT_CITIES : []).concat(typeof PINPOINT_PLACES !== 'undefined' ? PINPOINT_PLACES : []);
+    // Ali's explicit requirement: cities or countries only, nothing more --
+    // reject anything that looks like a landmark/monument name even if the
+    // AI backend returns valid-looking lat/lon for it (the field-validity
+    // check above doesn't know the difference between 'Dubai' and 'Burj
+    // Khalifa'). Heuristic, not perfect, but catches the common cases.
+    const LANDMARK_WORDS = /\b(tower|bridge|wall|temple|palace|pyramid|statue|fort|castle|cathedral|mosque|church|museum|stadium|falls|canyon|colosseum|shrine|monument|memorial|opera house)\b/i;
+    aiCities = aiCities.filter(c => !LANDMARK_WORDS.test(c.en));
+    const ALLPP = (typeof PINPOINT_CITIES !== 'undefined' ? PINPOINT_CITIES : []);
     // Merge AI cities at front, fill rest from static pool (deduplicated by name)
     const usedNames = new Set(aiCities.map(c => c.en));
     const staticFill = ALLPP.filter(c => !usedNames.has(c.en)).sort(() => Math.random() - .5);

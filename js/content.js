@@ -714,6 +714,18 @@ const PINPOINT_CITIES = [
   { en:'Los Angeles', ar:'لوس أنجلوس', countryEn:'United States', countryAr:'الولايات المتحدة', lat:34.05, lon:-118.2 },
   { en:'Rome', ar:'روما', countryEn:'Italy', countryAr:'إيطاليا', lat:41.9, lon:12.5 },
   { en:'Bangkok', ar:'بانكوك', countryEn:'Thailand', countryAr:'تايلاند', lat:13.75, lon:100.5 },
+  { en:'Amman', ar:'عمّان', countryEn:'Jordan', countryAr:'الأردن', lat:31.95, lon:35.93 },
+  { en:'Beirut', ar:'بيروت', countryEn:'Lebanon', countryAr:'لبنان', lat:33.89, lon:35.50 },
+  { en:'Kuwait City', ar:'مدينة الكويت', countryEn:'Kuwait', countryAr:'الكويت', lat:29.38, lon:47.99 },
+  { en:'Manama', ar:'المنامة', countryEn:'Bahrain', countryAr:'البحرين', lat:26.23, lon:50.59 },
+  { en:'Abu Dhabi', ar:'أبوظبي', countryEn:'United Arab Emirates', countryAr:'الإمارات', lat:24.47, lon:54.37 },
+  { en:'Jeddah', ar:'جدة', countryEn:'Saudi Arabia', countryAr:'السعودية', lat:21.49, lon:39.19 },
+  { en:'Casablanca', ar:'الدار البيضاء', countryEn:'Morocco', countryAr:'المغرب', lat:33.57, lon:-7.59 },
+  { en:'Tunis', ar:'تونس', countryEn:'Tunisia', countryAr:'تونس', lat:36.81, lon:10.18 },
+  { en:'Amsterdam', ar:'أمستردام', countryEn:'Netherlands', countryAr:'هولندا', lat:52.37, lon:4.89 },
+  { en:'Berlin', ar:'برلين', countryEn:'Germany', countryAr:'ألمانيا', lat:52.52, lon:13.40 },
+  { en:'Toronto', ar:'تورونتو', countryEn:'Canada', countryAr:'كندا', lat:43.65, lon:-79.38 },
+  { en:'Hong Kong', ar:'هونغ كونغ', countryEn:'Hong Kong', countryAr:'هونغ كونغ', lat:22.32, lon:114.17 },
 ];
 
 /* ===== EMOJI RIDDLE pack ===== */
@@ -753,23 +765,6 @@ PACKS.emoji = {
     { answer:'بلانكيت', category:'شيء', e:'⚫🔩🎾', parts:['blank','et'], explanation:'Blank + et = Blanket' },
   ],
 };
-
-/* ===== PINPOINT/* ===== PINPOINT landmarks with photos (Wikimedia) ===== */
-const WM = f => 'https://commons.wikimedia.org/wiki/Special:FilePath/' + f + '?width=900';
-const PINPOINT_PLACES = [
-  { en:'Eiffel Tower', ar:'برج إيفل', countryEn:'France', countryAr:'فرنسا', lat:48.858, lon:2.294, img:WM('Tour_Eiffel_Wikimedia_Commons.jpg') },
-  { en:'Petra', ar:'البتراء', countryEn:'Jordan', countryAr:'الأردن', lat:30.329, lon:35.444, img:WM('Al_Khazneh_Petra_edit_2.jpg') },
-  { en:'Machu Picchu', ar:'ماتشو بيتشو', countryEn:'Peru', countryAr:'بيرو', lat:-13.163, lon:-72.545, img:WM('Machu_Picchu,_Peru.jpg') },
-  { en:'Pyramids of Giza', ar:'أهرامات الجيزة', countryEn:'Egypt', countryAr:'مصر', lat:29.979, lon:31.134, img:WM('Kheops-Pyramid.jpg') },
-  { en:'Taj Mahal', ar:'تاج محل', countryEn:'India', countryAr:'الهند', lat:27.175, lon:78.042, img:WM('Taj_Mahal_(Edited).jpeg') },
-  { en:'Statue of Liberty', ar:'تمثال الحرية', countryEn:'United States', countryAr:'الولايات المتحدة', lat:40.689, lon:-74.045, img:WM('Statue_of_Liberty_7.jpg') },
-  { en:'Colosseum', ar:'الكولوسيوم', countryEn:'Italy', countryAr:'إيطاليا', lat:41.890, lon:12.492, img:WM('Colosseo_2020.jpg') },
-  { en:'Burj Khalifa', ar:'برج خليفة', countryEn:'United Arab Emirates', countryAr:'الإمارات', lat:25.197, lon:55.274, img:WM('Burj_Khalifa.jpg') },
-  { en:'Great Wall of China', ar:'سور الصين العظيم', countryEn:'China', countryAr:'الصين', lat:40.432, lon:116.570, img:WM('The_Great_Wall_of_China_at_Jinshanling-edit.jpg') },
-  { en:'Sydney Opera House', ar:'دار أوبرا سيدني', countryEn:'Australia', countryAr:'أستراليا', lat:-33.857, lon:151.215, img:WM('Sydney_Opera_House_-_Dec_2008.jpg') },
-  { en:'Christ the Redeemer', ar:'تمثال المسيح الفادي', countryEn:'Brazil', countryAr:'البرازيل', lat:-22.952, lon:-43.210, img:WM('Christ_the_Redeemer_-_Cristo_Redentor.jpg') },
-  { en:'Golden Gate Bridge', ar:'جسر البوابة الذهبية', countryEn:'United States', countryAr:'الولايات المتحدة', lat:37.820, lon:-122.478, img:WM('GoldenGateBridge-001.jpg') },
-];
 
 /* ===== MOST LIKELY TO ===== */
 PACKS.mostlikely = {
