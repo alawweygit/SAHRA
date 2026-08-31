@@ -29,7 +29,7 @@ const SHAPES = {
 };
 
 const GUIDANCE = {
-  bluff:        'Fill-in-the-blank SHOCKING funny true facts. ___ replaces the most surprising word. RULES: (1) truth must be ONE SINGLE WORD only — no exceptions, never a phrase (e.g. BANANAS, LOUDER, CATS, DUBAI, CRYING). (2) The fact must be genuinely shocking, funny, or embarrassing — not boring trivia. (3) The blank should make players laugh or say "no way". (4) Wrong guesses should sound equally plausible. (5) Mix bizarre animal facts, embarrassing human body facts, shocking Gulf/Arab facts, and absurd world records. AVOID: anything educational-sounding, anything obvious, multi-word truths.',
+  bluff:        'Fill-in-the-blank SHOCKING funny true facts. ___ replaces the most surprising word. RULES: (1) truth must be ONE SINGLE WORD only — no exceptions, never a phrase (e.g. BANANAS, LOUDER, CATS, DUBAI, CRYING). (2) The fact must make someone go "wait, WHAT?" out loud — not a fact you\'d read in a textbook or a kids\' encyclopedia. If it sounds like a "did you know" wall poster, throw it out and pick something weirder. (3) Favor facts about famous people, scandals, records, money, or bizarre real events over plain science/biology facts — those tend to read as dry. (4) Wrong guesses should sound equally plausible, not obviously wrong. (5) EVERY SINGLE ITEM in this batch must come from a DIFFERENT topic — never write two facts back-to-back from the same subject area (e.g. do not follow a food fact with another food fact, or one animal fact with another animal fact). (6) KEEP THE WORDING SIMPLE: short sentences (under 15 words if possible), everyday words a 12-year-old would know, no technical/scientific jargon, no complex sentence structure. A player must understand the whole fact in one quick read, out loud, in a noisy room — simple words, not simple ideas. AVOID: anything educational-sounding, anything obvious, multi-word truths, dry biology/science-class facts, long or complicated sentences, technical vocabulary.',
   wyr:          'Would You Rather dilemmas — both options equally appealing or awful. No obvious right answer. Gulf situations welcome in Arabic.',
   interrogation:'Funny, spicy or thought-provoking hot-seat prompts about one person. Every question MUST include the exact [NAME] placeholder naturally. Examples: "What would [NAME] do if they were invisible for a day?", "What is [NAME] definitely Googling in private?". Gulf/Arab situations in Arabic. Fun, relatable, makes people laugh.',
   diss:         'Roast battle setup lines — prompt to write a funny one-liner insult about the opponent.',
@@ -83,6 +83,15 @@ const DOMAINS = {
     'food and cooking with weird scientific facts',
     'technology inventions with surprising origins',
     'sports with bizarre true records',
+    'space and astronomy oddities',
+    'the human body and brain\'s weird quirks',
+    'money, currency, and business with strange true stories',
+    'language and words with surprising origins',
+    'famous people\'s bizarre lesser-known habits or facts',
+    'movies, music, and pop culture behind-the-scenes trivia',
+    'nature and the ocean\'s stranger corners',
+    'crime, law, and bizarre real court cases',
+    'inventions and everyday objects with a wild backstory',
   ],
 };
 
@@ -106,7 +115,14 @@ function isValidPrompt(mode, item) {
     item.options.every(option => typeof option === 'string' && option.trim()) &&
     Number.isInteger(item.correct) && item.correct >= 0 && item.correct < 4;
   switch (mode) {
-    case 'bluff': return text('fact') && item.fact.includes('___') && text('truth');
+    // v208 — "truth must be ONE SINGLE WORD" was only ever a prompt
+    // instruction; nothing here ever checked it, so a multi-word truth
+    // from the model could reach real games (it stands out immediately
+    // next to one-word player lies, breaking the bluff). Numbers like
+    // "1889" and hyphenated single words like "SPAGHETTO-ISH" still pass;
+    // only whitespace-separated multi-word phrases are rejected.
+    case 'bluff': return text('fact') && item.fact.includes('___') && text('truth') &&
+      item.truth.trim().split(/\s+/).length === 1;
     case 'wyr': return text('a') && text('b');
     case 'interrogation': return text('q') && item.q.includes('[NAME]');
     case 'diss': return text('p');
@@ -147,11 +163,26 @@ function pickDomain(mode) {
   return chosen;
 }
 
+// v208 — previously a whole 8-40 item batch was pinned to ONE domain (e.g.
+// "food and cooking"), so consecutive rounds pulled from the same batch felt
+// stuck on one topic (bananas -> Big Macs -> ...). "Avoid last domain" only
+// applied batch-to-batch, which didn't help mid-batch. Fixed by shuffling a
+// spread of DIFFERENT domains into the same request and explicitly telling
+// the model to rotate across them item-by-item, so variety happens WITHIN a
+// single batch, not just between batches.
+function pickDomainSpread(mode) {
+  const domains = DOMAINS[mode];
+  if (!domains || !domains.length) return [];
+  const last = lastDomain.get(mode) || '';
+  const shuffled = [...domains].sort(() => Math.random() - 0.5);
+  const ordered = shuffled[0] === last ? [...shuffled.slice(1), shuffled[0]] : shuffled;
+  lastDomain.set(mode, ordered[ordered.length - 1]);
+  return ordered;
+}
+
 async function generateBatch(mode, lang, used, baseKey, requestedCount) {
   const langName = lang === 'ar' ? 'Gulf Arabic (khaleeji dialect)' : 'English';
   const audience = lang === 'ar' ? 'Arab friend groups in the Gulf.' : 'Mixed international friend groups.';
-  const domain = pickDomain(mode);
-
   // Build a strong avoidance list from recent fingerprints + always-banned
   const recentUsed = used ? [...used].slice(-20) : [];
   const alwaysBanned = ALWAYS_BANNED[baseKey] ? [...ALWAYS_BANNED[baseKey]] : [];
@@ -161,9 +192,20 @@ async function generateBatch(mode, lang, used, baseKey, requestedCount) {
     ? `\nSTRICTLY AVOID these topics/phrases: "${avoidList.join('", "')}"` 
     : '';
 
-  const domainSection = domain
-    ? `\nTHIS BATCH MUST be about: "${domain}" — stay focused on this specific category.`
-    : '';
+  // bluff rotates domain PER ITEM (see pickDomainSpread comment above);
+  // other modes keep one domain for the whole batch, unaffected by this.
+  let domainSection = '';
+  if (mode === 'bluff') {
+    const spread = pickDomainSpread(mode);
+    domainSection = spread.length
+      ? `\nTOPIC ROTATION — cycle through these domains in order, one per item, wrapping around if you run out: ${spread.map((d, i) => `${i + 1}) ${d}`).join('; ')}. Item 1 uses domain 1, item 2 uses domain 2, etc. Never let two consecutive items share a domain.`
+      : '';
+  } else {
+    const domain = pickDomain(mode);
+    domainSection = domain
+      ? `\nTHIS BATCH MUST be about: "${domain}" — stay focused on this specific category.`
+      : '';
+  }
 
   // The old backend generated 40 items for every request, even when the
   // game needed only 2 or 3. That made a cold request take long enough for
