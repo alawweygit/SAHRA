@@ -234,6 +234,30 @@ function testStaleDepartureAnnouncementCannotOverrideRejoin() {
     'an older disconnect warning must not reappear after its newer clear event');
 }
 
+function testHostLeftPreservesActivePlayerScreen() {
+  const source = fs.readFileSync(require.resolve('../js/main.js'), 'utf8');
+  const branchStart = source.indexOf("if(!state||state.phase==='hostLeft'){");
+  const gameStart = source.indexOf('if(gameActive){', branchStart);
+  const gameReturn = source.indexOf('\n          return;', gameStart);
+  const beforeActiveReturn = source.slice(branchStart, gameReturn);
+
+  assert.doesNotMatch(beforeActiveReturn, /setSharedStageHidden\(false\)/,
+    'hostLeft must not unhide a stale shared result over an active player question');
+  assert.doesNotMatch(beforeActiveReturn, /classList\.remove\('phones-player-answering'\)/,
+    'hostLeft must preserve the active player-screen layout atomically');
+  assert.match(source, /state\.phase!==['"]hostLeft['"]&&state\.phase!==['"]input['"]/,
+    'hostLeft must not cancel an in-flight player question render');
+}
+
+function testNewChoiceHidesPreviousResultImmediately() {
+  const source = fs.readFileSync(require.resolve('../js/main.js'), 'utf8');
+  const start = source.indexOf('const _hideTrackerOnly = phonesOnly && !_pa1;');
+  const end = source.indexOf('const _tmSubmit=', start);
+  const transition = source.slice(start, end);
+  assert.match(transition, /if\(_pa1\)[\s\S]*setSharedStageHidden\(true\)/,
+    'a new full-screen question must hide the previous result before awaiting its wipe');
+}
+
 (async () => {
   await testPresenceCleanupCannotBlockCallback();
   await testMissingPresenceStillExpiresPlayer();
@@ -246,7 +270,9 @@ function testStaleDepartureAnnouncementCannotOverrideRejoin() {
   testRemovedAvatarIsPurgedAndRunningRosterAcceptsRejoin();
   testClosedTabReconnectsWithoutSessionNavigationState();
   testStaleDepartureAnnouncementCannotOverrideRejoin();
-  console.log('disconnect handling: 11 tests passed');
+  testHostLeftPreservesActivePlayerScreen();
+  testNewChoiceHidesPreviousResultImmediately();
+  console.log('disconnect handling: 13 tests passed');
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;

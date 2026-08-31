@@ -8,7 +8,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const AI_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
 
 const SHAPES = {
-  bluff:        '[{"fact":"A weird true fact with ___ replacing the surprising part","truth":"THE SURPRISING ANSWER IN CAPS"}]',
+  bluff:        '[{"fact":"A clear weird fact with ___ replacing one word","truth":"ONEWORD","decoys":["WRONG1","WRONG2","WRONG3","WRONG4"]}]',
   wyr:          '[{"a":"Option A (a real dilemma)","b":"Option B (equally tempting or equally bad)"}]',
   interrogation:'[{"q":"What is [NAME] most likely to do at 3am?"}]',
   diss:         '[{"p":"A roast battle setup prompt about your opponent"}]',
@@ -29,7 +29,7 @@ const SHAPES = {
 };
 
 const GUIDANCE = {
-  bluff:        'Fill-in-the-blank SHOCKING funny true facts. ___ replaces the most surprising word. RULES: (1) truth must be ONE SINGLE WORD only — no exceptions, never a phrase (e.g. BANANAS, LOUDER, CATS, DUBAI, CRYING). (2) The fact must make someone go "wait, WHAT?" out loud — not a fact you\'d read in a textbook or a kids\' encyclopedia. If it sounds like a "did you know" wall poster, throw it out and pick something weirder. (3) Favor facts about famous people, scandals, records, money, or bizarre real events over plain science/biology facts — those tend to read as dry. (4) Wrong guesses should sound equally plausible, not obviously wrong. (5) EVERY SINGLE ITEM in this batch must come from a DIFFERENT topic — never write two facts back-to-back from the same subject area (e.g. do not follow a food fact with another food fact, or one animal fact with another animal fact). (6) KEEP THE WORDING SIMPLE: short sentences (under 15 words if possible), everyday words a 12-year-old would know, no technical/scientific jargon, no complex sentence structure. A player must understand the whole fact in one quick read, out loud, in a noisy room — simple words, not simple ideas. AVOID: anything educational-sounding, anything obvious, multi-word truths, dry biology/science-class facts, long or complicated sentences, technical vocabulary.',
+  bluff:        'Fill-in-the-blank SHOCKING funny true facts. ___ replaces the most surprising word. RULES: (1) truth must be ONE SINGLE WORD only — no exceptions, never a phrase (e.g. BANANAS, LOUDER, CATS, DUBAI, CRYING). (2) The completed sentence must be fully understandable by itself. NEVER leave a number or number-word without its unit or meaning: write "ring at ___ o’clock", NOT "ring at ___"; write "___ years old", NOT just "___". Read the sentence with the truth inserted and reject it if a player could ask "what does that mean?". (3) Include exactly four plausible ONE-WORD wrong answers in decoys. They must fit the blank grammatically, be unique, and differ from truth. (4) The fact must make someone go "wait, WHAT?" out loud — not a dry textbook fact. (5) Favor famous people, scandals, records, money, or bizarre real events. (6) EVERY item must use a different topic. (7) KEEP THE WORDING SIMPLE: under 15 words if possible, everyday words a 12-year-old would know, and clear in one quick read in a noisy room. AVOID: ambiguous missing units, obvious answers, multi-word truths or decoys, dry biology/science-class facts, long sentences, and technical vocabulary.',
   wyr:          'Would You Rather dilemmas — both options equally appealing or awful. No obvious right answer. Gulf situations welcome in Arabic.',
   interrogation:'Funny, spicy or thought-provoking hot-seat prompts about one person. Every question MUST include the exact [NAME] placeholder naturally. Examples: "What would [NAME] do if they were invisible for a day?", "What is [NAME] definitely Googling in private?". Gulf/Arab situations in Arabic. Fun, relatable, makes people laugh.',
   diss:         'Roast battle setup lines — prompt to write a funny one-liner insult about the opponent.',
@@ -114,6 +114,23 @@ function isValidPrompt(mode, item) {
   const fourChoices = () => Array.isArray(item.options) && item.options.length === 4 &&
     item.options.every(option => typeof option === 'string' && option.trim()) &&
     Number.isInteger(item.correct) && item.correct >= 0 && item.correct < 4;
+  const oneWord = value => typeof value === 'string' && value.trim() && value.trim().split(/\s+/).length === 1;
+  const clearBluff = () => {
+    if (!text('fact') || !item.fact.includes('___') || !oneWord(item.truth)) return false;
+    if (!Array.isArray(item.decoys) || item.decoys.length !== 4 || !item.decoys.every(oneWord)) return false;
+    const normalized = [item.truth, ...item.decoys].map(value => value.trim().toLocaleUpperCase());
+    if (new Set(normalized).size !== normalized.length) return false;
+
+    // A bare number at the end of a sentence is exactly the kind of unclear
+    // output that produced "could only ring at FOUR". Require visible context
+    // after numeric answers ("FOUR o'clock", "SEVEN years", etc.).
+    const numberWords = /^(?:\d+(?:[.,]\d+)?|zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|واحد|واحدة|اثنان|اثنين|ثلاثة|أربعة|اربعة|خمسة|ستة|سبعة|ثمانية|تسعة|عشرة|[٠-٩]+)$/iu;
+    if (numberWords.test(item.truth.trim())) {
+      const afterBlank = item.fact.split('___', 2)[1] || '';
+      if (!/[\p{L}\p{N}]/u.test(afterBlank)) return false;
+    }
+    return true;
+  };
   switch (mode) {
     // v208 — "truth must be ONE SINGLE WORD" was only ever a prompt
     // instruction; nothing here ever checked it, so a multi-word truth
@@ -121,8 +138,7 @@ function isValidPrompt(mode, item) {
     // next to one-word player lies, breaking the bluff). Numbers like
     // "1889" and hyphenated single words like "SPAGHETTO-ISH" still pass;
     // only whitespace-separated multi-word phrases are rejected.
-    case 'bluff': return text('fact') && item.fact.includes('___') && text('truth') &&
-      item.truth.trim().split(/\s+/).length === 1;
+    case 'bluff': return clearBluff();
     case 'wyr': return text('a') && text('b');
     case 'interrogation': return text('q') && item.q.includes('[NAME]');
     case 'diss': return text('p');

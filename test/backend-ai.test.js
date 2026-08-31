@@ -7,7 +7,7 @@ const generationRequests = [];
 function sample(mode, index) {
   const suffix = String(index + 1);
   const samples = {
-    bluff: { fact: `A surprising fact ${suffix} contains ___`, truth: `ANSWER${suffix}` },
+    bluff: { fact: `A surprising fact ${suffix} contains ___ creatures`, truth: `ANSWER${suffix}`, decoys: [`WRONG${suffix}A`, `WRONG${suffix}B`, `WRONG${suffix}C`, `WRONG${suffix}D`] },
     wyr: { a: `Option A ${suffix}`, b: `Option B ${suffix}` },
     interrogation: { q: `What would [NAME] do in situation ${suffix}?` },
     diss: { p: `Roast prompt ${suffix}` },
@@ -94,6 +94,19 @@ async function postPrompts(body) {
     'small requests must generate the eight-item minimum reserve, never 40');
   assert.ok(generationRequests.every(request => request.maxTokens <= 1200),
     'small requests must keep a bounded output budget');
+
+  assert.equal(backend.isValidPrompt('bluff', {
+    fact: 'The first alarm clock could only ring at ___',
+    truth: 'FOUR', decoys: ['THREE', 'FIVE', 'SIX', 'SEVEN'],
+  }), false, 'bare numeric answers without a unit must be rejected');
+  assert.equal(backend.isValidPrompt('bluff', {
+    fact: 'The first alarm clock could only ring at ___ o’clock',
+    truth: 'FOUR', decoys: ['THREE', 'FIVE', 'SIX', 'SEVEN'],
+  }), true, 'numeric answers with explicit context must pass');
+  assert.equal(backend.isValidPrompt('bluff', {
+    fact: 'The first alarm clock could only ring at ___ o’clock',
+    truth: 'FOUR', decoys: ['FOUR', 'FIVE', 'SIX', 'SEVEN'],
+  }), false, 'truth and decoys must all be unique');
 
   const unknown = await postPrompts({ mode: 'not-a-game', count: 2 });
   assert.equal(unknown.statusCode, 400);

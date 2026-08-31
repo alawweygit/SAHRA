@@ -2319,10 +2319,12 @@
       // all" — comparing phase-specific keys alone can't distinguish
       // "still stuck" from "moved on normally to something else".
       window._hypoxStateGen=(window._hypoxStateGen||0)+1;
-      if(state?.phase!=='input'&&state?.phase!=='input-split')playerInputRenderEpoch++;
+      // A transient hostLeft notification is not a game phase. Cancelling an
+      // in-flight input render here could leave the player on the previous
+      // result forever, because the recovered input has the same phaseId and
+      // is intentionally not rendered twice.
+      if(state&&state.phase!=='hostLeft'&&state.phase!=='input'&&state.phase!=='input-split')playerInputRenderEpoch++;
       if(!state||state.phase==='hostLeft'){
-        document.body.classList.remove('phones-player-answering');
-        setSharedStageHidden(false);
         // If game is active, don't redirect — show banner and let game finish
         if(gameActive){
           // Show subtle banner that host disconnected but game continues
@@ -2368,6 +2370,8 @@
           window._hypoxHostGone=true;
           return;
         }
+        document.body.classList.remove('phones-player-answering');
+        setSharedStageHidden(false);
         // Not in game — show host left screen with option to become host
         ctrl.innerHTML=`<div class="ctrl-wrap" style="text-align:center;padding:30px 20px">
           <div style="font-size:48px">😢</div>
@@ -2487,6 +2491,13 @@
           // player has submitted, matching choice-type behavior.
           const _hideTrackerOnly = phonesOnly && !_pa1;
           if(!_isNewPhase1)return; // avoid rebuilding the tappable buttons on a replayed event
+          // Hide the previous shared result as soon as the new input state
+          // arrives. Waiting until the wipe midpoint left it visible for one
+          // or two frames before the new question mounted on real phones.
+          if(_pa1){
+            document.body.classList.add('phones-player-answering');
+            setSharedStageHidden(true);
+          }
           const _tmSubmit=async value=>{
             const result=await net.submitInput(state.phaseId,value,{enforceUnique:phoneSpec.enforceUnique===true});
             if(result?.accepted===false)return result;
@@ -2557,6 +2568,10 @@
         }
 
         if(!_isNewPhase)return; // avoid rebuilding the tappable buttons on a replayed event
+        if(_pa2){
+          document.body.classList.add('phones-player-answering');
+          setSharedStageHidden(true);
+        }
         renderPlayerInputAfterWipe(()=>{
           document.body.classList.toggle('phones-player-answering',_pa2);
           setSharedStageHidden(_pa2);

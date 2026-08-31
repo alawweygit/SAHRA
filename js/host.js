@@ -828,6 +828,49 @@ const Host = (() => {
 
   const val = (inputs, pid) => inputs[pid] ? inputs[pid].value : null;
 
+  function normalizeBluffWord(value) {
+    const words = String(value || '').toUpperCase().replace(/\(.*?\)/g, '').trim().split(/\s+/).filter(Boolean);
+    return words.length ? words[words.length - 1].slice(0, 60) : '';
+  }
+
+  // One visible card represents the real answer, even when several players
+  // typed it. Tailored AI decoys (or defensive fallbacks for offline packs)
+  // replace merged/missing submissions so the vote never visibly shrinks.
+  function buildBluffAnswers(round, allRounds, pids, inputs) {
+    const truthUp = normalizeBluffWord(round.truth);
+    const seen = new Set([truthUp]);
+    const lies = [];
+    const truthWriters = [];
+    for (const pid of pids) {
+      const answer = normalizeBluffWord(val(inputs, pid));
+      if (!answer) continue;
+      if (answer === truthUp) truthWriters.push(pid);
+      else if (!seen.has(answer)) {
+        seen.add(answer);
+        lies.push({ text: answer, by: pid });
+      }
+    }
+
+    const targetCount = Math.max(2, pids.length + 1);
+    const emergency = LANG === 'ar'
+      ? ['سبعة', 'منتصف', 'ذهب', 'قمر', 'ملح', 'نار', 'صفر', 'أزرق']
+      : ['SEVEN', 'MIDNIGHT', 'GOLD', 'MOON', 'SALT', 'FIRE', 'ZERO', 'BLUE'];
+    const candidates = [
+      ...(Array.isArray(round.decoys) ? round.decoys : []),
+      ...(allRounds || []).filter(item => item !== round).map(item => item?.truth),
+      ...emergency,
+    ];
+    for (const candidate of candidates) {
+      if (lies.length + 1 >= targetCount) break;
+      const text = normalizeBluffWord(candidate);
+      if (!text || seen.has(text)) continue;
+      seen.add(text);
+      lies.push({ text, by: null, system: true });
+    }
+
+    return shuffle([{ text: truthUp, truth: true, writers: truthWriters }, ...lies]);
+  }
+
   /* ================================================================
      MODE 1 — BLUFF BANQUET  (write a lie, find the truth)
   ================================================================ */
@@ -852,27 +895,7 @@ const Host = (() => {
         { type: 'text', title: t('write_lie'), context: R.fact.replace('___', '____'), translateContext: R.fact, maxLen: 30, enforceUnique: true, oneWord: true, fullscreenInput: true },
         pids, 60);
 
-      // Build answer set: unique lies + truth (all UPPERCASE)
-      // v137 — content pack is now clean (single-word truths throughout),
-      // but this stays as a defensive safety net for AI-generated content
-      // that might still slip in a phrase. Last word, not first — 'THE
-      // UNICORN' should resolve to UNICORN, not THE.
-      const truthWords = R.truth.toUpperCase().replace(/\(.*?\)/g, '').trim().split(/\s+/);
-      const truthUp = truthWords[truthWords.length - 1];
-      const seen = new Set([truthUp]);
-      const lies = [];
-      const truthWriters = []; // players who wrote the correct answer
-      for (const pid of pids) {
-        const v = (val(inputs, pid) || '').trim().toUpperCase().slice(0, 60);
-        if (!v) continue;
-        if (v === truthUp) {
-          // Player wrote the truth — they get credit, don't add as separate answer
-          truthWriters.push(pid);
-        } else if (!seen.has(v)) {
-          seen.add(v); lies.push({ text: v, by: pid });
-        }
-      }
-      const answers = shuffle([{ text: truthUp, truth: true, writers: truthWriters }, ...lies]);
+      const answers = buildBluffAnswers(R, rounds, pids, inputs);
 
       // VOTE — each player picks (can't pick own lie)
       await FX.wipe();
@@ -887,7 +910,7 @@ const Host = (() => {
                 <div class="ans-inner">
                   <div class="ans-face ans-front"><div>${esc(a.text)}</div><div class="voter-strip" id="voters-${i}"></div></div>
                   <div class="ans-face ans-back ${a.truth ? 'truth' : 'lie'}">
-                    <div class="ans-tag">${a.truth ? '✦ ' + esc(t('truth')) + ' ✦' : esc(t('a_lie_by'))}</div>
+                    <div class="ans-tag">${a.truth ? '✦ ' + esc(t('truth')) + ' ✦' : (a.system ? '✦ ' + esc(LANG === 'ar' ? 'إجابة مزيفة' : 'A LIE') + ' ✦' : esc(t('a_lie_by')))}</div>
                     <div>${a.truth ? esc(a.text) : ''}</div>
                   </div>
                 </div>
@@ -950,7 +973,7 @@ const Host = (() => {
         await sleep(650);
         const card = $('#card-' + i);
         const author = safeP(a.by);
-        card.querySelector('.ans-back div:last-child').textContent = author ? `${author.emoji} ${author.name}` : '?';
+        card.querySelector('.ans-back div:last-child').textContent = author ? `${author.emoji} ${author.name}` : '';
         card.classList.add('flipped');
         await sleep(400);
         Audio_.sfx.buzzer(); card.classList.add('shake'); FX.shake(); FX.burstAt(card, 26);
