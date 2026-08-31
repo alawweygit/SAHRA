@@ -21,19 +21,36 @@ const round = {
 };
 const pids = ['p1', 'p2', 'p3'];
 const answers = context.build(round, [round], pids, {
-  p1: { value: 'four' },
-  p2: { value: 'four' },
+  p1: { value: 'three' },
+  p2: { value: 'five' },
   p3: { value: 'London' },
-});
+}, ['p1', 'p2']);
 
 assert.equal(answers.length, pids.length + 1,
-  'merged truth submissions must not shrink the visible choice count');
+  'truth-finders who retry must leave the visible choice count unchanged');
 assert.equal(answers.filter(answer => answer.truth).length, 1,
   'the real answer must appear on exactly one card');
 assert.deepEqual(Array.from(answers.find(answer => answer.truth).writers), ['p1', 'p2'],
   'every player who independently wrote the truth must retain credit');
 assert.equal(new Set(answers.map(answer => answer.text)).size, answers.length,
   'all visible choices must remain unique');
+assert.equal(answers.filter(answer => !answer.truth).every(answer => answer.by), true,
+  'successful truth retries must keep every lie player-written');
+
+assert.match(hostSource, /const votingPids = pids\.filter\(pid => !truthWriters\.includes\(pid\)\)/,
+  'players who already know the truth must not influence the vote');
+assert.match(hostSource, /reservedUniqueAnswers:[\s\S]*reason: 'truth'[\s\S]*trackTruthDiscoveries: true/,
+  'Lie Detector must reserve the truth privately and track each finder');
+const collectorBlock = hostSource.slice(
+  hostSource.indexOf('async function collectWithTimer('),
+  hostSource.indexOf('\n  /* ---------- shared frames ---------- */'),
+);
+assert.match(collectorBlock, /delete publicSpec\.reservedUniqueAnswers/,
+  'the reserved truth must be stripped from public controller state');
+assert.ok(
+  collectorBlock.indexOf('await net.reserveUniqueAnswer(') < collectorBlock.indexOf("net.setState({ phase: 'input'"),
+  'the truth must be reserved before any player can submit the phase',
+);
 
 const scoringBlock = hostSource.slice(
   hostSource.indexOf('const finders = votesByCard[ti]'),

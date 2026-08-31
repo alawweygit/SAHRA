@@ -245,6 +245,17 @@ class FirebaseNet {
   setSharedScreen(view) { return this.room('sharedScreen').set({ ...view, ts: Date.now() }); }
   onSharedScreen(cb) { this.room('sharedScreen').on('value', s => cb(s.val() || null)); }
 
+  async reserveUniqueAnswer(phaseId, value, meta = {}) {
+    const normalized = normalizeUniqueAnswer(value);
+    const claimRef = this.room(`inputClaims/${phaseId}/${uniqueAnswerKey(normalized)}`);
+    await claimRef.set({ pid: '__hypox_reserved__', normalized, reserved: true, ...meta, t: Date.now() });
+  }
+
+  async getTruthDiscoveries(phaseId) {
+    const snap = await this.room(`truthDiscoveries/${phaseId}`).get();
+    return snap.val() || {};
+  }
+
   async submitInput(phaseId, value, options = {}) {
     const inputRef = this.room(`inputs/${phaseId}/${this.pid}`);
     if (!options.enforceUnique) {
@@ -262,6 +273,16 @@ class FirebaseNet {
       return; // abort transaction: another player owns this answer
     });
     if (!result.committed || result.snapshot.val()?.pid !== this.pid) {
+      const owner = result.snapshot.val();
+      if (owner?.reserved && owner.reason === 'truth') {
+        const points = Number(owner.points) || 1000;
+        // One marker per player: repeated taps or retries cannot create
+        // duplicate rewards. The host reads these markers after everyone has
+        // supplied a real lie and applies the score exactly once.
+        await this.room(`truthDiscoveries/${phaseId}/${this.pid}`).transaction(current =>
+          current == null ? { points, t: Date.now() } : current);
+        return { accepted: false, reason: 'truth', points };
+      }
       return { accepted: false, reason: 'duplicate' };
     }
 
@@ -547,6 +568,7 @@ class LocalNet {
   constructor() {
     this.isOffline = true; this.code = 'LOCAL';
     this.players = []; this._playersCb = null; this._onEach = null;
+    this._inputClaims = new Map(); this._truthDiscoveries = new Map();
     /* main.js injects this: (spec, player) => Promise<value|null> */
     this.promptLocal = null;
   }
@@ -570,11 +592,35 @@ class LocalNet {
   setSharedScreen() { }
   onSharedScreen() { }
   onEachInput(cb) { this._onEach = cb; }
+  async reserveUniqueAnswer(phaseId, value, meta = {}) {
+    const key = `${phaseId}|${normalizeUniqueAnswer(value)}`;
+    this._inputClaims.set(key, { pid: '__hypox_reserved__', reserved: true, ...meta });
+  }
+  async getTruthDiscoveries(phaseId) {
+    return { ...(this._truthDiscoveries.get(phaseId) || {}) };
+  }
+  async submitInput(phaseId, value, options = {}) {
+    if (!options.enforceUnique) return { accepted: true };
+    const key = `${phaseId}|${normalizeUniqueAnswer(value)}`;
+    const owner = this._inputClaims.get(key);
+    if (owner?.reserved && owner.reason === 'truth') {
+      const points = Number(owner.points) || 1000;
+      const discoveries = this._truthDiscoveries.get(phaseId) || {};
+      if (!discoveries[this.pid]) discoveries[this.pid] = { points, t: Date.now() };
+      this._truthDiscoveries.set(phaseId, discoveries);
+      return { accepted: false, reason: 'truth', points };
+    }
+    if (owner && owner.pid !== this.pid) return { accepted: false, reason: 'duplicate' };
+    this._inputClaims.set(key, { pid: this.pid });
+    return { accepted: true };
+  }
   async collect(phaseId, spec, pids, ms) {
     const out = {}; let order = 0;
     for (const pid of pids) {
       const player = this.players.find(p => p.pid === pid);
-      const value = await this.promptLocal(spec, player); // sequential pass-the-phone
+      this.pid = pid;
+      const submit = value => this.submitInput(phaseId, value, { enforceUnique: spec?.enforceUnique === true });
+      const value = await this.promptLocal(spec, player, submit); // sequential pass-the-phone
       if (value !== null && value !== undefined) {
         const submittedAt = Date.now();
         out[pid] = { value, order: order++, t: submittedAt, receivedAt: submittedAt };
@@ -589,6 +635,7 @@ class LocalNet {
   }
   async close() {
     this.players = [];
+    this._inputClaims.clear(); this._truthDiscoveries.clear();
     if (this._playersCb) this._playersCb([]);
   }
 }

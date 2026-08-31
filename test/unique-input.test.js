@@ -42,5 +42,30 @@ eval(source);
   if (!different.accepted) throw new Error('a different retry was not accepted');
   if (FB.__root.rooms.TEST.inputs['phase-1']['phone-two'].v !== 'apes') throw new Error('accepted retry was not stored');
 
+  await first.reserveUniqueAnswer('phase-truth', 'four', { reason: 'truth', points: 1000 });
+  const foundTruth = await first.submitInput('phase-truth', '  FOUR ', { enforceUnique: true });
+  if (foundTruth.accepted || foundTruth.reason !== 'truth' || foundTruth.points !== 1000) {
+    throw new Error(`reserved truth was not returned as an inline retry: ${JSON.stringify(foundTruth)}`);
+  }
+  if (FB.__root.rooms.TEST.inputs?.['phase-truth']?.['phone-one']) {
+    throw new Error('the correct answer was incorrectly submitted as a player lie');
+  }
+  const discoveries = await first.getTruthDiscoveries('phase-truth');
+  if (!discoveries['phone-one'] || discoveries['phone-one'].points !== 1000) {
+    throw new Error('truth discovery was not recorded exactly once for host scoring');
+  }
+  const fakeRetry = await first.submitInput('phase-truth', 'three', { enforceUnique: true });
+  if (!fakeRetry.accepted) throw new Error('a fake retry after finding the truth was rejected');
+
+  const local = new LocalNet();
+  local.pid = 'local-one';
+  await local.reserveUniqueAnswer('local-truth', 'honey', { reason: 'truth', points: 1000 });
+  const localTruth = await local.submitInput('local-truth', 'HONEY', { enforceUnique: true });
+  const localRetry = await local.submitInput('local-truth', 'CHEESE', { enforceUnique: true });
+  const localDiscoveries = await local.getTruthDiscoveries('local-truth');
+  if (localTruth.reason !== 'truth' || !localRetry.accepted || !localDiscoveries['local-one']) {
+    throw new Error('pass-and-play did not preserve the same truth retry behavior');
+  }
+
   console.log('UNIQUE INPUT PASSED ✅');
 })().catch(error => { console.error(error); process.exitCode = 1; });

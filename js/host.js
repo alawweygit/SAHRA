@@ -348,6 +348,18 @@ const Host = (() => {
 
     const phaseId = 'ph' + (++phaseCounter);
     const deadline = inputDeadline(seconds, spec.forceTimer === true);
+    // Private reserved answers are installed before players receive this
+    // phase, then removed from the public spec so the truth never appears in
+    // controller state or page markup.
+    const reservedUniqueAnswers = Array.isArray(spec.reservedUniqueAnswers) ? spec.reservedUniqueAnswers : [];
+    const publicSpec = { ...spec };
+    delete publicSpec.reservedUniqueAnswers;
+    delete publicSpec.trackTruthDiscoveries;
+    if (net.reserveUniqueAnswer) {
+      for (const reserved of reservedUniqueAnswers) {
+        await net.reserveUniqueAnswer(phaseId, reserved.value, reserved.meta || {});
+      }
+    }
     // v135 — attach deadline onto spec itself (not just as a sibling field
     // on state). fullscreenInput panels (HarfHunt's turn screen, etc.) take
     // over the WHOLE phone screen and never see the shared stage's own ring
@@ -356,10 +368,10 @@ const Host = (() => {
     // Controller.render on the phone (and net.collect's promptLocal call
     // for the host's own device), so this is the one place a countdown
     // built into the panel itself can read a deadline from.
-    spec.deadline = deadline;
+    publicSpec.deadline = deadline;
 
-    pushMirror({ headline: spec.context || spec.title || '', sub: spec.title || '' });
-    net.setState({ phase: 'input', phaseId, spec, targets: pids, deadline, mirror: { ...mirror } });
+    pushMirror({ headline: publicSpec.context || publicSpec.title || '', sub: publicSpec.title || '' });
+    net.setState({ phase: 'input', phaseId, spec: publicSpec, targets: pids, deadline, mirror: { ...mirror } });
 
     // Auto-submit answers for bot players
     const botPids = net.getBotPids ? net.getBotPids() : [];
@@ -370,10 +382,10 @@ const Host = (() => {
         setTimeout(async () => {
           try {
             let botVal;
-            if (spec.type === 'choice' || spec.type === 'higherlow') {
-              const opts = spec.options || [];
+            if (publicSpec.type === 'choice' || publicSpec.type === 'higherlow') {
+              const opts = publicSpec.options || [];
               botVal = opts.length ? opts[Math.floor(Math.random() * opts.length)].id : 0;
-            } else if (spec.type === 'text') {
+            } else if (publicSpec.type === 'text') {
               const fakesEn = ['Maybe','Idk','Could be','Probably','Nope','Sure','Hmm','Nah','Guess so','Doubt it','Yep','Totally','Unlikely','No clue','Perhaps','Definitely','Not sure','Kinda','Obviously','Hardly','Somewhat','I think so','Not really','Absolutely','Barely'];
               const fakesAr = ['ربما','لا أعرف','يمكن','أكيد','ممكن','شايف','معقول','لا','أظن','مو متأكد','فعلاً','مستبعد','ولا فكرة','بصراحة','أكيد لأ','شكلها','غالباً','بجد؟','طبعاً','بعيد'];
               const fakes = LANG==='ar' ? fakesAr : fakesEn;
@@ -390,28 +402,28 @@ const Host = (() => {
               const available = fakes.filter(w => !takenNorm.has(w.trim().toUpperCase()));
               const pool = available.length ? available : fakes;
               botVal = pool[Math.floor(Math.random() * pool.length)];
-            } else if (spec.type === 'number') {
+            } else if (publicSpec.type === 'number') {
               botVal = String(Math.floor(Math.random() * 9000) + 1000);
-            } else if (spec.type === 'harfturn') {
+            } else if (publicSpec.type === 'harfturn') {
               // Bot turn: grab any available letter and a short filler word —
               // it only needs to survive validation often enough not to stall
               // testing; real polish isn't the point for a bot player.
-              const opts = Array.isArray(spec.letters) ? spec.letters : [];
+              const opts = Array.isArray(publicSpec.letters) ? publicSpec.letters : [];
               const L = opts.length ? opts[Math.floor(Math.random() * opts.length)] : 'A';
               const fillers = LANG === 'ar'
                 ? { ا:'اكل', ب:'بيت', ت:'تفاح', ج:'جبل', د:'دجاج', ر:'رز', ز:'زيت', س:'سيارة', ش:'شمس', ص:'صابون', ط:'طائرة', ع:'عصير', غ:'غيمة', ف:'فيل', ق:'قطة', ك:'كتاب', ل:'ليمون', م:'ماء', ن:'نجمة', ه:'هاتف', و:'وردة', ي:'يد' }
                 : { A:'Apple', B:'Banana', C:'Chair', D:'Dog', E:'Elephant', F:'Fork', G:'Grape', H:'Hat', I:'Igloo', J:'Jacket', K:'Kite', L:'Lamp', M:'Mango', N:'Nest', O:'Onion', P:'Pizza', R:'Rabbit', S:'Sun', T:'Table', U:'Umbrella', V:'Van', W:'Water', Y:'Yogurt' };
               botVal = JSON.stringify({ letter: L, answer: fillers[L] || (LANG==='ar'?'شي':'Thing') });
-            } else if (spec.type === 'harfreview') {
+            } else if (publicSpec.type === 'harfreview') {
               botVal = JSON.stringify([]); // bots never initiate a challenge
-            } else if (spec.type === 'harfvote') {
+            } else if (publicSpec.type === 'harfvote') {
               botVal = Math.random() < 0.8 ? 'accept' : 'reject';
-            } else if (spec.type === 'multitext') {
+            } else if (publicSpec.type === 'multitext') {
               // v104 — multitext was added in v102 but never taught to the
               // bots, so bot players submitted nothing and every statement
               // fell back to the '...' placeholder. Must be a JSON array of
               // one string per field, matching what the controller sends.
-              const nF = Array.isArray(spec.fields) ? spec.fields.length : 3;
+              const nF = Array.isArray(publicSpec.fields) ? publicSpec.fields.length : 3;
               const botLines = LANG==='ar'
                 ? ['أكلت شي غريب','سافرت لبلد بعيد','قابلت مشهور','خسرت جوالي','نمت في المطار','تعلمت لغة']
                 : ['I ate something weird','I travelled somewhere far','I met someone famous','I lost my phone','I slept at an airport','I learned a language'];
@@ -523,7 +535,7 @@ const Host = (() => {
     // below was already correct, only the on-screen display was missing.
     // Only hide/skip the ring for modes that made the deliberate choice to
     // drop it; HarfHunt keeps and drives its own.
-    const showRing = spec.type === 'harfturn';
+    const showRing = publicSpec.type === 'harfturn';
     if (!showRing) $('#ringTimer')?.classList.add('hidden');
     if (showRing) {
       const num = $('#timerNum'), fill = $('#timerFill');
@@ -545,7 +557,7 @@ const Host = (() => {
     activeCollectionPids = pids;
     let inputs;
     try {
-      inputs = await net.collect(phaseId, spec, pids, net.isOffline ? 9e7 : inputTimeout(seconds, spec.forceTimer === true));
+      inputs = await net.collect(phaseId, publicSpec, pids, net.isOffline ? 9e7 : inputTimeout(seconds, publicSpec.forceTimer === true));
     } finally {
       activeCollectionPids = null;
       clearInterval(_offlinePaintInt);
@@ -556,6 +568,10 @@ const Host = (() => {
     net.onEachInput(null);
     if (Object.keys(inputs).length === pids.length) Audio_.sfx.sting();
     else Audio_.sfx.buzzer();
+    if (spec.trackTruthDiscoveries && net.getTruthDiscoveries) {
+      const discoveries = await net.getTruthDiscoveries(phaseId);
+      Object.defineProperty(inputs, 'truthDiscoveries', { value: discoveries, enumerable: false });
+    }
     return inputs;
   }
 
@@ -833,19 +849,17 @@ const Host = (() => {
     return words.length ? words[words.length - 1].slice(0, 60) : '';
   }
 
-  // One visible card represents the real answer, even when several players
-  // typed it. Tailored AI decoys (or defensive fallbacks for offline packs)
-  // replace merged/missing submissions so the vote never visibly shrinks.
-  function buildBluffAnswers(round, allRounds, pids, inputs) {
+  // Truth-finders must retry with a real lie, so normal rounds are entirely
+  // player-written. Tailored AI decoys remain only as a defensive fallback
+  // for timeouts or disconnects, keeping the visible vote count stable.
+  function buildBluffAnswers(round, allRounds, pids, inputs, truthWriters = []) {
     const truthUp = normalizeBluffWord(round.truth);
     const seen = new Set([truthUp]);
     const lies = [];
-    const truthWriters = [];
     for (const pid of pids) {
       const answer = normalizeBluffWord(val(inputs, pid));
       if (!answer) continue;
-      if (answer === truthUp) truthWriters.push(pid);
-      else if (!seen.has(answer)) {
+      if (answer !== truthUp && !seen.has(answer)) {
         seen.add(answer);
         lies.push({ text: answer, by: pid });
       }
@@ -892,10 +906,16 @@ const Host = (() => {
       const pids = [...new Set([...players.map(p => p.pid), ...(net.hostSelfPid && !_bluffBots.includes(net.hostSelfPid) ? [net.hostSelfPid] : [])])];
 
       const inputs = await collectWithTimer(
-        { type: 'text', title: t('write_lie'), context: R.fact.replace('___', '____'), translateContext: R.fact, maxLen: 30, enforceUnique: true, oneWord: true, fullscreenInput: true },
+        {
+          type: 'text', title: t('write_lie'), context: R.fact.replace('___', '____'), translateContext: R.fact,
+          maxLen: 30, enforceUnique: true, oneWord: true, fullscreenInput: true,
+          reservedUniqueAnswers: [{ value: R.truth, meta: { reason: 'truth', points: 1000 } }],
+          trackTruthDiscoveries: true,
+        },
         pids, 60);
 
-      const answers = buildBluffAnswers(R, rounds, pids, inputs);
+      const truthWriters = Object.keys(inputs.truthDiscoveries || {});
+      const answers = buildBluffAnswers(R, rounds, pids, inputs, truthWriters);
 
       // VOTE — each player picks (can't pick own lie)
       await FX.wipe();
@@ -930,6 +950,9 @@ const Host = (() => {
       }
       // For host self-vote: find and exclude host's own lie index
       const _hostExcludeIdx = net.hostSelfPid ? answers.findIndex(a => !a.truth && a.by === net.hostSelfPid) : -1;
+      // Anyone who already found the truth watches this reveal rather than
+      // voting with knowledge the other players do not have.
+      const votingPids = pids.filter(pid => !truthWriters.includes(pid));
       const votes = await collectWithTimer({
         type: 'choice', title: t('pick_truth'),
         // v137 — was missing entirely. 'choice' inputs hide the shared
@@ -941,11 +964,11 @@ const Host = (() => {
         options: answers.map((a, i) => ({ id: i, label: a.text })),
         playerExcludes: _bluffExcludeMap,
         hostExcludeIdx: _hostExcludeIdx,
-      }, pids, 30);
+      }, votingPids, 30);
 
       // land voters on cards (skip self-votes on own lie)
       const votesByCard = answers.map(() => []);
-      for (const pid of pids) {
+      for (const pid of votingPids) {
         const v = val(votes, pid);
         if (v === null || v === undefined) continue;
         const a = answers[v];

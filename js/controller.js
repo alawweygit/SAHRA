@@ -489,10 +489,30 @@ const Controller = (() => {
           hint.style.cssText = 'color:var(--pink);font-size:13px;text-align:center;animation:shake .3s;margin-top:6px';
           wrap.appendChild(hint);
         }
+        hint.style.color = 'var(--pink)';
         hint.textContent = LANG==='ar' ? '⚠️ هذه الإجابة موجودة — جرب إجابة ثانية!' : '⚠️ That answer is taken! Try another one.';
         ta.classList.add('shake');
         setTimeout(() => ta.classList.remove('shake'), 500);
         ta.focus(); ta.select();
+      };
+      const showTruthHint = points => {
+        let hint = wrap.querySelector('.dup-hint');
+        if (!hint) {
+          hint = document.createElement('div');
+          hint.className = 'dup-hint';
+          hint.style.cssText = 'color:var(--green);font-size:13px;text-align:center;animation:shake .3s;margin-top:6px';
+          wrap.appendChild(hint);
+        }
+        const score = Number(points) || 1000;
+        hint.style.color = 'var(--green)';
+        hint.textContent = LANG==='ar'
+          ? `🎯 هذه هي الإجابة الصحيحة! ربحت +${score.toLocaleString()} نقطة. اكتب إجابة مزيفة ثانية.`
+          : `🎯 That is the correct answer! You earned +${score.toLocaleString()} points. Now enter a different fake answer.`;
+        ta.value = '';
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+        ta.classList.add('shake');
+        setTimeout(() => ta.classList.remove('shake'), 500);
+        ta.focus();
       };
       btn.addEventListener('click', async () => {
         if (submitting) return;
@@ -535,11 +555,12 @@ const Controller = (() => {
         wrap.setAttribute('aria-busy', 'true');
         try {
           const result = await onSubmit(v);
-          if (result?.accepted === false && result.reason === 'duplicate') {
+          if (result?.accepted === false && (result.reason === 'duplicate' || result.reason === 'truth')) {
             submitting = false;
             btn.disabled = false;
             wrap.removeAttribute('aria-busy');
-            showDuplicateHint();
+            if (result.reason === 'truth') showTruthHint(result.points);
+            else showDuplicateHint();
             return;
           }
           Audio_.sfx.submit();

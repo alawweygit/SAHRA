@@ -1589,7 +1589,7 @@
   }
 
   /* ---- PASS & PLAY ---- */
-  function passAndPlayPrompt(spec,player){
+  function passAndPlayPrompt(spec,player,submitInput){
     return new Promise(resolve=>{
       const ov=$('#ppOverlay');ov.classList.add('show');
       let settled=false;
@@ -1605,8 +1605,14 @@
       $('#ppReady').addEventListener('click',()=>{
         Audio_.sfx.pop();ov.innerHTML=`<div class="pp-card"><div id="ppCtrl"></div></div>`;
         const ppCtrl=$('#ppCtrl');
-        if(spec?.customRenderer==='timeMachine')renderTimeMachineInput(ppCtrl,spec,value=>done(value));
-        else Controller.render(ppCtrl,spec,value=>done(value));
+        const submit=async value=>{
+          const result=submitInput?await submitInput(value):{accepted:true};
+          if(result?.accepted===false)return result;
+          done(value);
+          return result;
+        };
+        if(spec?.customRenderer==='timeMachine')renderTimeMachineInput(ppCtrl,spec,submit);
+        else Controller.render(ppCtrl,spec,submit);
       },{once:true});
     });
   }
