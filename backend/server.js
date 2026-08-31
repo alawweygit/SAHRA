@@ -180,9 +180,19 @@ function pickDomainSpread(mode) {
   return ordered;
 }
 
-async function generateBatch(mode, lang, used, baseKey, requestedCount) {
+async function generateBatch(mode, lang, used, baseKey, requestedCount, region) {
   const langName = lang === 'ar' ? 'Gulf Arabic (khaleeji dialect)' : 'English';
-  const audience = lang === 'ar' ? 'Arab friend groups in the Gulf.' : 'Mixed international friend groups.';
+  const isMena = region === 'mena';
+  // Language and region are independent: Arabic already leans Gulf/Arab via
+  // langName/audience below, but a player can also want MENA-flavored
+  // content while staying in English — that combination previously produced
+  // generic global content because "region" never reached this prompt.
+  const audience = isMena
+    ? 'Arab/Gulf friend groups (MENA region) — even if this request is in English, keep the flavor, references, and cultural context distinctly Arab/Gulf.'
+    : (lang === 'ar' ? 'Arab friend groups in the Gulf.' : 'Mixed international friend groups.');
+  const regionSection = isMena
+    ? `\\nREGION: Every item in this batch must be Arab/MENA/Gulf-flavored — people, places, food, culture, history, or context should draw specifically from the Arab world (Gulf, Levant, North Africa), not generic/Western/global defaults. This applies regardless of the output language.`
+    : '';
   // Build a strong avoidance list from recent fingerprints + always-banned
   const recentUsed = used ? [...used].slice(-20) : [];
   const alwaysBanned = ALWAYS_BANNED[baseKey] ? [...ALWAYS_BANNED[baseKey]] : [];
@@ -219,7 +229,7 @@ async function generateBatch(mode, lang, used, baseKey, requestedCount) {
       `Generate exactly ${batchSize} party game prompts for "${mode}" in ${langName}.\n` +
       `Audience: ${audience}\n` +
       `Format: ${GUIDANCE[mode]}\n` +
-      `RULES:${domainSection}${avoidSection}\n` +
+      `RULES:${domainSection}${regionSection}${avoidSection}\n` +
       `- Every item must be GENUINELY DIFFERENT from all others\n` +
       `- Be specific and surprising — avoid generic/obvious examples\n` +
       `- All facts must be 100% accurate\n` +
@@ -235,18 +245,20 @@ async function generateBatch(mode, lang, used, baseKey, requestedCount) {
 
 app.post('/api/prompts', async (req, res) => {
   try {
-    const { mode, lang = 'en' } = req.body || {};
+    const { mode, lang = 'en', region = null } = req.body || {};
     const count = Math.min(40, Math.max(1, Math.floor(Number(req.body && req.body.count) || 10)));
     if (!SHAPES[mode]) return res.status(400).json({ error: 'Unknown mode: ' + mode });
 
-    const baseKey = mode + ':' + lang;
+    // region is part of the cache/used-fingerprint key so MENA-flavored and
+    // global-flavored batches for the same mode+lang never get mixed together.
+    const baseKey = mode + ':' + lang + (region ? ':' + region : '');
     let currentPool = pool.get(baseKey) || [];
     if (!usedFingerprints.has(baseKey)) usedFingerprints.set(baseKey, new Set());
     const used = usedFingerprints.get(baseKey);
 
     if (currentPool.length < count) {
       try {
-        const fresh = await generateBatch(mode, lang, used, baseKey, count);
+        const fresh = await generateBatch(mode, lang, used, baseKey, count, region);
         // Filter out used AND always-banned items
         const novel = fresh.filter(item => {
           const fp = getFingerprint(item);
