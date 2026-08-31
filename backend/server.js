@@ -150,18 +150,9 @@ function isBanned(item, baseKey) {
   return [...banned].some(b => fp.includes(b.toLowerCase()));
 }
 
-// Pick a random domain, weighted to avoid recently used ones
+// v209 — pickDomain() (whole-batch domain pinning) removed; every mode with
+// a DOMAINS list now uses pickDomainSpread() (per-item rotation) below instead.
 const lastDomain = new Map();
-function pickDomain(mode) {
-  const domains = DOMAINS[mode];
-  if (!domains || !domains.length) return '';
-  const last = lastDomain.get(mode) || '';
-  // Filter out last used domain for variety
-  const available = domains.filter(d => d !== last);
-  const chosen = available[Math.floor(Math.random() * available.length)];
-  lastDomain.set(mode, chosen);
-  return chosen;
-}
 
 // v208 — previously a whole 8-40 item batch was pinned to ONE domain (e.g.
 // "food and cooking"), so consecutive rounds pulled from the same batch felt
@@ -202,18 +193,19 @@ async function generateBatch(mode, lang, used, baseKey, requestedCount, region) 
     ? `\nSTRICTLY AVOID these topics/phrases: "${avoidList.join('", "')}"` 
     : '';
 
-  // bluff rotates domain PER ITEM (see pickDomainSpread comment above);
-  // other modes keep one domain for the whole batch, unaffected by this.
+  // v209 — the per-item domain-spread fix (originally bluff-only, v208) is
+  // now applied to EVERY mode that has a DOMAINS list (currently bluff and
+  // higherlow), not just bluff. Higher/Lower was still using the old
+  // whole-batch pickDomain(), so a batch of "architecture" questions could
+  // surface several building-height questions back to back before the next
+  // batch's domain changed. Any mode with a DOMAINS[] entry now rotates
+  // domains per item within the batch; modes with no DOMAINS entry are
+  // unaffected (domainSection stays empty for them, same as before).
   let domainSection = '';
-  if (mode === 'bluff') {
+  if (DOMAINS[mode] && DOMAINS[mode].length) {
     const spread = pickDomainSpread(mode);
     domainSection = spread.length
-      ? `\nTOPIC ROTATION — cycle through these domains in order, one per item, wrapping around if you run out: ${spread.map((d, i) => `${i + 1}) ${d}`).join('; ')}. Item 1 uses domain 1, item 2 uses domain 2, etc. Never let two consecutive items share a domain.`
-      : '';
-  } else {
-    const domain = pickDomain(mode);
-    domainSection = domain
-      ? `\nTHIS BATCH MUST be about: "${domain}" — stay focused on this specific category.`
+      ? `\nTOPIC ROTATION — cycle through these domains in order, one per item, wrapping around if you run out: ${spread.map((d, i) => `${i + 1}) ${d}`).join('; ')}. Item 1 uses domain 1, item 2 uses domain 2, etc. Never let two consecutive items share a domain or feel closely related (e.g. don't follow one building-height question with another building-height question, or one animal question with another animal question).`
       : '';
   }
 
