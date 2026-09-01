@@ -1096,11 +1096,13 @@ const Host = (() => {
         qIndex: qi,
         a: Q.a, b: Q.b
       }));
+      const wyrDeadline = inputDeadline(45);
       const phoneWyrSpec = {
         type: 'wyr-multi',
         targetName: target.name,
         targetPid: target.pid,
         questions: wyrQSpecs,
+        deadline: wyrDeadline,
       };
 
       // Host screen: avatar + status row only (host answers via buttons like everyone else)
@@ -1109,7 +1111,6 @@ const Host = (() => {
         <div id="statusRow" class="status-row wyr-keep-visible" style="margin-top:12px"></div>`, t('mode_names')['wyr'], 'wyr-keep-visible'));
 
       const phaseId = 'ph' + (++phaseCounter);
-      const wyrDeadline = inputDeadline(45);
       net.setState({
         phase: 'input-split', phaseId, deadline: wyrDeadline,
         specs: { _default: phoneWyrSpec },
@@ -3182,9 +3183,9 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       // own question.
       const mkSpec = txt => ({ type:'text', title: LANG==='ar'?'إجابتك':'Answer', context: txt, maxLen:40, seconds:30, keepHostContext:true, fullscreenInput:true });
       const specs = {};
-      pids.forEach(pid => { specs[pid] = mkSpec(pid === spy.pid ? pair.b : pair.a); });
-      const phaseId = 'bi' + Date.now() + '_' + q;
       const deadline = Date.now() + inputTimeout(30) * 1000;
+      pids.forEach(pid => { specs[pid] = { ...mkSpec(pid === spy.pid ? pair.b : pair.a), deadline }; });
+      const phaseId = 'bi' + Date.now() + '_' + q;
       // v118 — `targets` added: collectWithTimer sets it on every input
       // phase, and the reconnect/lock-screen recovery path reads it. Blend
       // In omitted it because it hand-rolls its own collection loop.
