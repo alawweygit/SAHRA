@@ -12,7 +12,7 @@ if (!/is answering…/.test(host)) throw new Error('Waiting players must see thi
 if (/write 3 answers on your phone/.test(host)) throw new Error('Waiting screen must not address the active writer');
 if (!/phoneSpec\.fullscreenInput===true/.test(main)) throw new Error('Player writer must hide the duplicated shared stage');
 if (!/phones-host-fullscreen-input-panel/.test(main)) throw new Error('Host writer must use a full-screen input panel');
-if (!/context:isFullscreenInput\?\(spec\.context\|\|''\):''/.test(main)) throw new Error('Host writer must keep the question in the full-screen form');
+if (!/context:\(isFullscreenInput\|\|spec\?\.keepHostContext\)\?\(spec\.context\|\|''\):''/.test(main)) throw new Error('Host writer must keep the question in the full-screen form');
 if (!/ctrl-multitext/.test(controller)) throw new Error('Multitext renderer must expose structural classes');
 if (!/\.ctrl-multitext-input\s*\{[^}]*height:clamp\(/s.test(css)) throw new Error('All three inputs need compact viewport-aware heights');
 if (!/#scr-controller\.active:has\(#playerDock \.ctrl-multitext\)[^{]*\{[^}]*overflow:hidden\s*!important/s.test(css)) throw new Error('Writer screen must not require page scrolling');

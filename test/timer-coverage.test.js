@@ -12,8 +12,12 @@ assert.match(host, /const inputTimeout = seconds => seconds \* 1000/,
   'online input rounds must finish at the displayed time limit');
 assert.match(host, /net\.isOffline \? 9e7 : inputTimeout\(seconds/,
   'One Device must retain its separate untimed turn-based behavior');
+assert.match(controller, /const addGenericCountdown = \(\) =>/,
+  'all generic answer renderers must share one countdown helper');
 assert.match(controller, /wrap\.prepend\(ctrlTimer\)/,
   'the timer must be inserted after mode-specific wrapper rebuilds');
+assert.match(controller, /if \(spec\.type === 'multitext'\)[\s\S]*?addGenericCountdown\(\);[\s\S]*?container\.replaceChildren\(wrap\);[\s\S]*?return;/,
+  '2 Truths 1 Lie must add its timer before its early return');
 assert.match(controller, /if \(!wrap\.isConnected\) \{ clearInterval\(ctrlTimerInterval\)/,
   're-rendered answer panels must clean up their detached countdown');
 assert.doesNotMatch(css, /\.ring-timer\s*,\s*\.ctrl-timer\s*\{\s*display\s*:\s*none\s*!important/,

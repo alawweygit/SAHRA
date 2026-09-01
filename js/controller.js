@@ -66,6 +66,28 @@ const Controller = (() => {
     if (spec.compactRebus) wrap.classList.add('rebus-controller');
     if (spec.controlsOnly) wrap.classList.add('ctrl-controls-only');
 
+    // Add the shared answer-panel countdown after a renderer has finished
+    // building its controls. Some modes rebuild the wrapper (WYR and
+    // Higher/Lower), while multitext returns early, so one helper is used by
+    // both the normal end-of-render path and that early-return path.
+    const addGenericCountdown = () => {
+      if (!spec.deadline || spec.type === 'harfturn' || spec.type === 'harfvote' || spec.controlsOnly) return;
+      const ctrlTimer = document.createElement('div');
+      ctrlTimer.className = 'ctrl-timer';
+      const tickCtrlTimer = () => {
+        const left = Math.max(0, Math.ceil((spec.deadline - Date.now()) / 1000));
+        ctrlTimer.textContent = left;
+        ctrlTimer.classList.toggle('danger', left <= 5 && left > 0);
+      };
+      tickCtrlTimer();
+      const ctrlTimerInterval = setInterval(() => {
+        if (!wrap.isConnected) { clearInterval(ctrlTimerInterval); return; }
+        tickCtrlTimer();
+        if (spec.deadline - Date.now() <= 0) clearInterval(ctrlTimerInterval);
+      }, 1000);
+      wrap.prepend(ctrlTimer);
+    };
+
     // v110 — question now renders ABOVE the answer area, as the visual
     // headline, with the title demoted to a small label right above the
     // input. Was reversed: 'Your answer' rendered big and yellow as the
@@ -212,6 +234,7 @@ const Controller = (() => {
       // NOTE: must attach here rather than `return`-ing — render()'s single
       // container.replaceChildren(wrap) lives at the end of the function, so
       // an early return would render nothing at all.
+      addGenericCountdown();
       container.replaceChildren(wrap);
       scrollInputIntoView(wrap);
       return;
@@ -902,27 +925,7 @@ const Controller = (() => {
       });
     }
 
-    // Add the generic countdown only after the mode-specific renderer is
-    // finished. WYR and Higher/Lower rebuild the wrapper with innerHTML, so
-    // inserting this near the top of render() made them silently delete their
-    // own timer. Prepending here keeps it visible at the top of every answer
-    // panel while HarfHunt retains its bespoke countdown UI.
-    if (spec.deadline && spec.type !== 'harfturn' && spec.type !== 'harfvote' && !spec.controlsOnly) {
-      const ctrlTimer = document.createElement('div');
-      ctrlTimer.className = 'ctrl-timer';
-      const tickCtrlTimer = () => {
-        const left = Math.max(0, Math.ceil((spec.deadline - Date.now()) / 1000));
-        ctrlTimer.textContent = left;
-        ctrlTimer.classList.toggle('danger', left <= 5 && left > 0);
-      };
-      tickCtrlTimer();
-      const ctrlTimerInterval = setInterval(() => {
-        if (!wrap.isConnected) { clearInterval(ctrlTimerInterval); return; }
-        tickCtrlTimer();
-        if (spec.deadline - Date.now() <= 0) clearInterval(ctrlTimerInterval);
-      }, 1000);
-      wrap.prepend(ctrlTimer);
-    }
+    addGenericCountdown();
 
     // Swap the complete controller atomically. This guarantees that repeated
     // Firebase snapshots replace the old question instead of appending another

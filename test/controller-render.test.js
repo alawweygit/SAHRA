@@ -2,6 +2,8 @@ const { JSDOM } = require('jsdom');
 const fs = require('fs');
 const path = require('path');
 
+async function main() {
+
 const css = fs.readFileSync(path.join(__dirname, '..', 'css', 'style.css'), 'utf8');
 const dedupRule = '.phones-player-answering #phoneSharedStage :is(.answer-grid,.quiz-grid){display:none!important;}';
 if (!css.includes(dedupRule)) throw new Error('phones-only stage deduplication rule is missing');
@@ -36,6 +38,7 @@ if (container.querySelectorAll('.choice-btn').length !== 2) throw new Error('dup
 if (window.getComputedStyle(window.document.getElementById('stage-copy')).display !== 'none') throw new Error('stage answer copy remained visible beside controller choices');
 
 container.querySelector('[class="choice-btn"]').click();
+await Promise.resolve();
 if (submitted.length !== 1 || submitted[0] !== 'a') throw new Error('answer button did not submit once');
 if (!Array.from(container.querySelectorAll('button')).every(button => button.disabled)) throw new Error('answer buttons did not lock after submit');
 
@@ -53,3 +56,9 @@ if (submitted.length !== 1 || submitted[0] !== 'reject') throw new Error('HarfHu
 if (!Array.from(container.querySelectorAll('.harf-vote-btn')).every(button => button.disabled)) throw new Error('HarfHunt vote buttons did not lock after submission');
 
 console.log('CONTROLLER RENDER PASSED ✅');
+}
+
+main().catch(error => {
+  console.error(error);
+  process.exit(1);
+});
