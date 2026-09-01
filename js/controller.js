@@ -89,32 +89,6 @@ const Controller = (() => {
       if (!spec.controlsOnly) wrap.appendChild(ctx);
     }
 
-    // v218 — every spec with a deadline gets a visible countdown pill here.
-    // The host's shared-stage ring (added in v217) only shows on the
-    // background scene; the moment a player (or the host, via
-    // renderHostPlayerCard, which is this exact same function) is actively
-    // answering, this fullscreen/inline panel covers that stage entirely,
-    // so the ring behind it was never visible during the one moment it
-    // matters most. HarfHunt already solved this for its own two types
-    // with bespoke countdown divs (harf-turn-countdown, harf-vote-countdown)
-    // below; .ctrl-timer existed in CSS for exactly this generic case but
-    // was never actually wired up anywhere. Skip harfturn/harfvote here
-    // since they already render their own.
-    if (spec.deadline && spec.type !== 'harfturn' && spec.type !== 'harfvote' && !spec.controlsOnly) {
-      const ctrlTimer = document.createElement('div');
-      ctrlTimer.className = 'ctrl-timer';
-      const tickCtrlTimer = () => {
-        const left = Math.max(0, Math.ceil((spec.deadline - Date.now()) / 1000));
-        ctrlTimer.textContent = left;
-        ctrlTimer.classList.toggle('danger', left <= 5 && left > 0);
-      };
-      tickCtrlTimer();
-      const ctrlTimerInterval = setInterval(() => {
-        tickCtrlTimer();
-        if (spec.deadline - Date.now() <= 0) clearInterval(ctrlTimerInterval);
-      }, 1000);
-      wrap.appendChild(ctrlTimer);
-    }
     // Translate button — only for players (not host, host has its own button)
     const _txCtx = spec.translateContext || spec.context;
     if(_txCtx && typeof LANG !== 'undefined' && LANG !== 'ar'){
@@ -926,6 +900,28 @@ const Controller = (() => {
         btn.disabled = true;
         onSubmit(JSON.stringify(guess));
       });
+    }
+
+    // Add the generic countdown only after the mode-specific renderer is
+    // finished. WYR and Higher/Lower rebuild the wrapper with innerHTML, so
+    // inserting this near the top of render() made them silently delete their
+    // own timer. Prepending here keeps it visible at the top of every answer
+    // panel while HarfHunt retains its bespoke countdown UI.
+    if (spec.deadline && spec.type !== 'harfturn' && spec.type !== 'harfvote' && !spec.controlsOnly) {
+      const ctrlTimer = document.createElement('div');
+      ctrlTimer.className = 'ctrl-timer';
+      const tickCtrlTimer = () => {
+        const left = Math.max(0, Math.ceil((spec.deadline - Date.now()) / 1000));
+        ctrlTimer.textContent = left;
+        ctrlTimer.classList.toggle('danger', left <= 5 && left > 0);
+      };
+      tickCtrlTimer();
+      const ctrlTimerInterval = setInterval(() => {
+        if (!wrap.isConnected) { clearInterval(ctrlTimerInterval); return; }
+        tickCtrlTimer();
+        if (spec.deadline - Date.now() <= 0) clearInterval(ctrlTimerInterval);
+      }, 1000);
+      wrap.prepend(ctrlTimer);
     }
 
     // Swap the complete controller atomically. This guarantees that repeated

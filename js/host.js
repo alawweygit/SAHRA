@@ -325,16 +325,14 @@ const Host = (() => {
     return new Promise(res => { window.__hypoxSkip = () => { window.__hypoxSkip = null; res('skip'); }; });
   }
 
-  const autoplayEnabled = () => window.HYPOX_STATE?.autoplay === true;
-  // v136 — spec.forceTimer bypasses the autoplay gate below. Without it,
-  // inputDeadline returns null and inputTimeout returns ~25 hours whenever
-  // autoplay is off — meaning HarfHunt's 15s turn cutoff (and its visible
-  // countdown, which depends on a real deadline existing) silently did
-  // nothing in manual/non-autoplay play. Ali wants the 15s cutoff to always
-  // apply, so HarfHunt opts out of the gate; every other mode's existing
-  // autoplay-dependent behavior is untouched.
-  const inputDeadline = (seconds, force) => (force || autoplayEnabled()) ? Date.now() + seconds * 1000 : null;
-  const inputTimeout = (seconds, force) => (force || autoplayEnabled()) ? seconds * 1000 : 9e7;
+  // Manual pacing controls result/tutorial Next buttons; it must not remove
+  // the actual answering clock. The old autoplay gate returned a null
+  // deadline in the default "I control (Next button)" setting, which meant
+  // v217/v218 still rendered no countdown in normal live games. Input rounds
+  // now always use their advertised limit; One Device remains deliberately
+  // untimed through the explicit net.isOffline branch in collectWithTimer().
+  const inputDeadline = seconds => Date.now() + seconds * 1000;
+  const inputTimeout = seconds => seconds * 1000;
 
   /* ---------- input collection with big timer ---------- */
   async function collectWithTimer(spec, pids, seconds, statusLabelFn) {
@@ -347,7 +345,7 @@ const Host = (() => {
     pids = requestedPids.filter(pid => livePids.has(pid));
 
     const phaseId = 'ph' + (++phaseCounter);
-    const deadline = inputDeadline(seconds, spec.forceTimer === true);
+    const deadline = inputDeadline(seconds);
     // Private reserved answers are installed before players receive this
     // phase, then removed from the public spec so the truth never appears in
     // controller state or page markup.
@@ -556,7 +554,7 @@ const Host = (() => {
     activeCollectionPids = pids;
     let inputs;
     try {
-      inputs = await net.collect(phaseId, publicSpec, pids, net.isOffline ? 9e7 : inputTimeout(seconds, publicSpec.forceTimer === true));
+      inputs = await net.collect(phaseId, publicSpec, pids, net.isOffline ? 9e7 : inputTimeout(seconds));
     } finally {
       activeCollectionPids = null;
       clearInterval(_offlinePaintInt);
@@ -1445,7 +1443,8 @@ const Host = (() => {
         type: 'choice',
         title: LANG==='ar'?'😂 اختار الأضحك':'😂 Pick the funniest',
         context: promptText,
-        options: pickOptions
+        options: pickOptions,
+        deadline: pickDeadline,
       };
       // Everyone else waits
       for (const pid of writerPids) {
@@ -1643,7 +1642,7 @@ const Host = (() => {
         const myOpt = pid===A.pid?'a':pid===B.pid?'b':null;
         // Duelers can vote but obviously not for themselves
         const opts = myOpt ? voteOpts.filter(o=>o.id!==myOpt) : voteOpts;
-        if (opts.length) voteSpecs[pid] = {type:'choice',title:LANG==='ar'?'🥊 من يفوز؟':'🥊 Who wins?',options:opts};
+        if (opts.length) voteSpecs[pid] = {type:'choice',title:LANG==='ar'?'🥊 من يفوز؟':'🥊 Who wins?',options:opts,deadline:voteDeadline};
       }
       net.setState({phase:'input-split',phaseId:votePhaseId,deadline:voteDeadline,specs:voteSpecs,mirror:{...mirror}});
 
@@ -1663,7 +1662,7 @@ const Host = (() => {
         const myOpt=net.hostSelfPid===A.pid?'a':net.hostSelfPid===B.pid?'b':null;
         const votableOpts=myOpt?voteOpts.filter(o=>o.id!==myOpt):voteOpts;
         if (votableOpts.length) {
-          renderHostPlayerCard({type:'choice',title:LANG==='ar'?'🥊 من يفوز؟':'🥊 Who wins?',options:votableOpts},value=>
+          renderHostPlayerCard({type:'choice',title:LANG==='ar'?'🥊 من يفوز؟':'🥊 Who wins?',options:votableOpts,deadline:voteDeadline},value=>
             net.room('inputs/'+votePhaseId+'/'+net.hostSelfPid).set({v:value,t:Date.now()})
           );
         }
@@ -3183,7 +3182,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       // own question.
       const mkSpec = txt => ({ type:'text', title: LANG==='ar'?'إجابتك':'Answer', context: txt, maxLen:40, seconds:30, keepHostContext:true, fullscreenInput:true });
       const specs = {};
-      const deadline = Date.now() + inputTimeout(30) * 1000;
+      const deadline = inputDeadline(30);
       pids.forEach(pid => { specs[pid] = { ...mkSpec(pid === spy.pid ? pair.b : pair.a), deadline }; });
       const phaseId = 'bi' + Date.now() + '_' + q;
       // v118 — `targets` added: collectWithTimer sets it on every input
