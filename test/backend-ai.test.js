@@ -108,6 +108,15 @@ async function postPrompts(body) {
     truth: 'FOUR', decoys: ['FOUR', 'FIVE', 'SIX', 'SEVEN'],
   }), false, 'truth and decoys must all be unique');
 
+  assert.equal(backend.isValidPrompt('wyr', {
+    a: 'Give up music forever',
+    b: 'Give up movies forever',
+  }), true, 'short Would You Rather options must pass');
+  assert.equal(backend.isValidPrompt('wyr', {
+    a: 'Always explain every tiny detail before you can answer any simple question aloud',
+    b: 'Give up movies forever',
+  }), false, 'Would You Rather options over twelve words must be rejected');
+
   const unknown = await postPrompts({ mode: 'not-a-game', count: 2 });
   assert.equal(unknown.statusCode, 400);
 

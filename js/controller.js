@@ -685,6 +685,25 @@ const Controller = (() => {
         if (spec.excludeId !== undefined && String(o.id) === String(spec.excludeId)) return false;
         return true;
       });
+      let submitting = false;
+      const showChoiceSubmitError = () => {
+        let hint = wrap.querySelector('.choice-submit-hint');
+        if (!hint) {
+          hint = document.createElement('div');
+          hint.className = 'choice-submit-hint';
+          hint.setAttribute('role', 'alert');
+          grid.insertAdjacentElement('afterend', hint);
+        }
+        hint.textContent = typeof LANG !== 'undefined' && LANG === 'ar'
+          ? 'تعذر إرسال اختيارك — حاول مرة ثانية.'
+          : 'Could not send your choice — please try again.';
+      };
+      const restoreChoiceButtons = picked => {
+        submitting = false;
+        wrap.removeAttribute('aria-busy');
+        picked?.classList.remove('picked');
+        wrap.querySelectorAll('.choice-btn').forEach(button => { button.disabled = false; });
+      };
       options.forEach((o, i) => {
         if (i > 0 && spec.gridClass === 'wyr-choices') {
           const vs = document.createElement('div');
@@ -697,11 +716,27 @@ const Controller = (() => {
         b.textContent = o.label;
         if (o.color) b.style.setProperty('--cb', o.color);
         b.style.animationDelay = (i * .07) + 's';
-        b.addEventListener('click', () => {
+        b.addEventListener('click', async () => {
+          if (submitting) return;
+          submitting = true;
           Audio_.sfx.vote();
           b.classList.add('picked');
-          lock(wrap);
-          onSubmit(o.id);
+          wrap.setAttribute('aria-busy', 'true');
+          wrap.querySelectorAll('.choice-btn').forEach(button => { button.disabled = true; });
+          wrap.querySelector('.choice-submit-hint')?.remove();
+          try {
+            const result = await onSubmit(o.id);
+            if (result?.accepted === false) {
+              restoreChoiceButtons(b);
+              showChoiceSubmitError();
+              return;
+            }
+            wrap.removeAttribute('aria-busy');
+            lock(wrap);
+          } catch (error) {
+            restoreChoiceButtons(b);
+            showChoiceSubmitError();
+          }
         });
         grid.appendChild(b);
       });

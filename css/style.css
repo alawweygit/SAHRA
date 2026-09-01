@@ -659,6 +659,7 @@ body.phones-host-inline-answering #hostStage > :not(.phones-host-inline-choice-p
 .phones-host-inline-choice-panel .ctrl-choice-card .ctrl-context{width:100%;font-size:clamp(22px,3.2vmin,34px);padding:clamp(14px,2vmin,20px);}
 .phones-host-inline-choice-panel .ctrl-choice-card .ctrl-title{font-size:clamp(15px,2vmin,19px)!important;}
 .phones-host-inline-choice-panel .ctrl-choice-card .choice-btn{min-height:clamp(54px,7vmin,68px);font-size:clamp(15px,2vmin,18px);}
+.choice-submit-hint{color:var(--pink);font-size:13px;font-weight:700;text-align:center;margin-top:8px;animation:shake .3s both;}
 
 @media(max-width:600px){
   body.phones-only-player.phones-player-answering #scr-controller,

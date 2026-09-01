@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
+  <title>Choice retry fixture</title>
+</head>
+<body class="theme-dark phones-only-player phones-player-answering">
+  <div id="ctrlArea"></div>
+  <script>
+    window.t = key => key;
+    window.esc = value => String(value);
+    window.LANG = 'en';
+    window.Audio_ = { sfx: { vote() {}, submit() {} } };
+    window.__attempts = 0;
+  </script>
+  <script src="../js/controller.js"></script>
+  <script>
+    Controller.render(document.getElementById('ctrlArea'), {
+      type: 'choice',
+      title: 'Pick the funniest',
+      context: 'A test prompt',
+      options: [
+        { id: 'a', label: 'Answer A', color: '#f472b6' },
+        { id: 'b', label: 'Answer B', color: '#60a5fa' }
+      ]
+    }, async value => {
+      window.__attempts += 1;
+      window.__lastChoice = value;
+      if (window.__attempts === 1) throw new Error('simulated temporary network failure');
+      return { accepted: true };
+    });
+  </script>
+</body>
+</html>

@@ -2196,9 +2196,15 @@
               const deadline=st.deadline||0;
               const _isTarget = !st.targets || st.targets.includes(myPid);
               if(deadline>now&&_isTarget){
-                // Still time left — re-render input
-                lastPhaseId=null; // force re-render
-                net.onState._lastState=null;
+                // Still time left — replay the current phase through the real
+                // state handler. The old code only cleared a local phase id
+                // and assigned an unused property on net.onState; neither
+                // action actually rebuilt a card whose DOM/listeners were
+                // lost while iOS suspended the tab. This is the intermittent
+                // "buttons are visible but cannot be pressed" case after a
+                // lock-screen/app switch.
+                lastPhaseId=null; // force the handler to rebuild this phase
+                handleNetState(st);
               }
             }
           }).catch(()=>{});

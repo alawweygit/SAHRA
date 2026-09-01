@@ -115,6 +115,8 @@ function isValidPrompt(mode, item) {
     item.options.every(option => typeof option === 'string' && option.trim()) &&
     Number.isInteger(item.correct) && item.correct >= 0 && item.correct < 4;
   const oneWord = value => typeof value === 'string' && value.trim() && value.trim().split(/\s+/).length === 1;
+  const atMostWords = (value, limit) => typeof value === 'string' &&
+    value.trim().length > 0 && value.trim().split(/\s+/).length <= limit;
   const clearBluff = () => {
     if (!text('fact') || !item.fact.includes('___') || !oneWord(item.truth)) return false;
     if (!Array.isArray(item.decoys) || item.decoys.length !== 4 || !item.decoys.every(oneWord)) return false;
@@ -139,7 +141,10 @@ function isValidPrompt(mode, item) {
     // "1889" and hyphenated single words like "SPAGHETTO-ISH" still pass;
     // only whitespace-separated multi-word phrases are rejected.
     case 'bluff': return clearBluff();
-    case 'wyr': return text('a') && text('b');
+    // The prompt asks the model for short spoken-style choices, but prompt
+    // guidance is not enforcement. Reject anything over the stated limit so
+    // a verbose AI response is regenerated instead of reaching a phone.
+    case 'wyr': return atMostWords(item.a, 12) && atMostWords(item.b, 12);
     case 'interrogation': return text('q') && item.q.includes('[NAME]');
     case 'diss': return text('p');
     case 'quiz': return text('q') && fourChoices();
