@@ -525,17 +525,16 @@ const Host = (() => {
     // countdown (online only — offline is turn-based, no global clock)
     let timerInt = null;
     const CIRC = 276.5;
-    // v134 — was: unconditionally hide #ringTimer for every mode, and the
-    // code that would have driven it was dead (`if (false && ...)`), so it
-    // never ran for ANYONE. The comment above it explains why other modes
-    // (quiz/trivia) deliberately dropped their ring — speed scoring already
-    // conveys urgency there. But HarfHunt shares this same function and has
-    // its OWN #ringTimer in harfTurnScene, and Ali explicitly wants a real,
-    // visible 15s countdown per turn — the auto-fail-on-timeout behavior
-    // below was already correct, only the on-screen display was missing.
-    // Only hide/skip the ring for modes that made the deliberate choice to
-    // drop it; HarfHunt keeps and drives its own.
-    const showRing = publicSpec.type === 'harfturn';
+    // v217 — was gated to publicSpec.type === 'harfturn' only. Every mode
+    // already tracks a real per-phase deadline (the whole reason this ring
+    // exists), but only HarfHunt's own scene had ring markup AND the code
+    // only turned the ring on for that one type. Combined with the global
+    // CSS kill-switch removed above, the ring has effectively never been
+    // visible anywhere. Now on for every phase that has a real countdown --
+    // this only takes visible effect on scenes that actually render the
+    // #ringTimer markup (added to every mode below); scenes without it are
+    // unaffected since $('#ringTimer') simply returns null there.
+    const showRing = true;
     if (!showRing) $('#ringTimer')?.classList.add('hidden');
     if (showRing) {
       const num = $('#timerNum'), fill = $('#timerFill');
@@ -921,7 +920,7 @@ const Host = (() => {
           reservedUniqueAnswers: [{ value: R.truth, meta: { reason: 'truth', points: 1000 } }],
           trackTruthDiscoveries: true,
         },
-        pids, 60);
+        pids, 45);
 
       const truthWriters = Object.keys(inputs.truthDiscoveries || {});
       const answers = buildBluffAnswers(R, rounds, pids, inputs, truthWriters);
@@ -946,6 +945,7 @@ const Host = (() => {
               </div>`).join('')}
           </div>
         </div>
+        <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         <div id="statusRow" class="status-row"></div>`);
       answers.forEach((a, i) => setTimeout(() => Audio_.sfx.pop(), i * 120));
       hostSay('vote');
@@ -1109,10 +1109,26 @@ const Host = (() => {
         <div id="statusRow" class="status-row wyr-keep-visible" style="margin-top:12px"></div>`, t('mode_names')['wyr'], 'wyr-keep-visible'));
 
       const phaseId = 'ph' + (++phaseCounter);
+      const wyrDeadline = inputDeadline(45);
       net.setState({
-        phase: 'input-split', phaseId, deadline: inputDeadline(45),
+        phase: 'input-split', phaseId, deadline: wyrDeadline,
         specs: { _default: phoneWyrSpec },
       });
+
+      // v217 — WYR's scene already had ring markup (via frameWithTimer) but
+      // nothing ever drove it: this phase uses net.collect directly (a
+      // multi-question, per-player spec split-input phase), not
+      // collectWithTimer, so it never got that function's countdown loop.
+      // Same small self-contained version added to BlendIn for the same
+      // reason, cleaned up once net.collect resolves below.
+      const _wyrCirc = 276.5;
+      const _wyrNum = $('#timerNum'), _wyrFill = $('#timerFill');
+      if (_wyrFill) { _wyrFill.style.transition = 'none'; _wyrFill.style.strokeDashoffset = 0; }
+      const _wyrTimerInt = setInterval(() => {
+        const left = Math.max(0, Math.ceil((wyrDeadline - Date.now()) / 1000));
+        if (_wyrNum) { _wyrNum.textContent = left; _wyrNum.classList.toggle('danger', left <= 5 && left > 0); }
+        if (_wyrFill) { _wyrFill.style.transition = 'stroke-dashoffset .95s linear'; _wyrFill.style.strokeDashoffset = (1 - left / 45) * _wyrCirc; }
+      }, 1000);
 
       const statusRow = $('#statusRow');
       if (statusRow) statusRow.innerHTML = players.map(p => `<div class="mini" id="mini-${p.pid}">${avatarHTML(p)}<div class="check">✓</div></div>`).join('');
@@ -1149,6 +1165,7 @@ const Host = (() => {
         inputTimeout(45)
       );
       net.promptLocal = _savedPromptLocalWyr;
+      clearInterval(_wyrTimerInt);
       net.onEachInput(null);
       net.setState({ phase: 'wait', msg: t('watch_screen') });
 
@@ -1383,6 +1400,7 @@ const Host = (() => {
         <div class="eyebrow">😂 ${LANG==='ar'?'قولها أنون':'SAY IT ANON'}</div>
         <div class="prompt-card display" style="margin-top:1vmin">${esc(promptText)}</div>
         <div class="pick-sub" style="margin-top:1.5vmin">${LANG==='ar'?'✍️ اكتب أضحك إجابة — هويتك سرية!':'✍️ Write the funniest answer — stay anonymous!'}</div>
+        <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         <div id="statusRow" class="status-row" style="margin-top:1vmin"></div>`);
       Audio_.sfx.sting(); hostSay('prompt');
 
@@ -1561,6 +1579,7 @@ const Host = (() => {
       scene(`<div class="eyebrow">🎤 ${LANG==='ar'?'معركة الروست':'ROAST BATTLE'}</div>
         <div class="prompt-card display">${esc(promptText)}</div>
         <div class="pick-sub" style="opacity:.6">${LANG==='ar'?'مقاتلان سريان يكتبان الآن...':'Two fighters writing in secret...'}</div>
+        <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         <div id="statusRow" class="status-row"></div>`);
       pushMirror({ headline: promptText, sub: LANG==='ar'?'✍️ اكتب خطك!':'✍️ Write your line!' });
       Audio_.sfx.sting();
@@ -1814,6 +1833,7 @@ const Host = (() => {
         <div class="eyebrow">📍 ${esc(t('mode_names').pinpoint || 'PIN POINT')}</div>
         <div class="prompt-card">${esc(cityName)}</div>
         <div class="pick-sub">${LANG==='ar'?'وين هالمدينة؟ حط دبوسك على الخريطة!':'Where is this city? Drop your pin on the map!'}</div>
+        <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         <div id="statusRow" class="status-row"></div>`);
       pushMirror({ headline: cityName, pill: `${r+1}/${pool.length}` });
       Audio_.sfx.sting();
@@ -1821,8 +1841,8 @@ const Host = (() => {
       const answers = await collectWithTimer({
         type: 'map', title: cityName,
         sub: LANG==='ar'?'حط الدبوس أقرب ما تقدر':'Drop your pin as close as you can',
-        seconds: 35,
-      }, players.map(p => p.pid), 35);
+        seconds: 30,
+      }, players.map(p => p.pid), 30);
 
       // Score by distance
       const results = players.map(p => {
@@ -2112,6 +2132,13 @@ const Host = (() => {
           <div class="tm-eyebrow">⏳ ${esc(t('mode_names').year || 'TIME MACHINE')}</div>
           <div class="tm-statement-card"><div class="tm-statement-text">${esc(_qText)}</div></div>
           <div class="tm-prompt">${LANG==='ar'?'أي سنة صارت؟ اكتب تخمينك!':'What year did this happen? Type your guess!'}</div>
+          <div class="ring-timer" id="ringTimer">
+            <svg viewBox="0 0 100 100">
+              <circle class="ring-bg" cx="50" cy="50" r="44"/>
+              <circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/>
+            </svg>
+            <div class="timer-num" id="timerNum"></div>
+          </div>
           <div id="statusRow" class="status-row"></div>
         </div>`);
       pushMirror({ headline: Q.q, pill: `${i+1}/${qs.length}` });
@@ -2172,7 +2199,7 @@ const Host = (() => {
       const Q = prompts[i];
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${prompts.length}`);
-      scene(`<div class="eyebrow">🏆 ${LANG==='ar'?'الأرجح':'MOST LIKELY TO'}</div><div class="prompt-card display">${esc(Q.q)}</div><div class="pick-sub">${LANG==='ar'?'الكل يصوت — من الأرجح؟':'Everyone votes — who is it?'}</div><div id="statusRow" class="status-row"></div>`);
+      scene(`<div class="eyebrow">🏆 ${LANG==='ar'?'الأرجح':'MOST LIKELY TO'}</div><div class="prompt-card display">${esc(Q.q)}</div><div class="pick-sub">${LANG==='ar'?'الكل يصوت — من الأرجح؟':'Everyone votes — who is it?'}</div><div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div><div id="statusRow" class="status-row"></div>`);
       pushMirror({ headline: Q.q });
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p => p.pid);
@@ -2253,7 +2280,7 @@ const Host = (() => {
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${prompts.length}`);
       const opts = [{id:'true',label:LANG==='ar'?'✅ حقيقة':'✅ TRUE',color:'#34d399'},{id:'false',label:LANG==='ar'?'❌ خطأ':'❌ FALSE',color:'#f472b6'}];
-      scene(`<div class="eyebrow">✅❌ ${LANG==='ar'?'صح ولا كذب؟':'TRUE OR LIE?'}</div><div class="prompt-card display">${esc(Q.s)}</div><div id="statusRow" class="status-row"></div>`);
+      scene(`<div class="eyebrow">✅❌ ${LANG==='ar'?'صح ولا كذب؟':'TRUE OR LIE?'}</div><div class="prompt-card display">${esc(Q.s)}</div><div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div><div id="statusRow" class="status-row"></div>`);
       pushMirror({ headline: Q.s });
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p => p.pid);
@@ -2327,6 +2354,7 @@ const Host = (() => {
       scene(`<div class="eyebrow">🚩 ${LANG==='ar'?'عرّف العلم':'FLAG HUNT'}</div>
         <div class="flag-display">${Q.flag}</div>
         <div class="pick-sub">${LANG==='ar'?'اكتب اسم الدولة':'Type the country name'}</div>
+        <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         <div id="statusRow" class="status-row"></div>`);
       pushMirror({ headline: Q.flag });
       Audio_.sfx.sting();
@@ -2411,6 +2439,7 @@ const Host = (() => {
         <div class="prompt-card display">${esc(Q.q)}</div>
         <div class="pick-sub hl-hint">${hint.toLocaleString()} ${esc(Q.unit||'')}</div>
         <div class="pick-sub" style="opacity:.7">${LANG==='ar'?'الرقم الحقيقي فوق ولا تحت؟':'Is the real answer higher or lower?'}</div>
+        <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         <div id="statusRow" class="status-row"></div>`);
       // Send to phone as separate fields so controller renders cleanly
       const hlSpec = {
@@ -2506,6 +2535,7 @@ const Host = (() => {
             <div class="tm-statement-text">${esc(QC.q)}</div>
           </div>
           <div class="pick-sub">${LANG==='ar'?'إجابتان صحيحتان وإجابة واحدة كذبة':`Two truths and one lie — can ${target.name} fool you?`}</div>
+          <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
           <div id="statusRow" class="status-row"></div>
         </div>`);
       pushMirror({ headline: LANG==='ar'?`دور ${target.name}!`:`${target.name}'s turn!` });
@@ -2526,14 +2556,14 @@ const Host = (() => {
         sub: LANG==='ar' ? 'اكتب حقيقتين وكذبة مقنعة' : 'Write two truths and one convincing lie',
         fullscreenInput: true,
         maxLen: 80,
-        seconds: 90,
+        seconds: 60,
         fields: [
           { label: LANG==='ar' ? '✅ حقيقة ١' : '✅ TRUTH 1', placeholder: LANG==='ar' ? 'شيء صحيح عنك…' : 'Something true…' },
           { label: LANG==='ar' ? '✅ حقيقة ٢' : '✅ TRUTH 2', placeholder: LANG==='ar' ? 'شيء صحيح ثاني…' : 'Another true one…' },
           { label: LANG==='ar' ? '❌ الكذبة' : '❌ THE LIE', placeholder: LANG==='ar' ? 'كذبة مقنعة…' : 'A convincing lie…', lie: true },
         ],
       };
-      const packed = await collectWithTimer(mtSpec, [target.pid], 90);
+      const packed = await collectWithTimer(mtSpec, [target.pid], 60);
       let trio = [];
       try { trio = JSON.parse(val(packed, target.pid) || '[]'); } catch (e) { trio = []; }
       if (!Array.isArray(trio)) trio = [];
@@ -2545,7 +2575,7 @@ const Host = (() => {
       // v104 — show the original question here as well. Voters were seeing
       // three bare statements with no idea what question they answered.
       scene(`<div class="eyebrow">${esc(target.name)} — ${LANG==='ar'?'أيها الكذبة؟':'which is the lie?'}</div>
-        <div class="tm-statement-card" style="margin-bottom:1vmin"><div class="tm-statement-text" style="font-size:clamp(15px,2.8vmin,22px)">${esc(QC.q)}</div></div><div class="quiz-grid" style="grid-template-columns:1fr">${stmts.map((st,j)=>`<div class="quiz-opt" id="stmt-${j}" style="--qc:${colors[j]};font-size:clamp(15px,2vw,18px)"><span class="q-letter display">${'ABC'[j]}</span> ${esc(st.text)}</div>`).join('')}</div>`);
+        <div class="tm-statement-card" style="margin-bottom:1vmin"><div class="tm-statement-text" style="font-size:clamp(15px,2.8vmin,22px)">${esc(QC.q)}</div></div><div class="quiz-grid" style="grid-template-columns:1fr">${stmts.map((st,j)=>`<div class="quiz-opt" id="stmt-${j}" style="--qc:${colors[j]};font-size:clamp(15px,2vw,18px)"><span class="q-letter display">${'ABC'[j]}</span> ${esc(st.text)}</div>`).join('')}</div><div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>`);
       const others = players.filter(p=>p.pid!==target.pid).map(p=>p.pid);
       const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'أيها الكذبة؟':'Which is the lie?', context:QC.q, options:stmts.map((st,j)=>({id:j,label:`${'ABC'[j]} · ${st.text}`,color:colors[j]})), seconds:20 }, others, 20);
       Audio_.sfx.drum(); await sleep(900);
@@ -2630,7 +2660,7 @@ const Host = (() => {
       const correct = idxs.indexOf(Q.correct);
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
-      scene(`<div class="eyebrow">💬 ${LANG==='ar'?'فك العبارة':'EMOJI PHRASE'}</div><div class="emoji-riddle">${esc(Q.e)}</div><div class="quiz-grid">${opts.map((o,j)=>`<div class="quiz-opt" id="qopt-${j}" style="--qc:${colors[j]}"><span class="q-letter display">${'ABCD'[j]}</span> ${esc(o)}</div>`).join('')}</div>`);
+      scene(`<div class="eyebrow">💬 ${LANG==='ar'?'فك العبارة':'EMOJI PHRASE'}</div><div class="emoji-riddle">${esc(Q.e)}</div><div class="quiz-grid">${opts.map((o,j)=>`<div class="quiz-opt" id="qopt-${j}" style="--qc:${colors[j]}"><span class="q-letter display">${'ABCD'[j]}</span> ${esc(o)}</div>`).join('')}</div><div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>`);
       pushMirror({ headline: Q.e });
       Audio_.sfx.sting();
       const pids = players.map(p=>p.pid);
@@ -2662,7 +2692,7 @@ const Host = (() => {
       const correct = idxs.indexOf(Q.correct);
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
-      scene(`<div class="eyebrow">💡 ${LANG==='ar'?'فك الكلمة':'EMOJI WORD'}</div><div class="emoji-riddle">${esc(Q.e)}</div><div class="quiz-grid">${opts.map((o,j)=>`<div class="quiz-opt" id="qopt-${j}" style="--qc:${colors[j]}"><span class="q-letter display">${'ABCD'[j]}</span> ${esc(o)}</div>`).join('')}</div>`);
+      scene(`<div class="eyebrow">💡 ${LANG==='ar'?'فك الكلمة':'EMOJI WORD'}</div><div class="emoji-riddle">${esc(Q.e)}</div><div class="quiz-grid">${opts.map((o,j)=>`<div class="quiz-opt" id="qopt-${j}" style="--qc:${colors[j]}"><span class="q-letter display">${'ABCD'[j]}</span> ${esc(o)}</div>`).join('')}</div><div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>`);
       pushMirror({ headline: Q.e });
       Audio_.sfx.sting();
       const pids = players.map(p=>p.pid);
@@ -2850,6 +2880,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     await FX.wipe();
     scene(`<div class="eyebrow">🗳️ ${LANG==='ar'?'صوّتوا':'VOTE'}</div>
       <div class="prompt-card display">${LANG==='ar'?'من هو الجاسوس؟':'Who is the spy?'}</div>
+      <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
       <div id="statusRow" class="status-row"></div>`);
     const votes=await collectWithTimer({type:'choice',title:LANG==='ar'?'من هو الجاسوس؟':'Who is the spy?',options:players.map(p=>({id:p.pid,label:p.emoji+' '+p.name,color:p.color})),seconds:30},pids,30);
     const tally={};
@@ -2862,7 +2893,8 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       await FX.wipe();
       scene(`<div class="eyebrow">🕵️ ${LANG==='ar'?'الجاسوس اتكشف!':'SPY CAUGHT!'}</div>
         <div class="hotseat">${spyPs.map(sp=>avatarHTML(sp)).join('')}<div class="pname">${esc(spyPs.map(p=>p.name).join(' & '))}</div></div>
-        <div class="pick-sub">${LANG==='ar'?'فرصة أخيرة — خمّن الكلمة السرية!':'Last chance — guess the secret word!'}</div>`);
+        <div class="pick-sub">${LANG==='ar'?'فرصة أخيرة — خمّن الكلمة السرية!':'Last chance — guess the secret word!'}</div>
+        <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>`);
       Audio_.sfx.buzzer(); await sleep(3000);
       const guesses=await collectWithTimer({type:'text',title:LANG==='ar'?'اخمن الكلمة!':'Guess the word!',maxLen:40,seconds:20},spyPids,20);
       const spyWon=spyPids.some(pid=>{const g=(val(guesses,pid)||'').trim().toUpperCase();return g===word.toUpperCase()||(word.toUpperCase().includes(g)&&g.length>3);});
@@ -2936,6 +2968,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
           </div>
           <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(28px,5.6vmin,56px);color:var(--text);animation:fadeSlideUp 0.5s 0.6s both;line-height:1.15">${esc(subject.name)}</div>
           <div class="pick-sub">${LANG==='ar'?'شكثر تعرفونه؟':'How well does everyone know them?'}</div>
+          <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         </div>`);
       pushMirror({ headline: LANG==='ar'?`دور ${subject.name}`:`${subject.name}'s round` });
       Audio_.sfx.sting();
@@ -2989,6 +3022,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
               </div>
             </div>`).join('')}
         </div>
+        <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         <div id="statusRow" class="status-row"></div>
         </div>`);
       answers.forEach((a, i) => setTimeout(() => Audio_.sfx.pop(), i * 120));
@@ -3131,6 +3165,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       scene(`<div class="eyebrow">🎭 ${LANG==='ar'?'اندمج':'BLEND IN'}</div>
         <div class="prompt-card display">${LANG==='ar'?`سؤال ${q+1} من ${QN}`:`Question ${q+1} of ${QN}`}</div>
         <div class="pick-sub">${LANG==='ar'?'📱 كل لاعب يشوف سؤاله الخاص على جواله':"📱 Everyone's question is different — check your own phone"}</div>
+        <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         <div id="statusRow" class="status-row"></div>`);
       // Mirror headline stays deliberately generic — it is broadcast to every
       // device, so it must never carry either question.
@@ -3154,6 +3189,20 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       // phase, and the reconnect/lock-screen recovery path reads it. Blend
       // In omitted it because it hand-rolls its own collection loop.
       net.setState({ phase:'input-split', phaseId, deadline, specs, targets: pids });
+
+      // v217 — BlendIn hand-rolls its own collection loop instead of using
+      // collectWithTimer, so it never got that function's ring-driving code
+      // for free. Small self-contained version of the same loop, using the
+      // same deadline/CIRC constant collectWithTimer uses, cleaned up right
+      // where the collection resolves below.
+      const _biCirc = 276.5;
+      const _biNum = $('#timerNum'), _biFill = $('#timerFill');
+      if (_biFill) { _biFill.style.transition = 'none'; _biFill.style.strokeDashoffset = 0; }
+      const _biTimerInt = setInterval(() => {
+        const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+        if (_biNum) { _biNum.textContent = left; _biNum.classList.toggle('danger', left <= 5 && left > 0); }
+        if (_biFill) { _biFill.style.transition = 'stroke-dashoffset .95s linear'; _biFill.style.strokeDashoffset = (1 - left / 30) * _biCirc; }
+      }, 1000);
 
       const botPids = net.getBotPids ? net.getBotPids() : [];
       botPids.forEach(bp => {
@@ -3206,6 +3255,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       }, 12000);
 
       const ans = await net.collect(phaseId, specs[net.hostSelfPid] || mkSpec(pair.a), pids, inputTimeout(30));
+      clearInterval(_biTimerInt);
       clearTimeout(_biSkipTimer);
       document.getElementById('biSkipBtn')?.remove();
       net.onEachInput(null);
