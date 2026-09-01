@@ -30,19 +30,19 @@ const SHAPES = {
 
 const GUIDANCE = {
   bluff:        'Fill-in-the-blank SHOCKING funny true facts. ___ replaces the most surprising word. RULES: (1) truth must be ONE SINGLE WORD only — no exceptions, never a phrase (e.g. BANANAS, LOUDER, CATS, DUBAI, CRYING). (2) The completed sentence must be fully understandable by itself. NEVER leave a number or number-word without its unit or meaning: write "ring at ___ o’clock", NOT "ring at ___"; write "___ years old", NOT just "___". Read the sentence with the truth inserted and reject it if a player could ask "what does that mean?". (3) Include exactly four plausible ONE-WORD wrong answers in decoys. They must fit the blank grammatically, be unique, and differ from truth. (4) The fact must make someone go "wait, WHAT?" out loud — not a dry textbook fact. (5) Favor famous people, scandals, records, money, or bizarre real events. (6) EVERY item must use a different topic. (7) KEEP THE WORDING SIMPLE: under 15 words if possible, everyday words a 12-year-old would know, and clear in one quick read in a noisy room. AVOID: ambiguous missing units, obvious answers, multi-word truths or decoys, dry biology/science-class facts, long sentences, and technical vocabulary.',
-  wyr:          'Would You Rather dilemmas — both options equally appealing or awful. No obvious right answer. Gulf situations welcome in Arabic. KEEP BOTH OPTIONS SHORT: max 10-12 words each, one clean idea, no extra setup or explanation tacked on. Say it the way you would say it out loud to a friend, not like a written paragraph. Cut any word that is not doing real work.',
-  interrogation:'Funny, spicy or thought-provoking hot-seat prompts about one person. Every question MUST include the exact [NAME] placeholder naturally. Examples: "What would [NAME] do if they were invisible for a day?", "What is [NAME] definitely Googling in private?". Gulf/Arab situations in Arabic. Fun, relatable, makes people laugh.',
+  wyr:          'Would You Rather dilemmas — both options equally appealing or awful. No obvious right answer. KEEP BOTH OPTIONS SHORT: max 10-12 words each, one clean idea, no extra setup or explanation tacked on. Say it the way you would say it out loud to a friend, not like a written paragraph. Cut any word that is not doing real work.',
+  interrogation:'Funny, spicy or thought-provoking hot-seat prompts about one person. Every question MUST include the exact [NAME] placeholder naturally. Examples: "What would [NAME] do if they were invisible for a day?", "What is [NAME] definitely Googling in private?". Fun, relatable, makes people laugh.',
   diss:         'Roast battle setup lines — prompt to write a funny one-liner insult about the opponent.',
-  quiz:         'Multiple-choice trivia. Vary correct position (0-3). Gulf/Arab focus in Arabic. Mix difficulty.',
-  mostlikely:   '"Who is most likely to…" questions sparking funny debates. Gulf social situations in Arabic.',
-  trueorlie:    'Absurd-sounding statements, genuinely TRUE or FALSE. "truth" must be boolean. Mix science, history, Gulf facts.',
-  pinpoint:     'Real cities worldwide. Accurate lat/lon. Always include the city and country in both languages: en, ar, countryEn, countryAr. MENA cities in Arabic mode.',
+  quiz:         'Multiple-choice trivia. Vary correct position (0-3). Mix difficulty.',
+  mostlikely:   '"Who is most likely to…" questions sparking funny debates.',
+  trueorlie:    'Absurd-sounding statements, genuinely TRUE or FALSE. "truth" must be boolean. Mix science and history topics.',
+  pinpoint:     'Real cities worldwide. Accurate lat/lon. Always include the city and country in both languages: en, ar, countryEn, countryAr.',
   emoji:        'Phonetic rebus: emojis SOUND OUT a word. "parts" = phonetic sounds.',
-  emojiplace:   'Phonetic rebus for CITIES only. MENA cities in Arabic.',
-  year:         'Historical events with exact year. Mix world history, tech, sports, Gulf milestones.',
+  emojiplace:   'Phonetic rebus for CITIES only.',
+  year:         'Historical events with exact year. Mix world history, tech, and sports milestones.',
   higherlow:    '"n" = exact real number. "unit" = label. Mix: counts (floors, episodes, goals, medals), distances (km), heights (m), weights (kg), speeds (km/h), populations, temperatures (°C), historical years (unit="year"), ages, prices. ALL values must be accurate.',
   flaghunt:     'Flag emoji + 4 country options. "correct" is 0-based index. Vary position. Mix all continents.',
-  spy:          'Secret word pool. ONE object with "category" and "words" array (15-20 specific items). Arab-world items in Arabic.',
+  spy:          'Secret word pool. ONE object with "category" and "words" array (15-20 specific items).',
   '2t1l':       'Short personal category prompts that let one player write exactly two truths and one lie. Ask them to name 3 related things. Include a fitting emoji.',
   busted:       'Personal, playful questions with two versions. "q" addresses the subject directly. "other" asks the same thing about {name}; preserve the exact {name} placeholder. Answers should be short enough for a party game.',
   blendin:      'Each object is a subtle question pair. "a" and "b" must be closely related and invite the same kind of short answer, but not be identical. The different answer should be detectable only after discussion.',
@@ -107,7 +107,23 @@ function getFingerprint(item) {
   return key.toLowerCase().slice(0, 60);
 }
 
-function isValidPrompt(mode, item) {
+// v215 — country list used to code-level enforce the region toggle for the
+// two modes where "which country/city" is objectively checkable data
+// (pinpoint, flaghunt). Other modes (bluff, wyr, quiz, etc.) are judgment/
+// prose-based and can only be steered via the prompt (regionSection in
+// generateBatch), not verified in code — there's no reliable programmatic
+// way to tell if a fact or dilemma "is" Arab-flavored the way there is for
+// a country name.
+const MENA_COUNTRIES = new Set([
+  'saudi arabia', 'uae', 'united arab emirates', 'oman', 'qatar', 'bahrain', 'kuwait',
+  'jordan', 'lebanon', 'syria', 'iraq', 'palestine', 'egypt', 'libya', 'tunisia',
+  'algeria', 'morocco', 'sudan', 'yemen', 'mauritania', 'comoros', 'djibouti', 'somalia',
+  'المملكة العربية السعودية', 'السعودية', 'الإمارات', 'عمان', 'قطر', 'البحرين', 'الكويت',
+  'الأردن', 'لبنان', 'سوريا', 'العراق', 'فلسطين', 'مصر', 'ليبيا', 'تونس', 'الجزائر',
+  'المغرب', 'السودان', 'اليمن', 'موريتانيا', 'جزر القمر', 'جيبوتي', 'الصومال',
+]);
+
+function isValidPrompt(mode, item, region) {
   if (mode === 'harfhunt') return typeof item === 'string' && item.trim().length >= 3;
   if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
   const text = key => typeof item[key] === 'string' && item[key].trim().length > 0;
@@ -150,12 +166,26 @@ function isValidPrompt(mode, item) {
     case 'quiz': return text('q') && fourChoices();
     case 'mostlikely': return text('q');
     case 'trueorlie': return text('s') && typeof item.truth === 'boolean';
-    case 'pinpoint': return text('en') && text('ar') && text('countryEn') && text('countryAr') && Number.isFinite(item.lat) && Number.isFinite(item.lon);
+    case 'pinpoint': {
+      if (!(text('en') && text('ar') && text('countryEn') && text('countryAr') && Number.isFinite(item.lat) && Number.isFinite(item.lon))) return false;
+      const isMenaCountry = MENA_COUNTRIES.has(String(item.countryEn).trim().toLowerCase()) || MENA_COUNTRIES.has(String(item.countryAr).trim());
+      if (region === 'mena' && !isMenaCountry) return false;
+      if (region !== 'mena' && isMenaCountry) return false;
+      return true;
+    }
     case 'emoji':
     case 'emojiplace': return text('answer') && text('e');
     case 'year': return text('q') && Number.isFinite(item.y);
     case 'higherlow': return text('q') && Number.isFinite(item.n) && text('unit');
-    case 'flaghunt': return text('flag') && fourChoices();
+    case 'flaghunt': {
+      if (!(text('flag') && fourChoices())) return false;
+      const correctCountry = item.options && item.options[item.correct];
+      if (typeof correctCountry !== 'string') return true; // fourChoices/correct-index already validated elsewhere
+      const isMenaCountry = MENA_COUNTRIES.has(correctCountry.trim().toLowerCase());
+      if (region === 'mena' && !isMenaCountry) return false;
+      if (region !== 'mena' && isMenaCountry) return false;
+      return true;
+    }
     case 'spy': return text('category') && Array.isArray(item.words) && item.words.length >= 8 && item.words.every(word => typeof word === 'string' && word.trim());
     case '2t1l': return text('q');
     case 'busted': return text('q') && text('other') && item.other.includes('{name}');
@@ -195,16 +225,26 @@ function pickDomainSpread(mode) {
 async function generateBatch(mode, lang, used, baseKey, requestedCount, region) {
   const langName = lang === 'ar' ? 'Gulf Arabic (khaleeji dialect)' : 'English';
   const isMena = region === 'mena';
-  // Language and region are independent: Arabic already leans Gulf/Arab via
-  // langName/audience below, but a player can also want MENA-flavored
-  // content while staying in English — that combination previously produced
-  // generic global content because "region" never reached this prompt.
+  // Language and region are independent: previously several per-mode
+  // GUIDANCE strings hardcoded Arab/Gulf content whenever lang==='ar',
+  // regardless of what the region flag said. That's now removed — the
+  // regionSection below is the single, mode-agnostic source of truth.
   const audience = isMena
     ? 'Arab/Gulf friend groups (MENA region) — even if this request is in English, keep the flavor, references, and cultural context distinctly Arab/Gulf.'
-    : (lang === 'ar' ? 'Arab friend groups in the Gulf.' : 'Mixed international friend groups.');
+    : 'Mixed international friend groups — do not skew specifically Arab/Gulf/MENA regardless of output language.';
+  // v215 — made strict/exclusionary in both directions. Previously this only
+  // added a positive push toward MENA content when region==='mena' and did
+  // nothing otherwise, so Global Mix could still surface Arab-specific
+  // content (the AI has no reason to avoid it unless told to), and MENA mode
+  // was phrased as "should" rather than "only", so global content could
+  // still slip in. Also several per-mode GUIDANCE strings independently said
+  // things like "Gulf/Arab focus in Arabic" or "Mix... Gulf milestones" —
+  // those are now superseded by this always-present, mode-agnostic section,
+  // which is the single source of truth keyed off the actual region flag,
+  // not language.
   const regionSection = isMena
-    ? `\\nREGION: Every item in this batch must be Arab/MENA/Gulf-flavored — people, places, food, culture, history, or context should draw specifically from the Arab world (Gulf, Levant, North Africa), not generic/Western/global defaults. This applies regardless of the output language.`
-    : '';
+    ? `\nREGION (STRICT): Every single item in this batch MUST be Arab/MENA/Gulf-specific — real people, places, food, history, or culture drawn distinctly from the Arab world (Gulf, Levant, North Africa). ZERO items may reference non-Arab countries, non-Arab celebrities/figures, or generic/Western/global defaults. If you cannot make an item authentically Arab/MENA, pick a different topic entirely rather than writing something generic. This applies regardless of the output language.`
+    : `\nREGION (STRICT): This is GLOBAL content — do not skew toward the Arab world/Gulf/MENA. Draw from a wide international mix (Americas, Europe, Asia, Africa, Oceania, etc.) the way a general worldwide audience would expect. It is fine if an item happens to touch the Arab world occasionally as part of that global mix, but do not make it the recurring theme, and do not default to Gulf/Arab context just because the output language is Arabic.`;
   // Build a strong avoidance list from recent fingerprints + always-banned
   const recentUsed = used ? [...used].slice(-20) : [];
   const alwaysBanned = ALWAYS_BANNED[baseKey] ? [...ALWAYS_BANNED[baseKey]] : [];
@@ -275,7 +315,7 @@ app.post('/api/prompts', async (req, res) => {
         // Filter out used AND always-banned items
         const novel = fresh.filter(item => {
           const fp = getFingerprint(item);
-          return fp && isValidPrompt(mode, item) && !used.has(fp) && !isBanned(item, baseKey);
+          return fp && isValidPrompt(mode, item, region) && !used.has(fp) && !isBanned(item, baseKey);
         });
         currentPool = [...currentPool, ...novel].sort(() => Math.random() - 0.5);
       } catch(e) {
