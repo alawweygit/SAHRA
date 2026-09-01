@@ -1193,18 +1193,34 @@ const Host = (() => {
         knowScores[p.pid][target.pid] = correct;
       }
 
-      // Mini leaderboard: who knows target best
-      const bestPredictor = others.reduce((best, p) => {
-        const c = turnCorrect[p.pid] || 0;
-        return (!best || c > (turnCorrect[best.pid]||0)) ? p : best;
-      }, null);
-      if (bestPredictor) {
-        const bestCount = turnCorrect[bestPredictor.pid];
-        await say(LANG==='ar'
-          ? `${bestPredictor.name} يعرف ${target.name} أكثر — ${bestCount}/${questions.length} ✓`
-          : `${bestPredictor.name} knows ${target.name} best — ${bestCount}/${questions.length} ✓`);
-      }
-      await waitNext();
+      // Let everyone read the three answers first, then show a dedicated
+      // per-person winner scene. This is intentionally separate from the
+      // final "Knows the Group Best" result at the end of all turns.
+      await waitNext(10, LANG==='ar' ? 'نتيجة الجولة' : 'ROUND WINNER');
+      await FX.wipe();
+      const turnRanking = others
+        .map(p => ({ player: p, correct: turnCorrect[p.pid] || 0 }))
+        .sort((a, b) => b.correct - a.correct || a.player.name.localeCompare(b.player.name));
+      const bestCount = turnRanking[0]?.correct || 0;
+      const turnWinners = turnRanking.filter(entry => entry.correct === bestCount);
+      const otherPredictors = turnRanking.filter(entry => entry.correct !== bestCount);
+      const winnerNames = turnWinners.map(entry => esc(entry.player.name)).join(' &amp; ');
+      scene(`
+        <div class="wyr-round-winner">
+          <div class="wyr-round-winner-eyebrow">${LANG==='ar' ? (turnWinners.length > 1 ? 'تعادل الجولة' : 'فائز الجولة') : (turnWinners.length > 1 ? 'ROUND TIE' : 'ROUND WINNER')}</div>
+          <div class="wyr-round-winner-title">${LANG==='ar' ? `أكثر من يعرف ${esc(target.name)}` : `Knows ${esc(target.name)} Best`}</div>
+          <div class="wyr-round-winner-trophy">🏆</div>
+          <div class="wyr-round-winner-avatars">
+            ${turnWinners.map(entry => `<div class="wyr-round-winner-player">${avatarHTML(entry.player)}<div class="wyr-round-winner-name">${esc(entry.player.name)}</div></div>`).join('')}
+          </div>
+          <div class="wyr-round-winner-score">${bestCount}/${questions.length} ✓</div>
+          ${turnWinners.length > 1 ? `<div class="wyr-round-winner-tie">${winnerNames}</div>` : ''}
+          <div class="wyr-round-winner-others">
+            ${otherPredictors.map(entry => `<div class="wyr-round-winner-other">${avatarHTML(entry.player)}<span>${entry.correct}/${questions.length}</span></div>`).join('')}
+          </div>
+        </div>`);
+      Audio_.sfx.reveal(); FX.burst(110);
+      await waitNext(10);
     }
 
     // Final summary: who knows the whole group best

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    body{padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;background:var(--bg);}
+    .fixture-panel{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:16px;}
+    .fixture-panel>h2{font:20px 'Fredoka One',sans-serif;color:var(--text);text-align:center;}
+  </style>
+</head>
+<body class="theme-dark">
+  <section class="fixture-panel"><h2>Player card</h2><div id="player"></div></section>
+  <section class="fixture-panel"><h2>Host card</h2><div id="host"></div></section>
+  <script>
+    window.LANG='en'; window.myPid='player-1';
+    window.t=key=>key; window.esc=value=>String(value);
+    window.Audio_={sfx:{vote(){},submit(){}}};
+    window.__wyrSubmitted={player:[],host:[]};
+  </script>
+  <script src="../js/controller.js"></script>
+  <script>
+    const spec={type:'wyr-multi',targetName:'Aris',targetPid:'target',questions:[
+      {a:'Live in Dubai but never touch the beach',b:'Live in Iceland but never see the Northern Lights'},
+      {a:'Speak every language but sing off-key',b:'Sing perfectly but speak only your native language'},
+      {a:'Eat only shawarma for a year',b:'Eat only sushi for a year'}
+    ]};
+    Controller.render(document.getElementById('player'),spec,value=>{window.__wyrSubmitted.player.push(value);});
+    Controller.render(document.getElementById('host'),spec,value=>{window.__wyrSubmitted.host.push(value);});
+  </script>
+</body>
+</html>

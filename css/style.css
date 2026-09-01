@@ -2242,6 +2242,19 @@ body.ar .tutorial-bullets { text-align: right; }
 .wyr-reveal-predictor{display:flex;flex-direction:column;align-items:center;gap:2px;}
 .wyr-reveal-predictor.correct .wyr-reveal-check{color:var(--green);font-size:16px;font-weight:700;}
 .wyr-reveal-predictor.wrong .wyr-reveal-check{color:var(--red,#ff4466);font-size:16px;font-weight:700;}
+.wyr-multi-submit{width:100%;margin-top:12px;}
+.wyr-multi-submit:disabled{filter:saturate(.35);opacity:.5;cursor:not-allowed;transform:none!important;}
+.wyr-round-winner{width:min(94vw,720px);display:flex;flex-direction:column;align-items:center;text-align:center;padding:2vmin;}
+.wyr-round-winner-eyebrow{font-family:'Fredoka One',sans-serif;font-size:clamp(14px,2.2vmin,20px);color:var(--text2);letter-spacing:2px;text-transform:uppercase;animation:fadeSlideUp .5s both;}
+.wyr-round-winner-title{font-family:'Fredoka One',sans-serif;font-size:clamp(22px,4vmin,36px);color:var(--yellow);margin-top:4px;animation:fadeSlideUp .5s .1s both;}
+.wyr-round-winner-trophy{font-size:clamp(50px,9vmin,80px);margin:1vmin 0;animation:wyrTrophyPop .7s .25s both cubic-bezier(.34,1.56,.64,1);}
+.wyr-round-winner-avatars{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;animation:wyrTrophyPop .6s .5s both cubic-bezier(.34,1.56,.64,1);}
+.wyr-round-winner-player{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.wyr-round-winner-name{font-family:'Fredoka One',sans-serif;font-size:clamp(22px,4vmin,40px);color:var(--text);}
+.wyr-round-winner-score{font-family:'Fredoka One',sans-serif;font-size:clamp(18px,3vmin,28px);color:#000;background:linear-gradient(135deg,#2de1fc,#a78bff);border-radius:40px;padding:8px 28px;margin-top:1.5vmin;animation:fadeSlideUp .5s .8s both;}
+.wyr-round-winner-tie{font-weight:800;color:var(--text2);margin-top:8px;animation:fadeSlideUp .5s .9s both;}
+.wyr-round-winner-others{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:2vmin;animation:fadeSlideUp .5s 1s both;}
+.wyr-round-winner-other{display:flex;flex-direction:column;align-items:center;gap:3px;opacity:.7;color:var(--text2);font-weight:800;}
 
 /* Keep all three WYR reveal rows visible above the mobile Next Round dock.
    The general reveal layout is intentionally spacious for TV; phones use a

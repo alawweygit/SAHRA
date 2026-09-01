@@ -619,7 +619,8 @@ const Controller = (() => {
     }
 
     else if (spec.type === 'wyr-multi') {
-      // 3 questions shown at once — player answers all then submits
+      // Three questions stay editable until the player confirms the complete
+      // sheet. A final-row tap must never submit on the player's behalf.
       wrap.innerHTML = '';
       const isTarget = spec.targetPid && typeof myPid !== 'undefined' && myPid === spec.targetPid;
       const header = document.createElement('div');
@@ -634,39 +635,64 @@ const Controller = (() => {
 
       spec.questions.forEach((Q, qi) => {
         const qWrap = document.createElement('div');
+        qWrap.className = 'wyr-multi-row';
         qWrap.style.cssText = 'display:flex;gap:6px;align-items:stretch;margin-bottom:8px;';
-        qWrap.innerHTML = `<button id="wm_${qi}_a" style="${btnStyle('#2de1fc','#000')}">${Q.a}</button><div style="font-family:'Fredoka One',sans-serif;font-size:14px;color:var(--text3);display:flex;align-items:center;padding:0 3px;flex-shrink:0">VS</div><button id="wm_${qi}_b" style="${btnStyle('#ff3d8a','#fff')}">${Q.b}</button>`;
+        qWrap.innerHTML = `<button type="button" data-wyr-pick="a" aria-pressed="false" style="${btnStyle('#2de1fc','#000')}">${Q.a}</button><div style="font-family:'Fredoka One',sans-serif;font-size:14px;color:var(--text3);display:flex;align-items:center;padding:0 3px;flex-shrink:0">VS</div><button type="button" data-wyr-pick="b" aria-pressed="false" style="${btnStyle('#ff3d8a','#fff')}">${Q.b}</button>`;
         wrap.appendChild(qWrap);
 
         const pick = (v) => {
           answers[qi] = v;
-          const btnA = document.getElementById(`wm_${qi}_a`);
-          const btnB = document.getElementById(`wm_${qi}_b`);
-          // Both buttons stay fully visible regardless of which was picked --
-          // only the chosen one gets a border highlight + checkmark badge.
-          // Dimming the unchosen one (previous behaviour) could read as "this
-          // got hidden/disabled" rather than simply "not picked".
-          [[btnA,'a'],[btnB,'b']].forEach(([btn,key])=>{
-            if (!btn) return;
-            btn.disabled = true;
-            if (key === v) {
+          qWrap.querySelectorAll('[data-wyr-pick]').forEach(btn => {
+            const selected = btn.dataset.wyrPick === v;
+            btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+            btn.style.borderColor = selected ? '#fff' : 'transparent';
+            btn.querySelector('.wyr-pick-badge')?.remove();
+            if (selected) {
               btn.style.borderColor = '#fff';
               const badge = document.createElement('span');
+              badge.className = 'wyr-pick-badge';
               badge.textContent = '✓';
               badge.style.cssText = 'position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;background:#fff;color:#111;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;box-shadow:0 2px 6px rgba(0,0,0,0.3);';
               btn.appendChild(badge);
             }
           });
-          if (answers.every(a => a !== null)) {
-            lock(wrap);
-            onSubmit(answers.join(','));
-          }
+          submitBtn.disabled = !answers.every(answer => answer !== null);
         };
-        // Use setTimeout to ensure elements are in DOM
-        setTimeout(() => {
-          document.getElementById(`wm_${qi}_a`)?.addEventListener('click', () => { Audio_.sfx.vote(); pick('a'); }, { once: true });
-          document.getElementById(`wm_${qi}_b`)?.addEventListener('click', () => { Audio_.sfx.vote(); pick('b'); }, { once: true });
-        }, 0);
+        qWrap.querySelectorAll('[data-wyr-pick]').forEach(btn => {
+          btn.addEventListener('click', () => { Audio_.sfx.vote(); pick(btn.dataset.wyrPick); });
+        });
+      });
+
+      const submitBtn = document.createElement('button');
+      submitBtn.type = 'button';
+      submitBtn.className = 'big-btn ctrl-submit wyr-multi-submit';
+      submitBtn.textContent = typeof LANG !== 'undefined' && LANG === 'ar' ? 'إرسال الإجابات' : 'SUBMIT ANSWERS';
+      submitBtn.disabled = true;
+      wrap.appendChild(submitBtn);
+      let submitting = false;
+      submitBtn.addEventListener('click', async () => {
+        if (submitting || !answers.every(answer => answer !== null)) return;
+        submitting = true;
+        submitBtn.disabled = true;
+        wrap.setAttribute('aria-busy', 'true');
+        wrap.querySelector('.choice-submit-hint')?.remove();
+        try {
+          const result = await onSubmit(answers.join(','));
+          if (result?.accepted === false) throw new Error('answer rejected');
+          wrap.removeAttribute('aria-busy');
+          lock(wrap);
+        } catch (error) {
+          submitting = false;
+          wrap.removeAttribute('aria-busy');
+          submitBtn.disabled = false;
+          const hint = document.createElement('div');
+          hint.className = 'choice-submit-hint';
+          hint.setAttribute('role', 'alert');
+          hint.textContent = typeof LANG !== 'undefined' && LANG === 'ar'
+            ? 'تعذر إرسال إجاباتك — حاول مرة ثانية.'
+            : 'Could not send your answers — please try again.';
+          submitBtn.insertAdjacentElement('afterend', hint);
+        }
       });
     }
 
