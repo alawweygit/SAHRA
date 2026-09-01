@@ -781,7 +781,16 @@ const Host = (() => {
         }
         window.__hypoxPlayAgain = action === 'again';
         document.getElementById('hostInputDock')?.classList.remove('final-results-dock');
-        players.forEach(p => p.score = 0);
+        // v216 — the local reset here (players[].score = 0) was never mirrored
+        // to Firebase. net.updateScore() writes players/{pid}/score on every
+        // point scored during gameplay (see addScore()), so Firebase still
+        // held each player's final score from the game that just ended. The
+        // very next net.onPlayers() sync (phones-only mode polls this
+        // constantly) then Object.assign'd that stale remote score straight
+        // back over the freshly-zeroed local one, so scores appeared to
+        // carry over into the new game/round. Push the zero to Firebase too,
+        // for every action (again AND change), so nothing stale survives.
+        players.forEach(p => { p.score = 0; net?.updateScore?.(p.pid, 0); });
         resolve(action);
       };
       const playAgain = () => choose('again');
@@ -3792,7 +3801,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       // skip it and begin round one automatically.
       window.__hypoxSkipTutorial = isReplay;
       isFirstRound = false;
-      players.forEach(p=>p.score=0);
+      players.forEach(p => { p.score = 0; net?.updateScore?.(p.pid, 0); });
       pickHost();
       let modeResult = null;
       try {
