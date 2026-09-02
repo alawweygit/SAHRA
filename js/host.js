@@ -184,8 +184,16 @@ const Host = (() => {
      lightweight text mirror of the stage to every player's phone. Harmless
      (just extra state fields) in TV mode. */
   let mirror = { headline: '', sub: '', pill: '' };
-  // Safe player lookup — never returns undefined, uses ghost fallback
-  const safeP = pid => players.find(x => x.pid === pid) || { pid, name: '?', emoji: '👤', color: '#555', score: 0, isVip: false };
+  // Real ownership/scoring must never use the display-only ghost fallback.
+  // A system-generated answer deliberately has no pid; treating that null
+  // value as a player previously wrote players/null/score to Firebase and
+  // created the "undefined" scoreboard row Ali reported.
+  const playerByPid = pid => (pid === null || pid === undefined)
+    ? null
+    : players.find(x => x && x.pid === pid && typeof x.name === 'string' && x.name.trim()) || null;
+  // Safe display lookup — disconnected players may still need a temporary
+  // avatar while a reveal finishes, so visual callers retain a ghost.
+  const safeP = pid => playerByPid(pid) || { pid, name: '?', emoji: '👤', color: '#555', score: 0, isVip: false };
   function removePlayerStatusElements(pid) {
     ['mini-', 'vmini-'].forEach(prefix => {
       document.querySelectorAll(`[id="${prefix}${pid}"]`).forEach(el => el.remove());
@@ -842,10 +850,11 @@ const Host = (() => {
   }
 
   function addScore(pid, pts) {
-    const p = safeP(pid);
-    if (!p) return;
+    const p = playerByPid(pid);
+    if (!p || !Number.isFinite(pts)) return false;
     p.score += pts;
     net.updateScore(pid, p.score);
+    return true;
   }
 
   const val = (inputs, pid) => inputs[pid] ? inputs[pid].value : null;
@@ -935,8 +944,8 @@ const Host = (() => {
               <div class="ans-card" id="card-${i}" style="animation-delay:${i * .12}s">
                 <div class="ans-inner">
                   <div class="ans-face ans-front"><div>${esc(a.text)}</div><div class="voter-strip" id="voters-${i}"></div></div>
-                  <div class="ans-face ans-back ${a.truth ? 'truth' : 'lie'}">
-                    <div class="ans-tag">${a.truth ? '✦ ' + esc(t('truth')) + ' ✦' : (a.system ? '✦ ' + esc(LANG === 'ar' ? 'إجابة مزيفة' : 'A LIE') + ' ✦' : esc(t('a_lie_by')))}</div>
+                <div class="ans-face ans-back ${a.truth ? 'truth' : 'lie'}">
+                    <div class="ans-tag">${a.truth ? '✦ ' + esc(t('truth')) + ' ✦' : esc(t('a_lie_by'))}</div>
                     <div>${a.truth ? esc(a.text) : ''}</div>
                   </div>
                 </div>
@@ -1002,13 +1011,15 @@ const Host = (() => {
         if (a.truth) continue;
         await sleep(650);
         const card = $('#card-' + i);
-        const author = safeP(a.by);
-        card.querySelector('.ans-back div:last-child').textContent = author ? `${author.emoji} ${author.name}` : '';
+        const author = a.system ? null : playerByPid(a.by);
+        card.querySelector('.ans-back div:last-child').textContent = a.system
+          ? (LANG === 'ar' ? '🤖 البوت' : '🤖 BOT')
+          : (author ? `${author.emoji} ${author.name}` : (LANG === 'ar' ? '🤖 البوت' : '🤖 BOT'));
         card.classList.add('flipped');
         await sleep(400);
         Audio_.sfx.buzzer(); card.classList.add('shake'); FX.shake(); FX.burstAt(card, 26);
         const fooled = votesByCard[i].length;
-        if (fooled && author) {
+        if (fooled && author && !a.system) {
           addScore(a.by, fooled * 500);
           const flyText = `+${fooled * 500} ${author.name}`;
           FX.flyPoints(card, flyText);
@@ -1171,8 +1182,13 @@ const Host = (() => {
       // Parse answers: stored as "a,b,a" strings
       const parseAnswers = (entry) => entry?.value ? String(entry.value).split(',') : [];
       const targetAnswers = parseAnswers(all[target.pid]);
-      // Fill missing answers randomly
-      while (targetAnswers.length < questions.length) targetAnswers.push(Math.random()<.5?'a':'b');
+      // Keep the reveal visually complete when the hot-seat player times
+      // out, but never score predictors against an answer the player did not
+      // actually choose. Those rows are explicitly marked as Bot fallback.
+      const targetAnswerIsPlayer = questions.map((_, qi) => targetAnswers[qi] === 'a' || targetAnswers[qi] === 'b');
+      questions.forEach((_, qi) => {
+        if (!targetAnswerIsPlayer[qi]) targetAnswers[qi] = Math.random() < .5 ? 'a' : 'b';
+      });
 
       // Reveal: show all 3 questions with what target picked + who guessed right
       await FX.wipe();
@@ -1186,10 +1202,11 @@ const Host = (() => {
       const revealRows = questions.map((Q, qi) => {
         const tPick = targetAnswers[qi];
         const tLabel = tPick === 'a' ? Q.a : Q.b;
+        const systemPick = !targetAnswerIsPlayer[qi];
         const predictorResults = others.map(p => {
           const pAnswers = parseAnswers(all[p.pid]);
           const pPick = pAnswers[qi] || null;
-          const correct = pPick === tPick;
+          const correct = !systemPick && pPick === tPick;
           if (correct) turnCorrect[p.pid]++;
           return `<div class="wyr-reveal-predictor ${correct?'correct':'wrong'}">${avatarHTML(p)}<div class="wyr-reveal-check">${correct?'✓':'✗'}</div></div>`;
         }).join('');
@@ -1197,6 +1214,7 @@ const Host = (() => {
           <div class="wyr-reveal-row">
             <div class="wyr-reveal-q">
               <span class="wyr-reveal-${tPick==='a'?'a':'b'}">${esc(tLabel)}</span>
+              ${systemPick ? `<div class="pick-sub" style="margin-top:4px">${LANG==='ar'?'🤖 اختيار البوت — بدون نقاط':'🤖 Bot fallback — no points'}</div>` : ''}
             </div>
             <div class="wyr-reveal-predictors">${predictorResults}</div>
           </div>`;
@@ -1604,8 +1622,12 @@ const Host = (() => {
         context: promptText, maxLen:100, fullscreenInput: true
       }, duelerPids, 35);
 
-      const lineA = (val(lines,A.pid)||'').trim() || (LANG==='ar'?'لا يوجد خط':'(no line submitted)');
-      const lineB = (val(lines,B.pid)||'').trim() || (LANG==='ar'?'لا يوجد خط':'(no line submitted)');
+      const rawLineA = (val(lines,A.pid)||'').trim();
+      const rawLineB = (val(lines,B.pid)||'').trim();
+      const lineAFromPlayer = !!rawLineA;
+      const lineBFromPlayer = !!rawLineB;
+      const lineA = rawLineA || (LANG==='ar'?'🤖 إجابة البوت':'🤖 BOT FALLBACK');
+      const lineB = rawLineB || (LANG==='ar'?'🤖 إجابة البوت':'🤖 BOT FALLBACK');
 
       // Phase 2: Boxing intro + vote — audience + duelers all vote
       const votePhaseId = 'ph'+(++phaseCounter);
@@ -1682,7 +1704,12 @@ const Host = (() => {
         if (v==='a') { votesA++; voterReveal.push({pid,pick:'a'}); }
         else if (v==='b') { votesB++; voterReveal.push({pid,pick:'b'}); }
       }
-      const winnerPid = votesA > votesB ? A.pid : votesA < votesB ? B.pid : null;
+      const votedWinnerPid = votesA > votesB ? A.pid : votesA < votesB ? B.pid : null;
+      const winnerPid = votedWinnerPid === A.pid && lineAFromPlayer
+        ? A.pid
+        : votedWinnerPid === B.pid && lineBFromPlayer
+          ? B.pid
+          : null;
       if (winnerPid) addScore(winnerPid, CORRECT_PTS);
       // Bonus for correct voters
       for (const {pid,pick} of voterReveal) {
@@ -1699,14 +1726,14 @@ const Host = (() => {
           <div class="duel-card${winnerPid===A.pid?' duel-card-win':''}" style="border-color:var(--pink)">
             <div class="duel-letter" style="color:var(--pink)">A</div>
             <div class="duel-line">${esc(lineA)}</div>
-            <div class="duel-author">${avatarHTML(A)} ${esc(A.name)}${winnerPid===A.pid?' 🏆 +1000':''}</div>
+            <div class="duel-author">${lineAFromPlayer ? `${avatarHTML(A)} ${esc(A.name)}` : (LANG==='ar'?'🤖 البوت — بدون نقاط':'🤖 BOT — NO POINTS')}${winnerPid===A.pid?' 🏆 +1000':''}</div>
             <div class="duel-votes" style="color:var(--pink)">${votesA} ${LANG==='ar'?'صوت':'vote'}${votesA!==1?'s':''}</div>
           </div>
           <div class="duel-vs">VS</div>
           <div class="duel-card${winnerPid===B.pid?' duel-card-win':''}" style="border-color:var(--blue)">
             <div class="duel-letter" style="color:var(--blue)">B</div>
             <div class="duel-line">${esc(lineB)}</div>
-            <div class="duel-author">${avatarHTML(B)} ${esc(B.name)}${winnerPid===B.pid?' 🏆 +1000':''}</div>
+            <div class="duel-author">${lineBFromPlayer ? `${avatarHTML(B)} ${esc(B.name)}` : (LANG==='ar'?'🤖 البوت — بدون نقاط':'🤖 BOT — NO POINTS')}${winnerPid===B.pid?' 🏆 +1000':''}</div>
             <div class="duel-votes" style="color:var(--blue)">${votesB} ${LANG==='ar'?'صوت':'vote'}${votesB!==1?'s':''}</div>
           </div>
         </div>
@@ -2567,14 +2594,20 @@ const Host = (() => {
       let trio = [];
       try { trio = JSON.parse(val(packed, target.pid) || '[]'); } catch (e) { trio = []; }
       if (!Array.isArray(trio)) trio = [];
-      const s1 = (trio[0]||'').trim() || '...', s2 = (trio[1]||'').trim() || '...', s3 = (trio[2]||'').trim() || '...';
+      const targetSubmitted = trio.length >= 3 && trio.slice(0, 3).every(value => typeof value === 'string' && value.trim());
+      const botTrio = LANG === 'ar'
+        ? ['سافرت إلى بلد بعيد', 'قابلت شخصاً مشهوراً', 'نمت في المطار']
+        : ['I travelled somewhere far', 'I met someone famous', 'I slept at an airport'];
+      const s1 = targetSubmitted ? trio[0].trim() : botTrio[0];
+      const s2 = targetSubmitted ? trio[1].trim() : botTrio[1];
+      const s3 = targetSubmitted ? trio[2].trim() : botTrio[2];
       const stmts = shuffle([{text:s1,truth:true},{text:s2,truth:true},{text:s3,truth:false}]);
       const lieIdx = stmts.findIndex(s=>!s.truth);
       const colors = ['#2de1fc','#ff3d8a','#ffd23f'];
       await FX.wipe();
       // v104 — show the original question here as well. Voters were seeing
       // three bare statements with no idea what question they answered.
-      scene(`<div class="eyebrow">${esc(target.name)} — ${LANG==='ar'?'أيها الكذبة؟':'which is the lie?'}</div>
+      scene(`<div class="eyebrow">${targetSubmitted ? esc(target.name) : (LANG==='ar'?'🤖 البوت':'🤖 BOT')} — ${LANG==='ar'?'أيها الكذبة؟':'which is the lie?'}</div>
         <div class="tm-statement-card" style="margin-bottom:1vmin"><div class="tm-statement-text" style="font-size:clamp(15px,2.8vmin,22px)">${esc(QC.q)}</div></div><div class="quiz-grid" style="grid-template-columns:1fr">${stmts.map((st,j)=>`<div class="quiz-opt" id="stmt-${j}" style="--qc:${colors[j]};font-size:clamp(15px,2vw,18px)"><span class="q-letter display">${'ABC'[j]}</span> ${esc(st.text)}</div>`).join('')}</div><div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>`);
       const others = players.filter(p=>p.pid!==target.pid).map(p=>p.pid);
       const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'أيها الكذبة؟':'Which is the lie?', context:QC.q, options:stmts.map((st,j)=>({id:j,label:`${'ABC'[j]} · ${st.text}`,color:colors[j]})), seconds:20 }, others, 20);
@@ -2593,8 +2626,11 @@ const Host = (() => {
       // lie, so rewarding them is earned rather than luck.
       const FIND_PTS = 1000, FOOL_PTS = 300;
       finders.forEach(pid=>addScore(pid,FIND_PTS));
-      const fooled = others.filter(pid=>!finders.includes(pid));
-      const targetPts = fooled.length * FOOL_PTS;
+      const actualVoters = others.filter(pid => val(votes, pid) !== null && val(votes, pid) !== undefined);
+      const fooled = actualVoters.filter(pid=>!finders.includes(pid));
+      // A Bot-filled trio keeps the vote screen usable but never earns the
+      // silent player author/fooling points.
+      const targetPts = targetSubmitted ? fooled.length * FOOL_PTS : 0;
       if (targetPts > 0) addScore(target.pid, targetPts);
       const fNames = finders.map(pid=>players.find(p=>p.pid===pid)?.name).join(', ');
       pushMirror({ headline: LANG==='ar'?`الكذبة: ${stmts[lieIdx].text}`:`The lie: ${stmts[lieIdx].text}` });
@@ -2613,7 +2649,7 @@ const Host = (() => {
       }).filter(Boolean).sort((a, b) => (b.got - a.got) || (a.order - b.order));
       scene(`
         <div class="tm-wrap t2l-reveal">
-          <div class="tm-reveal-statement">${esc(target.name)} — ${LANG==='ar'?'الكذبة كانت':'the lie was'}</div>
+          <div class="tm-reveal-statement">${targetSubmitted ? esc(target.name) : (LANG==='ar'?'🤖 البوت — بدون نقاط':'🤖 BOT — NO POINTS')} — ${LANG==='ar'?'الكذبة كانت':'the lie was'}</div>
           <div class="tm-reveal-year-card">
             <div class="tm-reveal-year-label">${LANG==='ar'?'❌ الكذبة':'❌ The Lie'}</div>
             <div class="tm-reveal-year" style="font-size:clamp(18px,3.4vmin,28px)">${esc(stmts[lieIdx].text)}</div>
@@ -2631,16 +2667,20 @@ const Host = (() => {
               </div>`).join('')}
             <div class="tm-score-row" style="animation-delay:${t2Rows.length*.08}s;border:1.5px solid #facc1566">
               <div class="tm-score-rank">🤥</div>
-              <div class="tm-score-avatar" style="background:${target.color}">${target.emoji}</div>
+              <div class="tm-score-avatar" style="background:${targetSubmitted?target.color:'#555'}">${targetSubmitted?target.emoji:'🤖'}</div>
               <div class="tm-score-info">
-                <div class="tm-score-name">${esc(target.name)}</div>
-                <div class="tm-score-guess">${fooled.length ? (LANG==='ar'?`ضحك على ${fooled.length}`:`Fooled ${fooled.length}`) : (LANG==='ar'?'ما ضحك على أحد':'Fooled nobody')}</div>
+                <div class="tm-score-name">${targetSubmitted?esc(target.name):(LANG==='ar'?'البوت':'BOT')}</div>
+                <div class="tm-score-guess">${targetSubmitted ? (fooled.length ? (LANG==='ar'?`ضحك على ${fooled.length}`:`Fooled ${fooled.length}`) : (LANG==='ar'?'ما ضحك على أحد':'Fooled nobody')) : (LANG==='ar'?'إجابة بديلة — اللاعب ما جاوب':'Fallback answer — player did not answer')}</div>
               </div>
               <div class="tm-score-pts${targetPts?'':' tm-zero'}">${targetPts?'+'+targetPts:'0'} ${LANG==='ar'?'نقطة':'pts'}</div>
             </div>
           </div>
         </div>`);
-      await say(finders.length===0?(LANG==='ar'?`ولا واحد اكتشف! ${target.name} فاز!`:`Nobody caught ${target.name}! They win!`):(LANG==='ar'?`${fNames} اكتشفوا الكذبة!`:`${fNames} found the lie!`));
+      await say(!targetSubmitted
+        ? (LANG==='ar'?'البوت عبّى الإجابات — ما في نقاط للكاتب': 'Bot filled the answers — no author points')
+        : finders.length===0
+          ? (LANG==='ar'?`ولا واحد اكتشف! ${target.name} فاز!`:`Nobody caught ${target.name}! They win!`)
+          : (LANG==='ar'?`${fNames} اكتشفوا الكذبة!`:`${fNames} found the lie!`));
       hideHost(); await waitNext();
       if (r < seats.length - 1) await showScores();
     }
@@ -2989,7 +3029,9 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       };
       const allInputs = await collectWithTimer(spec, allPids, 45);
 
-      const truthUp = ((val(allInputs, subject.pid) || '').trim().toUpperCase().slice(0, 60)) || (LANG==='ar' ? 'ما جاوب' : 'NO ANSWER');
+      const subjectAnswer = (val(allInputs, subject.pid) || '').trim().toUpperCase().slice(0, 60);
+      const subjectAnswered = !!subjectAnswer;
+      const truthUp = subjectAnswer || (LANG==='ar' ? '🤖 إجابة البوت' : '🤖 BOT FALLBACK');
 
       /* ---- Build answer set: guesses that exactly match the truth merge
          into the truth card (writers list) exactly like Bluff does. ---- */
@@ -3002,7 +3044,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         if (v === truthUp) { truthWriters.push(pid); }
         else if (!seen.has(v)) { seen.add(v); guesses.push({ text: v, by: pid }); }
       }
-      const answers = shuffle([{ text: truthUp, truth: true, writers: truthWriters }, ...guesses]);
+      const answers = shuffle([{ text: truthUp, truth: true, writers: truthWriters, system: !subjectAnswered }, ...guesses]);
 
       /* ---- Vote (subject excluded — they already know the answer) ---- */
       await FX.wipe();
@@ -3017,7 +3059,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
                 <div class="ans-face ans-front"><div>${esc(a.text)}</div><div class="voter-strip" id="voters-${i}"></div></div>
                 <div class="ans-face ans-back ${a.truth ? 'truth' : 'lie'}">
                   <div class="ans-tag">${a.truth ? '✦ ' + esc(t('truth')) + ' ✦' : esc(t('a_lie_by'))}</div>
-                  <div>${a.truth ? esc(a.text) : ''}</div>
+                  <div>${a.truth ? `${esc(a.text)}${a.system ? `<div class="pick-sub" style="margin-top:4px">${LANG==='ar'?'بدون نقاط للاعب':'No player points'}</div>` : ''}` : ''}</div>
                 </div>
               </div>
             </div>`).join('')}
@@ -3097,8 +3139,8 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
 
       // Exact-match bonus — flat, regardless of votes.
       const truthAns = answers[ti];
-      (truthAns.writers || []).forEach(pid => addScore(pid, EXACT_MATCH_BONUS));
-      if (truthAns.writers?.length && tCard) {
+      if (subjectAnswered) (truthAns.writers || []).forEach(pid => addScore(pid, EXACT_MATCH_BONUS));
+      if (subjectAnswered && truthAns.writers?.length && tCard) {
         const names = truthAns.writers.map(pid => safeP(pid)?.name).filter(Boolean).join(' & ');
         const flyText = `+${EXACT_MATCH_BONUS} ${names}`;
         FX.flyPoints(tCard, flyText);
@@ -3106,7 +3148,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       }
 
       // Correct-voter bonus + subject's per-voter bonus.
-      const correctVoters = votesByCard[ti];
+      const correctVoters = subjectAnswered ? votesByCard[ti] : [];
       correctVoters.forEach(pid => addScore(pid, CORRECT_VOTER_BONUS));
       if (correctVoters.length) {
         const voterNames = correctVoters.map(pid => safeP(pid)?.name).filter(Boolean).join(' & ');
@@ -3120,6 +3162,10 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
           const flyText2 = `+${SUBJECT_PER_VOTER_BONUS * correctVoters.length} ${subject.name}`;
           FX.flyPoints(tCard, flyText2);
         }
+      } else if (!subjectAnswered) {
+        await sleep(400);
+        await say(LANG === 'ar' ? '🤖 اللاعب ما جاوب — استخدمنا إجابة البوت بدون نقاط' : '🤖 Player did not answer — Bot fallback used with no points', { speed: 35 });
+        hideHost();
       } else if (!truthAns.writers?.length) {
         await sleep(400);
         await say(LANG === 'ar' ? `😱 محد عرف ${subject.name}!` : `😱 Nobody knows ${subject.name} at all!`, { speed: 35 });

@@ -33,6 +33,8 @@ const normalizeUniqueAnswer = value => String(value ?? '')
   .replace(/\s+/g, ' ')
   .toUpperCase();
 const uniqueAnswerKey = value => encodeURIComponent(normalizeUniqueAnswer(value)).replace(/\./g, '%2E');
+const validPlayerRecord = (pid, player) => typeof pid === 'string' && pid.trim()
+  && player && typeof player.name === 'string' && player.name.trim();
 
 /* ---------------- Firebase (online) ---------------- */
 class FirebaseNet {
@@ -74,7 +76,9 @@ class FirebaseNet {
     this.pid = pid || null;
     this.playMode = roomSnap.val()?.playMode || 'tv';
     const existing = roomSnap.val()?.players || {};
-    this._players = Object.entries(existing).map(([playerPid, player]) => ({ pid: playerPid, ...player }))
+    this._players = Object.entries(existing)
+      .filter(([playerPid, player]) => validPlayerRecord(playerPid, player))
+      .map(([playerPid, player]) => ({ pid: playerPid, ...player }))
       .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
     this.room('state').onDisconnect().set({ phase: 'hostLeft', ts: Date.now() });
     await this.setState({ phase: 'lobby' });
@@ -189,7 +193,12 @@ class FirebaseNet {
   onPlayers(cb) {
     this.room('players').on('value', s => {
       const v = s.val() || {};
-      const arr = Object.entries(v).map(([pid, p]) => ({ pid, ...p }))
+      // Ignore malformed score-only records such as the historical
+      // players/null/score entry. A participant must have a real identity;
+      // otherwise it must never reach lobbies, rounds, or scoreboards.
+      const arr = Object.entries(v)
+        .filter(([pid, p]) => validPlayerRecord(pid, p))
+        .map(([pid, p]) => ({ pid, ...p }))
         .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
       const previous = this._players || [];
       this._players = arr;
@@ -366,7 +375,11 @@ class FirebaseNet {
   }
   getBotPids() { return this._botPids || []; }
 
-  updateScore(pid, score) { return this.room(`players/${pid}/score`).set(score); }
+  updateScore(pid, score) {
+    const player = (this._players || []).find(p => p.pid === pid && validPlayerRecord(p.pid, p));
+    if (!player || !Number.isFinite(score)) return Promise.resolve(false);
+    return this.room(`players/${pid}/score`).set(score);
+  }
 
   // Shared removal path used by both the automatic offline watcher and a
   // manual host-triggered removal (tapping a disconnected player's avatar).
