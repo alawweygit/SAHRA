@@ -640,7 +640,17 @@ body.ar .eyebrow{letter-spacing:0;}
    cards; restore it immediately for the reveal animation. */
 .phones-host-answering #hostStage :is(.answer-grid,.quiz-grid),
 body.phones-player-answering #phoneSharedStage :is(.answer-grid,.quiz-grid){display:none!important;}
-body.phones-player-answering #phoneSharedStage{display:none!important;}
+/* v225 — bumped to two-class specificity (.phones-only-player.phones-player-answering)
+   to reliably beat the later `.phones-only-player #phoneSharedStage{display:flex!important;}`
+   rule at ~line 1486. Both rules previously had EQUAL specificity (one class + one ID) and
+   both used !important, so CSS's tie-break fell to source order — and the later "always show
+   for phones-only" rule silently won, meaning the shared-stage mirror (host's own scene, ring
+   timer included) never actually hid while a player was personally answering on fullscreen/
+   custom-renderer inputs like Time Machine. That's why Ali's screenshot showed BOTH the
+   mirrored host ring AND the player's own ctrl-timer countdown stacked on the same screen —
+   not a duplicate timer bug, a stage-visibility bug. Two classes on the selector now
+   outweighs the one-class override regardless of where either rule sits in the file. */
+body.phones-only-player.phones-player-answering #phoneSharedStage{display:none!important;}
 
 /* Phones-only host choice UI now uses the same complete Controller card as
    player phones. Preserve the original scene underneath for reveal logic,
