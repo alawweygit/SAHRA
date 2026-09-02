@@ -991,6 +991,10 @@ const Host = (() => {
         excludeNote: LANG === 'ar' ? 'إجابتك — لا يمكنك التصويت لها' : 'YOUR LIE — CAN’T VOTE',
         hostExcludeIdx: _hostExcludeIdx,
       }, votingPids, 30);
+      // v224 — see Quiz's identical fix for the full explanation: without
+      // this, players stay frozen on their own submitted vote card through
+      // the whole reveal below instead of watching it play out live.
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
 
       // land voters on cards (skip self-votes on own lie)
       const votesByCard = answers.map(() => []);
@@ -1708,6 +1712,8 @@ const Host = (() => {
       net.promptLocal = _savedPromptLocalDiss;
       clearInputTimers();
       net.onEachInput(null);
+      // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
 
       // Count votes
       let votesA=0, votesB=0;
@@ -1798,6 +1804,18 @@ const Host = (() => {
         type: 'choice', title: t('quiz_pick'), context: Q.q, translateContext: Q.q, seconds: 15,
         options: Q.options.map((o, j) => ({ id: j, label: `${'ABCD'[j]} · ${o}`, color: colors[j] })),
       }, pids, 15);
+      // v224 — for type:'choice'/'higherlow', main.js deliberately keeps a
+      // player's submitted card locked in place until the phase genuinely
+      // changes (see main.js's keepSubmittedChoice — this is so a picked
+      // choice doesn't blink away mid-vote for other players). That design
+      // depends entirely on this net.setState({phase:'wait'}) call actually
+      // happening; without it, EVERY player (not just ones who never
+      // answered) stays frozen on their own submitted-choice card through
+      // the whole reveal, only recovering once the next round's collect
+      // starts a genuinely new phase. Every mode that hides the shared
+      // stage during input needs this call between collect ending and its
+      // own reveal.
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
 
       // reveal
       Audio_.sfx.drum(); await sleep(900);
@@ -2186,6 +2204,19 @@ const Host = (() => {
       const answers = await collectWithTimer({
         type: 'text', title: LANG==='ar'?'اكتب السنة':'Type the year', context: Q.q, translateContext: Q.q, maxLen: 4, numeric: true, seconds: 20, customRenderer: 'timeMachine',
       }, players.map(p => p.pid), 20);
+      // v224 — every other mode calls net.setState({phase:'wait',...}) right
+      // after its own collect finishes (see WYR, Interrogation, Diss, etc.).
+      // That transition is what the player-side client actually watches to
+      // know it's safe to un-hide the shared stage and clear
+      // phones-player-answering (see main.js's `!_needsInput` branch).
+      // playYear() never did this, so a player who submitted got cleaned up
+      // locally via their own submit callback, but a player who let the
+      // timer run out WITHOUT answering never received any signal at all —
+      // their phone stayed permanently stuck showing the input/tracker
+      // screen, frozen, even though the reveal was correctly broadcast
+      // underneath it via the shared-screen DOM snapshot. This is the exact
+      // "stuck on pic4 instead of showing pic1" bug Ali reported.
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
       const results = players.map(p => {
         let raw = answers[p.pid] ? String(answers[p.pid].value || '').trim() : '';
         raw = raw.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)); // Arabic-Indic → Latin digits
@@ -2244,6 +2275,8 @@ const Host = (() => {
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p => p.pid);
       const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'من الأرجح؟':'Who is most likely?', context:Q.q, translateContext:Q.q, options:players.map(p=>({id:p.pid,label:`${p.emoji} ${p.name}`,color:p.color})), seconds:20 }, pids, 20);
+      // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
       const tally = {};
       pids.forEach(pid => { const v = val(votes, pid); if (v) tally[v] = (tally[v]||0)+1; });
       const maxV = Math.max(0, ...Object.values(tally));
@@ -2325,6 +2358,8 @@ const Host = (() => {
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p => p.pid);
       const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'صح ولا كذب؟':'True or Lie?', context:Q.s, translateContext:Q.s, options:opts, seconds:15 }, pids, 15);
+      // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
       const correctId = Q.truth ? 'true' : 'false';
       Audio_.sfx.drum(); await sleep(900);
       const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
@@ -2494,6 +2529,8 @@ const Host = (() => {
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p=>p.pid);
       const answers = await collectWithTimer(hlSpec, pids, 15);
+      // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
       const correctId = Q.n > hint ? 'higher' : 'lower';
       Audio_.sfx.drum(); await sleep(500);
       const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
@@ -2624,6 +2661,8 @@ const Host = (() => {
         <div class="tm-statement-card" style="margin-bottom:1vmin"><div class="tm-statement-text" style="font-size:clamp(15px,2.8vmin,22px)">${esc(QC.q)}</div></div><div class="quiz-grid" style="grid-template-columns:1fr">${stmts.map((st,j)=>`<div class="quiz-opt" id="stmt-${j}" style="--qc:${colors[j]};font-size:clamp(15px,2vw,18px)"><span class="q-letter display">${'ABC'[j]}</span> ${esc(st.text)}</div>`).join('')}</div><div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>`);
       const others = players.filter(p=>p.pid!==target.pid).map(p=>p.pid);
       const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'أيها الكذبة؟':'Which is the lie?', context:QC.q, options:stmts.map((st,j)=>({id:j,label:`${'ABC'[j]} · ${st.text}`,color:colors[j]})), seconds:20 }, others, 20);
+      // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
       Audio_.sfx.drum(); await sleep(900);
       document.getElementById('stmt-'+lieIdx)?.classList.add('q-correct');
       stmts.forEach((_,j)=>{if(j!==lieIdx)document.getElementById('stmt-'+j)?.classList.add('q-dim');});
@@ -2718,6 +2757,8 @@ const Host = (() => {
       Audio_.sfx.sting();
       const pids = players.map(p=>p.pid);
       const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'فك العبارة!':'Decode the phrase!', context:Q.e, seconds:15, options:opts.map((o,j)=>({id:j,label:`${'ABCD'[j]} · ${o}`,color:colors[j]})) }, pids, 15);
+      // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
       Audio_.sfx.drum(); await sleep(900);
       document.getElementById('qopt-'+correct)?.classList.add('q-correct');
       opts.forEach((_,j)=>{if(j!==correct)document.getElementById('qopt-'+j)?.classList.add('q-dim');});
@@ -2750,6 +2791,8 @@ const Host = (() => {
       Audio_.sfx.sting();
       const pids = players.map(p=>p.pid);
       const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'فك الكلمة!':'Decode the word!', context:Q.e, seconds:12, options:opts.map((o,j)=>({id:j,label:`${'ABCD'[j]} · ${o}`,color:colors[j]})) }, pids, 12);
+      // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
       Audio_.sfx.drum(); await sleep(900);
       document.getElementById('qopt-'+correct)?.classList.add('q-correct');
       opts.forEach((_,j)=>{if(j!==correct)document.getElementById('qopt-'+j)?.classList.add('q-dim');});
@@ -2936,6 +2979,8 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
       <div id="statusRow" class="status-row"></div>`);
     const votes=await collectWithTimer({type:'choice',title:LANG==='ar'?'من هو الجاسوس؟':'Who is the spy?',options:players.map(p=>({id:p.pid,label:p.emoji+' '+p.name,color:p.color})),seconds:30},pids,30);
+    // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
+    net.setState({ phase: 'wait', msg: t('watch_screen') });
     const tally={};
     pids.forEach(pid=>{const v=val(votes,pid);if(v&&v!==pid)tally[v]=(tally[v]||0)+1;});
     const maxV=Math.max(0,...Object.values(tally));
@@ -2950,6 +2995,8 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>`);
       Audio_.sfx.buzzer(); await sleep(3000);
       const guesses=await collectWithTimer({type:'text',title:LANG==='ar'?'اخمن الكلمة!':'Guess the word!',maxLen:40,seconds:20},spyPids,20);
+      // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
       const spyWon=spyPids.some(pid=>{const g=(val(guesses,pid)||'').trim().toUpperCase();return g===word.toUpperCase()||(word.toUpperCase().includes(g)&&g.length>3);});
       await FX.wipe(); Audio_.sfx.reveal(); FX.burst(120);
       if(spyWon){
@@ -3094,6 +3141,8 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         playerExcludes: _exclude,
         excludeNote: LANG === 'ar' ? 'إجابتك — لا يمكنك التصويت لها' : 'YOUR ANSWER — CAN’T VOTE',
       }, others, 30);
+      // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
 
       // voter-strip: shows exactly who voted for each card (avatars land on
       // the card during reveal) — this already answers "who voted for who".
@@ -3323,6 +3372,13 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       document.body.classList.remove('hide-tracker');
       rounds.push({ pair, ans });
     }
+
+    // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
+    // BlendIn collects every round's answers in this loop FIRST, then
+    // reveals them all in a separate loop below — without this, a player's
+    // phone stays frozen on their last fullscreenInput answer screen
+    // through the entire reveal sequence for every round, not just one.
+    net.setState({ phase: 'wait', msg: t('watch_screen') });
 
     // ---- Reveal: grouped BY QUESTION, always showing the agents' version ----
     for (let q = 0; q < rounds.length; q++) {

@@ -117,6 +117,34 @@
     label.textContent=spec.title||(LANG==='ar'?'اكتب السنة':'Type the year');
     wrap.appendChild(label);
 
+    // v224 — this custom renderer (used only for real players' phones, see
+    // main.js's handleNetState: phoneSpec.customRenderer==='timeMachine'
+    // routes here instead of Controller.render) never had a countdown at
+    // all. The host's own inline answering card always goes through
+    // Controller.render directly and picked up its countdown pill in v218 —
+    // this bespoke renderer bypassed that fix entirely, which is exactly
+    // why the host showed a timer and a real player's phone showed none for
+    // the identical round. Same small pill/interval pattern as
+    // Controller.render's addGenericCountdown, cleaned up automatically
+    // once the deadline passes (no explicit stop needed since this whole
+    // wrap gets replaced on the next phase).
+    if(spec.deadline){
+      const tmTimer=document.createElement('div');
+      tmTimer.className='ctrl-timer';
+      const tickTmTimer=()=>{
+        const left=Math.max(0,Math.ceil((spec.deadline-Date.now())/1000));
+        tmTimer.textContent=left;
+        tmTimer.classList.toggle('danger',left<=5&&left>0);
+      };
+      tickTmTimer();
+      const tmTimerInterval=setInterval(()=>{
+        if(!wrap.isConnected){clearInterval(tmTimerInterval);return;}
+        tickTmTimer();
+        if(spec.deadline-Date.now()<=0)clearInterval(tmTimerInterval);
+      },1000);
+      wrap.appendChild(tmTimer);
+    }
+
     const _txCtx=spec.translateContext||spec.context;
     if(_txCtx && LANG!=='ar'){
       const txBtn=document.createElement('button');
