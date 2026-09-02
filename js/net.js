@@ -38,7 +38,7 @@ const validPlayerRecord = (pid, player) => typeof pid === 'string' && pid.trim()
 
 /* ---------------- Firebase (online) ---------------- */
 class FirebaseNet {
-  constructor(db) { this.db = db; this.isOffline = false; this.code = null; this.pid = null; this.isRoomOwner = false; this._collectors = {}; this._removalNotified = new Set(); this._playerIdentity = null; this._closing = false; this._heartbeatBusy = false; }
+  constructor(db) { this.db = db; this.isOffline = false; this.code = null; this.pid = null; this.isRoomOwner = false; this._collectors = {}; this._removalNotified = new Set(); this._playerIdentity = null; this._closing = false; this._heartbeatBusy = false; this._hostEpoch = null; }
 
   static available() {
     return typeof firebase !== 'undefined'
@@ -60,11 +60,15 @@ class FirebaseNet {
     await this.room().set({
       createdAt: Date.now(), lang,
       state: { phase: 'lobby' },
+      host: { pid: this.pid, name: 'Host', epoch: Date.now() },
+      hostStatus: { status: 'online', hostPid: this.pid, hostName: 'Host', epoch: Date.now() },
     });
-    // Keep the room record long enough for a browser refresh to reconnect.
-    // A real host departure is still removed by close(); an unexpected tab
-    // close publishes hostLeft so controllers do not wait forever.
-    this.room('state').onDisconnect().set({ phase: 'hostLeft', ts: Date.now() });
+    // Host connectivity is deliberately separate from the game phase. The
+    // old implementation replaced `state` with {phase:'hostLeft'}, which
+    // destroyed the active question and made phones render two partial
+    // screens. A disconnect now leaves the active phase untouched while the
+    // surviving phones elect a replacement host through hostStatus.
+    await this._armHostDisconnect(this.pid, 'Host');
     return this.code;
   }
 
@@ -72,17 +76,118 @@ class FirebaseNet {
     this.code = code.toUpperCase().trim();
     const roomSnap = await this.room().get();
     if (!roomSnap.exists()) throw new Error('no-room');
+    const roomData = roomSnap.val() || {};
+    const assignedHost = roomData.host || null;
+    if (assignedHost?.pid && pid && assignedHost.pid !== pid) {
+      const error = new Error('host-reassigned');
+      error.host = assignedHost;
+      throw error;
+    }
     this.isRoomOwner = true;
-    this.pid = pid || null;
-    this.playMode = roomSnap.val()?.playMode || 'tv';
-    const existing = roomSnap.val()?.players || {};
+    this.pid = pid || assignedHost?.pid || null;
+    this.hostSelfPid = this.pid;
+    this.playMode = roomData.playMode || 'tv';
+    const existing = roomData.players || {};
     this._players = Object.entries(existing)
       .filter(([playerPid, player]) => validPlayerRecord(playerPid, player))
       .map(([playerPid, player]) => ({ pid: playerPid, ...player }))
       .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
-    this.room('state').onDisconnect().set({ phase: 'hostLeft', ts: Date.now() });
-    await this.setState({ phase: 'lobby' });
-    return { players: this._players, playMode: this.playMode };
+    const hostPlayer = this._players.find(player => player.pid === this.pid);
+    await this._registerHostConnection(
+      this.pid,
+      hostPlayer?.name || assignedHost?.name || 'Host',
+      assignedHost?.epoch,
+      assignedHost?.previousHostPid ? 'transfer' : null,
+    );
+    // Preserve the active game state. The caller decides whether it is
+    // reopening a lobby or restarting the interrupted round cleanly.
+    return { players: this._players, playMode: this.playMode, session: roomData.gameSession || null };
+  }
+
+  async _armHostDisconnect(pid, name, epoch = null) {
+    this._hostEpoch = epoch || this._hostEpoch || Date.now();
+    try { await this.room('hostStatus').onDisconnect().cancel(); } catch (e) {}
+    this.room('hostStatus').onDisconnect().set({
+      status: 'offline', hostPid: pid || null, hostName: name || 'Host',
+      epoch: this._hostEpoch, electionId: this._hostEpoch,
+    });
+  }
+
+  async _registerHostConnection(pid, name, epoch = null, reason = null) {
+    if (!pid) throw new Error('missing-host-pid');
+    this._hostEpoch = epoch || Date.now();
+    const assignment = { pid, name: name || 'Host', epoch: this._hostEpoch };
+    await this.room('host').set(assignment);
+    await this.room('hostStatus').set({
+      status: 'online', hostPid: pid, hostName: assignment.name,
+      epoch: this._hostEpoch, ...(reason ? { reason } : {}),
+    });
+    await this._armHostDisconnect(pid, assignment.name, this._hostEpoch);
+    return assignment;
+  }
+
+  async setHostPlayer(pid, name) {
+    this.pid = pid;
+    this.hostSelfPid = pid;
+    this.isRoomOwner = true;
+    return this._registerHostConnection(pid, name, Date.now());
+  }
+
+  setGameSession(session) {
+    return this.room('gameSession').set({ ...session, updatedAt: Date.now() });
+  }
+  async getGameSession() {
+    const snap = await this.room('gameSession').get();
+    return snap.val() || null;
+  }
+
+  onHostStatus(cb) {
+    this.room('hostStatus').on('value', snap => cb(snap.val() || null));
+  }
+
+  async electReplacementHost() {
+    const roomSnap = await this.room().get();
+    if (!roomSnap.exists()) throw new Error('no-room');
+    const roomData = roomSnap.val() || {};
+    const status = roomData.hostStatus || {};
+    const currentHost = roomData.host || {};
+    if (status.status !== 'offline') return currentHost?.pid ? currentHost : null;
+
+    const oldHostPid = status.hostPid || currentHost.pid || null;
+    const realPlayers = Object.entries(roomData.players || {})
+      .filter(([pid, player]) => validPlayerRecord(pid, player) && !player.isBot && pid !== oldHostPid)
+      .map(([pid, player]) => ({ pid, ...player }));
+    if (!realPlayers.length) return null;
+
+    const now = Date.now();
+    const presence = roomData.presence || {};
+    const connected = realPlayers.filter(player => now - Number(presence[player.pid]?.t || 0) < 20_000);
+    const candidates = (connected.length ? connected : realPlayers)
+      .sort((a, b) => String(a.pid).localeCompare(String(b.pid)));
+    const seedText = String(status.electionId || status.epoch || roomData.createdAt || this.code);
+    let seed = 0;
+    for (let i = 0; i < seedText.length; i++) seed = ((seed * 31) + seedText.charCodeAt(i)) >>> 0;
+    const chosen = candidates[seed % candidates.length];
+    const assignmentRef = this.room('host');
+    const result = await assignmentRef.transaction(current => {
+      if (!current || current.pid === oldHostPid) {
+        return { pid: chosen.pid, name: chosen.name, epoch: Date.now(), previousHostPid: oldHostPid };
+      }
+      return;
+    });
+    const assignment = result.snapshot.val();
+    if (!assignment?.pid) return null;
+    if (result.committed) {
+      if (oldHostPid && roomData.players?.[oldHostPid]) {
+        await this.room(`players/${oldHostPid}/isVip`).set(false);
+      }
+      await this.room(`players/${assignment.pid}/isVip`).set(true);
+      await this.room('hostStatus').set({
+        status: 'transferring', hostPid: assignment.pid, hostName: assignment.name,
+        previousHostPid: oldHostPid, epoch: assignment.epoch, reason: 'transfer',
+      });
+    }
+    return assignment;
   }
 
   async resumePlayer(code, pid, identity = {}) {
@@ -558,6 +663,7 @@ class FirebaseNet {
     this.stopPresenceTicker();
     try { await roomRef.onDisconnect().cancel(); } catch(e) {}
     try { await this.room('state').onDisconnect().cancel(); } catch(e) {}
+    try { await this.room('hostStatus').onDisconnect().cancel(); } catch(e) {}
     if (playerRef) {
       try { await playerRef.onDisconnect().cancel(); } catch(e) {}
     }

@@ -5,7 +5,7 @@ const main = fs.readFileSync(path.join(__dirname, '..', 'js/main.js'), 'utf8');
 
 for (const required of [
   "document.querySelectorAll('.phones-host-input-overlay')",
-  "dock.innerHTML=''",
+  "if(action)action.innerHTML=''",
   "stage.innerHTML=''",
   "window.__hypoxAbort = true",
   "if(window.__hypoxAbort||!net||net!==runningNet||!gameActive)return",

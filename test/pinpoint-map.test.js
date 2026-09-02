@@ -16,7 +16,9 @@ for (const [name, source] of Object.entries({ controller, host, main, maps })) {
 
 assert.match(index, /maplibre-gl@5\.7\.1\/dist\/maplibre-gl\.js/,
   'the app must load the direct MapLibre renderer');
-assert.match(index, /js\/maps\.js\?v=20260828-fixes-207/,
+assert.match(index, /js\/maps\.js\?v=\d{8}-fixes-\d+/,
+  'the versioned shared map adapter must be loaded');
+assert.ok(index.indexOf('js/maps.js') < index.indexOf('js/host.js'),
   'the shared map adapter must load before the game modules');
 assert.doesNotMatch(index, /leaflet/,
   'the removed raster renderer must not add another download to every game');

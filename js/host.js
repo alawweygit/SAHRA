@@ -3890,14 +3890,18 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     while(playAgain && !window.__hypoxAbort) {
       playAgain = false;
       window.__hypoxPlayAgain = false;
-      const isReplay = !isFirstRound;
+      const transferRestart = isFirstRound && window.__hypoxTransferRestart === true;
+      const isReplay = !isFirstRound || transferRestart;
       if (isReplay) resetReplayPresentation();
       // Play Again means exactly that: restart the same configured game
       // immediately. The first run keeps its tutorial/START screen; replays
       // skip it and begin round one automatically.
       window.__hypoxSkipTutorial = isReplay;
+      const preserveTransferredScores = isFirstRound && window.__hypoxPreserveScoresOnce === true;
+      if (!preserveTransferredScores) players.forEach(p => { p.score = 0; net?.updateScore?.(p.pid, 0); });
+      window.__hypoxPreserveScoresOnce = false;
+      window.__hypoxTransferRestart = false;
       isFirstRound = false;
-      players.forEach(p => { p.score = 0; net?.updateScore?.(p.pid, 0); });
       pickHost();
       let modeResult = null;
       try {

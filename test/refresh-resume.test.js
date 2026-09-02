@@ -25,6 +25,7 @@ eval(source);
 
   const originalPlayer = new FirebaseNet(FB.database());
   const joined = await originalPlayer.joinRoom(code, 'Ali', { emoji: '🦊', color: '#f472b6' });
+  await originalHost.setHostPlayer(joined.pid, 'Ali');
 
   const refreshedPlayer = new FirebaseNet(FB.database());
   const playerResume = await refreshedPlayer.resumePlayer(code, joined.pid);
@@ -45,40 +46,43 @@ eval(source);
     throw new Error('host resume did not clear the temporary disconnected state');
   }
 
+  const removablePhone = new FirebaseNet(FB.database());
+  const removable = await removablePhone.joinRoom(code, 'Maya', { emoji: '🐼', color: '#60a5fa' });
+
   // Once the host has timed a player out and removed the live roster entry,
   // the same phone must still be able to restore the original pid and score.
-  await originalHost.updateScore(joined.pid, 900);
-  await originalHost._removePlayerNow(joined.pid);
-  if (FB.__root.rooms[code].players?.[joined.pid]) {
+  await originalHost.room(`players/${removable.pid}/score`).set(900);
+  await originalHost._removePlayerNow(removable.pid);
+  if (FB.__root.rooms[code].players?.[removable.pid]) {
     throw new Error('disconnect setup did not remove the live player record');
   }
   const afterTimeout = new FirebaseNet(FB.database());
-  const restored = await afterTimeout.resumePlayer(code, joined.pid, {
-    name: 'Ali', emoji: '🦊', color: '#f472b6', isVip: true,
+  const restored = await afterTimeout.resumePlayer(code, removable.pid, {
+    name: 'Maya', emoji: '🐼', color: '#60a5fa', isVip: false,
   });
-  if (restored.pid !== joined.pid || restored.player.score !== 900) {
+  if (restored.pid !== removable.pid || restored.player.score !== 900) {
     throw new Error('timed-out player did not reclaim the same pid and score');
   }
-  if (FB.__root.rooms[code].disconnected?.ali) {
+  if (FB.__root.rooms[code].disconnected?.maya) {
     throw new Error('reclaimed disconnect record was not consumed');
   }
 
   // A player who returns through the room-code form instead of automatic
   // restore gets the same identity as well.
-  await originalHost._removePlayerNow(joined.pid);
+  await originalHost._removePlayerNow(removable.pid);
   const manualReturn = new FirebaseNet(FB.database());
-  const rejoined = await manualReturn.joinRoom(code, 'Ali', { emoji: '🐼', color: '#60a5fa' });
-  if (rejoined.pid !== joined.pid || FB.__root.rooms[code].players[joined.pid].score !== 900) {
+  const rejoined = await manualReturn.joinRoom(code, 'Maya', { emoji: '🐸', color: '#4ade80' });
+  if (rejoined.pid !== removable.pid || FB.__root.rooms[code].players[removable.pid].score !== 900) {
     throw new Error('manual rejoin did not reclaim the original player');
   }
 
   // If connectivity returns in the still-open phone tab, its next heartbeat
   // should self-heal the removed roster record without requiring a reload.
-  await originalHost._removePlayerNow(joined.pid);
+  await originalHost._removePlayerNow(removable.pid);
   manualReturn.startHeartbeat();
   await new Promise(resolve => setTimeout(resolve, 0));
   manualReturn.stopHeartbeat();
-  if (!FB.__root.rooms[code].players?.[joined.pid]) {
+  if (!FB.__root.rooms[code].players?.[removable.pid]) {
     throw new Error('returning heartbeat did not restore the removed player');
   }
 
