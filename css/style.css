@@ -1253,6 +1253,19 @@ body.phones-hide-tracker #statusRow{display:none!important;}
   border-radius:30px;padding:6px 18px;
 }
 .ctrl-timer.danger{color:var(--pink);animation:dangerPulse 0.5s infinite;}
+.choice-btn-excluded{
+  opacity:.58;
+  cursor:not-allowed!important;
+  filter:saturate(.5);
+}
+.choice-excluded-note{
+  display:block;
+  margin-top:5px;
+  font-family:"Fredoka One",sans-serif;
+  font-size:clamp(9px,2.4vw,11px);
+  letter-spacing:.05em;
+  color:var(--pink);
+}
 
 /* ---- PinPoint map ---- */
 .ctrl-map{width:100%;}

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    body{padding:20px;background:#120f21;color:#fff}.fixture-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;max-width:1000px;margin:auto}.fixture-card{background:#251e3e;border-radius:20px;padding:16px}.fixture-card h2{text-align:center;font-family:"Fredoka One",sans-serif}
+  </style>
+</head>
+<body class="theme-dark">
+  <main class="fixture-grid">
+    <section class="fixture-card"><h2>Answered player</h2><div id="answered"></div></section>
+    <section class="fixture-card"><h2>Silent player</h2><div id="silent"></div></section>
+  </main>
+  <script>window.LANG='en';window.t=k=>k;window.esc=v=>String(v);window.Audio_={sfx:{vote(){},submit(){}}};window.HypoxMaps={destroyWithin(){}};</script>
+  <script src="../js/controller.js"></script>
+  <script>
+    const options=[{id:0,label:'TRUTH'},{id:1,label:'PLAYER LIE'},{id:2,label:'BOT FALLBACK'},{id:3,label:'OTHER LIE'}];
+    Controller.render(document.getElementById('answered'),{type:'choice',title:'Which one is real?',options,excludeId:1},()=>{});
+    Controller.render(document.getElementById('silent'),{type:'choice',title:'Which one is real?',options},()=>{});
+  </script>
+</body>
+</html>

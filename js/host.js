@@ -342,6 +342,14 @@ const Host = (() => {
   const inputDeadline = seconds => Date.now() + seconds * 1000;
   const inputTimeout = seconds => seconds * 1000;
 
+  // Countdown UI belongs only to the live input/vote phase. Several reveal
+  // sequences reuse the same scene after collection, so leaving the ring in
+  // that DOM made a frozen countdown appear over results. Remove every host
+  // and inline-controller timer before any reveal or result can begin.
+  function clearInputTimers() {
+    document.querySelectorAll('.ring-timer, .ctrl-timer').forEach(timer => timer.remove());
+  }
+
   /* ---------- input collection with big timer ---------- */
   async function collectWithTimer(spec, pids, seconds, statusLabelFn) {
     // A mode may calculate its targets once and reuse that list for several
@@ -568,6 +576,7 @@ const Host = (() => {
       clearInterval(_offlinePaintInt);
     }
     if (timerInt) clearInterval(timerInt);
+    clearInputTimers();
     try { Audio_.stopMusic(); } catch(e) {}
     net.setState({ phase: 'wait', msg: LANG==='ar'?'👆 تابع الشاشة':'👆 Watch the screen', mirror: { ...mirror } });
     net.onEachInput(null);
@@ -979,6 +988,7 @@ const Host = (() => {
         context: R.fact.replace('___', '____'),
         options: answers.map((a, i) => ({ id: i, label: a.text })),
         playerExcludes: _bluffExcludeMap,
+        excludeNote: LANG === 'ar' ? 'إجابتك — لا يمكنك التصويت لها' : 'YOUR LIE — CAN’T VOTE',
         hostExcludeIdx: _hostExcludeIdx,
       }, votingPids, 30);
 
@@ -1176,6 +1186,7 @@ const Host = (() => {
       );
       net.promptLocal = _savedPromptLocalWyr;
       clearInterval(_wyrTimerInt);
+      clearInputTimers();
       net.onEachInput(null);
       net.setState({ phase: 'wait', msg: t('watch_screen') });
 
@@ -1534,6 +1545,7 @@ const Host = (() => {
       if (net.hostSelfPid === hotPid) net.promptLocal = null;
       const picks = await net.collect(pickPhaseId, pickSpecs[hotPid], [hotPid], inputTimeout(30));
       net.promptLocal = _savedPromptLocal;
+      clearInputTimers();
       net.onEachInput(null);
 
       const chosenPid = val(picks, hotPid);
@@ -1694,6 +1706,7 @@ const Host = (() => {
       if (net.hostSelfPid) net.promptLocal = null;
       const votes = await net.collect(votePhaseId, null, allPids, inputTimeout(20));
       net.promptLocal = _savedPromptLocalDiss;
+      clearInputTimers();
       net.onEachInput(null);
 
       // Count votes
@@ -3079,6 +3092,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         type: 'choice', title: t('pick_truth'),
         options: answers.map((a, i) => ({ id: i, label: a.text })),
         playerExcludes: _exclude,
+        excludeNote: LANG === 'ar' ? 'إجابتك — لا يمكنك التصويت لها' : 'YOUR ANSWER — CAN’T VOTE',
       }, others, 30);
 
       // voter-strip: shows exactly who voted for each card (avatars land on
@@ -3302,6 +3316,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
 
       const ans = await net.collect(phaseId, specs[net.hostSelfPid] || mkSpec(pair.a), pids, inputTimeout(30));
       clearInterval(_biTimerInt);
+      clearInputTimers();
       clearTimeout(_biSkipTimer);
       document.getElementById('biSkipBtn')?.remove();
       net.onEachInput(null);
@@ -3360,7 +3375,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     const _biExcludeMap = {};
     pids.forEach(pid => { _biExcludeMap[pid] = pid; });
     if (net.hostSelfPid) _biExcludeMap[net.hostSelfPid] = net.hostSelfPid;
-    const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'مين الدخيل؟':'Who was the odd one out?', options:players.map(p=>({id:p.pid,label:`${p.emoji} ${p.name}`,color:p.color})), playerExcludes:_biExcludeMap, seconds:30 }, pids, 30);
+    const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'مين الدخيل؟':'Who was the odd one out?', options:players.map(p=>({id:p.pid,label:`${p.emoji} ${p.name}`,color:p.color})), playerExcludes:_biExcludeMap, excludeNote:LANG==='ar'?'أنت — لا يمكنك التصويت لنفسك':'YOU — CAN’T VOTE FOR YOURSELF', seconds:30 }, pids, 30);
     const tally = {};
     pids.forEach(pid => { const v = val(votes, pid); if (v && v !== pid) tally[v] = (tally[v]||0)+1; });
     const maxV = Math.max(0, ...Object.values(tally));

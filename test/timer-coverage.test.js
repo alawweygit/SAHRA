@@ -24,6 +24,10 @@ assert.doesNotMatch(css, /\.ring-timer\s*,\s*\.ctrl-timer\s*\{\s*display\s*:\s*n
   'CSS must not hide all countdown timers again');
 assert.ok((host.match(/id="ringTimer"/g) || []).length >= 15,
   'host scenes no longer include broad per-mode ring coverage');
+assert.match(host, /function clearInputTimers\(\) \{[\s\S]*?querySelectorAll\('\.ring-timer, \.ctrl-timer'\)[\s\S]*?timer\.remove\(\)/,
+  'finished input phases must remove every countdown before results render');
+assert.ok((host.match(/clearInputTimers\(\);/g) || []).length >= 5,
+  'shared and hand-written collection paths must all clear stale result timers');
 
 const wyrStart = host.indexOf('async function playWyr()');
 const interrogationStart = host.indexOf('async function playInterrogation()');

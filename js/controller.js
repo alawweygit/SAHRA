@@ -731,8 +731,6 @@ const Controller = (() => {
         const key = String(o.id);
         if (seenOptionIds.has(key)) return false;
         seenOptionIds.add(key);
-        // Hide player's own answer
-        if (spec.excludeId !== undefined && String(o.id) === String(spec.excludeId)) return false;
         return true;
       });
       let submitting = false;
@@ -752,7 +750,9 @@ const Controller = (() => {
         submitting = false;
         wrap.removeAttribute('aria-busy');
         picked?.classList.remove('picked');
-        wrap.querySelectorAll('.choice-btn').forEach(button => { button.disabled = false; });
+        wrap.querySelectorAll('.choice-btn').forEach(button => {
+          button.disabled = button.dataset.excluded === 'true';
+        });
       };
       options.forEach((o, i) => {
         if (i > 0 && spec.gridClass === 'wyr-choices') {
@@ -763,11 +763,22 @@ const Controller = (() => {
         }
         const b = document.createElement('button');
         b.className = 'choice-btn' + (o.btnClass ? ' ' + o.btnClass : '');
+        const isExcluded = spec.excludeId !== undefined && String(o.id) === String(spec.excludeId);
         b.textContent = o.label;
+        if (isExcluded) {
+          b.classList.add('choice-btn-excluded');
+          b.dataset.excluded = 'true';
+          b.disabled = true;
+          b.setAttribute('aria-label', `${o.label} — ${typeof LANG !== 'undefined' && LANG === 'ar' ? 'إجابتك، لا يمكنك التصويت لها' : 'your answer, you cannot vote for it'}`);
+          const note = document.createElement('span');
+          note.className = 'choice-excluded-note';
+          note.textContent = spec.excludeNote || (typeof LANG !== 'undefined' && LANG === 'ar' ? 'إجابتك — لا يمكنك التصويت لها' : 'YOUR ANSWER — CAN’T VOTE');
+          b.appendChild(note);
+        }
         if (o.color) b.style.setProperty('--cb', o.color);
         b.style.animationDelay = (i * .07) + 's';
         b.addEventListener('click', async () => {
-          if (submitting) return;
+          if (submitting || isExcluded) return;
           submitting = true;
           Audio_.sfx.vote();
           b.classList.add('picked');
