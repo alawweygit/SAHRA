@@ -16,9 +16,11 @@ expect(css, 'min-block-size:64px', 'Statement card needs a physical block-size f
 expect(css, '#scr-game.active:has(#hostStage .tm-wrap)', 'Time Machine host scene needs its isolated top-aligned layout');
 expect(main, "spec?.customRenderer==='timeMachine')renderTimeMachineInput(ppCtrl", 'One Device must use the Time Machine renderer');
 expect(main, "renderTimeMachineInput(panel,spec,async value=>{", 'Phones host must use the compact Time Machine renderer');
-expect(main, "},{showStatement:false});", 'Phones host Time Machine renderer must not repeat the statement row');
+expect(main, "},{showStatement:false,showTimer:false});", 'Phones host Time Machine renderer must not repeat the statement or duplicate the host timer');
 expect(main, "renderTimeMachineInput(ctrl,phoneSpec,_tmSubmit)", 'A player phone must retain the full Time Machine question renderer');
 expect(main, "const showStatement=options.showStatement!==false", 'Time Machine renderer must support hiding duplicated statement rows');
+expect(main, "timer.className='ctrl-timer tm-player-timer'", 'Time Machine player form needs its own visible countdown');
+expect(main, "if(options.showTimer!==false", 'Time Machine renderer must support suppressing a duplicate host countdown');
 expect(main, "if(!hasActiveInput())return", 'Visual viewport resizing must use the page-level input detector');
 expect(css, '#menuOverlay { z-index: 30000 !important; }', 'Game menu must stay above the Phones Only answer overlay');
 expect(css, '#scr-game.active ~ .host-input-dock:has(#hostDockAction:not(:empty)) #host', 'Phone host result dock must hide the wrapping speech row');

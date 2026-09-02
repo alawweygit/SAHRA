@@ -117,32 +117,25 @@
     label.textContent=spec.title||(LANG==='ar'?'اكتب السنة':'Type the year');
     wrap.appendChild(label);
 
-    // v224 — this custom renderer (used only for real players' phones, see
-    // main.js's handleNetState: phoneSpec.customRenderer==='timeMachine'
-    // routes here instead of Controller.render) never had a countdown at
-    // all. The host's own inline answering card always goes through
-    // Controller.render directly and picked up its countdown pill in v218 —
-    // this bespoke renderer bypassed that fix entirely, which is exactly
-    // why the host showed a timer and a real player's phone showed none for
-    // the identical round. Same small pill/interval pattern as
-    // Controller.render's addGenericCountdown, cleaned up automatically
-    // once the deadline passes (no explicit stop needed since this whole
-    // wrap gets replaced on the next phase).
-    if(spec.deadline){
-      const tmTimer=document.createElement('div');
-      tmTimer.className='ctrl-timer';
-      const tickTmTimer=()=>{
-        const left=Math.max(0,Math.ceil((spec.deadline-Date.now())/1000));
-        tmTimer.textContent=left;
-        tmTimer.classList.toggle('danger',left<=5&&left>0);
+    // Time Machine uses this dedicated renderer rather than Controller.render,
+    // so it must mount the same player-side countdown itself. The host's
+    // compact inline form opts out because its shared scene already has the
+    // large ring directly above it; player phones and One Device keep it.
+    if(options.showTimer!==false && Number.isFinite(Number(spec.deadline))){
+      const timer=document.createElement('div');
+      timer.className='ctrl-timer tm-player-timer';
+      const tick=()=>{
+        const left=Math.max(0,Math.ceil((Number(spec.deadline)-Date.now())/1000));
+        timer.textContent=left;
+        timer.classList.toggle('danger',left<=5&&left>0);
       };
-      tickTmTimer();
-      const tmTimerInterval=setInterval(()=>{
-        if(!wrap.isConnected){clearInterval(tmTimerInterval);return;}
-        tickTmTimer();
-        if(spec.deadline-Date.now()<=0)clearInterval(tmTimerInterval);
+      tick();
+      const timerInterval=setInterval(()=>{
+        if(!wrap.isConnected){clearInterval(timerInterval);return;}
+        tick();
+        if(Number(spec.deadline)-Date.now()<=0)clearInterval(timerInterval);
       },1000);
-      wrap.appendChild(tmTimer);
+      wrap.appendChild(timer);
     }
 
     const _txCtx=spec.translateContext||spec.context;
@@ -1790,7 +1783,7 @@
           if(result?.accepted===false)return result;
           done(value);
           return result;
-        },{showStatement:false});
+        },{showStatement:false,showTimer:false});
         return;
       }
       // v96 — 'phones-host-answering' means "hide the answers on stage", and
@@ -1939,6 +1932,8 @@
     const sharedHost=$('#phoneSharedHost');
     let _pendingSharedView=null;
     let _sharedRenderSeq=0;
+    let _latestSharedSceneNumber=0;
+    let _latestSharedHostPid='';
     let _afterSharedRender=()=>{};
     const phonesOnly=net.playMode==='phones';
     net.phonesOnly=phonesOnly;
@@ -2059,7 +2054,13 @@
       }
       // Update the small strip
       if(!phonesOnly)mstrip.classList.remove('hidden');
-      if(m.pill!==undefined)$('#pmPill').textContent=m.pill||'';
+      if(m.pill!==undefined){
+        $('#pmPill').textContent=m.pill||'';
+        // On a player phone the full shared stage is hidden while its answer
+        // card is open, so keep the real page header current as well. Without
+        // this, Time Machine could still say "SCORES" from the prior scene.
+        if(phonesOnly)$('#roundPill').textContent=m.pill||'';
+      }
       if(m.headline!==undefined)$('#pmHeadline').textContent=m.headline||'';
       if(m.speech!==undefined){$('#pmSpeech').textContent=m.speech||'';$('#pmLaith').style.display=m.speech?'flex':'none';}
       if(phonesOnly&&m.hostVisible&&m.speech){
@@ -2159,11 +2160,44 @@
         }
       }
     }
+    let lastPhaseId=null;
+    let hostLeftTimer=null;
+    let playerInputRenderEpoch=0;
+    let currentPlayerPhase=null;
+    let hostElectionRunning=false;
+    let hostPromotionStarted=false;
+
     async function renderShared(view){
       if(!phonesOnly||!view?.html||!String(view.html).trim())return false;
       const html=safeSharedHTML(view.html);
       if(!html.trim())return false;
+      // The shared result stream is authoritative about whether answers are
+      // still being collected. This closes a stale player form even if that
+      // phone missed the very short state='wait' notification at timeout.
+      if(view.inputActive===false&&(currentPlayerPhase==='input'||currentPlayerPhase==='input-split')){
+        currentPlayerPhase='shared-display';
+        clearPlayerInputForSharedDisplay();
+      }
       const nextSceneId=String(view.sceneId??'');
+      const nextSceneNumber=Number(nextSceneId);
+      const nextSharedHostPid=String(view.hostPid||'');
+      // A promoted host starts its own scene sequence from one. Reset the
+      // ordering floor when ownership changes so the anti-stale guard below
+      // never blocks the newly elected host's screens.
+      if(nextSharedHostPid&&nextSharedHostPid!==_latestSharedHostPid){
+        _latestSharedHostPid=nextSharedHostPid;
+        _latestSharedSceneNumber=0;
+      }
+      // Firebase can deliver the final timer mutation just after the host has
+      // already published the next result scene. Previously that older
+      // snapshot incremented _sharedRenderSeq and cancelled the in-flight
+      // result wipe, leaving phones frozen forever on "1". Scene ids only
+      // increase, so discard any genuinely older snapshot before it can
+      // supersede newer work.
+      if(Number.isFinite(nextSceneNumber)&&nextSceneNumber>0){
+        if(nextSceneNumber<_latestSharedSceneNumber)return false;
+        if(nextSceneNumber>_latestSharedSceneNumber)_latestSharedSceneNumber=nextSceneNumber;
+      }
       const sceneChanged=nextSceneId!==''&&shared.dataset.sceneId!==nextSceneId;
       const sharedStageSuppressed=()=>document.visibilityState!=='visible'||shared.classList.contains('hidden')||shared.style.display==='none';
       const renderSeq=++_sharedRenderSeq;
@@ -2360,12 +2394,6 @@
       _afterSharedRender=tryInitRevealMap;
       net.onSharedScreen(view=>{ renderShared(view); });
     }
-    let lastPhaseId=null;
-    let hostLeftTimer=null;
-    let playerInputRenderEpoch=0;
-    let hostElectionRunning=false;
-    let hostPromotionStarted=false;
-
     function showHostTransferBanner(message,color='var(--yellow)'){
       let banner=document.getElementById('hostGoneBanner');
       if(!banner){
@@ -2448,6 +2476,22 @@
       render();
       return true;
     }
+    // A shared result is published independently from the controller state.
+    // If a phone misses/delays the short state='wait' write, the old answer
+    // form used to remain over the new result forever. The host now includes
+    // inputActive on every shared snapshot; a false marker is authoritative
+    // and dismisses the old form even when this device still thinks it is in
+    // the preceding input phase.
+    function clearPlayerInputForSharedDisplay(){
+      playerInputRenderEpoch++;
+      document.body.classList.remove('phones-player-answering','hide-tracker');
+      document.getElementById('playerDock')?.classList.remove('docked');
+      document.getElementById('scr-controller')?.classList.remove('has-docked-footer');
+      const playerCtrl=document.getElementById('ctrlArea');
+      if(playerCtrl){playerCtrl.classList.add('hidden');playerCtrl.innerHTML='';}
+      const sharedStage=document.getElementById('phoneSharedStage');
+      sharedStage?.style.removeProperty('display');
+    }
     // Directly hide/show the shared-stage mirror via inline style. This is
     // stronger than toggling a CSS class — it can't be silently overridden
     // by any other CSS rule's specificity or cascade order.
@@ -2502,6 +2546,11 @@
       // all" — comparing phase-specific keys alone can't distinguish
       // "still stuck" from "moved on normally to something else".
       window._hypoxStateGen=(window._hypoxStateGen||0)+1;
+      const previousPlayerPhase=currentPlayerPhase;
+      if(state?.phase&&state.phase!=='hostLeft')currentPlayerPhase=state.phase;
+      if(phonesOnly&&(previousPlayerPhase==='input'||previousPlayerPhase==='input-split')&&state?.phase!=='input'&&state?.phase!=='input-split'&&state?.phase!=='hostLeft'){
+        clearPlayerInputForSharedDisplay();
+      }
       // A transient hostLeft notification is not a game phase. Cancelling an
       // in-flight input render here could leave the player on the previous
       // result forever, because the recovered input has the same phaseId and

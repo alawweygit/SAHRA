@@ -69,7 +69,7 @@ const Host = (() => {
   /* Phones Only gets the same presentation as the host. A debounced DOM
      snapshot is published independently of input state, so timers, revealed
      hints, avatars and score animations stay live without interrupting forms. */
-  let sharedObserver = null, sharedTimer = null, lastSharedHTML = '', sharedSceneId = 0;
+  let sharedObserver = null, sharedTimer = null, lastSharedHTML = '', sharedSceneId = 0, sharedInputActive = false;
   function sharedHTML(stripAnimations) {
     const source = stage();
     if (!source) return '';
@@ -112,7 +112,7 @@ const Host = (() => {
       const html = sharedHTML(strip);
       if (!force && html === lastSharedHTML) return;
       lastSharedHTML = html;
-      net.setSharedScreen({ html, pill: $('#roundPill')?.textContent || '', sceneId: sharedSceneId });
+      net.setSharedScreen({ html, pill: $('#roundPill')?.textContent || '', sceneId: sharedSceneId, inputActive: sharedInputActive, hostPid: net.hostSelfPid || '' });
     };
     // A forced scene publish must really be immediate. showScores() calls
     // scene() and then suspendSharedScreen() in the same task; the old
@@ -150,6 +150,10 @@ const Host = (() => {
   function stopSharedScreen() {
     sharedObserver?.disconnect(); sharedObserver = null;
     clearTimeout(sharedTimer); sharedTimer = null; lastSharedHTML = '';
+  }
+  function setSharedInputActive(active) {
+    sharedInputActive = Boolean(active);
+    publishSharedScreen(true, { strip: true });
   }
   // Pause the DOM-clone broadcast for a known animation window (e.g. the
   // score bar-fill + count-up in showScores()), then publish once cleanly
@@ -348,6 +352,7 @@ const Host = (() => {
   // and inline-controller timer before any reveal or result can begin.
   function clearInputTimers() {
     document.querySelectorAll('.ring-timer, .ctrl-timer').forEach(timer => timer.remove());
+    setSharedInputActive(false);
   }
 
   /* ---------- input collection with big timer ---------- */
@@ -385,6 +390,7 @@ const Host = (() => {
     publicSpec.deadline = deadline;
 
     pushMirror({ headline: publicSpec.context || publicSpec.title || '', sub: publicSpec.title || '' });
+    setSharedInputActive(true);
     net.setState({ phase: 'input', phaseId, spec: publicSpec, targets: pids, deadline, mirror: { ...mirror } });
 
     // Auto-submit answers for bot players
@@ -1134,6 +1140,7 @@ const Host = (() => {
         <div id="statusRow" class="status-row wyr-keep-visible" style="margin-top:12px"></div>`, t('mode_names')['wyr'], 'wyr-keep-visible'));
 
       const phaseId = 'ph' + (++phaseCounter);
+      setSharedInputActive(true);
       net.setState({
         phase: 'input-split', phaseId, deadline: wyrDeadline,
         specs: { _default: phoneWyrSpec },
@@ -1528,6 +1535,7 @@ const Host = (() => {
       }
 
       // Send choice spec — hot seat player gets buttons on their device via controller
+      setSharedInputActive(true);
       net.setState({ phase: 'input-split', phaseId: pickPhaseId, deadline: pickDeadline, specs: pickSpecs });
 
       // Bot hot seat auto-picks
@@ -1682,6 +1690,7 @@ const Host = (() => {
         const opts = myOpt ? voteOpts.filter(o=>o.id!==myOpt) : voteOpts;
         if (opts.length) voteSpecs[pid] = {type:'choice',title:LANG==='ar'?'🥊 من يفوز؟':'🥊 Who wins?',options:opts,deadline:voteDeadline};
       }
+      setSharedInputActive(true);
       net.setState({phase:'input-split',phaseId:votePhaseId,deadline:voteDeadline,specs:voteSpecs,mirror:{...mirror}});
 
       // Bot auto-vote
@@ -3297,6 +3306,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       // v118 — `targets` added: collectWithTimer sets it on every input
       // phase, and the reconnect/lock-screen recovery path reads it. Blend
       // In omitted it because it hand-rolls its own collection loop.
+      setSharedInputActive(true);
       net.setState({ phase:'input-split', phaseId, deadline, specs, targets: pids });
 
       // v217 — BlendIn hand-rolls its own collection loop instead of using

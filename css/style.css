@@ -2685,6 +2685,7 @@ body.hide-tracker .status-row{display:none!important;}
 .tm-input-card>.tm-statement-card{flex:none;min-height:64px;min-block-size:64px;}
 .tm-input-card-compact{gap:10px;padding:16px;}
 .tm-input-label{font-family:'Fredoka One',sans-serif;font-size:clamp(16px,3.2vmin,22px);color:var(--yellow);}
+.tm-player-timer{justify-self:center;min-width:58px;text-align:center;font-family:'Fredoka One',sans-serif;line-height:1;}
 .tm-translate-btn{background:linear-gradient(135deg,rgba(167,139,250,0.15),rgba(96,165,250,0.15));border:1.5px solid rgba(167,139,250,0.4);border-radius:20px;color:var(--purple);font-size:13px;padding:6px 16px;cursor:pointer;font-family:'Fredoka One',sans-serif;}
 .tm-translate-box{width:100%;font-weight:700;font-size:13px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 14px;line-height:1.5;direction:rtl;text-align:right;}
 .tm-year-input{width:100%;box-sizing:border-box;text-align:center;font-family:'Fredoka One',sans-serif;font-size:clamp(28px,7vmin,44px);letter-spacing:4px;color:#fff;background:var(--bg2);border:2px solid rgba(250,204,21,0.45);border-radius:18px;padding:14px 10px;outline:none;}
