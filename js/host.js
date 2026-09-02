@@ -1559,6 +1559,10 @@ const Host = (() => {
       net.promptLocal = _savedPromptLocal;
       clearInputTimers();
       net.onEachInput(null);
+      // This picker hand-rolls input-split/net.collect instead of using
+      // collectWithTimer. Explicitly release the hot-seat phone before the
+      // winner reveal, matching WYR, Line Battle and Blend In.
+      net.setState({ phase: 'wait', msg: t('watch_screen') });
 
       const chosenPid = val(picks, hotPid);
       const winner = answerList.find(a => a.pid === chosenPid) || answerList[0];
