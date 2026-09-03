@@ -17,6 +17,7 @@
     {id:'general',icon:'🎲',name:'General Mix',nameAr:'خلطة عامة'},
     {id:'geography',icon:'🌍',name:'Geography',nameAr:'جغرافيا'},
     {id:'science',icon:'🔬',name:'Science',nameAr:'علوم'},
+    {id:'medical',icon:'🩺',name:'Medical',nameAr:'طب وصحة'},
     {id:'gulf',icon:'🕌',name:'Gulf & Arab',nameAr:'خليج وعرب'},
     {id:'pop',icon:'🎬',name:'Pop Culture',nameAr:'ثقافة شعبية'},
     {id:'sports',icon:'🏅',name:'Sports',nameAr:'رياضة'},
