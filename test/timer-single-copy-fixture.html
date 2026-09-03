@@ -15,8 +15,12 @@
       fixture.innerHTML = `<section id="hostStage">${ring}</section>`;
     } else if (mode === 'host-answer') {
       fixture.innerHTML = `<section id="hostStage">${ring}</section><div class="phones-host-input-overlay">${controllerTimer}</div>`;
+    } else if (mode === 'player-watch') {
+      document.body.classList.add('phones-only-player');
+      fixture.innerHTML = `<section id="scr-controller" class="active"><div id="phoneSharedStage" class="phone-shared-stage">${ring}</div><div id="ctrlArea"></div></section>`;
     } else {
-      fixture.innerHTML = `<section id="scr-controller"><div id="phoneSharedStage">${ring}</div><div id="ctrlArea">${controllerTimer}</div></section>`;
+      document.body.classList.add('phones-only-player');
+      fixture.innerHTML = `<section id="scr-controller" class="active"><div id="phoneSharedStage" class="phone-shared-stage">${ring}</div><div id="ctrlArea">${controllerTimer}</div></section>`;
     }
   </script>
 </body>

@@ -15,4 +15,8 @@ assert.doesNotMatch(css,
   /(?:^|[},]\s*)#hostStage \.ring-timer\s*\{\s*display:none!important;/m,
   'the normal host-only scene timer must not be hidden unconditionally');
 
+assert.match(css,
+  /body\.phones-only-player #phoneSharedStage \.ring-timer\s*\{[^}]*align-self:center!important;[^}]*margin-inline:auto!important;/s,
+  'the visible timer in the shared player scene must remain horizontally centered');
+
 console.log('SINGLE TIMER COPY PASSED ✅');

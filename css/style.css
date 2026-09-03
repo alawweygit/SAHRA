@@ -1504,6 +1504,16 @@ html{font-size:17px;}
   gap:0!important;-webkit-overflow-scrolling:touch;
 }
 .phones-only-player #phoneSharedStage{display:flex!important;overflow-anchor:none;overflow-y:auto!important;will-change:scroll-position;-webkit-transform:translateZ(0);transform:translateZ(0);}
+/* The player mirror is updated from cloned host markup while its flex region
+   resizes. Pin the shared scene countdown to the mirror's horizontal centre
+   explicitly so it cannot inherit or retain a left-edge position on either
+   mobile Safari or desktop player windows. This affects only the shared
+   player scene; host timers and timers inside answer cards are unchanged. */
+body.phones-only-player #phoneSharedStage .ring-timer{
+  align-self:center!important;
+  margin-inline:auto!important;
+  flex:0 0 auto;
+}
 .phones-only-player #phoneSharedStage #statusRow{display:flex;}
 .phones-only-player #ctrlArea{width:min(94vw,780px);margin-bottom:max(26px,env(safe-area-inset-bottom));}.phones-only-player #scr-controller{justify-content:flex-start!important;}
 @media(max-width:600px){
