@@ -38,7 +38,40 @@ const validPlayerRecord = (pid, player) => typeof pid === 'string' && pid.trim()
 
 /* ---------------- Firebase (online) ---------------- */
 class FirebaseNet {
-  constructor(db) { this.db = db; this.isOffline = false; this.code = null; this.pid = null; this.isRoomOwner = false; this._collectors = {}; this._removalNotified = new Set(); this._playerIdentity = null; this._closing = false; this._heartbeatBusy = false; this._hostEpoch = null; }
+  constructor(db) {
+    this.db = db; this.isOffline = false; this.code = null; this.pid = null;
+    this.isRoomOwner = false; this._collectors = {}; this._removalNotified = new Set();
+    this._playerIdentity = null; this._closing = false; this._heartbeatBusy = false;
+    this._hostEpoch = null; this._serverTimeOffset = 0; this._serverOffsetRef = null;
+    this._presenceDisconnectKey = null; this._stalePresenceChecks = new Map();
+  }
+
+  _serverNow() { return Date.now() + Number(this._serverTimeOffset || 0); }
+  _serverTimestamp() {
+    try {
+      return firebase.database.ServerValue.TIMESTAMP;
+    } catch (_) {
+      return this._serverNow();
+    }
+  }
+  _watchServerTimeOffset() {
+    if (this._serverOffsetRef) return;
+    const ref = this.db.ref('.info/serverTimeOffset');
+    this._serverOffsetRef = ref;
+    ref.on('value', snap => {
+      const offset = Number(snap.val());
+      this._serverTimeOffset = Number.isFinite(offset) ? offset : 0;
+    });
+  }
+  _withNetworkTimeout(promise, ms = 8000) {
+    let timer;
+    return Promise.race([
+      Promise.resolve(promise),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('network-timeout')), ms);
+      }),
+    ]).finally(() => clearTimeout(timer));
+  }
 
   static available() {
     return typeof firebase !== 'undefined'
@@ -159,9 +192,10 @@ class FirebaseNet {
       .map(([pid, player]) => ({ pid, ...player }));
     if (!realPlayers.length) return null;
 
-    const now = Date.now();
+    this._watchServerTimeOffset();
+    const now = this._serverNow();
     const presence = roomData.presence || {};
-    const connected = realPlayers.filter(player => now - Number(presence[player.pid]?.t || 0) < 20_000);
+    const connected = realPlayers.filter(player => now - Number(presence[player.pid]?.t || 0) < 90_000);
     const candidates = (connected.length ? connected : realPlayers)
       .sort((a, b) => String(a.pid).localeCompare(String(b.pid)));
     const seedText = String(status.electionId || status.epoch || roomData.createdAt || this.code);
@@ -373,7 +407,7 @@ class FirebaseNet {
   async submitInput(phaseId, value, options = {}) {
     const inputRef = this.room(`inputs/${phaseId}/${this.pid}`);
     if (!options.enforceUnique) {
-      await inputRef.set({ v: value, t: Date.now() });
+      await this._withNetworkTimeout(inputRef.set({ v: value, t: Date.now() }));
       return { accepted: true };
     }
 
@@ -382,10 +416,10 @@ class FirebaseNet {
     const normalized = normalizeUniqueAnswer(value);
     const claimRef = this.room(`inputClaims/${phaseId}/${uniqueAnswerKey(normalized)}`);
     const claimedAt = Date.now();
-    const result = await claimRef.transaction(current => {
+    const result = await this._withNetworkTimeout(claimRef.transaction(current => {
       if (current == null || current.pid === this.pid) return { pid: this.pid, normalized, t: claimedAt };
       return; // abort transaction: another player owns this answer
-    });
+    }));
     if (!result.committed || result.snapshot.val()?.pid !== this.pid) {
       const owner = result.snapshot.val();
       if (owner?.reserved && owner.reason === 'truth') {
@@ -393,15 +427,17 @@ class FirebaseNet {
         // One marker per player: repeated taps or retries cannot create
         // duplicate rewards. The host reads these markers after everyone has
         // supplied a real lie and applies the score exactly once.
-        await this.room(`truthDiscoveries/${phaseId}/${this.pid}`).transaction(current =>
-          current == null ? { points, t: Date.now() } : current);
+        await this._withNetworkTimeout(
+          this.room(`truthDiscoveries/${phaseId}/${this.pid}`).transaction(current =>
+            current == null ? { points, t: Date.now() } : current)
+        );
         return { accepted: false, reason: 'truth', points };
       }
       return { accepted: false, reason: 'duplicate' };
     }
 
     try {
-      await inputRef.set({ v: value, t: Date.now() });
+      await this._withNetworkTimeout(inputRef.set({ v: value, t: Date.now() }));
       return { accepted: true };
     } catch (error) {
       // Do not leave a dead claim behind if the answer write fails.
@@ -543,7 +579,7 @@ class FirebaseNet {
     }
   }
   // Host-triggered manual removal, e.g. tapping a greyed-out disconnected
-  // avatar in the status row. Doesn't wait for the 30s auto-detect window.
+  // avatar in the status row. Doesn't wait for the conservative auto-detect window.
   async forceRemovePlayer(pid) {
     if (pid === this.pid || pid === this.hostSelfPid) return; // never remove self/host
     if ((this._botPids||[]).includes(pid)) return; // never remove bots
@@ -560,28 +596,43 @@ class FirebaseNet {
     // would never run.
     if (onRemove) this._onRemoveCb = onRemove;
     if (this._offlineWatcher) return;
-    const OFFLINE_MS = 20000; // 20s of missed heartbeats before auto-remove
+    // Mobile Safari can pause timers and delay writes during a radio/Wi-Fi
+    // handoff while Firebase reads still arrive. A 20-second deadline falsely
+    // removed healthy remote players, leaving them able to watch but unable to
+    // submit. Only remove a player after a real heartbeat has gone stale for
+    // 90 seconds on two consecutive checks. A missing heartbeat is not proof
+    // of a disconnect; the host can still remove that player manually.
+    const OFFLINE_MS = 90000;
     this._offlineWatcher = setInterval(async () => {
       if (!this.code) return;
       try {
-        // Drive removal from the authoritative player roster, not only from
-        // presence entries. A phone can disappear before its first heartbeat
-        // is written (or a cleanup can remove that heartbeat), and scanning
-        // presence alone leaves that player in the room forever.
+        // Scan the authoritative player roster, but require an actual stale
+        // presence timestamp before removing anyone automatically.
         const [presenceSnap, playersSnap] = await Promise.all([
           this.room('presence').get(),
           this.room('players').get(),
         ]);
         const presence = presenceSnap.val() || {};
         const livePlayers = playersSnap.val() || {};
-        const now = Date.now();
-        for (const [pid, player] of Object.entries(livePlayers)) {
+        const now = this._serverNow();
+        for (const [pid] of Object.entries(livePlayers)) {
           if (pid === this.pid || pid === this.hostSelfPid) continue; // never remove self or host
           if ((this._botPids||[]).includes(pid)) continue; // never remove bots
-          const lastSeen = presence[pid]?.t || player?.joinedAt || now;
+          const lastSeen = Number(presence[pid]?.t);
+          if (!Number.isFinite(lastSeen) || lastSeen <= 0) {
+            this._stalePresenceChecks.delete(pid);
+            continue;
+          }
           const age = now - lastSeen;
           if (age > OFFLINE_MS) {
-            await this._removePlayerNow(pid);
+            const checks = (this._stalePresenceChecks.get(pid) || 0) + 1;
+            this._stalePresenceChecks.set(pid, checks);
+            if (checks >= 2) {
+              this._stalePresenceChecks.delete(pid);
+              await this._removePlayerNow(pid);
+            }
+          } else {
+            this._stalePresenceChecks.delete(pid);
           }
         }
       } catch(e) { console.error('[HYPOX] offline watcher tick failed', e); }
@@ -589,11 +640,16 @@ class FirebaseNet {
   }
   stopOfflineWatcher() {
     if (this._offlineWatcher) { clearInterval(this._offlineWatcher); this._offlineWatcher = null; }
+    this._stalePresenceChecks.clear();
   }
 
   // ── PRESENCE / HEARTBEAT ──
   startHeartbeat() {
-    if (this._heartbeatInt) return;
+    this._watchServerTimeOffset();
+    if (this._heartbeatInt) {
+      this._heartbeatWrite?.();
+      return;
+    }
     const write = async () => {
       if (!this.code || !this.pid || this._closing || this._heartbeatBusy) return;
       this._heartbeatBusy = true;
@@ -607,12 +663,20 @@ class FirebaseNet {
             await this.resumePlayer(this.code, this.pid, this._playerIdentity);
           }
         }
-        if (!this._closing) await this.room('presence/' + this.pid).set({ t: Date.now() });
+        if (!this._closing) {
+          const disconnectKey = `${this.code}:${this.pid}`;
+          if (this._presenceDisconnectKey !== disconnectKey) {
+            try { await this.room('presence/' + this.pid).onDisconnect().remove(); } catch (_) {}
+            this._presenceDisconnectKey = disconnectKey;
+          }
+          await this.room('presence/' + this.pid).set({ t: this._serverTimestamp() });
+        }
       } catch(e) {
       } finally {
         this._heartbeatBusy = false;
       }
     };
+    this._heartbeatWrite = write;
     write();
     this._heartbeatInt = setInterval(write, 5000);
   }
@@ -621,6 +685,8 @@ class FirebaseNet {
     if (this.code && this.pid) {
       try { this.room('presence/' + this.pid).remove(); } catch(e) {}
     }
+    this._heartbeatWrite = null;
+    this._presenceDisconnectKey = null;
   }
   onPresence(cb) {
     if (!this.code) return;
@@ -628,11 +694,11 @@ class FirebaseNet {
     // Firebase 'value' listener and the local ticker below can use it.
     const computeAndEmit = () => {
       const v = this._lastPresenceVal || {};
-      const now = Date.now();
+      const now = this._serverNow();
       const status = {};
       for (const [pid, data] of Object.entries(v)) {
         const age = now - (data.t || 0);
-        status[pid] = age < 8000 ? 'online' : age < 20000 ? 'away' : 'offline';
+        status[pid] = age < 15000 ? 'online' : age < 90000 ? 'away' : 'offline';
       }
       cb(status);
     };
@@ -661,6 +727,10 @@ class FirebaseNet {
     this.stopHeartbeat();
     this.stopOfflineWatcher();
     this.stopPresenceTicker();
+    if (this._serverOffsetRef) {
+      try { this._serverOffsetRef.off(); } catch (_) {}
+      this._serverOffsetRef = null;
+    }
     try { await roomRef.onDisconnect().cancel(); } catch(e) {}
     try { await this.room('state').onDisconnect().cancel(); } catch(e) {}
     try { await this.room('hostStatus').onDisconnect().cancel(); } catch(e) {}

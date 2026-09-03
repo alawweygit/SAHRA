@@ -463,11 +463,30 @@ const Controller = (() => {
         const b = document.createElement('button');
         b.className = 'harf-vote-btn ' + cls;
         b.textContent = label;
-        b.addEventListener('click', () => {
+        b.addEventListener('click', async () => {
+          if (row.getAttribute('aria-busy') === 'true') return;
           Audio_.sfx.vote && Audio_.sfx.vote();
+          row.setAttribute('aria-busy', 'true');
           [...row.querySelectorAll('.harf-vote-btn')].forEach(x => x.disabled = true);
           b.classList.add('picked');
-          onSubmit(id);
+          wrap.querySelector('.choice-submit-hint')?.remove();
+          try {
+            const result = await onSubmit(id);
+            if (result?.accepted === false) throw new Error('answer rejected');
+            row.removeAttribute('aria-busy');
+            lock(wrap);
+          } catch (_) {
+            row.removeAttribute('aria-busy');
+            b.classList.remove('picked');
+            [...row.querySelectorAll('.harf-vote-btn')].forEach(x => { x.disabled = false; });
+            const hint = document.createElement('div');
+            hint.className = 'choice-submit-hint';
+            hint.setAttribute('role', 'alert');
+            hint.textContent = typeof LANG !== 'undefined' && LANG === 'ar'
+              ? 'تعذر إرسال اختيارك — حاول مرة ثانية.'
+              : 'Could not send your choice — please try again.';
+            row.insertAdjacentElement('afterend', hint);
+          }
         });
         return b;
       };
@@ -625,17 +644,39 @@ const Controller = (() => {
       const grid = document.createElement('div');
       grid.className = 'ctrl-choices';
       grid.style.cssText = 'margin-top:16px';
+      let submitting = false;
       spec.options.forEach((o, i) => {
         const b = document.createElement('button');
         b.className = 'choice-btn';
         b.textContent = o.label;
         if (o.color) b.style.setProperty('--cb', o.color);
         b.style.animationDelay = (i * .07) + 's';
-        b.addEventListener('click', () => {
+        b.addEventListener('click', async () => {
+          if (submitting) return;
+          submitting = true;
           Audio_.sfx.vote();
           b.classList.add('picked');
-          lock(wrap);
-          onSubmit(o.id);
+          wrap.setAttribute('aria-busy', 'true');
+          grid.querySelectorAll('.choice-btn').forEach(button => { button.disabled = true; });
+          wrap.querySelector('.choice-submit-hint')?.remove();
+          try {
+            const result = await onSubmit(o.id);
+            if (result?.accepted === false) throw new Error('answer rejected');
+            wrap.removeAttribute('aria-busy');
+            lock(wrap);
+          } catch (_) {
+            submitting = false;
+            wrap.removeAttribute('aria-busy');
+            b.classList.remove('picked');
+            grid.querySelectorAll('.choice-btn').forEach(button => { button.disabled = false; });
+            const hint = document.createElement('div');
+            hint.className = 'choice-submit-hint';
+            hint.setAttribute('role', 'alert');
+            hint.textContent = typeof LANG !== 'undefined' && LANG === 'ar'
+              ? 'تعذر إرسال اختيارك — حاول مرة ثانية.'
+              : 'Could not send your choice — please try again.';
+            grid.insertAdjacentElement('afterend', hint);
+          }
         });
         grid.appendChild(b);
       });
@@ -830,6 +871,33 @@ const Controller = (() => {
       wrap.appendChild(btn);
 
       let guess = null, marker = null;
+      let submittingMap = false;
+      const submitMapGuess = async (sourceButton, onSuccess = () => {}) => {
+        if (!guess || submittingMap) return;
+        submittingMap = true;
+        sourceButton.disabled = true;
+        wrap.setAttribute('aria-busy', 'true');
+        wrap.querySelector('.choice-submit-hint')?.remove();
+        try {
+          const result = await onSubmit(JSON.stringify(guess));
+          if (result?.accepted === false) throw new Error('answer rejected');
+          wrap.removeAttribute('aria-busy');
+          onSuccess();
+          lock(wrap);
+        } catch (_) {
+          submittingMap = false;
+          wrap.removeAttribute('aria-busy');
+          sourceButton.disabled = false;
+          btn.disabled = false;
+          const hint = document.createElement('div');
+          hint.className = 'choice-submit-hint';
+          hint.setAttribute('role', 'alert');
+          hint.textContent = typeof LANG !== 'undefined' && LANG === 'ar'
+            ? 'تعذر إرسال دبوسك — حاول مرة ثانية.'
+            : 'Could not send your pin — please try again.';
+          btn.insertAdjacentElement('afterend', hint);
+        }
+      };
 
       // Fullscreen overlay map
       const fsBtn = document.createElement('button');
@@ -919,20 +987,18 @@ const Controller = (() => {
             if (navigator.vibrate) navigator.vibrate(15);
           });
         }
-        closeBtn.addEventListener('click', () => {
+        closeBtn.addEventListener('click', async () => {
           if (!guess) return;
-          btn.disabled = true;
-          closeBtn.disabled = true;
-          fsMap?.remove();
-          document.body.removeChild(ov);
-          onSubmit(JSON.stringify(guess));
+          await submitMapGuess(closeBtn, () => {
+            fsMap?.remove();
+            if (ov.isConnected) document.body.removeChild(ov);
+          });
         });
       });
 
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         if (!guess) return;
-        btn.disabled = true;
-        onSubmit(JSON.stringify(guess));
+        await submitMapGuess(btn);
       });
     }
 

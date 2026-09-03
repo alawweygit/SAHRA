@@ -35,7 +35,7 @@ const GUIDANCE = {
   diss:         'Roast battle setup lines — prompt to write a funny one-liner insult about the opponent.',
   quiz:         'Multiple-choice trivia. Vary correct position (0-3) so the answer is not predictable. DIFFICULTY MIX: across this batch, include a real spread of easy, medium, and hard questions (roughly equal thirds) rather than making everything the same difficulty — easy = something most people would know quickly, medium = requires some real knowledge, hard = genuinely challenging even for someone knowledgeable. LANGUAGE: keep the wording short and simple (plain, everyday words, no complex sentence structure) so a non-native English speaker or a distracted party-game player can read it in one glance — difficulty should come from the KNOWLEDGE required, never from complicated phrasing. DIVERSITY: within a batch, cover different sub-angles of the topic — do not ask multiple questions that are really the same fact restated, and do not repeat the same specific answer/fact across items.',
   mostlikely:   '"Who is most likely to…" questions sparking funny debates.',
-  trueorlie:    'Absurd-sounding statements, genuinely TRUE or FALSE. "truth" must be boolean. Mix science and history topics.',
+  trueorlie:    'Absurd-sounding statements, genuinely TRUE or FALSE. "truth" must be boolean. Mix science and history topics. EVERY batch must contain both true and false statements. For an even batch, make exactly half true and half false, alternating truth values so one type can never dominate.',
   pinpoint:     'Real cities worldwide. Accurate lat/lon. Always include the city and country in both languages: en, ar, countryEn, countryAr.',
   emoji:        'Phonetic rebus: emojis SOUND OUT a word. "parts" = phonetic sounds.',
   emojiplace:   'Phonetic rebus for CITIES only.',
@@ -321,7 +321,12 @@ async function generateBatch(mode, lang, used, baseKey, requestedCount, region, 
 
   const text = msg.content.filter(b => b.type === 'text').map(b => b.text).join('');
   const clean = text.replace(/```json|```/g, '').trim();
-  return JSON.parse(clean);
+  const parsed = JSON.parse(clean);
+  if (mode === 'trueorlie' && parsed.length > 1) {
+    const truthValues = new Set(parsed.filter(item => typeof item?.truth === 'boolean').map(item => item.truth));
+    if (truthValues.size < 2) throw new Error('trueorlie batch must mix true and false statements');
+  }
+  return parsed;
 }
 
 app.post('/api/prompts', async (req, res) => {
@@ -376,12 +381,28 @@ app.post('/api/prompts', async (req, res) => {
         currentPool = [...currentPool, ...novel].sort(() => Math.random() - 0.5);
       } catch(e) {
         console.error('Generation error:', e.message);
+        // Invalid model output (including an all-true/all-false batch) gets a
+        // fresh attempt. Do not turn one malformed AI response into a failed
+        // game when two retry opportunities remain.
+        if (attempt < 2) continue;
         if (!currentPool.length) return res.status(500).json({ error: 'generation failed: ' + e.message });
         break;
       }
     }
 
-    const out = currentPool.slice(0, count);
+    let out;
+    if (mode === 'trueorlie' && count > 1) {
+      // The reserve is shuffled, so slicing it can accidentally return only
+      // one answer type even when generation was balanced. Pin one of each
+      // into the game, then fill the remaining slots from the unused reserve.
+      const oneTrue = currentPool.find(item => item.truth === true);
+      const oneFalse = currentPool.find(item => item.truth === false);
+      const required = [oneTrue, oneFalse].filter(Boolean);
+      const requiredSet = new Set(required);
+      out = [...required, ...currentPool.filter(item => !requiredSet.has(item))].slice(0, count);
+    } else {
+      out = currentPool.slice(0, count);
+    }
     out.forEach(item => used.add(getFingerprint(item)));
 
     // Keep used set bounded
@@ -390,7 +411,8 @@ app.post('/api/prompts', async (req, res) => {
       usedFingerprints.set(baseKey, new Set(arr.slice(-200)));
     }
 
-    pool.set(baseKey, currentPool.slice(count));
+    const delivered = new Set(out);
+    pool.set(baseKey, currentPool.filter(item => !delivered.has(item)));
     res.json({ prompts: out });
   } catch (e) {
     console.error('Backend error:', e.message);

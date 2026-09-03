@@ -56,5 +56,35 @@ const tick = () => new Promise(resolve => setTimeout(resolve, 0));
     throw new Error('confirmed choice did not show one answered state');
   }
 
-  console.log('CHOICE SUBMIT RETRY PASSED ✅');
+  for (const retryCase of [
+    {
+      name: 'Higher/Lower',
+      spec: { type: 'higherlow', question: 'Is it higher?', ref: '10', options: [{ id: 'higher', label: 'Higher' }, { id: 'lower', label: 'Lower' }] },
+      selector: '.choice-btn',
+    },
+    {
+      name: 'HarfHunt vote',
+      spec: { type: 'harfvote', category: 'Animals', answerText: 'Ant', byName: 'Ali' },
+      selector: '.harf-vote-btn',
+    },
+  ]) {
+    let specialAttempts = 0;
+    window.__Controller.render(container, retryCase.spec, async () => {
+      specialAttempts += 1;
+      if (specialAttempts === 1) throw new Error('temporary network failure');
+      return { accepted: true };
+    });
+    container.querySelector(retryCase.selector).click();
+    await tick();
+    if (container.querySelector(retryCase.selector).disabled) {
+      throw new Error(`${retryCase.name} stayed disabled after a failed submission`);
+    }
+    container.querySelector(retryCase.selector).click();
+    await tick();
+    if (specialAttempts !== 2 || !container.querySelector(retryCase.selector).disabled) {
+      throw new Error(`${retryCase.name} could not retry and lock after success`);
+    }
+  }
+
+  console.log('CHOICE SUBMIT RETRY PASSED ✅ (standard, Higher/Lower, HarfHunt)');
 })().catch(error => { console.error(error); process.exitCode = 1; });

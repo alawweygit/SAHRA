@@ -2312,6 +2312,9 @@
     // Re-render input when phone comes back from lock screen
     document.addEventListener('visibilitychange',()=>{
       if(document.visibilityState==='visible'&&gameActive&&net){
+        // Mobile browsers pause timers while locked/backgrounded. Publish an
+        // immediate heartbeat on return instead of waiting for the next tick.
+        net.startHeartbeat?.();
         flushPendingShared();
         try{
           net.room('state').get().then(snap=>{

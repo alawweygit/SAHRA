@@ -5,7 +5,7 @@ const vm = require('node:vm');
 function loadFirebaseNet({ now = 100_000, intervals = [] } = {}) {
   const source = fs.readFileSync(require.resolve('../js/net.js'), 'utf8');
   class FakeDate extends Date {
-    static now() { return now; }
+    static now() { return typeof now === 'function' ? now() : now; }
   }
   const context = {
     console: { log() {}, error() {} },
@@ -74,7 +74,7 @@ async function testPresenceCleanupCannotBlockCallback() {
   assert.equal(removedPid, 'p1', 'presence cleanup failure must not suppress the host callback');
 }
 
-async function testMissingPresenceStillExpiresPlayer() {
+async function testMissingPresenceDoesNotFalseRemovePlayer() {
   const intervals = [];
   const FirebaseNet = loadFirebaseNet({ intervals });
   const db = makeDb({
@@ -91,8 +91,35 @@ async function testMissingPresenceStillExpiresPlayer() {
   assert.equal(intervals.length, 1);
   await intervals[0]();
 
+  assert.ok(db.data.rooms.TEST.players.p1);
+  assert.equal(removedPid, null,
+    'a missing heartbeat alone must not turn a remote player into a spectator');
+}
+
+async function testStalePresenceRequiresGraceAndConfirmation() {
+  const intervals = [];
+  let now = 100_000;
+  const FirebaseNet = loadFirebaseNet({ now: () => now, intervals });
+  const db = makeDb({
+    rooms: { TEST: {
+      players: { p1: { name: 'Ali', score: 7, joinedAt: 1 } },
+      presence: { p1: { t: 30_000 } },
+    } },
+  });
+  const net = new FirebaseNet(db);
+  net.code = 'TEST';
+  let removedPid = null;
+  net.watchAndRemoveOffline(pid => { removedPid = pid; });
+
+  await intervals[0]();
+  assert.ok(db.data.rooms.TEST.players.p1, '70 seconds is inside the mobile grace window');
+
+  now = 125_000;
+  await intervals[0]();
+  assert.ok(db.data.rooms.TEST.players.p1, 'the first stale check must not delete the player');
+  await intervals[0]();
   assert.equal(db.data.rooms.TEST.players.p1, undefined);
-  assert.equal(removedPid, 'p1', 'players with no heartbeat entry must not remain forever');
+  assert.equal(removedPid, 'p1', 'a genuinely stale heartbeat is removed after confirmation');
 }
 
 function testWarningDoesNotDependOnStatusAvatar() {
@@ -260,7 +287,8 @@ function testNewChoiceHidesPreviousResultImmediately() {
 
 (async () => {
   await testPresenceCleanupCannotBlockCallback();
-  await testMissingPresenceStillExpiresPlayer();
+  await testMissingPresenceDoesNotFalseRemovePlayer();
+  await testStalePresenceRequiresGraceAndConfirmation();
   testWarningDoesNotDependOnStatusAvatar();
   testRosterDeletionNotifiesHost();
   testPlayerLeaveCannotReplaceSharedPhase();
@@ -272,7 +300,7 @@ function testNewChoiceHidesPreviousResultImmediately() {
   testStaleDepartureAnnouncementCannotOverrideRejoin();
   testHostLeftPreservesActivePlayerScreen();
   testNewChoiceHidesPreviousResultImmediately();
-  console.log('disconnect handling: 13 tests passed');
+  console.log('disconnect handling: 14 tests passed');
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;

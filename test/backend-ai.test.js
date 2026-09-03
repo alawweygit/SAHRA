@@ -95,6 +95,12 @@ async function postPrompts(body) {
   assert.ok(generationRequests.every(request => request.maxTokens <= 1200),
     'small requests must keep a bounded output budget');
 
+  const trueFalseBatch = await postPrompts({ mode: 'trueorlie', lang: 'en', topic: 'balance-test', count: 8 });
+  assert.equal(trueFalseBatch.statusCode, 200);
+  assert.ok(trueFalseBatch.payload.prompts.some(item => item.truth === true));
+  assert.ok(trueFalseBatch.payload.prompts.some(item => item.truth === false),
+    'True or False AI must provide both true and false statements');
+
   const firstFresh = await postPrompts({ mode: 'quiz', lang: 'en', topic: 'exclude-test', count: 2 });
   const excluded = firstFresh.payload.prompts.map(backend.getFingerprint);
   const secondFresh = await postPrompts({ mode: 'quiz', lang: 'en', topic: 'exclude-test', count: 2, exclude: excluded });
