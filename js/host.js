@@ -1784,24 +1784,27 @@ const Host = (() => {
     await modeTitleCard('quiz');
     const cat = window.HYPOX_STATE?.category || 'general';
     const rounds = window.HYPOX_STATE?.rounds || 5;
-    // v231 — cat !== 'general' is threaded through to the AI backend as
-    // `topic` now, so overflow AI content (when the static TRIVIA_CATS pool
-    // for this category runs short) actually respects the chosen category
-    // instead of silently falling back to generic mixed trivia.
+    // v232 — AI is now the PRIMARY source for a themed category too,
+    // matching how General Mix already behaves. Previously the static
+    // TRIVIA_CATS pool (12-20 questions per category) was checked FIRST,
+    // and AI only got called to "top up" if the pool was smaller than the
+    // round count. But every category already has at least 12 questions,
+    // and round options only go up to 15 — meaning a 5 or 10 round game
+    // NEVER touched AI at all for ANY themed category, and even a 15-round
+    // game on Pharmacy (20 questions) never would either. The v231 topic
+    // fix was correct but structurally unreachable in almost every real
+    // game. Flipped: always try AI first with the chosen topic, and only
+    // fall back to the static pool if AI genuinely returns nothing — and
+    // even then, pass the category's OWN pool as staticFallback so an
+    // outage still respects the chosen category instead of silently
+    // handing back generic mixed trivia.
     const aiTopic = cat !== 'general' ? cat : null;
-    let qs;
-    // If specific category chosen (not general), use TRIVIA_CATS
-    if (cat !== 'general' && typeof TRIVIA_CATS !== 'undefined' && TRIVIA_CATS[cat]) {
-      const pool = TRIVIA_CATS[cat][LANG] || TRIVIA_CATS[cat].en || [];
-      const shuffled = pool.slice().sort(()=>Math.random()-.5);
-      qs = shuffled.slice(0, rounds);
-      // Supplement with AI if pool is small
-      if (qs.length < rounds) {
-        const aiExtra = await Content.get('quiz', LANG, rounds - qs.length, null, aiTopic);
-        qs = [...qs, ...aiExtra].slice(0, rounds);
-      }
-    } else {
-      qs = await Content.get('quiz', LANG, rounds, null, aiTopic);
+    const categoryPool = (cat !== 'general' && typeof TRIVIA_CATS !== 'undefined' && TRIVIA_CATS[cat])
+      ? (TRIVIA_CATS[cat][LANG] || TRIVIA_CATS[cat].en || [])
+      : null;
+    let qs = await Content.get('quiz', LANG, rounds, null, aiTopic, categoryPool);
+    if ((!qs || !qs.length) && categoryPool) {
+      qs = categoryPool.slice().sort(()=>Math.random()-.5).slice(0, rounds);
     }
     const pids = players.map(p => p.pid);
     const CORRECT_PTS = 1000; // top score for the fastest correct answer; decreases per rank below (see right.forEach)

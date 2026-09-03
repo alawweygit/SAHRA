@@ -372,7 +372,7 @@ const Content = (() => {
 
   /* Async so an AI backend can be swapped in with zero changes elsewhere.
      region: 'mena' | 'weur' | 'asia' | 'africa' | null (null = universal only) */
-  async get(mode, lang, count, region, topic) {
+  async get(mode, lang, count, region, topic, staticFallback) {
     const resolvedRegion = resolveRegion(region);
     const key = cacheKey(mode, lang, count, resolvedRegion, topic);
     if (_preloadCache.has(key)) {
@@ -391,13 +391,19 @@ const Content = (() => {
       _preloadCache.delete(compatibleKey);
       const first = await preloaded;
       if (first.length >= count) return first.slice(0, count);
-      const rest = await this._load(mode, lang, count - first.length, resolvedRegion, topic);
+      const rest = await this._load(mode, lang, count - first.length, resolvedRegion, topic, staticFallback);
       return [...first, ...rest].slice(0, count);
     }
-    return this._load(mode, lang, count, resolvedRegion, topic);
+    return this._load(mode, lang, count, resolvedRegion, topic, staticFallback);
   },
 
-  async _load(mode, lang, count, region, topic) {
+  // v232 — staticFallback lets a caller (e.g. Quiz's category picker)
+  // supply its OWN on-topic static pool to use if the AI call fails,
+  // instead of silently falling back to PACKS[mode]'s generic pool (which
+  // has no concept of "category" at all). Without this, a player who chose
+  // "Pharmacy" or "Sports" during an AI outage would silently get generic
+  // mixed trivia with no indication their category choice was ignored.
+  async _load(mode, lang, count, region, topic, staticFallback) {
     const cfg = window.HYPOX_CONFIG || {};
     // Global lobby AI toggle (next to Add Bot) — OFF makes every mode fall
     // straight through to its static content pool, same as if no AI
@@ -431,7 +437,9 @@ const Content = (() => {
     if (count <= 0) return [];
 
     // Warn host if static pool is smaller than requested (content will repeat)
-    const poolSize = ((PACKS[mode] && (PACKS[mode][lang] || PACKS[mode].en)) || []).length;
+    const poolSize = (staticFallback && staticFallback.length)
+      ? staticFallback.length
+      : ((PACKS[mode] && (PACKS[mode][lang] || PACKS[mode].en)) || []).length;
     if (poolSize > 0 && count > poolSize) {
       const toast = document.createElement('div');
       toast.style.cssText = 'position:fixed;bottom:4vmin;left:50%;transform:translateX(-50%);background:#374151;color:#facc15;font-family:Fredoka One,sans-serif;font-size:15px;padding:10px 22px;border-radius:50px;z-index:99;opacity:0.92;pointer-events:none';
@@ -442,8 +450,13 @@ const Content = (() => {
 
 
 
-    // Universal pool (always available)
-    const universal = (PACKS[mode] && (PACKS[mode][lang] || PACKS[mode].en)) || [];
+    // Universal pool (always available). If the caller supplied an on-topic
+    // staticFallback (e.g. Quiz's chosen category pool), prefer that over
+    // the generic PACKS[mode] pool so an AI outage doesn't silently ignore
+    // the player's category choice.
+    const universal = (staticFallback && staticFallback.length)
+      ? staticFallback
+      : ((PACKS[mode] && (PACKS[mode][lang] || PACKS[mode].en)) || []);
 
     // Regional pool for location-sensitive modes (quiz/bluff), if a region is set
     let regional = [];
