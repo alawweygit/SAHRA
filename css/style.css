@@ -652,6 +652,16 @@ body.phones-player-answering #phoneSharedStage :is(.answer-grid,.quiz-grid){disp
    outweighs the one-class override regardless of where either rule sits in the file. */
 body.phones-only-player.phones-player-answering #phoneSharedStage{display:none!important;}
 
+/* A text/number answer keeps the shared question visible, so its scene timer
+   used to sit above the second timer inside the purple answer card. Hide only
+   that background copy while a timed answer card is mounted. The controller
+   timer remains visible, and a host who is only presenting the scene keeps the
+   normal ring timer. This is viewport-independent for phone and desktop. */
+#scr-controller:has(#ctrlArea .ctrl-timer) #phoneSharedStage .ring-timer,
+body:has(.phones-host-input-overlay .ctrl-timer) #hostStage .ring-timer{
+  display:none!important;
+}
+
 /* Phones-only host choice UI now uses the same complete Controller card as
    player phones. Preserve the original scene underneath for reveal logic,
    but show only the local interactive card while the host is choosing. */

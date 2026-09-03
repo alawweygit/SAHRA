@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="theme-dark">
+  <main id="fixture"></main>
+  <script>
+    const mode = new URLSearchParams(location.search).get('mode') || 'player-answer';
+    const ring = '<div class="ring-timer" data-testid="scene-timer"><div class="timer-num">30</div></div>';
+    const controllerTimer = '<div class="ctrl-timer" data-testid="answer-timer">30</div>';
+    if (mode === 'host-only') {
+      fixture.innerHTML = `<section id="hostStage">${ring}</section>`;
+    } else if (mode === 'host-answer') {
+      fixture.innerHTML = `<section id="hostStage">${ring}</section><div class="phones-host-input-overlay">${controllerTimer}</div>`;
+    } else {
+      fixture.innerHTML = `<section id="scr-controller"><div id="phoneSharedStage">${ring}</div><div id="ctrlArea">${controllerTimer}</div></section>`;
+    }
+  </script>
+</body>
+</html>
