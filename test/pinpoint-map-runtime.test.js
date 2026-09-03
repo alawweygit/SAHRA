@@ -22,6 +22,9 @@ class FakeMap {
       { id: 'land', type: 'fill', layout: {} },
       { id: 'country-label', type: 'symbol', layout: { 'text-field': ['get', 'name'] } },
       { id: 'road-shield', type: 'symbol', layout: { 'icon-image': 'shield' } },
+      { id: 'motorway', type: 'line', layout: {} },
+      { id: 'city-dot', type: 'circle', layout: {} },
+      { id: 'building', type: 'fill', 'source-layer': 'building', layout: {} },
     ];
     options.container.appendChild(document.createElement('canvas'));
     maps.push(this);
@@ -35,6 +38,10 @@ class FakeMap {
   setLayoutProperty(id, property, value) {
     const layer = this.styleLayers.find(item => item.id === id);
     if (layer) layer.layout[property] = value;
+  }
+  setPaintProperty(id, property, value) {
+    const layer = this.styleLayers.find(item => item.id === id);
+    if (layer) (layer.paint ||= {})[property] = value;
   }
   jumpTo(options) { this.jump = options; this.zoom = options.zoom; }
   flyTo(options) { this.flight = options; this.zoom = options.zoom; }
@@ -75,11 +82,16 @@ window.eval(source);
   assert.equal(raw.options.style, 'https://tiles.openfreemap.org/styles/liberty');
   assert.equal(raw.options.dragRotate, false);
   assert.equal(raw.options.touchZoomRotate, true);
+  assert.equal(raw.options.attributionControl, false, 'the details/attribution control must not cover the game map');
   assert.equal(raw.control.position, 'top-left');
-  assert.equal(raw.styleLayers.find(layer => layer.id === 'country-label').layout['text-field'], '',
-    'every built-in text label must be hidden');
-  assert.notEqual(raw.styleLayers.find(layer => layer.id === 'road-shield').layout.visibility, 'none',
-    'non-text map symbols must not be removed');
+  assert.equal(raw.styleLayers.find(layer => layer.id === 'land').layout.visibility, undefined,
+    'natural land fill must remain visible');
+  assert.equal(raw.styleLayers.find(layer => layer.id === 'land').paint['fill-outline-color'], 'rgba(0,0,0,0)',
+    'natural area outlines must be removed');
+  for (const id of ['country-label', 'road-shield', 'motorway', 'city-dot', 'building']) {
+    assert.equal(raw.styleLayers.find(layer => layer.id === id).layout.visibility, 'none',
+      `${id} must be removed from the clean geography map`);
+  }
 
   let clicked;
   adapter.onClick(value => { clicked = value; });
@@ -112,7 +124,7 @@ window.eval(source);
 
   window.__Controller.render(ctrl, { type: 'wait' }, () => {});
   assert.equal(ctrlMap.removed, true, 'rendering the next controller must release WebGL resources');
-  console.log('Pin Point MapLibre runtime and controller interaction: 23 checks passed');
+  console.log('Pin Point clean MapLibre runtime and controller interaction passed');
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;

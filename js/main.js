@@ -2373,7 +2373,7 @@
           // directly below it, so it reads as one mark instead of a plain
           // circle plus a separately-floating text label.
           rm.addHtmlMarker([city.lat, city.lon],
-            '<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name">' + esc(city.name) + '</div></div>',
+            '<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name"><span>' + esc(city.name) + '</span><small>' + esc(city.country || '') + '</small></div></div>',
             { anchor:'top', offset:[0,-15] });
           // Avatar-emoji pins — since players can't pick duplicate avatars,
           // showing the actual emoji is instantly recognizable without a

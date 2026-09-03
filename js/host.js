@@ -1885,7 +1885,7 @@ const Host = (() => {
     try {
       const aiRaw = await Content.get('pinpoint', LANG, rounds);
       aiCities = aiRaw.filter(c =>
-        c.en && c.ar &&
+        c.en && c.ar && c.countryEn && c.countryAr &&
         typeof c.lat === 'number' && typeof c.lon === 'number' &&
         c.lat >= -90 && c.lat <= 90 &&
         c.lon >= -180 && c.lon <= 180 &&
@@ -1907,6 +1907,7 @@ const Host = (() => {
     for (let r = 0; r < pool.length; r++) {
       const city = pool[r];
       const cityName = LANG === 'ar' ? city.ar : city.en;
+      const countryName = LANG === 'ar' ? city.countryAr : city.countryEn;
       setPill(`${t('round')} ${r+1} ${t('of')} ${pool.length}`);
       scene(`
         <div class="eyebrow">📍 ${esc(t('mode_names').pinpoint || 'PIN POINT')}</div>
@@ -1955,7 +1956,7 @@ const Host = (() => {
         msg: LANG === 'ar' ? '👆 تابع الشاشة' : '👆 Watch the screen',
         mirror: { ...mirror },
         pinpointReveal: {
-          city: { lat: city.lat, lon: city.lon, name: cityName },
+          city: { lat: city.lat, lon: city.lon, name: cityName, country: countryName },
           guesses: results.filter(r2 => r2.guess).map(r2 => ({
             lat: r2.guess.lat, lon: r2.guess.lon,
             name: r2.p.name, color: r2.p.color, emoji: r2.p.emoji, km: r2.km
@@ -1963,8 +1964,11 @@ const Host = (() => {
         }
       });
       scene(`
-        <div class="eyebrow">${esc(cityName)}</div>
-        <div id="revealMap" class="pinpoint-reveal-map" style="height:36vh;min-height:220px;border-radius:16px;overflow:hidden;margin:1vmin auto 2vmin;max-width:900px;background:#0e1626"></div>
+        <div class="pinpoint-result-place">
+          <div class="eyebrow">${esc(cityName)}</div>
+          <div class="pinpoint-result-country">${esc(countryName)}</div>
+        </div>
+        <div id="revealMap" class="pinpoint-reveal-map"></div>
         <div class="score-list">
           ${results.map((r2, i) => `
             <div class="score-row" style="animation-delay:${i*.12}s">
@@ -1984,7 +1988,12 @@ const Host = (() => {
         // off-frame at REVEAL_ZOOM anyway) — they're still fully visible in
         // the score list below with their name and distance.
         const REVEAL_VISIBLE_KM = 700;
-        const rm = HypoxMaps.create(document.getElementById('revealMap'), {
+        // Query inside the real host stage rather than by a document-wide id:
+        // phones-only mirrors may contain stale cloned placeholders while the
+        // new result scene mounts. The host must always initialize its own map.
+        const revealMapEl = stage()?.querySelector('.pinpoint-reveal-map');
+        if (!revealMapEl) throw new Error('Pin Point host reveal map missing');
+        const rm = HypoxMaps.create(revealMapEl, {
           center: [city.lat, city.lon], zoom: 1.8, minZoom: 1.2, maxZoom: 10,
           interactive: false, zoomControl: false, worldCopies: false,
         });
@@ -1992,7 +2001,7 @@ const Host = (() => {
         // directly beneath it, so it reads as ONE unmistakable mark instead
         // of a plain circle plus a separately-floating text label.
         rm.addHtmlMarker([city.lat, city.lon],
-          `<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name">${esc(cityName)}</div></div>`,
+          `<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name"><span>${esc(cityName)}</span><small>${esc(countryName)}</small></div></div>`,
           { anchor:'top', offset:[0,-15] });
         // Avatar-emoji pins — since players can't pick duplicate avatars,
         // showing the actual emoji is instantly recognizable without needing

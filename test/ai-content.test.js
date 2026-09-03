@@ -38,11 +38,18 @@ global.window = {
   _hypoxSession: 'ai-test',
   _hypoxTestMode: false,
 };
+const storage = new Map();
+global.window.localStorage = {
+  getItem: key => storage.has(key) ? storage.get(key) : null,
+  setItem: (key, value) => storage.set(key, String(value)),
+};
 
 let requestedCounts = [];
+let requestedBodies = [];
 global.fetch = async (_url, options) => {
   const body = JSON.parse(options.body);
   requestedCounts.push(body.count);
+  requestedBodies.push(body);
   return {
     ok: true,
     json: async () => ({
@@ -66,8 +73,14 @@ eval(executable);
   const prompts = await global.Content.get('wyr', 'en', 8);
   assert.equal(prompts.length, 8);
   assert.deepEqual(requestedCounts, [5, 3]);
+  assert.deepEqual(requestedBodies[0].exclude, [], 'the first AI request starts with no history');
+  assert.equal(requestedBodies[1].exclude.length, 5,
+    'the next request must exclude every AI prompt already fetched for this game');
   assert.ok(prompts.every(prompt => prompt.a.startsWith('AI option A')),
     'successful backend prompts must reach the game');
+  const persisted = JSON.parse(storage.get('hypox_ai_seen_v1'));
+  assert.equal(persisted['wyr:en:global:none'].length, 8,
+    'AI history must persist outside the room/session cache');
 
   // The lobby switch remains a real global opt-out and must make no request.
   global.window.HYPOX_STATE.aiEnabled = false;

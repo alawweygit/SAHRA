@@ -1609,8 +1609,17 @@ body.phones-only-player #phoneSharedStage .ring-timer{
   box-shadow:0 4px 14px rgba(15,23,42,.22);
 }
 .hypox-map-runtime .maplibregl-ctrl-group button{width:42px;height:42px;}
-.hypox-map-runtime .maplibregl-ctrl-attrib{
-  font-size:9px;line-height:1.2;background:rgba(255,255,255,.78);
+.hypox-map-runtime .maplibregl-ctrl-attrib{display:none!important;}
+.pinpoint-result-place{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;}
+.pinpoint-result-place .eyebrow{margin:0;}
+.pinpoint-result-country{
+  font-family:'Fredoka One','Lalezar',sans-serif;
+  font-size:clamp(13px,2vmin,19px);color:var(--text2);letter-spacing:.08em;
+}
+.pinpoint-reveal-map{
+  width:min(92vw,900px)!important;height:36vh;min-height:220px;max-height:470px;
+  border-radius:16px;overflow:hidden;margin:1vmin auto 2vmin;background:#0e1626;
+  flex:0 0 auto;
 }
 .hypox-map-marker{will-change:transform;filter:drop-shadow(0 2px 5px rgba(0,0,0,.35));}
 .hypox-drop-pin{font-size:34px;line-height:1;transform:translateY(2px);}
@@ -2401,7 +2410,9 @@ body.ar .tutorial-bullets { text-align: right; }
   font-family:'Fredoka One',sans-serif;font-size:12px;font-weight:900;
   padding:3px 10px;border-radius:20px;white-space:nowrap;
   box-shadow:0 2px 10px rgba(0,0,0,.5);border:2px solid #fff;
+  display:flex;flex-direction:column;align-items:center;line-height:1.05;gap:2px;
 }
+.pp-city-name small{font-family:inherit;font-size:9px;font-weight:800;opacity:.72;letter-spacing:.04em;}
 
 /* =====================================================================
    TRUE HEADER / MAIN / FOOTER LAYOUT  (controller screen)

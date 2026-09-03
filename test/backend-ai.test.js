@@ -95,6 +95,13 @@ async function postPrompts(body) {
   assert.ok(generationRequests.every(request => request.maxTokens <= 1200),
     'small requests must keep a bounded output budget');
 
+  const firstFresh = await postPrompts({ mode: 'quiz', lang: 'en', topic: 'exclude-test', count: 2 });
+  const excluded = firstFresh.payload.prompts.map(backend.getFingerprint);
+  const secondFresh = await postPrompts({ mode: 'quiz', lang: 'en', topic: 'exclude-test', count: 2, exclude: excluded });
+  assert.equal(secondFresh.statusCode, 200);
+  assert.ok(secondFresh.payload.prompts.every(item => !excluded.includes(backend.getFingerprint(item))),
+    'caller-provided persistent history must exclude prompts even when cached on the backend');
+
   assert.equal(backend.isValidPrompt('bluff', {
     fact: 'The first alarm clock could only ring at ___',
     truth: 'FOUR', decoys: ['THREE', 'FIVE', 'SIX', 'SEVEN'],

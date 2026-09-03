@@ -35,7 +35,10 @@ const HypoxMaps = (() => {
       minZoom: options.minZoom ?? 1.2,
       maxZoom: options.maxZoom ?? 10,
       renderWorldCopies: options.worldCopies !== false,
-      attributionControl: options.attributionControl !== false,
+      // Pin Point uses one fixed provider and is presented as a clean game
+      // surface. Do not mount MapLibre's expandable details/attribution chip
+      // over the map; it obstructs both taps and the result view on phones.
+      attributionControl: false,
       interactive,
       dragRotate: false,
       pitchWithRotate: false,
@@ -59,24 +62,33 @@ const HypoxMaps = (() => {
       }), 'top-left');
     }
 
-    // Pin Point is a geography challenge: built-in place names would reveal
-    // the answer. Hide every style layer that contains map text while keeping
-    // terrain, coastlines, roads and borders. Our own result markers are HTML
-    // elements, so the city name shown after the guess is unaffected.
-    const hideStyleLabels = () => {
+    // Pin Point is a geography challenge, so the basemap must show only
+    // natural geography. Remove labels/icons/city dots, every road and border
+    // line, building/transport fills, and other man-made overlays. Land,
+    // vegetation, water, raster relief and hillshade remain visible. Our own
+    // result marker is HTML and therefore unaffected.
+    const simplifyStyle = () => {
       if (options.labels === true) return;
       const layers = map.getStyle()?.layers || [];
       layers.forEach(layer => {
-        if (layer.type !== 'symbol' || layer.layout?.['text-field'] === undefined) return;
-        if (layer.layout['text-field'] === '') return;
-        map.setLayoutProperty(layer.id, 'text-field', '');
+        const identity = `${layer.id || ''} ${layer['source-layer'] || ''}`.toLowerCase();
+        const hideType = ['symbol', 'line', 'circle', 'heatmap', 'fill-extrusion'].includes(layer.type);
+        const artificialFill = layer.type === 'fill' &&
+          /(building|aeroway|airport|transport|road|boundary|admin|place|poi|industrial)/.test(identity);
+        if (hideType || artificialFill) {
+          if (layer.layout?.visibility !== 'none') map.setLayoutProperty(layer.id, 'visibility', 'none');
+          return;
+        }
+        if (layer.type === 'fill') {
+          try { map.setPaintProperty(layer.id, 'fill-outline-color', 'rgba(0,0,0,0)'); } catch (_) {}
+        }
       });
     };
-    map.on('styledata', hideStyleLabels);
+    map.on('styledata', simplifyStyle);
 
     const markers = new Set();
     map.once('load', () => {
-      hideStyleLabels();
+      simplifyStyle();
       map.resize();
     });
 

@@ -10,8 +10,11 @@
     body{padding:12px;box-sizing:border-box}
     #ctrl{max-width:780px;margin:0 auto}
     #reveal{height:60vh;min-height:320px;border-radius:18px;overflow:hidden}
+    html.phone body{width:414px}
+    html.phone #reveal{width:390px;height:420px;min-height:0}
   </style>
   <script>
+    if(new URLSearchParams(location.search).has('phone')) document.documentElement.classList.add('phone');
     if(new URLSearchParams(location.search).has('mock')) document.write('<script src="maplibre-browser-stub.js"><\\/script>');
     else document.write('<script src="https://unpkg.com/maplibre-gl@5.7.1/dist/maplibre-gl.js"><\\/script>');
   </script>
@@ -28,7 +31,7 @@
       document.getElementById('ctrl').hidden=true;
       const el=document.getElementById('reveal');el.hidden=false;
       const map=HypoxMaps.create(el,{center:[34.0522,-118.2437],zoom:1.8,interactive:false,worldCopies:false});
-      map.addHtmlMarker([34.0522,-118.2437],'<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name">Los Angeles</div></div>',{anchor:'top',offset:[0,-15]});
+      map.addHtmlMarker([34.0522,-118.2437],'<div class="pp-city-marker"><div class="pp-city-dot">⭐</div><div class="pp-city-name">Los Angeles<small>United States</small></div></div>',{anchor:'top',offset:[0,-15]});
       map.addHtmlMarker([34.1,-118.2],'<div class="pp-guess-avatar" style="background:#38bdf8">🐬</div>');
       setTimeout(()=>map.flyTo([34.0522,-118.2437],6,{duration:1.2}),250);
     }else{

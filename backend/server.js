@@ -100,11 +100,11 @@ const pool = new Map();
 const usedFingerprints = new Map();
 
 function getFingerprint(item) {
-  if (typeof item === 'string') return item.toLowerCase().slice(0, 60);
+  if (typeof item === 'string') return item.trim().replace(/\s+/g, ' ').toLowerCase().slice(0, 160);
   if (!item || typeof item !== 'object') return '';
   const key = item.q || item.fact || item.s || item.p || item.a || item.answer ||
     item.en || item.flag || item.category || (Array.isArray(item.words) ? item.words.join('|') : '');
-  return key.toLowerCase().slice(0, 60);
+  return String(key || '').trim().replace(/\s+/g, ' ').toLowerCase().slice(0, 160);
 }
 
 // v215 — country list used to code-level enforce the region toggle for the
@@ -330,6 +330,17 @@ app.post('/api/prompts', async (req, res) => {
     const count = Math.min(40, Math.max(1, Math.floor(Number(req.body && req.body.count) || 10)));
     if (!SHAPES[mode]) return res.status(400).json({ error: 'Unknown mode: ' + mode });
 
+    // The browser persists these fingerprints across rooms and sends them
+    // back on every request. This closes the gap left by Railway restarts or
+    // multiple backend instances, where the in-memory `used` set alone can
+    // forget yesterday's cities/questions and generate them again.
+    const requestedExclusions = new Set(
+      (Array.isArray(req.body && req.body.exclude) ? req.body.exclude : [])
+        .filter(value => typeof value === 'string' && value.trim())
+        .slice(-300)
+        .map(value => value.trim().replace(/\s+/g, ' ').toLowerCase().slice(0, 160))
+    );
+
     // region and topic are both part of the cache/used-fingerprint key so
     // MENA-flavored, global-flavored, and per-category batches for the same
     // mode+lang never get mixed together (a "Pharmacy" batch should never
@@ -338,19 +349,35 @@ app.post('/api/prompts', async (req, res) => {
     let currentPool = pool.get(baseKey) || [];
     if (!usedFingerprints.has(baseKey)) usedFingerprints.set(baseKey, new Set());
     const used = usedFingerprints.get(baseKey);
+    const blocked = new Set([...used, ...requestedExclusions]);
 
-    if (currentPool.length < count) {
+    // Cached reserve items may have been generated before this device's
+    // persistent history arrived. Remove those before deciding whether the
+    // pool is large enough; otherwise an excluded item could still be served.
+    currentPool = currentPool.filter(item => {
+      const fp = getFingerprint(item);
+      return fp && !blocked.has(fp) && !isBanned(item, baseKey);
+    });
+    currentPool.forEach(item => blocked.add(getFingerprint(item)));
+
+    // Validation/model variance can occasionally leave fewer usable items
+    // than requested. Make up to three bounded attempts so games receive a
+    // full fresh set instead of silently reusing an excluded prompt.
+    for (let attempt = 0; currentPool.length < count && attempt < 3; attempt++) {
       try {
-        const fresh = await generateBatch(mode, lang, used, baseKey, count, region, topic);
+        const fresh = await generateBatch(mode, lang, blocked, baseKey, count - currentPool.length, region, topic);
         // Filter out used AND always-banned items
         const novel = fresh.filter(item => {
           const fp = getFingerprint(item);
-          return fp && isValidPrompt(mode, item, region) && !used.has(fp) && !isBanned(item, baseKey);
+          if (!fp || blocked.has(fp) || !isValidPrompt(mode, item, region) || isBanned(item, baseKey)) return false;
+          blocked.add(fp);
+          return true;
         });
         currentPool = [...currentPool, ...novel].sort(() => Math.random() - 0.5);
       } catch(e) {
         console.error('Generation error:', e.message);
         if (!currentPool.length) return res.status(500).json({ error: 'generation failed: ' + e.message });
+        break;
       }
     }
 

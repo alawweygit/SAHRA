@@ -28,10 +28,11 @@
     off(name, fn) { this.handlers[name] = (this.handlers[name] || []).filter(value => value !== fn); }
     getStyle() { return { layers: [{ id: 'land', type: 'fill', layout: {} }, { id: 'country-label', type: 'symbol', layout: { 'text-field': ['get', 'name'] } }] }; }
     setLayoutProperty(id, property, value) {
-      if (id === 'country-label' && property === 'text-field' && value === '') {
+      if (id === 'country-label' && property === 'visibility' && value === 'none') {
         this.options.container.querySelectorAll('.mock-map-label').forEach(label => { label.style.display = 'none'; });
       }
     }
+    setPaintProperty() {}
     resize() {}
     jumpTo(options) { this.center = options.center; this.zoom = options.zoom; }
     flyTo(options) { this.center = options.center; this.zoom = options.zoom; }

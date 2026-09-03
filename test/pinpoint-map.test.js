@@ -34,8 +34,14 @@ assert.match(maps, /touchZoomRotate: interactive/,
   'native touch pinch/zoom must be enabled');
 assert.match(maps, /powerPreference: 'high-performance'/,
   'the renderer must request the high-performance GPU path on phones');
-assert.match(maps, /layer\.type !== 'symbol'[\s\S]*layer\.layout\?\.\['text-field'\][\s\S]*setLayoutProperty\(layer\.id, 'text-field', ''\)/,
-  'all built-in map text layers must be hidden without removing terrain and borders');
+assert.match(maps, /\['symbol', 'line', 'circle', 'heatmap', 'fill-extrusion'\]\.includes\(layer\.type\)/,
+  'labels, city dots, roads, borders, and other line/symbol layers must be hidden');
+assert.match(maps, /\(building\|aeroway\|airport\|transport\|road\|boundary\|admin\|place\|poi\|industrial\)/,
+  'artificial fill layers must be hidden while natural land and water remain');
+assert.match(maps, /setPaintProperty\(layer\.id, 'fill-outline-color', 'rgba\(0,0,0,0\)'\)/,
+  'remaining natural fills must not draw artificial outline strokes');
+assert.match(maps, /attributionControl: false/,
+  'the expandable map details control must not cover Pin Point maps');
 assert.match(maps, /destroyWithin\(root\)/,
   'map scenes must expose deterministic WebGL cleanup');
 assert.match(controller, /HypoxMaps\.create\(el,[\s\S]*mainMap\.onClick/,
@@ -51,10 +57,16 @@ assert.match(host, /duration: 1\.2/);
 assert.match(main, /const REVEAL_ZOOM = 6/);
 assert.match(main, /const REVEAL_VISIBLE_KM = 700/);
 assert.match(main, /duration: 1\.2/);
-assert.doesNotMatch(host, /pp-country-banner|pinpoint-reveal-shell/,
-  'the result map markup must match v184');
-assert.doesNotMatch(css, /\.hypox-plain-map|\.pp-country-banner|\.pinpoint-reveal-shell/,
-  'post-v184 map presentation styles must be gone');
+assert.match(host, /city: \{ lat: city\.lat, lon: city\.lon, name: cityName, country: countryName \}/,
+  'the result payload must send the country to player devices');
+assert.match(host, /class="pinpoint-result-country">\$\{esc\(countryName\)\}/,
+  'the host/player result scene must visibly name the country');
+assert.match(host, /width:min\(92vw,900px\)|class="pinpoint-reveal-map"/,
+  'the host result map must use the non-collapsing reveal container');
+assert.match(css, /\.pinpoint-reveal-map\s*\{[\s\S]*width:min\(92vw,900px\)!important;/,
+  'the host result map must have an explicit responsive width');
+assert.doesNotMatch(css, /\.hypox-plain-map/,
+  'the removed raster-style visual filter must stay gone');
 
 assert.match(controller, /closeBar\.className = 'map-fullscreen-bar'/);
 assert.match(controller, /closeBtn\.className = 'map-fullscreen-confirm'/);

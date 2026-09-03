@@ -348,6 +348,8 @@ const PACKS = {
 
 const Content = (() => {
   const _preloadCache = new Map();
+  const AI_HISTORY_STORAGE_KEY = 'hypox_ai_seen_v1';
+  const AI_HISTORY_LIMIT = 250;
   const resolveRegion = region => {
     if (region) return region;
     const flavor = window.HYPOX_STATE && window.HYPOX_STATE.flavor;
@@ -357,6 +359,34 @@ const Content = (() => {
     [mode, lang, region || 'global', topic || 'none', window._hypoxSession || '0'].join(':');
   const cacheKey = (mode, lang, count, region, topic) =>
     `${cachePrefix(mode, lang, region, topic)}:${count}`;
+  // AI history intentionally excludes the session id: it must survive a new
+  // room, browser refresh, or backend redeploy. Keeping it per mode/language/
+  // region/topic prevents unrelated categories from blocking one another.
+  const historyKey = (mode, lang, region, topic) =>
+    [mode, lang, region || 'global', topic || 'none'].join(':');
+  const fingerprint = item => {
+    if (typeof item === 'string') return item.trim().replace(/\s+/g, ' ').toLocaleLowerCase().slice(0, 160);
+    if (!item || typeof item !== 'object') return '';
+    const value = item.q || item.fact || item.s || item.p || item.a || item.answer ||
+      item.en || item.flag || item.category || (Array.isArray(item.words) ? item.words.join('|') : '');
+    return String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase().slice(0, 160);
+  };
+  const readHistory = key => {
+    try {
+      if (!window.localStorage) return [];
+      const all = JSON.parse(window.localStorage.getItem(AI_HISTORY_STORAGE_KEY) || '{}');
+      return Array.isArray(all[key]) ? all[key].filter(value => typeof value === 'string').slice(-AI_HISTORY_LIMIT) : [];
+    } catch (e) { return []; }
+  };
+  const rememberHistory = (key, items) => {
+    try {
+      if (!window.localStorage) return;
+      const all = JSON.parse(window.localStorage.getItem(AI_HISTORY_STORAGE_KEY) || '{}');
+      const combined = [...readHistory(key), ...items.map(fingerprint).filter(Boolean)];
+      all[key] = [...new Set(combined)].slice(-AI_HISTORY_LIMIT);
+      window.localStorage.setItem(AI_HISTORY_STORAGE_KEY, JSON.stringify(all));
+    } catch (e) { /* storage disabled/full — backend still de-duplicates this process */ }
+  };
   // Clear preload cache on game start (called from host.js via window._clearContentCache)
   window._clearContentCache = () => _preloadCache.clear();
 
@@ -412,18 +442,41 @@ const Content = (() => {
     if (cfg.aiEndpoint && !window._hypoxTestMode && !aiOff) {
       let timeoutId;
       try {
+        const persistentKey = historyKey(mode, lang, region, topic);
+        const excluded = readHistory(persistentKey);
         const controller = new AbortController();
         timeoutId = setTimeout(() => controller.abort(), 30000); // keep game startup responsive
         const res = await fetch(cfg.aiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode, lang, count, region, topic, session: window._hypoxSession||'0' }),
+          body: JSON.stringify({
+            mode, lang, count, region, topic,
+            session: window._hypoxSession||'0',
+            // The backend's memory resets on a deploy. Send the host's own
+            // persistent history so paid AI content stays fresh across rooms
+            // and restarts in every game, not only within one server process.
+            exclude: excluded,
+          }),
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data.prompts) && data.prompts.length) return data.prompts.slice(0, count);
+          if (Array.isArray(data.prompts) && data.prompts.length) {
+            // Fail closed if an older backend ignores `exclude`: never show a
+            // repeated AI item merely because the server forgot its memory.
+            const seen = new Set(excluded), unique = [];
+            for (const item of data.prompts) {
+              const fp = fingerprint(item);
+              if (!fp || seen.has(fp)) continue;
+              seen.add(fp); unique.push(item);
+              if (unique.length >= count) break;
+            }
+            if (unique.length) {
+              rememberHistory(persistentKey, unique);
+              return unique;
+            }
+          }
         }
       } catch (e) {
         console.error('[HYPOX] AI fetch failed:', e.message);
