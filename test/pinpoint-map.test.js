@@ -14,8 +14,10 @@ for (const [name, source] of Object.entries({ controller, host, main, maps })) {
     `${name} must not retain blocked, watermarked, or reverted raster tile sources`);
 }
 
-assert.match(index, /maplibre-gl@5\.7\.1\/dist\/maplibre-gl\.js/,
-  'the app must load the direct MapLibre renderer');
+assert.match(index, /maplibre-gl@5\.6\.0\/dist\/maplibre-gl\.js/,
+  'the app must load the older-phone-compatible direct MapLibre renderer');
+assert.match(index, /cdn\.jsdelivr\.net\/npm\/maplibre-gl@5\.6\.0\/dist\/maplibre-gl\.js/,
+  'Pin Point must retain a second CDN path for players whose network blocks unpkg');
 assert.match(index, /js\/maps\.js\?v=\d{8}-fixes-\d+/,
   'the versioned shared map adapter must be loaded');
 assert.ok(index.indexOf('js/maps.js') < index.indexOf('js/host.js'),
