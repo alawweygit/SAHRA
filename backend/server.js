@@ -33,7 +33,7 @@ const GUIDANCE = {
   wyr:          'Would You Rather dilemmas — both options equally appealing or awful. No obvious right answer. KEEP BOTH OPTIONS SHORT: max 10-12 words each, one clean idea, no extra setup or explanation tacked on. Say it the way you would say it out loud to a friend, not like a written paragraph. Cut any word that is not doing real work.',
   interrogation:'Funny, spicy or thought-provoking hot-seat prompts about one person. Every question MUST include the exact [NAME] placeholder naturally. Examples: "What would [NAME] do if they were invisible for a day?", "What is [NAME] definitely Googling in private?". Fun, relatable, makes people laugh.',
   diss:         'Roast battle setup lines — prompt to write a funny one-liner insult about the opponent.',
-  quiz:         'Multiple-choice trivia. Vary correct position (0-3). Mix difficulty.',
+  quiz:         'Multiple-choice trivia. Vary correct position (0-3) so the answer is not predictable. DIFFICULTY MIX: across this batch, include a real spread of easy, medium, and hard questions (roughly equal thirds) rather than making everything the same difficulty — easy = something most people would know quickly, medium = requires some real knowledge, hard = genuinely challenging even for someone knowledgeable. LANGUAGE: keep the wording short and simple (plain, everyday words, no complex sentence structure) so a non-native English speaker or a distracted party-game player can read it in one glance — difficulty should come from the KNOWLEDGE required, never from complicated phrasing. DIVERSITY: within a batch, cover different sub-angles of the topic — do not ask multiple questions that are really the same fact restated, and do not repeat the same specific answer/fact across items.',
   mostlikely:   '"Who is most likely to…" questions sparking funny debates.',
   trueorlie:    'Absurd-sounding statements, genuinely TRUE or FALSE. "truth" must be boolean. Mix science and history topics.',
   pinpoint:     'Real cities worldwide. Accurate lat/lon. Always include the city and country in both languages: en, ar, countryEn, countryAr.',
@@ -222,7 +222,26 @@ function pickDomainSpread(mode) {
   return ordered;
 }
 
-async function generateBatch(mode, lang, used, baseKey, requestedCount, region) {
+// v231 — topic map for Quiz's category picker (General Mix, Geography,
+// Science, Pharmacy, Gulf & Arab, Pop Culture, Sports, Football, History).
+// Previously the frontend only used this to filter its OWN static question
+// pool (js/content.js's TRIVIA_CATS) — once that pool ran short and AI
+// content filled the gap, the AI request never mentioned which category was
+// picked at all, so AI-generated overflow silently ignored it (e.g.
+// picking "Sports" could still return Science questions once the static
+// pool of ~20 ran out). Keys match the frontend's CAT_INFO ids exactly.
+const QUIZ_TOPICS = {
+  geography: 'Geography — world capitals, countries, landmarks, rivers, mountains, borders.',
+  science:   'Science — physics, chemistry, biology, space, everyday science facts. Keep it general-audience, not textbook-technical.',
+  medical:   'Pharmacy and pharmaceuticals — drug names (generic and brand), drug classes (e.g. antibiotics, painkillers, antihistamines), how common medicines work, famous drugs and their history, vaccines, OTC vs prescription, dosage forms (tablet/syrup/injection). Written for someone with a pharmacy-student level of interest, but still understandable to a general party-game audience — no obscure pharmacology jargon, no specific dosing numbers that could be mistaken for real medical advice.',
+  gulf:      'Gulf and Arab world — history, culture, geography, food, landmarks, and notable figures specific to the Gulf and wider Arab world.',
+  pop:       'Pop culture — movies, TV shows, music, celebrities, internet culture, games. Keep references broadly recognizable, not deep-cut/niche.',
+  sports:    'Sports in general — Olympics, tennis, basketball, athletics, and other sports besides football/soccer.',
+  football:  'Football (soccer) — clubs, players, World Cup history, leagues, records. Football/soccer specifically, not other sports.',
+  history:   'History — major world events, civilizations, wars, discoveries, historical figures. Keep dates/names widely known, not obscure.',
+};
+
+async function generateBatch(mode, lang, used, baseKey, requestedCount, region, topic) {
   const langName = lang === 'ar' ? 'Gulf Arabic (khaleeji dialect)' : 'English';
   const isMena = region === 'mena';
   // Language and region are independent: previously several per-mode
@@ -245,6 +264,15 @@ async function generateBatch(mode, lang, used, baseKey, requestedCount, region) 
   const regionSection = isMena
     ? `\nREGION (STRICT): Every single item in this batch MUST be Arab/MENA/Gulf-specific — real people, places, food, history, or culture drawn distinctly from the Arab world (Gulf, Levant, North Africa). ZERO items may reference non-Arab countries, non-Arab celebrities/figures, or generic/Western/global defaults. If you cannot make an item authentically Arab/MENA, pick a different topic entirely rather than writing something generic. This applies regardless of the output language.`
     : `\nREGION (STRICT): This is GLOBAL content — do not skew toward the Arab world/Gulf/MENA. Draw from a wide international mix (Americas, Europe, Asia, Africa, Oceania, etc.) the way a general worldwide audience would expect. It is fine if an item happens to touch the Arab world occasionally as part of that global mix, but do not make it the recurring theme, and do not default to Gulf/Arab context just because the output language is Arabic.`;
+
+  // v231 — topic section for Quiz's category picker. Only meaningful for
+  // 'quiz' (the only mode with a player-facing category selector); topic is
+  // undefined/ignored for every other mode. When a category IS selected,
+  // this takes priority over the generic "mix of everything" default quiz
+  // behavior -- every item in the batch must fit the chosen category.
+  const topicSection = (mode === 'quiz' && topic && QUIZ_TOPICS[topic])
+    ? `\nTOPIC (STRICT): Every single item in this batch must be about ${QUIZ_TOPICS[topic]} Do not drift into unrelated categories.`
+    : '';
   // Build a strong avoidance list from recent fingerprints + always-banned
   const recentUsed = used ? [...used].slice(-20) : [];
   const alwaysBanned = ALWAYS_BANNED[baseKey] ? [...ALWAYS_BANNED[baseKey]] : [];
@@ -282,7 +310,7 @@ async function generateBatch(mode, lang, used, baseKey, requestedCount, region) 
       `Generate exactly ${batchSize} party game prompts for "${mode}" in ${langName}.\n` +
       `Audience: ${audience}\n` +
       `Format: ${GUIDANCE[mode]}\n` +
-      `RULES:${domainSection}${regionSection}${avoidSection}\n` +
+      `RULES:${domainSection}${regionSection}${topicSection}${avoidSection}\n` +
       `- Every item must be GENUINELY DIFFERENT from all others\n` +
       `- Be specific and surprising — avoid generic/obvious examples\n` +
       `- All facts must be 100% accurate\n` +
@@ -298,20 +326,22 @@ async function generateBatch(mode, lang, used, baseKey, requestedCount, region) 
 
 app.post('/api/prompts', async (req, res) => {
   try {
-    const { mode, lang = 'en', region = null } = req.body || {};
+    const { mode, lang = 'en', region = null, topic = null } = req.body || {};
     const count = Math.min(40, Math.max(1, Math.floor(Number(req.body && req.body.count) || 10)));
     if (!SHAPES[mode]) return res.status(400).json({ error: 'Unknown mode: ' + mode });
 
-    // region is part of the cache/used-fingerprint key so MENA-flavored and
-    // global-flavored batches for the same mode+lang never get mixed together.
-    const baseKey = mode + ':' + lang + (region ? ':' + region : '');
+    // region and topic are both part of the cache/used-fingerprint key so
+    // MENA-flavored, global-flavored, and per-category batches for the same
+    // mode+lang never get mixed together (a "Pharmacy" batch should never
+    // silently reuse a "Sports" batch's cached pool, for example).
+    const baseKey = mode + ':' + lang + (region ? ':' + region : '') + (topic ? ':' + topic : '');
     let currentPool = pool.get(baseKey) || [];
     if (!usedFingerprints.has(baseKey)) usedFingerprints.set(baseKey, new Set());
     const used = usedFingerprints.get(baseKey);
 
     if (currentPool.length < count) {
       try {
-        const fresh = await generateBatch(mode, lang, used, baseKey, count, region);
+        const fresh = await generateBatch(mode, lang, used, baseKey, count, region, topic);
         // Filter out used AND always-banned items
         const novel = fresh.filter(item => {
           const fp = getFingerprint(item);

@@ -353,10 +353,10 @@ const Content = (() => {
     const flavor = window.HYPOX_STATE && window.HYPOX_STATE.flavor;
     return flavor === 'arab' ? 'mena' : null;
   };
-  const cachePrefix = (mode, lang, region) =>
-    [mode, lang, region || 'global', window._hypoxSession || '0'].join(':');
-  const cacheKey = (mode, lang, count, region) =>
-    `${cachePrefix(mode, lang, region)}:${count}`;
+  const cachePrefix = (mode, lang, region, topic) =>
+    [mode, lang, region || 'global', topic || 'none', window._hypoxSession || '0'].join(':');
+  const cacheKey = (mode, lang, count, region, topic) =>
+    `${cachePrefix(mode, lang, region, topic)}:${count}`;
   // Clear preload cache on game start (called from host.js via window._clearContentCache)
   window._clearContentCache = () => _preloadCache.clear();
 
@@ -372,9 +372,9 @@ const Content = (() => {
 
   /* Async so an AI backend can be swapped in with zero changes elsewhere.
      region: 'mena' | 'weur' | 'asia' | 'africa' | null (null = universal only) */
-  async get(mode, lang, count, region) {
+  async get(mode, lang, count, region, topic) {
     const resolvedRegion = resolveRegion(region);
-    const key = cacheKey(mode, lang, count, resolvedRegion);
+    const key = cacheKey(mode, lang, count, resolvedRegion, topic);
     if (_preloadCache.has(key)) {
       const preloaded = _preloadCache.get(key);
       _preloadCache.delete(key);
@@ -384,20 +384,20 @@ const Content = (() => {
     // more prompts than the generic pregame preload). Reuse what is already
     // loading, then fetch only the missing remainder instead of throwing the
     // preload away and starting another full request from zero.
-    const prefix = `${cachePrefix(mode, lang, resolvedRegion)}:`;
+    const prefix = `${cachePrefix(mode, lang, resolvedRegion, topic)}:`;
     const compatibleKey = [..._preloadCache.keys()].find(candidate => candidate.startsWith(prefix));
     if (compatibleKey) {
       const preloaded = _preloadCache.get(compatibleKey);
       _preloadCache.delete(compatibleKey);
       const first = await preloaded;
       if (first.length >= count) return first.slice(0, count);
-      const rest = await this._load(mode, lang, count - first.length, resolvedRegion);
+      const rest = await this._load(mode, lang, count - first.length, resolvedRegion, topic);
       return [...first, ...rest].slice(0, count);
     }
-    return this._load(mode, lang, count, resolvedRegion);
+    return this._load(mode, lang, count, resolvedRegion, topic);
   },
 
-  async _load(mode, lang, count, region) {
+  async _load(mode, lang, count, region, topic) {
     const cfg = window.HYPOX_CONFIG || {};
     // Global lobby AI toggle (next to Add Bot) — OFF makes every mode fall
     // straight through to its static content pool, same as if no AI
@@ -411,7 +411,7 @@ const Content = (() => {
         const res = await fetch(cfg.aiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode, lang, count, region, session: window._hypoxSession||'0' }),
+          body: JSON.stringify({ mode, lang, count, region, topic, session: window._hypoxSession||'0' }),
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
@@ -537,49 +537,56 @@ const TRIVIA_CATS = {
     ],
   },
   medical: {
+    // v231 — renamed "Medical" to "Pharmacy" (Ali's request). This pool was
+    // entirely generic human-anatomy trivia with zero pharmacy content;
+    // rewritten to be genuinely about medicines and pharmacology — drug
+    // names, drug classes, how common medicines work, famous drug history —
+    // pitched at a pharmacy-student level of interest but still simple and
+    // safe for a general party-game audience (no specific dosing numbers
+    // that could be mistaken for real medical advice).
     en: [
-      { q:'Which organ pumps blood around your body?', options:['Lungs','Heart','Liver','Kidneys'], correct:1 },
-      { q:'What is the largest organ of the human body?', options:['Skin','Liver','Brain','Lungs'], correct:0 },
-      { q:'About how many bones are in an adult human body?', options:['106','206','306','406'], correct:1 },
-      { q:'Which blood cells mainly carry oxygen?', options:['White blood cells','Platelets','Red blood cells','Nerve cells'], correct:2 },
-      { q:'Which organs filter blood and make urine?', options:['Lungs','Kidneys','Stomach','Pancreas'], correct:1 },
-      { q:'Which vitamin can your body make with help from sunlight?', options:['Vitamin A','Vitamin B12','Vitamin C','Vitamin D'], correct:3 },
-      { q:'What protects your brain?', options:['Ribs','Pelvis','Skull','Shoulder blade'], correct:2 },
-      { q:'What is the hardest substance in the human body?', options:['Bone','Tooth enamel','Fingernail','Cartilage'], correct:1 },
-      { q:'Which muscle under the lungs helps you breathe?', options:['Biceps','Diaphragm','Hamstring','Calf'], correct:1 },
-      { q:'What does your pulse measure?', options:['Heartbeats','Body height','Lung size','Blood type'], correct:0 },
-      { q:'Which cells help the body fight infections?', options:['Red blood cells','White blood cells','Skin cells','Fat cells'], correct:1 },
-      { q:'What is a normal average body temperature close to?', options:['27°C','32°C','37°C','42°C'], correct:2 },
-      { q:'Which organ makes insulin?', options:['Pancreas','Heart','Bladder','Spleen'], correct:0 },
-      { q:'Where are the smallest bones in your body?', options:['Hand','Foot','Ear','Nose'], correct:2 },
-      { q:'Which is the largest internal organ?', options:['Brain','Liver','Heart','Kidney'], correct:1 },
-      { q:'What tiny air sacs in the lungs exchange oxygen and carbon dioxide?', options:['Alveoli','Neurons','Tendons','Capillaries'], correct:0 },
-      { q:'Which blood vessels carry blood away from the heart?', options:['Veins','Arteries','Capillaries','Nerves'], correct:1 },
-      { q:'What does dehydration mean?', options:['Too much sleep','Not enough water in the body','Low body temperature','Too much oxygen'], correct:1 },
-      { q:'Antibiotics are used to treat infections caused by what?', options:['Bacteria','Viruses','Allergies','Broken bones'], correct:0 },
-      { q:'Which part of the ear helps control balance?', options:['Outer ear','Earlobe','Inner ear','Ear canal'], correct:2 },
+      { q:'What does "OTC" mean for a medicine?', options:['Over The Counter','On The Container','Oral Tablet Coating','Original Trade Compound'], correct:0 },
+      { q:'Paracetamol is mainly used to treat what?', options:['High blood pressure','Pain and fever','Bacterial infections','Allergies'], correct:1 },
+      { q:'Which drug class is penicillin part of?', options:['Antibiotics','Antihistamines','Antacids','Antidepressants'], correct:0 },
+      { q:'What is the generic name for the painkiller sold as Tylenol?', options:['Ibuprofen','Aspirin','Paracetamol (Acetaminophen)','Naproxen'], correct:2 },
+      { q:'Antibiotics work against which of these?', options:['Viruses','Bacteria','Fungi only','Allergies'], correct:1 },
+      { q:'What type of drug is used to relieve allergy symptoms like sneezing?', options:['Antihistamine','Antibiotic','Antacid','Antiseptic'], correct:0 },
+      { q:'Insulin is used to manage which condition?', options:['Asthma','Diabetes','Migraine','Arthritis'], correct:1 },
+      { q:'What does "expiry date" on a medicine tell you?', options:['When it was made','The last date it is guaranteed effective','Its price','Its dosage strength'], correct:1 },
+      { q:'Which form is a medicine when it dissolves in the mouth or stomach quickly, taken by mouth?', options:['Injection','Tablet','Inhaler','Patch'], correct:1 },
+      { q:'What is a "generic" medicine?', options:['A fake, illegal drug','A copy of a brand-name drug with the same active ingredient','A drug with no active ingredient','A drug only for children'], correct:1 },
+      { q:'Which everyday drug is well known for thinning the blood at low doses?', options:['Paracetamol','Aspirin','Amoxicillin','Loratadine'], correct:1 },
+      { q:'A pharmacist is trained mainly to be an expert in what?', options:['Surgery','Medicines and how they work','Dentistry','Physical therapy'], correct:1 },
+      { q:'What does "antacid" medicine treat?', options:['Stomach acid and heartburn','High cholesterol','Allergies','Infections'], correct:0 },
+      { q:'Vaccines work mainly by training which part of the body?', options:['The liver','The immune system','The lungs','The kidneys'], correct:1 },
+      { q:'Which of these is a common dosage form for medicine you inhale?', options:['Syrup','Inhaler','Suppository','Capsule'], correct:1 },
+      { q:'What is the main active ingredient people usually mean by "aspirin"?', options:['Acetylsalicylic acid','Paracetamol','Caffeine','Ibuprofen'], correct:0 },
+      { q:'A drug that reduces fever is called what?', options:['Antipyretic','Antifungal','Antiviral','Antiemetic'], correct:0 },
+      { q:'What does "IV" mean when giving a medicine?', options:['Inhaled Vapor','Intravenous (into a vein)','Internal Vaccine','Instant Value'], correct:1 },
+      { q:'Which of these is famously known as the first widely used antibiotic, discovered from a mold?', options:['Aspirin','Penicillin','Morphine','Insulin'], correct:1 },
+      { q:'A medicine that helps you sleep is generally called what type of drug?', options:['Stimulant','Sedative','Diuretic','Laxative'], correct:1 },
     ],
     ar: [
-      { q:'ما العضو الذي يضخ الدم في الجسم؟', options:['الرئتان','القلب','الكبد','الكليتان'], correct:1 },
-      { q:'ما أكبر عضو في جسم الإنسان؟', options:['الجلد','الكبد','الدماغ','الرئتان'], correct:0 },
-      { q:'كم عظمة تقريباً في جسم الإنسان البالغ؟', options:['١٠٦','٢٠٦','٣٠٦','٤٠٦'], correct:1 },
-      { q:'أي خلايا في الدم تحمل الأكسجين بشكل أساسي؟', options:['خلايا الدم البيضاء','الصفائح الدموية','خلايا الدم الحمراء','الخلايا العصبية'], correct:2 },
-      { q:'أي أعضاء تنقّي الدم وتصنع البول؟', options:['الرئتان','الكليتان','المعدة','البنكرياس'], correct:1 },
-      { q:'أي فيتامين يصنعه الجسم بمساعدة ضوء الشمس؟', options:['فيتامين A','فيتامين B12','فيتامين C','فيتامين D'], correct:3 },
-      { q:'ما الذي يحمي الدماغ؟', options:['الأضلاع','الحوض','الجمجمة','لوح الكتف'], correct:2 },
-      { q:'ما أصلب مادة في جسم الإنسان؟', options:['العظم','مينا الأسنان','الأظافر','الغضروف'], correct:1 },
-      { q:'ما العضلة الموجودة تحت الرئتين وتساعد على التنفس؟', options:['العضلة ذات الرأسين','الحجاب الحاجز','عضلة الفخذ الخلفية','عضلة الساق'], correct:1 },
-      { q:'ماذا يقيس النبض؟', options:['دقات القلب','طول الجسم','حجم الرئة','فصيلة الدم'], correct:0 },
-      { q:'أي خلايا تساعد الجسم على مقاومة العدوى؟', options:['خلايا الدم الحمراء','خلايا الدم البيضاء','خلايا الجلد','الخلايا الدهنية'], correct:1 },
-      { q:'متوسط حرارة الجسم الطبيعية قريب من كم؟', options:['٢٧°م','٣٢°م','٣٧°م','٤٢°م'], correct:2 },
-      { q:'أي عضو يصنع الإنسولين؟', options:['البنكرياس','القلب','المثانة','الطحال'], correct:0 },
-      { q:'أين توجد أصغر عظام في الجسم؟', options:['اليد','القدم','الأذن','الأنف'], correct:2 },
-      { q:'ما أكبر عضو داخلي في جسم الإنسان؟', options:['الدماغ','الكبد','القلب','الكلية'], correct:1 },
-      { q:'ما اسم الأكياس الهوائية الصغيرة في الرئتين التي يتم فيها تبادل الغازات؟', options:['الحويصلات الهوائية','الخلايا العصبية','الأوتار','الشعيرات الدموية'], correct:0 },
-      { q:'أي أوعية دموية تحمل الدم بعيداً عن القلب؟', options:['الأوردة','الشرايين','الشعيرات الدموية','الأعصاب'], correct:1 },
-      { q:'ماذا يعني الجفاف؟', options:['النوم الكثير','نقص الماء في الجسم','انخفاض حرارة الجسم','زيادة الأكسجين'], correct:1 },
-      { q:'المضادات الحيوية تعالج العدوى التي تسببها ماذا؟', options:['البكتيريا','الفيروسات','الحساسية','كسور العظام'], correct:0 },
-      { q:'أي جزء من الأذن يساعد على التوازن؟', options:['الأذن الخارجية','شحمة الأذن','الأذن الداخلية','قناة الأذن'], correct:2 },
+      { q:'ماذا يعني اختصار "OTC" على الدواء؟', options:['يُصرف بدون وصفة طبية','على العبوة','تغليف الحبة','مركب أصلي'], correct:0 },
+      { q:'الباراسيتامول يُستخدم بشكل أساسي لعلاج ماذا؟', options:['ارتفاع ضغط الدم','الألم والحمى','العدوى البكتيرية','الحساسية'], correct:1 },
+      { q:'البنسلين ينتمي إلى أي فئة من الأدوية؟', options:['المضادات الحيوية','مضادات الهيستامين','مضادات الحموضة','مضادات الاكتئاب'], correct:0 },
+      { q:'ما الاسم العلمي للمسكّن المعروف تجارياً باسم تايلينول؟', options:['إيبوبروفين','أسبرين','باراسيتامول (أسيتامينوفين)','نابروكسين'], correct:2 },
+      { q:'المضادات الحيوية تعمل ضد أي من هذه؟', options:['الفيروسات','البكتيريا','الفطريات فقط','الحساسية'], correct:1 },
+      { q:'أي نوع من الأدوية يُستخدم لتخفيف أعراض الحساسية مثل العطاس؟', options:['مضاد الهيستامين','مضاد حيوي','مضاد حموضة','مطهر'], correct:0 },
+      { q:'الإنسولين يُستخدم للتحكم في أي حالة؟', options:['الربو','السكري','الصداع النصفي','التهاب المفاصل'], correct:1 },
+      { q:'ماذا يخبرك "تاريخ انتهاء الصلاحية" على الدواء؟', options:['متى تم تصنيعه','آخر تاريخ يُضمن فيه فعاليته','سعره','قوة الجرعة'], correct:1 },
+      { q:'أي شكل دوائي يُؤخذ عن طريق الفم ويذوب بسرعة؟', options:['حقنة','حبة (قرص)','بخاخ استنشاق','لاصقة'], correct:1 },
+      { q:'ما هو الدواء "الجنيس" (Generic)؟', options:['دواء مزيف وغير قانوني','نسخة من دواء تجاري تحتوي نفس المادة الفعالة','دواء بدون مادة فعالة','دواء للأطفال فقط'], correct:1 },
+      { q:'أي دواء يومي معروف بترقيق الدم بجرعات منخفضة؟', options:['باراسيتامول','أسبرين','أموكسيسيلين','لوراتادين'], correct:1 },
+      { q:'الصيدلي مُدرَّب بشكل أساسي ليكون خبيراً في ماذا؟', options:['الجراحة','الأدوية وطريقة عملها','طب الأسنان','العلاج الطبيعي'], correct:1 },
+      { q:'دواء "مضاد الحموضة" يُعالج ماذا؟', options:['حموضة المعدة والحرقة','ارتفاع الكوليسترول','الحساسية','العدوى'], correct:0 },
+      { q:'اللقاحات تعمل بشكل أساسي عن طريق تدريب أي جزء من الجسم؟', options:['الكبد','جهاز المناعة','الرئتين','الكليتين'], correct:1 },
+      { q:'أي من هذه شكل دوائي شائع يُستنشق؟', options:['شراب','بخاخ استنشاق','لبوس','كبسولة'], correct:1 },
+      { q:'ما المادة الفعالة الأساسية التي يقصدها الناس عادة بكلمة "أسبرين"؟', options:['حمض أستيل الساليسيليك','باراسيتامول','كافيين','إيبوبروفين'], correct:0 },
+      { q:'الدواء الذي يخفض الحمى يُسمى ماذا؟', options:['خافض حرارة','مضاد فطريات','مضاد فيروسات','مضاد غثيان'], correct:0 },
+      { q:'ماذا يعني إعطاء الدواء عن طريق "الوريد"؟', options:['بخار يُستنشق','عن طريق الوريد مباشرة','لقاح داخلي','قيمة فورية'], correct:1 },
+      { q:'أي من هذه يُعرف بأنه أول مضاد حيوي واسع الاستخدام، اكتُشف من فطر؟', options:['الأسبرين','البنسلين','المورفين','الإنسولين'], correct:1 },
+      { q:'الدواء الذي يساعد على النوم يُصنَّف عادة كأي نوع؟', options:['منبّه','مهدئ','مدر للبول','ملين'], correct:1 },
     ],
   },
   gulf: {
