@@ -1427,10 +1427,26 @@
       const _ls=document.getElementById('scr-lobby');
       const _prevScroll=_ls?_ls.scrollTop:0;
       const _pStatus=window._hypoxPresence||{};
-      $('#playerRow').innerHTML=list.map(p=>{
-        const _offline=_pStatus[p.pid]==='away'||_pStatus[p.pid]==='offline';
-        return `<div class="player${_offline?' player-offline':''}"><div class="avatar" style="background:${p.color};${_offline?'filter:grayscale(0.8);opacity:0.5':''}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}${_offline?'<span style="display:block;font-size:10px;color:var(--text3)">📶 offline</span>':''}</div></div>`;
-      }).join('');
+      // v236 — onPlayers fires on ANY write under the players/ Firebase
+      // node, which includes each player's own heartbeat (every 5s, see
+      // net.js's _heartbeatInt). Previously every single heartbeat tick
+      // rebuilt #playerRow's entire innerHTML from scratch, tearing down
+      // and recreating every avatar element even though nothing visible
+      // had actually changed — this is what looked like the avatars
+      // constantly "refreshing"/flickering. Now only rebuild the DOM when
+      // the actual visible signature (pid, name, emoji, color, vip,
+      // offline-status) genuinely differs from the last render.
+      const _rowSig = list.map(p => {
+        const _off = _pStatus[p.pid]==='away'||_pStatus[p.pid]==='offline';
+        return `${p.pid}|${p.name}|${p.emoji}|${p.color}|${p.isVip?1:0}|${_off?1:0}`;
+      }).join(';');
+      if (_rowSig !== window._hypoxLastPlayerRowSig) {
+        window._hypoxLastPlayerRowSig = _rowSig;
+        $('#playerRow').innerHTML=list.map(p=>{
+          const _offline=_pStatus[p.pid]==='away'||_pStatus[p.pid]==='offline';
+          return `<div class="player${_offline?' player-offline':''}"><div class="avatar" style="background:${p.color};${_offline?'filter:grayscale(0.8);opacity:0.5':''}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}${_offline?'<span style="display:block;font-size:10px;color:var(--text3)">📶 offline</span>':''}</div></div>`;
+        }).join('');
+      }
       if(_ls){requestAnimationFrame(()=>{_ls.scrollTop=_prevScroll<10?0:_prevScroll;requestAnimationFrame(()=>{if(_ls.scrollTop<10)_ls.scrollTop=0;});});}
       const canStart=list.length>=2;
       $('#startGameBtn').classList.toggle('dim',!canStart);

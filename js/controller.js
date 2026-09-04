@@ -97,7 +97,7 @@ const Controller = (() => {
     // heading. DOM order is unchanged (title element first) so nothing
     // downstream that references it by position breaks; the swap is CSS —
     // see .ctrl-context / .ctrl-title in style.css.
-    if (!spec.controlsOnly) {
+    if (!spec.controlsOnly && spec.type !== 'map') {
       const title = document.createElement('div');
       title.className = 'ctrl-title display';
       title.textContent = spec.title || '';
@@ -857,6 +857,32 @@ const Controller = (() => {
     }
 
     if (spec.type === 'map') {
+      // v236 — the player's own answering screen never showed the "📍 PIN
+      // POINT" eyebrow, a styled city-name card, or the actual intended
+      // prompt text ("Where is this city? Drop your pin on the map!") --
+      // it fell through to a plain generic title (bare city name, no
+      // badge) and a hardcoded, different "Pan & zoom" caption that
+      // ignored spec.sub entirely. Rebuilt to match host.js's own scene()
+      // markup for this mode exactly (same classes: .eyebrow, .prompt-card,
+      // .pick-sub), so host and player now look the same on this screen,
+      // phone or desktop.
+      const pEyebrow = document.createElement('div');
+      pEyebrow.className = 'eyebrow';
+      pEyebrow.textContent = '📍 ' + (typeof LANG!=='undefined'&&LANG==='ar' ? 'حدد المكان' : 'PIN POINT');
+      wrap.appendChild(pEyebrow);
+
+      const pCard = document.createElement('div');
+      pCard.className = 'prompt-card';
+      pCard.textContent = spec.title || '';
+      wrap.appendChild(pCard);
+
+      const pSub = document.createElement('div');
+      pSub.className = 'pick-sub';
+      pSub.textContent = typeof LANG!=='undefined'&&LANG==='ar'
+        ? 'وين هالمدينة؟ حط دبوسك على الخريطة!'
+        : 'Where is this city? Drop your pin on the map!';
+      wrap.appendChild(pSub);
+
       const mapWrap = document.createElement('div');
       mapWrap.className = 'ctrl-map';
       mapWrap.innerHTML = `
@@ -961,6 +987,29 @@ const Controller = (() => {
         closeBtn.style.opacity = closeBtn.disabled ? '0.5' : '1';
         closeBar.appendChild(closeBtn);
         ov.appendChild(closeBar);
+        // v236 — the fullscreen map overlay is appended directly to
+        // document.body, entirely outside `wrap` where the .ctrl-timer
+        // countdown pill lives (added below via addGenericCountdown()) —
+        // so opening Full Map completely covered the timer with no way to
+        // see it until closing back out. Add the same countdown pill here
+        // too, driven by the same spec.deadline, cleaned up when the
+        // overlay closes.
+        if (spec.deadline) {
+          const fsTimer = document.createElement('div');
+          fsTimer.className = 'ctrl-timer';
+          const tickFsTimer = () => {
+            const left = Math.max(0, Math.ceil((spec.deadline - Date.now()) / 1000));
+            fsTimer.textContent = left;
+            fsTimer.classList.toggle('danger', left <= 5 && left > 0);
+          };
+          tickFsTimer();
+          var _fsTimerInterval = setInterval(() => {
+            if (!ov.isConnected) { clearInterval(_fsTimerInterval); return; }
+            tickFsTimer();
+            if (spec.deadline - Date.now() <= 0) clearInterval(_fsTimerInterval);
+          }, 1000);
+          closeBar.appendChild(fsTimer);
+        }
         const mapEl = document.createElement('div');
         mapEl.style.cssText = 'flex:1;';
         ov.appendChild(mapEl);
@@ -991,6 +1040,7 @@ const Controller = (() => {
           if (!guess) return;
           await submitMapGuess(closeBtn, () => {
             fsMap?.remove();
+            if (typeof _fsTimerInterval !== 'undefined') clearInterval(_fsTimerInterval);
             if (ov.isConnected) document.body.removeChild(ov);
           });
         });
