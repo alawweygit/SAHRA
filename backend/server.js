@@ -133,7 +133,7 @@ const GUIDANCE = {
   pinpoint:     'Real, well-known cities — national capitals or major globally-recognizable cities (e.g. Dubai, Abu Dhabi, New York, Tokyo, Cairo, Paris) that most people would recognize by name, not obscure towns. Always include the city and country in both languages: en, ar, countryEn, countryAr. Accurate lat/lon. VARIETY: within a single batch, spread picks across DIFFERENT continents/regions (do not cluster on the same 2-3 regions) and avoid defaulting to only the most stereotypical handful of world capitals every time — there are dozens of well-known cities to draw from, actively rotate through them rather than settling on the same "safe" few.',
   emoji:        'Phonetic rebus: emojis SOUND OUT a word. "parts" = phonetic sounds.',
   emojiplace:   'Phonetic rebus for CITIES only.',
-  year:         'Historical events with exact year. Mix world history, tech, and sports milestones.',
+  year:         'Historical events with exact year. Mix world history, tech, and sports milestones. The year must be a plain number (e.g. 2007), never written as a string or in quotes.',
   higherlow:    '"n" = exact real number. "unit" = label. Mix: counts (floors, episodes, goals, medals), distances (km), heights (m), weights (kg), speeds (km/h), populations, temperatures (°C), historical years (unit="year"), ages, prices. ALL values must be accurate.',
   flaghunt:     'Flag emoji + 4 country options. "correct" is 0-based index. Vary position. Mix all continents.',
   spy:          'Secret word pool. ONE object with "category" and "words" array (15-20 specific items).',
@@ -269,7 +269,30 @@ function isValidPrompt(mode, item, region) {
     }
     case 'emoji':
     case 'emojiplace': return text('answer') && text('e');
-    case 'year': return text('q') && Number.isFinite(item.y);
+    case 'year': {
+      // v239 — Ali reported Time Machine's AI content "not working" (in
+      // practice: felt like the same ~20 historical facts on repeat, the
+      // same symptom pattern as the earlier Quiz-category bug). The
+      // frontend request/response path tested fine in isolation, so the
+      // likely cause is here: the strict Number.isFinite(item.y) check
+      // rejects the ENTIRE item if the model ever returns the year as a
+      // quoted string ("2007") instead of a bare number (2007) -- which
+      // LLMs do inconsistently despite the schema hint saying "y":2007.
+      // One rejected item wouldn't matter, but if this happens somewhat
+      // systematically for this shape, most/all of a batch could get
+      // silently rejected here, and _load()'s fallback quietly serves the
+      // small static PACKS.year pool instead -- indistinguishable from "AI
+      // isn't running" to a player, since nothing errors, it just looks
+      // repetitive. Coerce numeric-looking strings instead of rejecting
+      // them outright, and normalize item.y in place so downstream
+      // arithmetic (the year-difference scoring in host.js) always gets a
+      // real number, not a string.
+      if (!text('q')) return false;
+      const yNum = Number(item.y);
+      if (!Number.isFinite(yNum)) return false;
+      item.y = yNum;
+      return true;
+    }
     case 'higherlow': return text('q') && Number.isFinite(item.n) && text('unit');
     case 'flaghunt': {
       if (!(text('flag') && fourChoices())) return false;
