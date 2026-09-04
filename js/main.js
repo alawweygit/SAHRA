@@ -2731,7 +2731,15 @@
           const _stripContextPhoneOnly = phonesOnly && _rawSpec?.hideContextOnPhone === true;
           const phoneSpec=_rawSpec?(phonesOnly?{..._rawSpec,controlsOnly:_mapPhoneOnly,...(_stripContextPhoneOnly?{context:''}:{})}:_rawSpec):null;
           if(!phoneSpec){renderSharedStatus(LANG==='ar'?'جاري تحميل السؤال…':'Loading the question…');return;}
-          const _pa1=phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow'||phoneSpec.customRenderer==='timeMachine'||phoneSpec.fullscreenInput===true);
+          // v238 — added 'map' (Pinpoint). Pinpoint's spec type is 'map',
+          // which was never in this list, so the shared-stage mirror (its
+          // own "PIN POINT" eyebrow + city name, identical to what v236
+          // added directly into the player's own card) never got hidden
+          // while a player was personally dropping their pin. Both were
+          // rendering stacked on top of each other -- the exact duplicate
+          // Ali reported, not a code-duplication bug, a missing-suppression
+          // bug specific to this one type.
+          const _pa1=phonesOnly&&(phoneSpec.type==='choice'||phoneSpec.type==='higherlow'||phoneSpec.type==='map'||phoneSpec.customRenderer==='timeMachine'||phoneSpec.fullscreenInput===true);
           // Choice/higherlow hide the ENTIRE shared stage while answering
           // (their own input form repeats the question). Text/number inputs
           // can't do that — the shared-stage headline is often the ONLY

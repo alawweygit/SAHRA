@@ -797,6 +797,23 @@ body.phones-hide-tracker #statusRow{display:none!important;}
 .ctrl-count{font-size:11px;font-weight:700;opacity:0.5;align-self:flex-end;}
 [dir="rtl"] .ctrl-count{align-self:flex-start;}
 .ctrl-submit{width:100%;font-size:19px;padding:13px;}
+/* v238 — Pinpoint's LOCK IT IN button (the only .ctrl-submit that follows a
+   .ctrl-map) was easy to miss without scrolling: #scr-controller scrolls
+   internally, and on shorter viewports the map + prompt + timer pushed the
+   submit button below the visible fold. Pinning it to the bottom of that
+   scroll area keeps it always in view, and boosting shadow/scale on the
+   enabled state makes it read as clearly actionable rather than blending
+   into the card once a pin has actually been dropped. The disabled
+   (no-pin-yet) look is untouched -- that dimmed state is correct feedback,
+   not a bug. */
+.ctrl-map + .ctrl-submit{
+  position:sticky;bottom:max(10px,env(safe-area-inset-bottom));
+  z-index:5;
+  box-shadow:0 6px 24px rgba(0,0,0,0.35);
+}
+.ctrl-map + .ctrl-submit:not(:disabled){
+  box-shadow:0 0 0 3px rgba(255,255,255,0.15),0 8px 28px rgba(244,114,182,0.45);
+}
 .ctrl-choices{display:flex;flex-direction:column;gap:9px;width:100%;}
 .choice-btn{font-family:inherit;font-weight:700;font-size:15px;color:var(--text);background:var(--card);border:2px solid var(--cb,var(--border-hi));border-radius:16px;padding:14px;cursor:pointer;text-align:center;box-shadow:0 4px 0 var(--shadow);transition:transform 0.1s;animation:cardDeal 0.4s both;line-height:1.35;}
 .choice-btn.wyr-btn{background:var(--cb);border-color:var(--cb);color:#000;font-size:clamp(15px,2.2vw,20px);min-height:80px;border-radius:20px;}
