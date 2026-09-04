@@ -1,11 +1,105 @@
 const express = require('express');
 const cors = require('cors');
 const Anthropic = require('@anthropic-ai/sdk');
+const admin = require('firebase-admin');
 const app = express();
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const AI_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
+
+// v237 — global, persistent "already generated this" memory, shared across
+// every player/room/device. Previously usedFingerprints (below) lived only
+// in this process's RAM, which reset on every redeploy/crash/restart — with
+// how many deploys go out in a single day, that meant the AI's "don't
+// repeat this" memory was wiped almost constantly, and since every player
+// is on a different device/browser, there was no way for the AI to know
+// "this exact group already saw this" across sessions either. Firebase
+// Realtime Database (the same project the frontend already uses) now
+// stores this instead, so it survives everything and is shared globally.
+//
+// Requires a FIREBASE_SERVICE_ACCOUNT env var on Railway containing the
+// full service account JSON (Firebase Console → Project Settings → Service
+// Accounts → Generate new private key → paste the whole file's contents as
+// this single env var's value). If that's not set, everything below
+// degrades gracefully to the old RAM-only behavior — this is a pure
+// addition, never a hard requirement for the server to run.
+let firebaseDb = null;
+try {
+  const svcAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (svcAccountRaw) {
+    const svcAccount = JSON.parse(svcAccountRaw);
+    admin.initializeApp({
+      credential: admin.credential.cert(svcAccount),
+      databaseURL: process.env.FIREBASE_DATABASE_URL || 'https://highpox-1eec7-default-rtdb.firebaseio.com',
+    });
+    firebaseDb = admin.database();
+    console.log('[HYPOX] Global content dedup: Firebase connected.');
+  } else {
+    console.log('[HYPOX] Global content dedup: FIREBASE_SERVICE_ACCOUNT not set, using in-memory dedup only.');
+  }
+} catch (e) {
+  console.error('[HYPOX] Global content dedup: Firebase init failed, using in-memory dedup only.', e.message);
+  firebaseDb = null;
+}
+
+// How many recent fingerprints to keep per mode/region/topic bucket, and how
+// many to actually send to the AI as an avoid-list per request (kept small
+// so the prompt itself doesn't grow — the STORED history can be larger than
+// what's sent on any single call).
+const GLOBAL_DEDUP_KEEP = 300;
+const GLOBAL_DEDUP_SEND = 25;
+
+function dedupPath(baseKey) {
+  // baseKey already looks like "quiz:en:mena:sports" etc — safe as a
+  // Firebase path segment once slashes/dots (invalid in RTDB keys) are
+  // stripped; baseKey never contains those today, but guard anyway.
+  return 'aiUsedContent/' + String(baseKey).replace(/[.#$\[\]\/]/g, '_');
+}
+
+async function getGlobalAvoidList(baseKey) {
+  if (!firebaseDb) return [];
+  try {
+    const snap = await firebaseDb.ref(dedupPath(baseKey))
+      .orderByChild('t').limitToLast(GLOBAL_DEDUP_SEND).once('value');
+    const val = snap.val();
+    if (!val) return [];
+    return Object.values(val).map(v => v.fp).filter(Boolean);
+  } catch (e) {
+    console.error('[HYPOX] getGlobalAvoidList failed:', e.message);
+    return [];
+  }
+}
+
+async function recordGlobalUsed(baseKey, fingerprints) {
+  if (!firebaseDb || !fingerprints.length) return;
+  try {
+    const ref = firebaseDb.ref(dedupPath(baseKey));
+    const now = Date.now();
+    const updates = {};
+    fingerprints.forEach((fp, i) => {
+      updates[ref.push().key] = { fp, t: now + i };
+    });
+    await ref.update(updates);
+    // Prune: keep only the most recent GLOBAL_DEDUP_KEEP entries so this
+    // path doesn't grow forever. Cheap to run every write since RTDB
+    // queries here are small and indexed by 't'.
+    const snap = await ref.orderByChild('t').once('value');
+    const val = snap.val();
+    if (val) {
+      const keys = Object.keys(val);
+      if (keys.length > GLOBAL_DEDUP_KEEP) {
+        const sorted = keys.sort((a, b) => val[a].t - val[b].t);
+        const toDelete = sorted.slice(0, keys.length - GLOBAL_DEDUP_KEEP);
+        const delUpdates = {};
+        toDelete.forEach(k => { delUpdates[k] = null; });
+        await ref.update(delUpdates);
+      }
+    }
+  } catch (e) {
+    console.error('[HYPOX] recordGlobalUsed failed:', e.message);
+  }
+}
 
 const SHAPES = {
   bluff:        '[{"fact":"A clear weird fact with ___ replacing one word","truth":"ONEWORD","decoys":["WRONG1","WRONG2","WRONG3","WRONG4"]}]',
@@ -274,9 +368,13 @@ async function generateBatch(mode, lang, used, baseKey, requestedCount, region, 
     ? `\nTOPIC (STRICT): Every single item in this batch must be about ${QUIZ_TOPICS[topic]} Do not drift into unrelated categories.`
     : '';
   // Build a strong avoidance list from recent fingerprints + always-banned
+  // + the global, persistent, cross-device history (see getGlobalAvoidList
+  // above) — this last one is what actually survives redeploys and is
+  // shared across every player/room, not just this one server process.
   const recentUsed = used ? [...used].slice(-20) : [];
   const alwaysBanned = ALWAYS_BANNED[baseKey] ? [...ALWAYS_BANNED[baseKey]] : [];
-  const avoidList = [...new Set([...alwaysBanned, ...recentUsed])];
+  const globalUsed = await getGlobalAvoidList(baseKey);
+  const avoidList = [...new Set([...alwaysBanned, ...recentUsed, ...globalUsed])];
 
   const avoidSection = avoidList.length
     ? `\nSTRICTLY AVOID these topics/phrases: "${avoidList.join('", "')}"` 
@@ -410,6 +508,13 @@ app.post('/api/prompts', async (req, res) => {
       const arr = [...used];
       usedFingerprints.set(baseKey, new Set(arr.slice(-200)));
     }
+
+    // v237 — record what was actually delivered into the global, persistent
+    // Firebase dedup history too, not just this process's RAM. Fire-and-
+    // forget (not awaited) so a slow/unreachable Firebase never delays the
+    // response back to players; recordGlobalUsed already no-ops safely if
+    // firebaseDb isn't configured.
+    recordGlobalUsed(baseKey, out.map(getFingerprint).filter(Boolean));
 
     const delivered = new Set(out);
     pool.set(baseKey, currentPool.filter(item => !delivered.has(item)));
