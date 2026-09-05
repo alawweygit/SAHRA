@@ -129,7 +129,7 @@ const GUIDANCE = {
   diss:         'Roast battle setup lines — prompt to write a funny one-liner insult about the opponent.',
   quiz:         'Multiple-choice trivia. Vary correct position (0-3) so the answer is not predictable. DIFFICULTY MIX: across this batch, include a real spread of easy, medium, and hard questions (roughly equal thirds) rather than making everything the same difficulty — easy = something most people would know quickly, medium = requires some real knowledge, hard = genuinely challenging even for someone knowledgeable. LANGUAGE: keep the wording short and simple (plain, everyday words, no complex sentence structure) so a non-native English speaker or a distracted party-game player can read it in one glance — difficulty should come from the KNOWLEDGE required, never from complicated phrasing. DIVERSITY: within a batch, cover different sub-angles of the topic — do not ask multiple questions that are really the same fact restated, and do not repeat the same specific answer/fact across items.',
   mostlikely:   '"Who is most likely to…" prompts that spark funny debates. ONE IDEA ONLY: each prompt must describe exactly ONE single action or scenario — never combine two separate things into one prompt (e.g. NOT "Who is most likely to show up to the wrong wedding and stay for the food?" — that is two jokes stacked together: showing up to the wrong wedding, AND staying for the food. Pick just one: "Who is most likely to show up to the wrong wedding?" or "Who is most likely to crash a stranger\'s wedding?"). If you notice an "and" joining two different actions in your own draft, cut it down to one. LENGTH: one short, punchy sentence, under 10 words. LANGUAGE: simple, everyday words a 12-year-old would understand — no complicated phrasing, the humor should come from the IDEA, not clever wording. FUNNY: the scenario itself should genuinely make people laugh or go "haha, that\'s so [name]" — pick a specific, instantly-picturable, slightly embarrassing or chaotic single action, not a generic, bland, or compound one. GOOD EXAMPLES (single idea each): "Who is most likely to cry at a Pixar movie?", "Who is most likely to get banned from a group chat?", "Who is most likely to marry a stranger in Vegas?", "Who is most likely to become an overnight influencer?", "Who is most likely to trip on flat ground?", "Who is most likely to become a meme?". MIX THE STYLE: within a batch, blend two flavors roughly evenly — everyday-embarrassing (e.g. crying at a movie, falling asleep in a meeting) and slightly absurd/chaotic (e.g. marrying a stranger in Vegas, becoming a meme) — do not make every item the same flavor. DIVERSITY: cover clearly different situations and topics across the batch (relationships, social habits, work, random chaos, etc.) — never repeat the same underlying scenario reworded, and never reuse the exact examples given here verbatim. AVOID: compound sentences joining two scenarios with "and", unnecessary setup/backstory, and anything that reads like a written paragraph instead of something you\'d blurt out loud to friends.',
-  trueorlie:    'Absurd-sounding statements, genuinely TRUE or FALSE. "truth" must be boolean. Mix science and history topics. EVERY batch must contain both true and false statements. For an even batch, make exactly half true and half false, alternating truth values so one type can never dominate.',
+  trueorlie:    'Absurd-sounding statements, genuinely TRUE or FALSE. "truth" must be a plain boolean (true or false), never written as a quoted string like "true" or "false". Mix science and history topics. EVERY batch must contain both true and false statements. For an even batch, make exactly half true and half false, alternating truth values so one type can never dominate.',
   pinpoint:     'Real, well-known cities — national capitals or major globally-recognizable cities (e.g. Dubai, Abu Dhabi, New York, Tokyo, Cairo, Paris) that most people would recognize by name, not obscure towns. Always include the city and country in both languages: en, ar, countryEn, countryAr. Accurate lat/lon. VARIETY: within a single batch, spread picks across DIFFERENT continents/regions (do not cluster on the same 2-3 regions) and avoid defaulting to only the most stereotypical handful of world capitals every time — there are dozens of well-known cities to draw from, actively rotate through them rather than settling on the same "safe" few.',
   emoji:        'Phonetic rebus: emojis SOUND OUT a word. "parts" = phonetic sounds.',
   emojiplace:   'Phonetic rebus for CITIES only.',
@@ -259,7 +259,30 @@ function isValidPrompt(mode, item, region) {
     case 'diss': return text('p');
     case 'quiz': return text('q') && fourChoices();
     case 'mostlikely': return text('q');
-    case 'trueorlie': return text('s') && typeof item.truth === 'boolean';
+    case 'trueorlie': {
+      // v243 — same bug class as Time Machine's year field (v239). The
+      // strict typeof item.truth === 'boolean' check rejects the entire
+      // item the moment the model returns "truth":"true" (a quoted
+      // string) instead of "truth":true (a real boolean) -- and this is
+      // if anything MORE likely to happen than the year-as-string bug,
+      // since LLMs frequently write booleans as the words "true"/"false"
+      // in quotes. If this happens somewhat systematically for this
+      // shape, most/all of a batch gets silently rejected and _load()
+      // quietly serves the small static PACKS.trueorlie pool instead --
+      // nothing errors, it just looks like AI isn't running. Accept
+      // "true"/"false" strings (case-insensitively) as well as real
+      // booleans, and normalize item.truth to an actual boolean in place
+      // so downstream code (host.js's correctId comparison) always gets
+      // real true/false, never a truthy-but-wrong string.
+      if (!text('s')) return false;
+      if (typeof item.truth === 'boolean') return true;
+      if (typeof item.truth === 'string') {
+        const normalized = item.truth.trim().toLowerCase();
+        if (normalized === 'true') { item.truth = true; return true; }
+        if (normalized === 'false') { item.truth = false; return true; }
+      }
+      return false;
+    }
     case 'pinpoint': {
       if (!(text('en') && text('ar') && text('countryEn') && text('countryAr') && Number.isFinite(item.lat) && Number.isFinite(item.lon))) return false;
       const isMenaCountry = MENA_COUNTRIES.has(String(item.countryEn).trim().toLowerCase()) || MENA_COUNTRIES.has(String(item.countryAr).trim());
