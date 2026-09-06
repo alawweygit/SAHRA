@@ -9,7 +9,7 @@
         "players": {
           "$pid": {
             ".write": true,
-            ".validate": "newData.hasChildren(['name','avatar'])"
+            ".validate": "!newData.exists() || (newData.hasChildren(['name','emoji','color','score','isVip','joinedAt']) && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 14 && newData.child('emoji').isString() && newData.child('color').isString() && newData.child('score').isNumber() && newData.child('isVip').isBoolean() && newData.child('joinedAt').isNumber())"
           }
         },
         "inputs": {

@@ -464,6 +464,23 @@
               return true;
             }
           }catch(_rejoinError){}
+          // A TV host is not itself a player, so it has no player session to
+          // resume automatically. Keep the replacement host authoritative and
+          // send the old host to the normal join form as a regular player.
+          try{
+            sessionStorage.removeItem(NAV_STATE_KEY);
+            sessionStorage.removeItem('hypox_resume');
+          }catch(_storageError){}
+          net=null;currentRoomCode=null;players=[];
+          show('#scr-join');
+          const codeInput=document.getElementById('joinCode');
+          if(codeInput)codeInput.value=saved.roomCode;
+          const joinError=document.getElementById('joinErr');
+          if(joinError)joinError.textContent=LANG==='ar'
+            ?'تم اختيار مضيف جديد. انضم مرة أخرى كلاعب.'
+            :'A new host was chosen. Rejoin as a player.';
+          _removeLoader();
+          return true;
         }
         net=null;currentRoomCode=null;players=[];
       }
@@ -2453,9 +2470,11 @@
         if(hostElectionRunning)return;
         hostElectionRunning=true;
         try{
-          // A small jitter avoids every phone opening the same transaction at
-          // the exact instant; Firebase still provides the final atomic guard.
-          await sleep(180+Math.floor(Math.random()*320));
+          // Mobile networks briefly disconnect during Wi-Fi/cellular handoffs.
+          // Give the existing host time to recover before permanently moving
+          // the crown. electReplacementHost re-reads hostStatus after this
+          // delay and does nothing if the host is online again.
+          await sleep(5000+Math.floor(Math.random()*1000));
           const assignment=await net.electReplacementHost();
           if(!assignment){
             showHostTransferBanner(LANG==='ar'?'لا يوجد لاعب متصل ليستلم الاستضافة':'No connected player is available to become host');

@@ -72,6 +72,22 @@ class FirebaseNet {
       }),
     ]).finally(() => clearTimeout(timer));
   }
+  _isTransientNetworkError(error) {
+    const code = String(error?.code || error?.message || '').toLowerCase();
+    return code.includes('network') || code.includes('disconnect') || code.includes('timeout') || code.includes('unavailable');
+  }
+  async _retryTransient(operation, attempts = 3) {
+    let lastError;
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      try { return await operation(); }
+      catch (error) {
+        lastError = error;
+        if (!this._isTransientNetworkError(error) || attempt === attempts - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, 350 * (attempt + 1)));
+      }
+    }
+    throw lastError;
+  }
 
   static available() {
     return typeof firebase !== 'undefined'
@@ -90,6 +106,10 @@ class FirebaseNet {
     this.code = makeCode();
     this.isRoomOwner = true;
     this.pid = this.pid || ('host_' + Date.now());
+    // Persist the TV host's real room identity too. This lets a normal refresh
+    // prove it is still the assigned host, while a transferred room rejects
+    // the old id and keeps the newly elected player in control.
+    this.hostSelfPid = this.pid;
     await this.room().set({
       createdAt: Date.now(), lang,
       state: { phase: 'lobby' },
@@ -111,7 +131,10 @@ class FirebaseNet {
     if (!roomSnap.exists()) throw new Error('no-room');
     const roomData = roomSnap.val() || {};
     const assignedHost = roomData.host || null;
-    if (assignedHost?.pid && pid && assignedHost.pid !== pid) {
+    // Once another player owns the room, a missing/stale host id must fail
+    // closed too. Otherwise an old TV host (which has no player session pid)
+    // could refresh and silently take hosting back from the elected player.
+    if (assignedHost?.pid && assignedHost.pid !== pid) {
       const error = new Error('host-reassigned');
       error.host = assignedHost;
       throw error;
@@ -140,7 +163,9 @@ class FirebaseNet {
   async _armHostDisconnect(pid, name, epoch = null) {
     this._hostEpoch = epoch || this._hostEpoch || Date.now();
     try { await this.room('hostStatus').onDisconnect().cancel(); } catch (e) {}
-    this.room('hostStatus').onDisconnect().set({
+    // Registration itself is asynchronous. Await it so create/resume never
+    // reports success while the server still has no disconnect handler.
+    await this.room('hostStatus').onDisconnect().set({
       status: 'offline', hostPid: pid || null, hostName: name || 'Host',
       epoch: this._hostEpoch, electionId: this._hostEpoch,
     });
@@ -320,7 +345,20 @@ class FirebaseNet {
       isVip: claimedDisc?.isVip ?? (n === 0),
       joinedAt: claimedDisc?.joinedAt || Date.now(),
     };
-    await this.room('players/' + this.pid).set(player);
+    const playerRef = this.room('players/' + this.pid);
+    await this._retryTransient(() => this._withNetworkTimeout(playerRef.set(player), 12000));
+    // Establish presence before returning when possible. The accepted player
+    // write above is authoritative; a carrier that briefly blocks this
+    // secondary heartbeat must not turn a successful join into an error (the
+    // regular heartbeat retries it again as soon as the controller opens).
+    try { await this.room('presence/' + this.pid).onDisconnect().remove(); } catch (_) {}
+    try {
+      await this._retryTransient(() => this._withNetworkTimeout(
+        this.room('presence/' + this.pid).set({ t: this._serverTimestamp() }), 12000));
+      this._presenceDisconnectKey = `${this.code}:${this.pid}`;
+    } catch (error) {
+      console.warn('[HYPOX] initial presence delayed; heartbeat will retry', error);
+    }
     this._playerIdentity = { ...player, pid: this.pid };
     this._closing = false;
     this._removalNotified.delete(this.pid);

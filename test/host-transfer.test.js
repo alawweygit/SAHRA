@@ -23,6 +23,10 @@ eval(source);
 (async () => {
   const originalHost = new FirebaseNet(FB.database());
   const code = await originalHost.createRoom('en');
+  const tvHostPid = originalHost.hostSelfPid;
+  const normalTvRefresh = new FirebaseNet(FB.database());
+  const normalTvResume = await normalTvRefresh.resumeHost(code, tvHostPid);
+  assert.equal(normalTvResume.playMode, 'tv', 'the current TV host must still resume with its saved host id');
   await originalHost.setPlayMode('phones');
 
   const oldHostJoin = new FirebaseNet(FB.database());
@@ -74,6 +78,12 @@ eval(source);
     error => error?.message === 'host-reassigned',
     'the previous host must never reclaim host after transfer',
   );
+  const returningTvHost = new FirebaseNet(FB.database());
+  await assert.rejects(
+    returningTvHost.resumeHost(code, null),
+    error => error?.message === 'host-reassigned',
+    'an old TV host with no player pid must never reclaim host after transfer',
+  );
   const oldAsPlayer = await returningOldHost.resumePlayer(code, oldHost.pid, {
     name: 'Old Host', emoji: '🦊', color: '#f472b6',
   });
@@ -84,6 +94,8 @@ eval(source);
   assert.match(main, /New host is \$\{status\.hostName\|\|''\}/, 'all phones must announce the new host by name');
   assert.match(main, /hypox_promoted_host/, 'the elected phone must use the dedicated promotion boot path');
   assert.match(main, /e\?\.message==='host-reassigned'/, 'an old host refresh must fall back to player reconnect');
+  assert.match(main, /A new host was chosen\. Rejoin as a player\./,
+    'an old TV host must be offered the normal player rejoin path');
   const hostSource = fs.readFileSync(path.join(ROOT, 'js/host.js'), 'utf8');
   assert.match(hostSource, /preserveTransferredScores = isFirstRound && window\.__hypoxPreserveScoresOnce === true/,
     'a clean host-transfer restart must preserve the existing scores');
