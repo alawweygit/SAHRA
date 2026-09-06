@@ -47,8 +47,8 @@ assert.match(diss, /options:opts,deadline:voteDeadline/,
   'Line Battle remote vote specs need their personalized deadline');
 assert.match(diss, /options:votableOpts,deadline:voteDeadline/,
   'Line Battle host vote card needs the same deadline');
-assert.match(blend, /const deadline = inputDeadline\(30\)/,
-  'Blend In must use a normal visible 30-second deadline');
+assert.match(blend, /const deadline = inputDeadline\(60\)/,
+  'Blend In must use a normal visible 60-second deadline');
 
 new Function(host);
 new Function(controller);

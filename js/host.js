@@ -942,7 +942,7 @@ const Host = (() => {
           reservedUniqueAnswers: [{ value: R.truth, meta: { reason: 'truth', points: 1000 } }],
           trackTruthDiscoveries: true,
         },
-        pids, 45);
+        pids, 60);
 
       const truthWriters = Object.keys(inputs.truthDiscoveries || {});
       const answers = buildBluffAnswers(R, rounds, pids, inputs, truthWriters);
@@ -1125,7 +1125,7 @@ const Host = (() => {
         qIndex: qi,
         a: Q.a, b: Q.b
       }));
-      const wyrDeadline = inputDeadline(45);
+      const wyrDeadline = inputDeadline(60);
       const phoneWyrSpec = {
         type: 'wyr-multi',
         targetName: target.name,
@@ -1158,7 +1158,7 @@ const Host = (() => {
       const _wyrTimerInt = setInterval(() => {
         const left = Math.max(0, Math.ceil((wyrDeadline - Date.now()) / 1000));
         if (_wyrNum) { _wyrNum.textContent = left; _wyrNum.classList.toggle('danger', left <= 5 && left > 0); }
-        if (_wyrFill) { _wyrFill.style.transition = 'stroke-dashoffset .95s linear'; _wyrFill.style.strokeDashoffset = (1 - left / 45) * _wyrCirc; }
+        if (_wyrFill) { _wyrFill.style.transition = 'stroke-dashoffset .95s linear'; _wyrFill.style.strokeDashoffset = (1 - left / 60) * _wyrCirc; }
       }, 1000);
 
       const statusRow = $('#statusRow');
@@ -1193,7 +1193,7 @@ const Host = (() => {
         phaseId,
         net.isOffline ? phoneWyrSpec : null,
         players.map(p => p.pid),
-        inputTimeout(45)
+        inputTimeout(60)
       );
       net.promptLocal = _savedPromptLocalWyr;
       clearInterval(_wyrTimerInt);
@@ -1454,7 +1454,7 @@ const Host = (() => {
         // shared display above (eyebrow + prompt-card); repeating it here
         // showed the exact same question text twice on screen.
         maxLen: 80,
-      }, writerPids, 40);
+      }, writerPids, 60);
 
       const answerList = writerPids
         .map(pid => ({ pid, text: (val(answers, pid)||'').trim() }))
@@ -1648,7 +1648,7 @@ const Host = (() => {
         type:'text',
         title: LANG==='ar'?'🎤 اكتب خطك الأقوى!':'🎤 Write your most savage line!',
         context: promptText, maxLen:100, fullscreenInput: true
-      }, duelerPids, 35);
+      }, duelerPids, 60);
 
       const rawLineA = (val(lines,A.pid)||'').trim();
       const rawLineB = (val(lines,B.pid)||'').trim();
@@ -1822,9 +1822,9 @@ const Host = (() => {
       Audio_.sfx.sting();
 
       const answers = await collectWithTimer({
-        type: 'choice', title: t('quiz_pick'), context: Q.q, translateContext: Q.q, seconds: 15,
+        type: 'choice', title: t('quiz_pick'), context: Q.q, translateContext: Q.q, seconds: 60,
         options: Q.options.map((o, j) => ({ id: j, label: `${'ABCD'[j]} · ${o}`, color: colors[j] })),
-      }, pids, 15);
+      }, pids, 60);
       // v224 — for type:'choice'/'higherlow', main.js deliberately keeps a
       // player's submitted card locked in place until the phase genuinely
       // changes (see main.js's keepSubmittedChoice — this is so a picked
@@ -1921,8 +1921,8 @@ const Host = (() => {
       const answers = await collectWithTimer({
         type: 'map', title: cityName,
         sub: LANG==='ar'?'حط الدبوس أقرب ما تقدر':'Drop your pin as close as you can',
-        seconds: 30,
-      }, players.map(p => p.pid), 30);
+        seconds: 60,
+      }, players.map(p => p.pid), 60);
 
       // Score by distance
       const results = players.map(p => {
@@ -2115,7 +2115,7 @@ const Host = (() => {
       });
       Audio_.sfx.sting();
 
-      const TOTAL_SECS = 30;
+      const TOTAL_SECS = 60;
       const REVEAL_EVERY = Math.floor(TOTAL_SECS / (Math.floor(totalLetters * 0.6) + 1)) * 1000;
       const t0 = Date.now();
 
@@ -2232,8 +2232,8 @@ const Host = (() => {
       pushMirror({ headline: Q.q, pill: `${i+1}/${qs.length}` });
       Audio_.sfx.sting();
       const answers = await collectWithTimer({
-        type: 'text', title: LANG==='ar'?'اكتب السنة':'Type the year', context: Q.q, translateContext: Q.q, maxLen: 4, numeric: true, seconds: 20, customRenderer: 'timeMachine',
-      }, players.map(p => p.pid), 20);
+        type: 'text', title: LANG==='ar'?'اكتب السنة':'Type the year', context: Q.q, translateContext: Q.q, maxLen: 4, numeric: true, seconds: 60, customRenderer: 'timeMachine',
+      }, players.map(p => p.pid), 60);
       // v224 — every other mode calls net.setState({phase:'wait',...}) right
       // after its own collect finishes (see WYR, Interrogation, Diss, etc.).
       // That transition is what the player-side client actually watches to
@@ -2387,7 +2387,7 @@ const Host = (() => {
       pushMirror({ headline: Q.s });
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p => p.pid);
-      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'صح ولا كذب؟':'True or Lie?', context:Q.s, translateContext:Q.s, options:opts, seconds:15 }, pids, 15);
+      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'صح ولا كذب؟':'True or Lie?', context:Q.s, translateContext:Q.s, options:opts, seconds:60 }, pids, 60);
       // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
       net.setState({ phase: 'wait', msg: t('watch_screen') });
       const correctId = Q.truth ? 'true' : 'false';
@@ -2469,7 +2469,7 @@ const Host = (() => {
       // time inside the input card. Same pattern ChatGPT used for Time
       // Machine (07c7150): keep the copy on the stage, drop the one in the
       // lower input panel.
-      const answers = await collectWithTimer({ type:'text', title:LANG==='ar'?'اسم الدولة؟':'Country name?', maxLen:40, seconds:15 }, pids, 15);
+      const answers = await collectWithTimer({ type:'text', title:LANG==='ar'?'اسم الدولة؟':'Country name?', maxLen:40, seconds:60 }, pids, 60);
       const right = pids.filter(pid=>{
         const v=(val(answers,pid)||'').trim().toUpperCase();
         return v===ansUp||(ansUp.includes(v)&&v.length>2);
@@ -2553,12 +2553,12 @@ const Host = (() => {
         ref: `${hint.toLocaleString()} ${Q.unit}`,
         refLabel: LANG==='ar'?'الرقم المرجعي':'Reference number',
         options: opts,
-        seconds: 15
+        seconds: 60
       };
       pushMirror({ headline: Q.q, sub: `${hint.toLocaleString()} ${Q.unit}` });
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p=>p.pid);
-      const answers = await collectWithTimer(hlSpec, pids, 15);
+      const answers = await collectWithTimer(hlSpec, pids, 60);
       // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
       net.setState({ phase: 'wait', msg: t('watch_screen') });
       const correctId = Q.n > hint ? 'higher' : 'lower';
@@ -2786,7 +2786,7 @@ const Host = (() => {
       pushMirror({ headline: Q.e });
       Audio_.sfx.sting();
       const pids = players.map(p=>p.pid);
-      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'فك العبارة!':'Decode the phrase!', context:Q.e, seconds:15, options:opts.map((o,j)=>({id:j,label:`${'ABCD'[j]} · ${o}`,color:colors[j]})) }, pids, 15);
+      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'فك العبارة!':'Decode the phrase!', context:Q.e, seconds:60, options:opts.map((o,j)=>({id:j,label:`${'ABCD'[j]} · ${o}`,color:colors[j]})) }, pids, 60);
       // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
       net.setState({ phase: 'wait', msg: t('watch_screen') });
       Audio_.sfx.drum(); await sleep(900);
@@ -2820,7 +2820,7 @@ const Host = (() => {
       pushMirror({ headline: Q.e });
       Audio_.sfx.sting();
       const pids = players.map(p=>p.pid);
-      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'فك الكلمة!':'Decode the word!', context:Q.e, seconds:12, options:opts.map((o,j)=>({id:j,label:`${'ABCD'[j]} · ${o}`,color:colors[j]})) }, pids, 12);
+      const answers = await collectWithTimer({ type:'choice', title:LANG==='ar'?'فك الكلمة!':'Decode the word!', context:Q.e, seconds:60, options:opts.map((o,j)=>({id:j,label:`${'ABCD'[j]} · ${o}`,color:colors[j]})) }, pids, 60);
       // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
       net.setState({ phase: 'wait', msg: t('watch_screen') });
       Audio_.sfx.drum(); await sleep(900);
@@ -2874,7 +2874,7 @@ const Host = (() => {
         <div id="statusRow" class="status-row"></div></div>`);
       pushMirror({headline:Q.e, sub:`${category} · ${totalLetters} letters`, pill:`${i+1}/${qs.length}`});
       Audio_.sfx.sting();
-      const TOTAL_SECS = 30;
+      const TOTAL_SECS = 60;
       const REVEAL_EVERY = Math.floor(TOTAL_SECS/(Math.floor(totalLetters*.6)+1))*1000;
       const t0=Date.now();
       const tI=setInterval(()=>{
@@ -3024,7 +3024,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         <div class="pick-sub">${LANG==='ar'?'فرصة أخيرة — خمّن الكلمة السرية!':'Last chance — guess the secret word!'}</div>
         <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>`);
       Audio_.sfx.buzzer(); await sleep(3000);
-      const guesses=await collectWithTimer({type:'text',title:LANG==='ar'?'اخمن الكلمة!':'Guess the word!',maxLen:40,seconds:20},spyPids,20);
+      const guesses=await collectWithTimer({type:'text',title:LANG==='ar'?'اخمن الكلمة!':'Guess the word!',maxLen:40,seconds:60},spyPids,60);
       // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
       net.setState({ phase: 'wait', msg: t('watch_screen') });
       const spyWon=spyPids.some(pid=>{const g=(val(guesses,pid)||'').trim().toUpperCase();return g===word.toUpperCase()||(word.toUpperCase().includes(g)&&g.length>3);});
@@ -3117,7 +3117,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         playerTitles: { [subject.pid]: LANG==='ar' ? 'جاوب بصراحة' : 'Answer honestly' },
         playerContexts: { [subject.pid]: P.q },
       };
-      const allInputs = await collectWithTimer(spec, allPids, 45);
+      const allInputs = await collectWithTimer(spec, allPids, 60);
 
       const subjectAnswer = (val(allInputs, subject.pid) || '').trim().toUpperCase().slice(0, 60);
       const subjectAnswered = !!subjectAnswer;
@@ -3319,9 +3319,9 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       // visible to the spy and the mode would collapse. The per-player
       // input panel is the only surface that can show each person their
       // own question.
-      const mkSpec = txt => ({ type:'text', title: LANG==='ar'?'إجابتك':'Answer', context: txt, maxLen:40, seconds:30, keepHostContext:true, fullscreenInput:true });
+      const mkSpec = txt => ({ type:'text', title: LANG==='ar'?'إجابتك':'Answer', context: txt, maxLen:40, seconds:60, keepHostContext:true, fullscreenInput:true });
       const specs = {};
-      const deadline = inputDeadline(30);
+      const deadline = inputDeadline(60);
       pids.forEach(pid => { specs[pid] = { ...mkSpec(pid === spy.pid ? pair.b : pair.a), deadline }; });
       const phaseId = 'bi' + Date.now() + '_' + q;
       // v118 — `targets` added: collectWithTimer sets it on every input
@@ -3341,7 +3341,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       const _biTimerInt = setInterval(() => {
         const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
         if (_biNum) { _biNum.textContent = left; _biNum.classList.toggle('danger', left <= 5 && left > 0); }
-        if (_biFill) { _biFill.style.transition = 'stroke-dashoffset .95s linear'; _biFill.style.strokeDashoffset = (1 - left / 30) * _biCirc; }
+        if (_biFill) { _biFill.style.transition = 'stroke-dashoffset .95s linear'; _biFill.style.strokeDashoffset = (1 - left / 60) * _biCirc; }
       }, 1000);
 
       const botPids = net.getBotPids ? net.getBotPids() : [];
@@ -3394,7 +3394,7 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         action.appendChild(b);
       }, 12000);
 
-      const ans = await net.collect(phaseId, specs[net.hostSelfPid] || mkSpec(pair.a), pids, inputTimeout(30));
+      const ans = await net.collect(phaseId, specs[net.hostSelfPid] || mkSpec(pair.a), pids, inputTimeout(60));
       clearInterval(_biTimerInt);
       clearInputTimers();
       clearTimeout(_biSkipTimer);
