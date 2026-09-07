@@ -748,25 +748,14 @@ const Host = (() => {
     }
   }
 
-  async function winnerScene(championPid = null) {
-    await FX.wipe();
-    hideHost();
-    const sorted = players.slice().sort((a, b) => b.score - a.score);
-    const w = players.find(p => p.pid === championPid) || sorted[0];
-    setPill(t('final_results'));
-    scene(`
-      <div class="winner-wrap">
-        <div class="crown">👑</div>
-        <div class="winner-name display">${w.emoji} ${esc(w.name)}</div>
-        <div class="tagline">${esc(t('winner'))}</div>
-        <div class="final-lb">${sorted.map((p,i)=>`<div class="final-lb-row"><span class="final-medal">${['🥇','🥈','🥉'][i]||((i+1)+'.')}</span>${avatarHTML(p)}<span class="final-name">${esc(p.name)}</span><span class="final-pts">${p.score}</span></div>`).join('')}</div>
-      </div>`);
-    net.setState({ phase: 'winner', name: w.name, emoji: w.emoji });
-    // Buttons live in the fixed #hostDockAction dock (same mechanism as
-    // waitNext()'s 'Next Round' button) rather than inline at the end of
-    // the scrolling leaderboard -- guarantees they're always visible
-    // without requiring the host to scroll past the full player list,
-    // matching the always-visible pattern used everywhere else.
+  // v252 — shared by winnerScene() and the "Knows the Group Best" final
+  // screens (WYR, Most Likely To). Wires the Play Again / Play Another Game
+  // dock buttons onto whatever scene is currently showing, with the exact
+  // same click handling, phone-host polling, and score-reset side effect
+  // that winnerScene() has always used. Extracted so Ali's "make the group-
+  // best screen the final page, don't show Champion of the Night after it"
+  // request could reuse this verbatim instead of duplicating the wiring.
+  async function wireFinalActionButtons() {
     const dockAction = document.getElementById('hostDockAction');
     if (dockAction) {
       document.getElementById('hostInputDock')?.classList.add('final-results-dock');
@@ -775,11 +764,7 @@ const Host = (() => {
         <button class="big-btn final-action-btn" id="againBtn">🔄 ${LANG==='ar'?'العب مرة ثانية':'Play Again'}</button>
         <button class="big-btn ghost final-action-btn" id="changeGameBtn">🎮 ${LANG==='ar'?'العب لعبة ثانية':'Play Another Game'}</button>`;
     }
-
-    // Wire the result actions as soon as the buttons are visible. Winner
-    // banter and effects can take a moment, and taps during that animation
-    // must not be lost.
-    const resultAction = new Promise(resolve => {
+    return new Promise(resolve => {
       const againBtn = document.getElementById('againBtn');
       const changeGameBtn = document.getElementById('changeGameBtn');
       let settled = false;
@@ -801,15 +786,8 @@ const Host = (() => {
         }
         window.__hypoxPlayAgain = action === 'again';
         document.getElementById('hostInputDock')?.classList.remove('final-results-dock');
-        // v216 — the local reset here (players[].score = 0) was never mirrored
-        // to Firebase. net.updateScore() writes players/{pid}/score on every
-        // point scored during gameplay (see addScore()), so Firebase still
-        // held each player's final score from the game that just ended. The
-        // very next net.onPlayers() sync (phones-only mode polls this
-        // constantly) then Object.assign'd that stale remote score straight
-        // back over the freshly-zeroed local one, so scores appeared to
-        // carry over into the new game/round. Push the zero to Firebase too,
-        // for every action (again AND change), so nothing stale survives.
+        // v216 — see winnerScene()'s identical comment for the full
+        // explanation of why the zero must be pushed to Firebase here too.
         players.forEach(p => { p.score = 0; net?.updateScore?.(p.pid, 0); });
         resolve(action);
       };
@@ -817,7 +795,6 @@ const Host = (() => {
       const changeGame = () => choose('change');
       againBtn?.addEventListener('click', playAgain);
       changeGameBtn?.addEventListener('click', changeGame);
-      // Poll for phone host choice (phones-only mode)
       const _poll = setInterval(() => {
         if(window.__hypoxWinnerChoice === 'again') {
           clearInterval(_poll); window.__hypoxWinnerChoice = null; choose('again');
@@ -826,6 +803,28 @@ const Host = (() => {
         }
       }, 300);
     });
+  }
+
+  async function winnerScene(championPid = null) {
+    await FX.wipe();
+    hideHost();
+    const sorted = players.slice().sort((a, b) => b.score - a.score);
+    const w = players.find(p => p.pid === championPid) || sorted[0];
+    setPill(t('final_results'));
+    scene(`
+      <div class="winner-wrap">
+        <div class="crown">👑</div>
+        <div class="winner-name display">${w.emoji} ${esc(w.name)}</div>
+        <div class="tagline">${esc(t('winner'))}</div>
+        <div class="final-lb">${sorted.map((p,i)=>`<div class="final-lb-row"><span class="final-medal">${['🥇','🥈','🥉'][i]||((i+1)+'.')}</span>${avatarHTML(p)}<span class="final-name">${esc(p.name)}</span><span class="final-pts">${p.score}</span></div>`).join('')}</div>
+      </div>`);
+    net.setState({ phase: 'winner', name: w.name, emoji: w.emoji });
+    // Buttons live in the fixed #hostDockAction dock (same mechanism as
+    // waitNext()'s 'Next Round' button) rather than inline at the end of
+    // the scrolling leaderboard -- guarantees they're always visible
+    // without requiring the host to scroll past the full player list,
+    // matching the always-visible pattern used everywhere else.
+    const resultAction = wireFinalActionButtons();
 
     Audio_.sfx.crown(); Audio_.sfx.fanfare();
     // Keep this last line in the network mirror for the whole result screen.
@@ -1322,7 +1321,12 @@ const Host = (() => {
         </div>
       </div>`);
     Audio_.sfx.reveal(); FX.burst(150);
-    await waitNext(12);
+    // v252 — this screen is now the mode's true final page (Ali's request:
+    // no more generic "Champion of the Night" screen after it). The Play
+    // Again / Play Another Game dock attaches directly here, and the
+    // resolved action is returned so the main loop can skip winnerScene()
+    // entirely for this mode (see GROUP_BEST_MODES / the run() loop).
+    return await wireFinalActionButtons();
   }
 
   /* ================================================================
@@ -2429,9 +2433,11 @@ const Host = (() => {
         </div>
       </div>`);
     Audio_.sfx.reveal(); FX.burst(150);
-    await waitNext(12);
-
-    await showScores();
+    // v252 — this screen is now the mode's true final page (Ali's request:
+    // no more generic "Champion of the Night" screen after it, and no more
+    // showScores() detour either). The Play Again / Play Another Game dock
+    // attaches directly here, matching WYR's identical final screen.
+    return await wireFinalActionButtons();
   }
 
   async function playTrueorlie() {
@@ -3930,6 +3936,12 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
   }
 
   const SCORELESS_MODES = new Set(['blendin']);
+  // v252 — these modes render their own "Knows the Group Best" final page
+  // (complete with the Play Again / Play Another Game dock, via
+  // wireFinalActionButtons()) and return the resolved action directly, so
+  // the generic winnerScene() "Champion of the Night" screen must not run
+  // again afterward — that would just show a second, redundant final page.
+  const GROUP_BEST_MODES = new Set(['wyr', 'mostlikely']);
 
   async function scorelessEndScreen() {
     await FX.wipe();
@@ -4080,7 +4092,9 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
         await new Promise(r => document.getElementById('errContinueBtn')?.addEventListener('click', r, {once:true}));
       }
       if (window.__hypoxAbort) { stopSharedScreen(); return; }
-      const resultAction = SCORELESS_MODES.has(mode) ? await scorelessEndScreen() : await winnerScene(modeResult?.championPid);
+      const resultAction = GROUP_BEST_MODES.has(mode) ? modeResult
+        : SCORELESS_MODES.has(mode) ? await scorelessEndScreen()
+        : await winnerScene(modeResult?.championPid);
       if(resultAction === 'again') {
         playAgain = true;
       }
