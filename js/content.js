@@ -439,7 +439,20 @@ const Content = (() => {
     // straight through to its static content pool, same as if no AI
     // backend were configured at all. No network call is made.
     const aiOff = typeof window !== 'undefined' && window.HYPOX_STATE && window.HYPOX_STATE.aiEnabled === false;
-    if (cfg.aiEndpoint && !window._hypoxTestMode && !aiOff) {
+    // v253 — tracks whether an AI call was actually attempted (vs. the host
+    // deliberately turning AI off, which is not a failure and should not
+    // warn). Ali reported seeing repeated True or Lie questions with no
+    // indication anything was wrong: the warning toast below used to only
+    // fire when `count > poolSize` (the requested round count exceeded the
+    // static pool), but True or Lie's static pool has 12 items and rounds
+    // default to 5 — so a silently-failing AI backend could serve the same
+    // ~12 questions on every single game, forever, with zero warning, since
+    // 5 never exceeds 12. The block below is only ever reached when the AI
+    // path did NOT return usable content (the AI branch always returns
+    // early on success), so simply showing the toast whenever AI was
+    // attempted-but-failed (regardless of pool size) closes that gap.
+    const aiAttempted = !!(cfg.aiEndpoint && !window._hypoxTestMode && !aiOff);
+    if (aiAttempted) {
       let timeoutId;
       try {
         const persistentKey = historyKey(mode, lang, region, topic);
@@ -478,6 +491,7 @@ const Content = (() => {
             }
           }
         }
+        console.error('[HYPOX] AI response not usable:', res.status, res.statusText);
       } catch (e) {
         console.error('[HYPOX] AI fetch failed:', e.message);
         // AI unavailable — fall through to static
@@ -489,14 +503,21 @@ const Content = (() => {
     // Guard: nothing to fetch
     if (count <= 0) return [];
 
-    // Warn host if static pool is smaller than requested (content will repeat)
+    // v253 — always warn when AI was attempted but didn't deliver usable
+    // content, not only when the static pool is too small to cover the
+    // round count. A too-small pool still gets a slightly more specific
+    // message (content WILL repeat within this game), otherwise a generic
+    // "AI unavailable" notice (content may repeat across games/sessions
+    // even though this one game has enough static variety to look fine).
     const poolSize = (staticFallback && staticFallback.length)
       ? staticFallback.length
       : ((PACKS[mode] && (PACKS[mode][lang] || PACKS[mode].en)) || []).length;
-    if (poolSize > 0 && count > poolSize) {
+    if (aiAttempted) {
       const toast = document.createElement('div');
       toast.style.cssText = 'position:fixed;bottom:4vmin;left:50%;transform:translateX(-50%);background:#374151;color:#facc15;font-family:Fredoka One,sans-serif;font-size:15px;padding:10px 22px;border-radius:50px;z-index:99;opacity:0.92;pointer-events:none';
-      toast.textContent = '🔄 AI unavailable — emergency content may repeat';
+      toast.textContent = (poolSize > 0 && count > poolSize)
+        ? '🔄 AI unavailable — emergency content may repeat'
+        : '🔄 AI unavailable — using backup questions';
       document.body.appendChild(toast);
       setTimeout(() => toast.remove(), 3500);
     }

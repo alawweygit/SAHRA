@@ -221,9 +221,23 @@ function isValidPrompt(mode, item, region) {
   if (mode === 'harfhunt') return typeof item === 'string' && item.trim().length >= 3;
   if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
   const text = key => typeof item[key] === 'string' && item[key].trim().length > 0;
-  const fourChoices = () => Array.isArray(item.options) && item.options.length === 4 &&
-    item.options.every(option => typeof option === 'string' && option.trim()) &&
-    Number.isInteger(item.correct) && item.correct >= 0 && item.correct < 4;
+  // v253 — same bug class as Time Machine (v239) and True or Lie (v243):
+  // Number.isInteger(item.correct) rejects the ENTIRE item the moment the
+  // model returns "correct":"2" (a quoted string) instead of "correct":2
+  // (a bare number) -- LLMs do this inconsistently. Used by both Quiz and
+  // Flaghunt (fourChoices() below is shared by both), so this one bug could
+  // silently degrade two AI-backed modes to their small static pools at
+  // once, with no visible error. Coerce numeric-looking strings instead of
+  // rejecting them outright, normalizing item.correct in place so
+  // downstream code always gets a real number.
+  const fourChoices = () => {
+    if (!Array.isArray(item.options) || item.options.length !== 4) return false;
+    if (!item.options.every(option => typeof option === 'string' && option.trim())) return false;
+    const correctNum = Number(item.correct);
+    if (!Number.isInteger(correctNum) || correctNum < 0 || correctNum >= 4) return false;
+    item.correct = correctNum;
+    return true;
+  };
   const oneWord = value => typeof value === 'string' && value.trim() && value.trim().split(/\s+/).length === 1;
   const atMostWords = (value, limit) => typeof value === 'string' &&
     value.trim().length > 0 && value.trim().split(/\s+/).length <= limit;
@@ -284,7 +298,13 @@ function isValidPrompt(mode, item, region) {
       return false;
     }
     case 'pinpoint': {
-      if (!(text('en') && text('ar') && text('countryEn') && text('countryAr') && Number.isFinite(item.lat) && Number.isFinite(item.lon))) return false;
+      // v253 — same bug class as year/trueorlie/fourChoices/higherlow above:
+      // Number.isFinite(item.lat/lon) rejects the whole item if the model
+      // returns coordinates as quoted strings instead of bare numbers.
+      if (!(text('en') && text('ar') && text('countryEn') && text('countryAr'))) return false;
+      const latNum = Number(item.lat), lonNum = Number(item.lon);
+      if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) return false;
+      item.lat = latNum; item.lon = lonNum;
       const isMenaCountry = MENA_COUNTRIES.has(String(item.countryEn).trim().toLowerCase()) || MENA_COUNTRIES.has(String(item.countryAr).trim());
       if (region === 'mena' && !isMenaCountry) return false;
       if (region !== 'mena' && isMenaCountry) return false;
@@ -316,7 +336,16 @@ function isValidPrompt(mode, item, region) {
       item.y = yNum;
       return true;
     }
-    case 'higherlow': return text('q') && Number.isFinite(item.n) && text('unit');
+    case 'higherlow': {
+      // v253 — same bug class as year/trueorlie/fourChoices above:
+      // Number.isFinite(item.n) rejects the whole item if the model returns
+      // the number as a quoted string ("50") instead of a bare number (50).
+      if (!text('q') || !text('unit')) return false;
+      const nNum = Number(item.n);
+      if (!Number.isFinite(nNum)) return false;
+      item.n = nNum;
+      return true;
+    }
     case 'flaghunt': {
       if (!(text('flag') && fourChoices())) return false;
       const correctCountry = item.options && item.options[item.correct];
