@@ -2312,6 +2312,16 @@ const Host = (() => {
     const rounds = window.HYPOX_STATE?.rounds || 5;
     const prompts = await Content.get('mostlikely', LANG, rounds);
     if (!prompts.length) { scene(`<div class="prompt-card display">🏆 ${LANG==='ar'?'تعذّر تحميل الأسئلة':'Could not load questions'}</div>`); await waitNext(5); return; }
+    // v249 — tracks each player's correct-vote count LOCALLY to this mode
+    // (separate from the shared game score, which may already carry points
+    // from earlier modes this session). Every point in Most Likely To comes
+    // from voting with the group's majority pick (see correctVoters below),
+    // so this tally IS a "how well do you read the group" measure — same
+    // idea as WYR's knowScores, just derived from existing data instead of
+    // a new prediction mechanic. Used for the end-of-mode "Knows the Group
+    // Best" screen, mirroring WYR's final summary (Ali's request).
+    const groupReadScore = {};
+    players.forEach(p => { groupReadScore[p.pid] = 0; });
     for (let i = 0; i < prompts.length; i++) {
       const Q = prompts[i];
       await FX.wipe();
@@ -2333,7 +2343,7 @@ const Host = (() => {
       // no curve by group size, no reward/penalty either way for landslide
       // vs close votes (explicitly rejected during design discussion).
       const correctVoters = pids.filter(pid => !winners.includes(pid) && winners.includes(val(votes, pid)));
-      correctVoters.forEach(pid => addScore(pid, 200));
+      correctVoters.forEach(pid => { addScore(pid, 200); groupReadScore[pid] = (groupReadScore[pid]||0) + 200; });
       Audio_.sfx.reveal(); FX.burst(80);
 
       // v88 — spotlight reveal (reuses Know Your Crew's glowing-ring hot-seat
@@ -2385,6 +2395,42 @@ const Host = (() => {
       hideHost(); await waitNext();
       if (i < prompts.length - 1) await showScores();
     }
+
+    // v249 — end-of-mode "Knows the Group Best" screen, replacing the
+    // generic score screen with a dedicated trophy moment for whoever most
+    // often voted with the group's majority pick across all rounds. Same
+    // visual language as WYR's identical final summary (see playWyr above).
+    await FX.wipe();
+    const groupBestML = players.reduce((best, p) => {
+      return (groupReadScore[p.pid]||0) > (groupReadScore[best.pid]||0) ? p : best;
+    }, players[0]);
+    const mlMaxPossible = prompts.length * 200;
+    const groupBestMLScore = groupReadScore[groupBestML.pid] || 0;
+    scene(`
+      <div style="text-align:center;padding:2vmin;perspective:1000px">
+        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(14px,2.2vmin,20px);color:var(--text2);letter-spacing:2px;text-transform:uppercase;animation:fadeSlideUp 0.5s both">${LANG==='ar'?'الفائز':'WINNER'}</div>
+        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(20px,3.5vmin,30px);color:var(--yellow);margin-bottom:2vmin;animation:fadeSlideUp 0.5s 0.1s both">${LANG==='ar'?'أكثر واحد يعرف المجموعة':'Knows the Group Best'}</div>
+        <div style="position:relative;display:inline-block;animation:wyrTrophyPop 0.7s 0.3s both cubic-bezier(0.34,1.56,0.64,1)">
+          <div style="font-size:clamp(48px,8vmin,72px);margin-bottom:0.5vmin">🏆</div>
+        </div>
+        <div style="animation:wyrTrophyPop 0.6s 0.6s both cubic-bezier(0.34,1.56,0.64,1);display:flex;justify-content:center;margin:0 auto">
+          ${avatarHTML(groupBestML)}
+        </div>
+        <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(26px,5vmin,48px);color:var(--text);margin-top:1vmin;animation:fadeSlideUp 0.5s 0.9s both;text-align:center">${esc(groupBestML.name)}</div>
+        <div style="display:inline-block;background:linear-gradient(135deg,#2de1fc,#a78bff);border-radius:40px;padding:8px 28px;margin-top:1.5vmin;animation:fadeSlideUp 0.5s 1.1s both">
+          <span style="font-family:'Fredoka One',sans-serif;font-size:clamp(18px,3vmin,28px);color:#000;font-weight:900">${groupBestMLScore}/${mlMaxPossible} ✓</span>
+        </div>
+        <div style="margin-top:2vmin;display:flex;justify-content:center;gap:16px;flex-wrap:wrap;animation:fadeSlideUp 0.5s 1.3s both">
+          ${players.filter(p=>p.pid!==groupBestML.pid).map(p=>`
+            <div style="text-align:center;opacity:0.7">
+              ${avatarHTML(p)}
+              <div style="font-size:clamp(11px,1.6vmin,14px);color:var(--text2);margin-top:4px">${groupReadScore[p.pid]||0}/${mlMaxPossible}</div>
+            </div>`).join('')}
+        </div>
+      </div>`);
+    Audio_.sfx.reveal(); FX.burst(150);
+    await waitNext(12);
+
     await showScores();
   }
 
