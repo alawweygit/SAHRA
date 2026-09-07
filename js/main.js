@@ -1237,6 +1237,15 @@
         const res=await net.joinRoom(code,name,av);
         myPid=res.pid;isVip=res.isVip;net.hostSelfPid=myPid;net.promptLocal=phonesHostPrompt;window._hypoxMyPid=myPid;
         await net.setHostPlayer(myPid,name);
+        // A phones-only host is also a real player. Preserve that player
+        // identity so, if another phone takes the crown while this device is
+        // offline, the former host can reclaim the same roster entry as a
+        // normal player instead of hitting Name/Avatar Taken on the join form.
+        try{
+          const encoded=JSON.stringify({code,name,pid:myPid,isVip,emoji:av.emoji,color:av.color,wasHost:true});
+          sessionStorage.setItem('hypox_session',encoded);
+          localStorage.setItem('hypox_player_session',encoded);
+        }catch(e){}
         net.startHeartbeat?.();
         show('#scr-lobby');setupLobby(gameMode);
       });return;

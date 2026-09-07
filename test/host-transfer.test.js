@@ -94,6 +94,8 @@ eval(source);
   assert.match(main, /New host is \$\{status\.hostName\|\|''\}/, 'all phones must announce the new host by name');
   assert.match(main, /hypox_promoted_host/, 'the elected phone must use the dedicated promotion boot path');
   assert.match(main, /e\?\.message==='host-reassigned'/, 'an old host refresh must fall back to player reconnect');
+  assert.match(main, /wasHost:true.*sessionStorage\.setItem\('hypox_session'.*localStorage\.setItem\('hypox_player_session'/s,
+    'a phones-only host must save their player identity for return after transfer');
   assert.match(main, /A new host was chosen\. Rejoin as a player\./,
     'an old TV host must be offered the normal player rejoin path');
   const hostSource = fs.readFileSync(path.join(ROOT, 'js/host.js'), 'utf8');
