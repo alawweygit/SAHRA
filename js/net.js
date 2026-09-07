@@ -347,17 +347,21 @@ class FirebaseNet {
     };
     const playerRef = this.room('players/' + this.pid);
     await this._retryTransient(() => this._withNetworkTimeout(playerRef.set(player), 12000));
-    // Establish presence before returning when possible. The accepted player
-    // write above is authoritative; a carrier that briefly blocks this
-    // secondary heartbeat must not turn a successful join into an error (the
-    // regular heartbeat retries it again as soon as the controller opens).
-    try { await this.room('presence/' + this.pid).onDisconnect().remove(); } catch (_) {}
-    try {
-      await this._retryTransient(() => this._withNetworkTimeout(
-        this.room('presence/' + this.pid).set({ t: this._serverTimestamp() }), 12000));
+    // The player write above is the authoritative join. Presence is only a
+    // secondary liveness signal, so never hold the Join screen through three
+    // 12-second retries while the host already sees the player. Give both
+    // presence operations one short opportunity in parallel; the controller
+    // heartbeat repairs either one immediately after this method returns.
+    const presenceRef = this.room('presence/' + this.pid);
+    const presenceResults = await Promise.allSettled([
+      this._withNetworkTimeout(presenceRef.onDisconnect().remove(), 1500),
+      this._withNetworkTimeout(presenceRef.set({ t: this._serverTimestamp() }), 1500),
+    ]);
+    if (presenceResults[0].status === 'fulfilled') {
       this._presenceDisconnectKey = `${this.code}:${this.pid}`;
-    } catch (error) {
-      console.warn('[HYPOX] initial presence delayed; heartbeat will retry', error);
+    }
+    if (presenceResults.some(result => result.status === 'rejected')) {
+      console.warn('[HYPOX] initial presence delayed; heartbeat will retry');
     }
     this._playerIdentity = { ...player, pid: this.pid };
     this._closing = false;
@@ -704,10 +708,13 @@ class FirebaseNet {
         if (!this._closing) {
           const disconnectKey = `${this.code}:${this.pid}`;
           if (this._presenceDisconnectKey !== disconnectKey) {
-            try { await this.room('presence/' + this.pid).onDisconnect().remove(); } catch (_) {}
-            this._presenceDisconnectKey = disconnectKey;
+            try {
+              await this._withNetworkTimeout(this.room('presence/' + this.pid).onDisconnect().remove(), 2000);
+              this._presenceDisconnectKey = disconnectKey;
+            } catch (_) {}
           }
-          await this.room('presence/' + this.pid).set({ t: this._serverTimestamp() });
+          await this._withNetworkTimeout(
+            this.room('presence/' + this.pid).set({ t: this._serverTimestamp() }), 4000);
         }
       } catch(e) {
       } finally {

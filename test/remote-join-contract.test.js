@@ -54,5 +54,26 @@ eval(source);
   });
   assert.equal(FB.__root.rooms[code].players[flakyJoin.pid].name, 'Cellular Frien',
     'a secondary heartbeat failure must not reject an accepted player join');
+
+  const hangingPresencePhone = new FirebaseNet(FB.database());
+  const hangingRoom = hangingPresencePhone.room.bind(hangingPresencePhone);
+  hangingPresencePhone.room = pathName => {
+    const ref = hangingRoom(pathName);
+    if (String(pathName).startsWith('presence/')) {
+      return {
+        ...ref,
+        set: () => new Promise(() => {}),
+        onDisconnect: () => ({ remove: () => new Promise(() => {}) }),
+      };
+    }
+    return ref;
+  };
+  const joinStarted = Date.now();
+  const hangingJoin = await hangingPresencePhone.joinRoom(code, 'Slow Carrier', {
+    emoji: '🦄', color: '#a78bfa',
+  });
+  assert.equal(FB.__root.rooms[code].players[hangingJoin.pid].name, 'Slow Carrier');
+  assert.ok(Date.now() - joinStarted < 2500,
+    'a hanging secondary presence channel must not trap the player on Joining');
   console.log('REMOTE JOIN CONTRACT PASSED ✅');
 })().catch(error => { console.error(error); process.exitCode = 1; });
