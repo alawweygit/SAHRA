@@ -44,6 +44,8 @@ class FirebaseNet {
     this._playerIdentity = null; this._closing = false; this._heartbeatBusy = false;
     this._hostEpoch = null; this._serverTimeOffset = 0; this._serverOffsetRef = null;
     this._presenceDisconnectKey = null; this._stalePresenceChecks = new Map();
+    this._hostConnectionRef = null; this._hostConnectionListener = null;
+    this._hostRecoveryBusy = false;
   }
 
   _serverNow() { return Date.now() + Number(this._serverTimeOffset || 0); }
@@ -120,8 +122,9 @@ class FirebaseNet {
     // old implementation replaced `state` with {phase:'hostLeft'}, which
     // destroyed the active question and made phones render two partial
     // screens. A disconnect now leaves the active phase untouched while the
-    // surviving phones elect a replacement host through hostStatus.
+    // surviving phones wait for the same host to reconnect through hostStatus.
     await this._armHostDisconnect(this.pid, 'Host');
+    this._watchHostConnection(this.pid, 'Host', this._hostEpoch);
     return this.code;
   }
 
@@ -171,6 +174,40 @@ class FirebaseNet {
     });
   }
 
+  _watchHostConnection(pid, name, epoch = null) {
+    if (this._hostConnectionRef) {
+      try { this._hostConnectionRef.off('value', this._hostConnectionListener); } catch (_) {}
+    }
+    const connectedRef = this.db.ref('.info/connected');
+    this._hostConnectionRef = connectedRef;
+    this._hostConnectionListener = connectedRef.on('value', async snap => {
+      if (snap.val() !== true || this._closing || !this.code || this._hostRecoveryBusy) return;
+      this._hostRecoveryBusy = true;
+      try {
+        // A brief Firebase transport reset fires the server-side disconnect
+        // marker even while the page and game timer keep running. Only the
+        // still-assigned host may clear that marker when its socket returns.
+        // This ownership check also prevents an old host from taking a room
+        // back if its assignment was deliberately changed elsewhere.
+        const hostSnap = await this.room('host').get();
+        const assignedHost = hostSnap.val() || {};
+        if (assignedHost.pid !== pid || this._closing) return;
+        const hostName = name || assignedHost.name || 'Host';
+        const hostEpoch = assignedHost.epoch || epoch || this._hostEpoch || Date.now();
+        this._hostEpoch = hostEpoch;
+        await this.room('hostStatus').set({
+          status: 'online', hostPid: pid, hostName,
+          epoch: hostEpoch, reason: 'reconnected',
+        });
+        await this._armHostDisconnect(pid, hostName, hostEpoch);
+      } catch (error) {
+        if (!this._closing) console.warn('[HYPOX] host reconnect recovery failed', error);
+      } finally {
+        this._hostRecoveryBusy = false;
+      }
+    });
+  }
+
   async _registerHostConnection(pid, name, epoch = null, reason = null) {
     if (!pid) throw new Error('missing-host-pid');
     this._hostEpoch = epoch || Date.now();
@@ -181,6 +218,7 @@ class FirebaseNet {
       epoch: this._hostEpoch, ...(reason ? { reason } : {}),
     });
     await this._armHostDisconnect(pid, assignment.name, this._hostEpoch);
+    this._watchHostConnection(pid, assignment.name, this._hostEpoch);
     return assignment;
   }
 
@@ -775,6 +813,12 @@ class FirebaseNet {
     if (this._serverOffsetRef) {
       try { this._serverOffsetRef.off(); } catch (_) {}
       this._serverOffsetRef = null;
+    }
+    if (this._hostConnectionRef) {
+      try { this._hostConnectionRef.off('value', this._hostConnectionListener); } catch (_) {}
+      this._hostConnectionRef = null;
+      this._hostConnectionListener = null;
+      this._hostRecoveryBusy = false;
     }
     try { await roomRef.onDisconnect().cancel(); } catch(e) {}
     try { await this.room('state').onDisconnect().cancel(); } catch(e) {}

@@ -2207,7 +2207,6 @@
     let hostLeftTimer=null;
     let playerInputRenderEpoch=0;
     let currentPlayerPhase=null;
-    let hostElectionRunning=false;
     let hostPromotionStarted=false;
 
     async function renderShared(view){
@@ -2475,24 +2474,12 @@
       if(!status)return;
       if(status.status==='offline'){
         window._hypoxHostGone=true;
-        showHostTransferBanner(LANG==='ar'?'المضيف انقطع — جاري اختيار مضيف جديد… 👑':'Host disconnected — choosing a new host… 👑');
-        if(hostElectionRunning)return;
-        hostElectionRunning=true;
-        try{
-          // Mobile networks briefly disconnect during Wi-Fi/cellular handoffs.
-          // Give the existing host time to recover before permanently moving
-          // the crown. electReplacementHost re-reads hostStatus after this
-          // delay and does nothing if the host is online again.
-          await sleep(5000+Math.floor(Math.random()*1000));
-          const assignment=await net.electReplacementHost();
-          if(!assignment){
-            showHostTransferBanner(LANG==='ar'?'لا يوجد لاعب متصل ليستلم الاستضافة':'No connected player is available to become host');
-            return;
-          }
-          await promoteThisPhoneToHost(assignment);
-        }catch(e){
-          console.error('[HYPOX] host election failed',e);
-        }finally{hostElectionRunning=false;}
+        // Never transfer the crown because of a connection-status event.
+        // Mobile/Wi-Fi handoffs can briefly look exactly like a departed host,
+        // while the original host's page and timer are still running. Keeping
+        // one authoritative host avoids two divergent games. The host's
+        // Firebase connection watcher will clear this banner when it returns.
+        showHostTransferBanner(LANG==='ar'?'اتصال المضيف متوقف مؤقتًا — بانتظار عودته…':'Host connection interrupted — waiting for host…');
         return;
       }
       if(status.status==='transferring'){

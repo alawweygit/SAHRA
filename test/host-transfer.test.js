@@ -46,6 +46,17 @@ eval(source);
   await originalHost.setGameSession({ mode: 'bluff', playMode: 'phones', hypoxState: { rounds: 5 }, active: true });
   await originalHost.setState({ phase: 'input', phaseId: 'round-3', headline: 'Keep this question' });
 
+  // A temporary Firebase transport loss must heal back to online without
+  // changing ownership. This is the real-world Mac/phone false transfer.
+  await originalHost.room('hostStatus').set({
+    status: 'offline', hostPid: oldHost.pid, hostName: 'Old Host',
+    epoch: FB.__root.rooms[code].host.epoch,
+  });
+  await FB.database().ref('.info/connected').set(true);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(FB.__root.rooms[code].hostStatus.status, 'online', 'the assigned host must restore online status after reconnecting');
+  assert.equal(FB.__root.rooms[code].host.pid, oldHost.pid, 'a transient connection loss must not change the host');
+
   const oldAssignment = FB.__root.rooms[code].host;
   await originalHost.room('hostStatus').set({
     status: 'offline', hostPid: oldHost.pid, hostName: 'Old Host',
@@ -70,7 +81,8 @@ eval(source);
   assert.equal(resumed.session.mode, 'bluff', 'the promoted phone must restore the interrupted game mode');
   assert.equal(FB.__root.rooms[code].state.phase, 'input', 'promoting a host must not create a second/overlapping phase');
   assert.equal(FB.__root.rooms[code].hostStatus.status, 'online');
-  assert.equal(FB.__root.rooms[code].hostStatus.reason, 'transfer');
+  assert.ok(['transfer', 'reconnected'].includes(FB.__root.rooms[code].hostStatus.reason),
+    'a manually promoted host must finish online even when its connection watcher runs immediately');
 
   const returningOldHost = new FirebaseNet(FB.database());
   await assert.rejects(
@@ -91,6 +103,11 @@ eval(source);
   assert.equal(FB.__root.rooms[code].host.pid, assignmentA.pid, 'old-host reconnect must not replace the new host');
 
   const main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+  const statusStart = main.indexOf('async function handleHostStatus');
+  const statusEnd = main.indexOf('net.onHostStatus', statusStart);
+  const statusHandler = main.slice(statusStart, statusEnd);
+  assert.doesNotMatch(statusHandler, /electReplacementHost/, 'a disconnected host must never trigger automatic election');
+  assert.match(statusHandler, /waiting for host/, 'players must wait for the original host to reconnect');
   assert.match(main, /New host is \$\{status\.hostName\|\|''\}/, 'all phones must announce the new host by name');
   assert.match(main, /hypox_promoted_host/, 'the elected phone must use the dedicated promotion boot path');
   assert.match(main, /e\?\.message==='host-reassigned'/, 'an old host refresh must fall back to player reconnect');
