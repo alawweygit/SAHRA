@@ -1880,6 +1880,15 @@ const Host = (() => {
   async function playPinpoint() {
     await modeTitleCard('pinpoint');
     const rounds = window.HYPOX_STATE?.rounds || 5;
+    // v247 — region-aware fallback. Previously only the AI path was ever
+    // filtered by region (server-side, via MENA_COUNTRIES in server.js);
+    // the static PINPOINT_CITIES top-up below completely ignored Arab
+    // flavor, so a global city could silently slip into an "Arab flavor"
+    // game whenever the AI returned fewer on-topic cities than requested.
+    const flavor = window.HYPOX_STATE?.flavor || 'global';
+    const isMenaFlavor = flavor === 'arab';
+    const MENA_SET = (typeof MENA_COUNTRIES_EN !== 'undefined' ? MENA_COUNTRIES_EN : new Set());
+    const isMenaCity = c => MENA_SET.has(String(c.countryEn || '').trim().toLowerCase());
     // Try AI backend first; normalize field names (AI uses en/ar/lat/lon, static same)
     let aiCities = [];
     try {
@@ -1899,10 +1908,17 @@ const Host = (() => {
     // Khalifa'). Heuristic, not perfect, but catches the common cases.
     const LANDMARK_WORDS = /\b(tower|bridge|wall|temple|palace|pyramid|statue|fort|castle|cathedral|mosque|church|museum|stadium|falls|canyon|colosseum|shrine|monument|memorial|opera house)\b/i;
     aiCities = aiCities.filter(c => !LANDMARK_WORDS.test(c.en));
+    // Defense in depth: the backend already enforces region on AI output,
+    // but if an older cached/AI response slips through, never let a
+    // non-MENA city reach the pool while Arab flavor is on (and vice versa).
+    if (isMenaFlavor) aiCities = aiCities.filter(isMenaCity);
+    else aiCities = aiCities.filter(c => !isMenaCity(c));
     const ALLPP = (typeof PINPOINT_CITIES !== 'undefined' ? PINPOINT_CITIES : []);
-    // Merge AI cities at front, fill rest from static pool (deduplicated by name)
+    const regionPool = isMenaFlavor ? ALLPP.filter(isMenaCity) : ALLPP.filter(c => !isMenaCity(c));
+    // Merge AI cities at front, fill rest from the REGION-FILTERED static
+    // pool (deduplicated by name) — not the full global pool.
     const usedNames = new Set(aiCities.map(c => c.en));
-    const staticFill = ALLPP.filter(c => !usedNames.has(c.en)).sort(() => Math.random() - .5);
+    const staticFill = regionPool.filter(c => !usedNames.has(c.en)).sort(() => Math.random() - .5);
     const pool = [...aiCities, ...staticFill].slice(0, rounds);
     for (let r = 0; r < pool.length; r++) {
       const city = pool[r];

@@ -808,6 +808,19 @@ const TRIVIA_CATS = {
 };
 
 /* ============ PINPOINT — geography guessing (PinWorld style) ============ */
+// v247 — mirrors the backend's MENA_COUNTRIES set (backend/server.js) so the
+// client-side static fallback pools can also be filtered by region. Needed
+// because Pinpoint's static top-up (PINPOINT_CITIES below) previously had
+// no region awareness at all: when the AI didn't return enough on-topic
+// cities and Arab flavor was selected, the fallback silently filled in
+// random global cities (Tokyo, Paris, Sydney, etc.), breaking the "Arab
+// flavor = only Arab content" guarantee that already existed server-side.
+const MENA_COUNTRIES_EN = new Set([
+  'saudi arabia', 'uae', 'united arab emirates', 'oman', 'qatar', 'bahrain', 'kuwait',
+  'jordan', 'lebanon', 'syria', 'iraq', 'palestine', 'egypt', 'libya', 'tunisia',
+  'algeria', 'morocco', 'sudan', 'yemen', 'mauritania', 'comoros', 'djibouti', 'somalia',
+]);
+
 const PINPOINT_CITIES = [
   { en:'Dubai', ar:'دبي', countryEn:'United Arab Emirates', countryAr:'الإمارات', lat:25.2, lon:55.3 },
   { en:'Paris', ar:'باريس', countryEn:'France', countryAr:'فرنسا', lat:48.9, lon:2.35 },
