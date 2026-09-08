@@ -614,10 +614,26 @@ app.post('/api/translate', async (req, res) => {
   try {
     const { text, to } = req.body || {};
     if (!text) return res.status(400).json({ error: 'No text' });
+    // v258 — this endpoint is shared by every mode's translate button
+    // (Bluff, Quiz, Time Machine, Most Likely To, True or Lie, etc.), but
+    // the prompt used to unconditionally say "Keep ___ as is" -- an
+    // instruction only relevant to Bluff's fill-in-the-blank sentences.
+    // For modes with no blank at all (e.g. True or Lie's complete
+    // statements), priming the model to expect and preserve a placeholder
+    // that isn't there caused it to truncate the translation and insert a
+    // stray placeholder instead of translating the full sentence (Ali
+    // reported "Nintendo started out as a playing card company" coming
+    // back as "...لصناعة ـــ." with the actual ending missing). Only
+    // include the blank-preservation instruction when the text actually
+    // contains one.
+    const hasBlank = text.includes('___');
+    const instructions = hasBlank
+      ? 'Translate this game question to Arabic. Keep ___ as is. Return ONLY the translation, nothing else:'
+      : 'Translate this game question to Arabic, translating the FULL sentence completely with nothing omitted. Return ONLY the translation, nothing else:';
     const msg = await anthropic.messages.create({
       model: AI_MODEL,
       max_tokens: 300,
-      messages: [{ role: 'user', content: `Translate this game question to Arabic. Keep ___ as is. Return ONLY the translation, nothing else:\n${text}` }],
+      messages: [{ role: 'user', content: `${instructions}\n${text}` }],
     });
     const translation = msg.content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
     res.json({ translation });
