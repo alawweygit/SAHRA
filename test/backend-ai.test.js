@@ -13,7 +13,7 @@ function sample(mode, index) {
     diss: { p: `Roast prompt ${suffix}` },
     quiz: { q: `Trivia question ${suffix}?`, options: ['A', 'B', 'C', 'D'], correct: index % 4 },
     mostlikely: { q: `Who is most likely to do thing ${suffix}?` },
-    trueorlie: { s: `Statement ${suffix}`, truth: index % 2 === 0 },
+    trueorlie: { s: `Statement ${suffix}`, truth: index % 2 === 0, ...(index % 2 !== 0 ? { correction: `Corrected statement ${suffix}` } : {}) },
     pinpoint: { en: `City ${suffix}`, ar: `مدينة ${suffix}`, countryEn: 'Country', countryAr: 'دولة', lat: 20 + index, lon: 50 + index },
     emoji: { answer: `WORD${suffix}`, category: 'Word', e: '🌊🦉', parts: ['sea', 'owl'], explanation: 'rebus' },
     emojiplace: { answer: `CITY${suffix}`, category: 'City', e: '🐾🌹', parts: ['paw', 'ris'], explanation: 'rebus' },

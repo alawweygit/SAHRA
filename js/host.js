@@ -2489,6 +2489,11 @@ const Host = (() => {
             <div class="tm-reveal-year-label">${LANG==='ar'?'الجواب':'The Answer'}</div>
             <div class="tm-reveal-year" style="color:${Q.truth?'var(--green)':'var(--pink)'}">${resultLabel}</div>
           </div>
+          ${(!Q.truth && Q.correction) ? `
+          <div class="tm-reveal-year-card" style="margin-top:1.5vmin;border-color:var(--cyan,#2de1fc)">
+            <div class="tm-reveal-year-label">${LANG==='ar'?'الحقيقة':'The Real Fact'}</div>
+            <div style="font-family:'Fredoka One',sans-serif;font-size:clamp(15px,2.4vmin,22px);color:var(--text);line-height:1.4;margin-top:6px">${esc(Q.correction)}</div>
+          </div>` : ''}
           <div class="tm-score-list">
             ${tlRows.map((r, idx) => `
               <div class="tm-score-row${r.got && idx===0 ? ' tm-rank-1' : ''}" style="animation-delay:${idx*.08}s">
