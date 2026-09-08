@@ -2603,15 +2603,37 @@ const Host = (() => {
       // Smart hint: for year questions (n looks like a year), stay within ±30 years
       // For other quantities, use proportional offset (60-120% of real value)
       const isYear = Q.n > 1800 && Q.n <= new Date().getFullYear() + 1 && (!Q.unit || Q.unit.toLowerCase().includes('year') || Q.unit === '');
+      // v260 — Ali's exact complaint: "121 calories" vs the real "119" is a
+      // 2-point gap, which is not a real higher/lower decision — it's an
+      // unguessable coinflip that happened to land almost on top of the
+      // real value. The old formula picked a multiplier uniformly from
+      // 0.6–1.2, which allows it to randomly land within 1-2% of 1.0 (i.e.
+      // right next to the real number) for a meaningful fraction of rounds.
+      // Fixed: pick the offset from two disjoint bands (15%–40% below OR
+      // above), so the gap is always big enough to be a real, meaningful
+      // guess regardless of which side it lands on.
+      const offsetPct = 0.15 + Math.random() * 0.25; // always 15%–40% away
+      const hintDirection = Math.random() > 0.5 ? 1 : -1;
       const hint = isYear
-        ? Q.n + Math.round((Math.random() > 0.5 ? 1 : -1) * (5 + Math.random() * 25))
-        : Math.round(Q.n * (0.6 + Math.random() * 0.6));
+        ? Q.n + Math.round(hintDirection * (5 + Math.random() * 25))
+        : Math.max(0, Math.round(Q.n * (1 + hintDirection * offsetPct)));
+      // v260 — Ali's request: abbreviate long numbers (e.g. "11.5M" instead
+      // of "11,500,000") so population/count-style facts stay readable at a
+      // glance during a timed round, matching how every other higher/lower
+      // game in the genre displays big numbers.
+      const abbreviateNum = n => {
+        const abs = Math.abs(n);
+        if (abs >= 1e9) return (n/1e9).toFixed(1).replace(/\.0$/,'') + 'B';
+        if (abs >= 1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'') + 'M';
+        if (abs >= 1e4) return (n/1e3).toFixed(1).replace(/\.0$/,'') + 'K';
+        return n.toLocaleString();
+      };
       // v259 — years never take a thousands-separator comma ("2,015" reads
       // as nonsense; nobody writes a year that way). toLocaleString() was
       // applied unconditionally to every value regardless of unit, which is
       // exactly why the Berlin Wall question showed "2,015 year". Reuse the
       // isYear detection above for both the hint and the real answer.
-      const fmtNum = n => isYear ? String(n) : n.toLocaleString();
+      const fmtNum = n => isYear ? String(n) : abbreviateNum(n);
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
       const opts = [{id:'higher',label:LANG==='ar'?'⬆️ أكثر':'⬆️ Higher',color:'#34d399'},{id:'lower',label:LANG==='ar'?'⬇️ أقل':'⬇️ Lower',color:'#f472b6'}];
