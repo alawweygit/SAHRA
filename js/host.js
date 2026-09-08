@@ -2606,6 +2606,12 @@ const Host = (() => {
       const hint = isYear
         ? Q.n + Math.round((Math.random() > 0.5 ? 1 : -1) * (5 + Math.random() * 25))
         : Math.round(Q.n * (0.6 + Math.random() * 0.6));
+      // v259 — years never take a thousands-separator comma ("2,015" reads
+      // as nonsense; nobody writes a year that way). toLocaleString() was
+      // applied unconditionally to every value regardless of unit, which is
+      // exactly why the Berlin Wall question showed "2,015 year". Reuse the
+      // isYear detection above for both the hint and the real answer.
+      const fmtNum = n => isYear ? String(n) : n.toLocaleString();
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
       const opts = [{id:'higher',label:LANG==='ar'?'⬆️ أكثر':'⬆️ Higher',color:'#34d399'},{id:'lower',label:LANG==='ar'?'⬇️ أقل':'⬇️ Lower',color:'#f472b6'}];
@@ -2615,7 +2621,7 @@ const Host = (() => {
       // dock-clearance rules, which is what left tall stage content clipped.
       scene(`<div class="eyebrow">📊 ${LANG==='ar'?'فوق ولا تحت؟':'HIGHER OR LOWER?'}</div>
         <div class="prompt-card display">${esc(Q.q)}</div>
-        <div class="pick-sub hl-hint">${hint.toLocaleString()} ${esc(Q.unit||'')}</div>
+        <div class="pick-sub hl-hint">${fmtNum(hint)} ${esc(Q.unit||'')}</div>
         <div class="pick-sub" style="opacity:.7">${LANG==='ar'?'الرقم الحقيقي فوق ولا تحت؟':'Is the real answer higher or lower?'}</div>
         <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         <div id="statusRow" class="status-row"></div>`);
@@ -2623,12 +2629,12 @@ const Host = (() => {
       const hlSpec = {
         type: 'higherlow', // custom type for clean rendering
         question: Q.q,
-        ref: `${hint.toLocaleString()} ${Q.unit}`,
+        ref: `${fmtNum(hint)} ${Q.unit}`,
         refLabel: LANG==='ar'?'الرقم المرجعي':'Reference number',
         options: opts,
         seconds: 60
       };
-      pushMirror({ headline: Q.q, sub: `${hint.toLocaleString()} ${Q.unit}` });
+      pushMirror({ headline: Q.q, sub: `${fmtNum(hint)} ${Q.unit}` });
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p=>p.pid);
       const answers = await collectWithTimer(hlSpec, pids, 60);
@@ -2640,7 +2646,7 @@ const Host = (() => {
       right.forEach(pid=>addScore(pid,CORRECT_PTS));
       Audio_.sfx.reveal(); FX.burst(60);
       const arrow = correctId==='higher'?'⬆️':'⬇️';
-      const ansLabel = `${arrow} ${LANG==='ar'?'الجواب':'Answer'}: ${Q.n.toLocaleString()} ${Q.unit}`;
+      const ansLabel = `${arrow} ${LANG==='ar'?'الجواب':'Answer'}: ${fmtNum(Q.n)} ${Q.unit}`;
       // v97 — same reveal layout as True or Lie (v94) / Time Machine: every
       // piece gets its own column instead of being crammed into a bar whose
       // width varied by correctness. Both modes are two-option guesses, so
@@ -2661,7 +2667,7 @@ const Host = (() => {
           <div class="tm-reveal-statement">${esc(Q.q)}</div>
           <div class="tm-reveal-year-card">
             <div class="tm-reveal-year-label">${LANG==='ar'?'الجواب':'The Answer'}</div>
-            <div class="tm-reveal-year">${arrow} ${Q.n.toLocaleString()} ${esc(Q.unit||'')}</div>
+            <div class="tm-reveal-year">${arrow} ${fmtNum(Q.n)} ${esc(Q.unit||'')}</div>
           </div>
           <div class="tm-score-list">
             ${hlRows.map((r, idx2) => `
