@@ -2600,40 +2600,29 @@ const Host = (() => {
     const CORRECT_PTS = 1000;
     for (let i = 0; i < qs.length; i++) {
       const Q = qs[i];
-      // Smart hint: for year questions (n looks like a year), stay within ±30 years
-      // For other quantities, use proportional offset (60-120% of real value)
-      const isYear = Q.n > 1800 && Q.n <= new Date().getFullYear() + 1 && (!Q.unit || Q.unit.toLowerCase().includes('year') || Q.unit === '');
-      // v260 — Ali's exact complaint: "121 calories" vs the real "119" is a
-      // 2-point gap, which is not a real higher/lower decision — it's an
-      // unguessable coinflip that happened to land almost on top of the
-      // real value. The old formula picked a multiplier uniformly from
-      // 0.6–1.2, which allows it to randomly land within 1-2% of 1.0 (i.e.
-      // right next to the real number) for a meaningful fraction of rounds.
-      // Fixed: pick the offset from two disjoint bands (15%–40% below OR
-      // above), so the gap is always big enough to be a real, meaningful
-      // guess regardless of which side it lands on.
-      const offsetPct = 0.15 + Math.random() * 0.25; // always 15%–40% away
-      const hintDirection = Math.random() > 0.5 ? 1 : -1;
-      const hint = isYear
-        ? Q.n + Math.round(hintDirection * (5 + Math.random() * 25))
-        : Math.max(0, Math.round(Q.n * (1 + hintDirection * offsetPct)));
-      // v260 — Ali's request: abbreviate long numbers (e.g. "11.5M" instead
-      // of "11,500,000") so population/count-style facts stay readable at a
-      // glance during a timed round, matching how every other higher/lower
-      // game in the genre displays big numbers.
-      const abbreviateNum = n => {
-        const abs = Math.abs(n);
-        if (abs >= 1e9) return (n/1e9).toFixed(1).replace(/\.0$/,'') + 'B';
-        if (abs >= 1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'') + 'M';
-        if (abs >= 1e4) return (n/1e3).toFixed(1).replace(/\.0$/,'') + 'K';
-        return n.toLocaleString();
-      };
-      // v259 — years never take a thousands-separator comma ("2,015" reads
-      // as nonsense; nobody writes a year that way). toLocaleString() was
-      // applied unconditionally to every value regardless of unit, which is
-      // exactly why the Berlin Wall question showed "2,015 year". Reuse the
-      // isYear detection above for both the hint and the real answer.
-      const fmtNum = n => isYear ? String(n) : abbreviateNum(n);
+      // v261 — full rebuild per Ali's request (Guesspionage-style content:
+      // "what % of people do/have done ___?" instead of external facts).
+      // Every question is now a percentage (1-99), so the old year-specific
+      // branch and multiplicative offset (which produced tiny, unguessable
+      // gaps for small numbers — e.g. 121 vs 119 calories) are both gone.
+      // Percentages need an ABSOLUTE point-based gap, not a relative one:
+      // a real answer of 8% with a 25%-relative offset would only move by
+      // ~2 points, the exact "too close to guess" bug this replaces.
+      const real = Math.max(1, Math.min(99, Math.round(Number(Q.n))));
+      const offset = 15 + Math.random() * 20; // always 15–35 points away
+      let hintDir = Math.random() > 0.5 ? 1 : -1;
+      let hint = real + hintDir * offset;
+      if (hint < 1 || hint > 99) { hintDir = -hintDir; hint = real + hintDir * offset; }
+      hint = Math.round(Math.min(99, Math.max(1, hint)));
+      // Rare double-clamp edge case (real itself near 1 or 99): fall back to
+      // whichever direction survives clamping with the larger actual gap.
+      if (Math.abs(hint - real) < 10) {
+        const optLow = Math.round(Math.min(99, Math.max(1, real - offset)));
+        const optHigh = Math.round(Math.min(99, Math.max(1, real + offset)));
+        hint = Math.abs(optLow - real) >= Math.abs(optHigh - real) ? optLow : optHigh;
+      }
+      // Percentages always display tight, no space before the % sign.
+      const fmtNum = n => `${n}%`;
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
       const opts = [{id:'higher',label:LANG==='ar'?'⬆️ أكثر':'⬆️ Higher',color:'#34d399'},{id:'lower',label:LANG==='ar'?'⬇️ أقل':'⬇️ Lower',color:'#f472b6'}];
@@ -2643,7 +2632,7 @@ const Host = (() => {
       // dock-clearance rules, which is what left tall stage content clipped.
       scene(`<div class="eyebrow">📊 ${LANG==='ar'?'فوق ولا تحت؟':'HIGHER OR LOWER?'}</div>
         <div class="prompt-card display">${esc(Q.q)}</div>
-        <div class="pick-sub hl-hint">${fmtNum(hint)} ${esc(Q.unit||'')}</div>
+        <div class="pick-sub hl-hint">${fmtNum(hint)}</div>
         <div class="pick-sub" style="opacity:.7">${LANG==='ar'?'الرقم الحقيقي فوق ولا تحت؟':'Is the real answer higher or lower?'}</div>
         <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         <div id="statusRow" class="status-row"></div>`);
@@ -2651,24 +2640,24 @@ const Host = (() => {
       const hlSpec = {
         type: 'higherlow', // custom type for clean rendering
         question: Q.q,
-        ref: `${fmtNum(hint)} ${Q.unit}`,
+        ref: fmtNum(hint),
         refLabel: LANG==='ar'?'الرقم المرجعي':'Reference number',
         options: opts,
         seconds: 60
       };
-      pushMirror({ headline: Q.q, sub: `${fmtNum(hint)} ${Q.unit}` });
+      pushMirror({ headline: Q.q, sub: fmtNum(hint) });
       Audio_.sfx.sting(); hostSay('prompt');
       const pids = players.map(p=>p.pid);
       const answers = await collectWithTimer(hlSpec, pids, 60);
       // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
       net.setState({ phase: 'wait', msg: t('watch_screen') });
-      const correctId = Q.n > hint ? 'higher' : 'lower';
+      const correctId = real > hint ? 'higher' : 'lower';
       Audio_.sfx.drum(); await sleep(500);
       const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
       right.forEach(pid=>addScore(pid,CORRECT_PTS));
       Audio_.sfx.reveal(); FX.burst(60);
       const arrow = correctId==='higher'?'⬆️':'⬇️';
-      const ansLabel = `${arrow} ${LANG==='ar'?'الجواب':'Answer'}: ${fmtNum(Q.n)} ${Q.unit}`;
+      const ansLabel = `${arrow} ${LANG==='ar'?'الجواب':'Answer'}: ${fmtNum(real)}`;
       // v97 — same reveal layout as True or Lie (v94) / Time Machine: every
       // piece gets its own column instead of being crammed into a bar whose
       // width varied by correctness. Both modes are two-option guesses, so
@@ -2689,7 +2678,7 @@ const Host = (() => {
           <div class="tm-reveal-statement">${esc(Q.q)}</div>
           <div class="tm-reveal-year-card">
             <div class="tm-reveal-year-label">${LANG==='ar'?'الجواب':'The Answer'}</div>
-            <div class="tm-reveal-year">${arrow} ${fmtNum(Q.n)} ${esc(Q.unit||'')}</div>
+            <div class="tm-reveal-year">${arrow} ${fmtNum(real)}</div>
           </div>
           <div class="tm-score-list">
             ${hlRows.map((r, idx2) => `

@@ -113,7 +113,7 @@ const SHAPES = {
   emoji:        '[{"answer":"SEOUL","category":"City","e":"🌊🦉","parts":["sea","owl"],"explanation":"Sea + owl = Seoul"}]',
   emojiplace:   '[{"answer":"PARIS","category":"City","e":"🐾🌹","parts":["paw","ris"],"explanation":"Paw + ris = Paris"}]',
   year:         '[{"q":"The first iPhone was released","y":2007}]',
-  higherlow:    '[{"q":"How many floors does the Burj Khalifa have?","n":163,"unit":"floors"}]',
+  higherlow:    '[{"q":"What percentage of people have worn mismatched socks by accident?","n":38,"unit":"%"}]',
   flaghunt:     '[{"flag":"🇯🇵","options":["Japan","China","South Korea","Vietnam"],"correct":0}]',
   spy:          '[{"category":"location","words":["Coffee shop","Airport","Hospital","Casino","Zoo","Library","Prison","Stadium"]}]',
   '2t1l':       '[{"cat":"ABOUT YOU","emoji":"🤥","q":"Name 3 things you have done while travelling"}]',
@@ -134,7 +134,7 @@ const GUIDANCE = {
   emoji:        'Phonetic rebus: emojis SOUND OUT a word. "parts" = phonetic sounds.',
   emojiplace:   'Phonetic rebus for CITIES only.',
   year:         'Historical events with exact year. Mix world history, tech, and sports milestones. LANGUAGE: simple, everyday words a 12-year-old would understand — describe WHAT happened in plain terms, never formal/official vocabulary. AVOID words like "inaugurated" (say "became president" or "took office" instead), "commenced" (say "started"), "assassinated" (say "was killed"), "ratified" (say "was signed" or "was approved"), or other stiff textbook/news-headline language. Read it back and ask: would a 12-year-old know this word? If not, replace it. LENGTH: one short, clean sentence, under 15 words if possible — no stacked details or subordinate clauses. TOPIC DIVERSITY: every item in a batch must use a different topic/event — never repeat the same category twice in a row (e.g. two tech launches, two sports records). RECOGNIZABILITY: pick events a general audience would recognize by name — not obscure or niche facts nobody could place even roughly. ONE CLAIM ONLY: describe a single fact/event — never stack multiple details (exact dates, extra names, secondary facts) into one description. The year must be a plain number (e.g. 2007), never written as a string or in quotes.',
-  higherlow:    '"n" = exact real number. "unit" = label. LANGUAGE: simple, everyday words a 12-year-old would understand for the question itself — never formal/official/textbook vocabulary. TOPIC DIVERSITY: every item in a batch must use a different category — never repeat the same kind of measurement twice in a row (e.g. two speed facts, two population facts). RECOGNIZABILITY: the subject should be something a general audience has heard of — not so obscure or niche that nobody could even take an educated guess. ONE CLAIM ONLY: ask about a single number and stop — no compound or multi-part questions (e.g. do not ask about a combined total across two things, or a number "as of" a moving/ongoing situation). STABLE FACTS ONLY: only use settled, unchanging figures — physical/historical/structural facts that are true forever once measured (building heights, distances, historical record counts, temperatures, weights) — never a live or currently-changing statistic (an active athlete\'s ongoing career tally, this year\'s population estimate, a currently-running box office total, or anything phrased "as of [year]"). A moving-target number is both likely to already be wrong and impossible to keep accurate over time — pick a fact that was true yesterday, is true today, and will still be true in ten years. SURPRISE FACTOR (the most important rule): a good higher/lower fact is one where a person\'s gut instinct is likely to be WRONG — either surprisingly high or surprisingly low compared to what they\'d naturally guess. This means the subject itself must be something people already have an intuition or mental estimate about (a famous landmark\'s height, a well-known animal\'s speed, a household brand\'s scale, a celebrity\'s wealth, a popular food\'s calorie count) — never a fact so obscure or technical that nobody has any baseline guess to be surprised against in the first place (e.g. "calories in a tablespoon of olive oil" is a dead fact — nobody has a mental estimate for that, so there is nothing to be surprised by, right or wrong). If you cannot picture an average person confidently guessing wrong on this fact, it is the wrong fact — pick something people actually have an opinion about. Mix: counts (floors of a famous building, medals at a specific named Olympics, an iconic building\'s room count), distances (km, famous landmarks or routes), heights (m, famous structures/mountains), weights (kg, famous animals/objects), speeds (km/h, well-known fast things — cars, trains, famous animals), historical populations at a specific point in time, temperatures (°C, well-known extremes), ages at a specific historical event, historical prices of iconic/well-known items. Do NOT use historical years/dates as the number to guess (unit="year") — that is Time Machine\'s job, not this mode\'s, and mixing it in here caused real accuracy errors. ALL values must be accurate.',
+  higherlow:    'FORMAT: every question asks "What percentage of people have/do ___?" — "n" is that percentage (a whole number 1-99), "unit" is always "%". This is a GUESSPIONAGE-style mode (Jackbox Party Pack 3), not a trivia-facts mode — the entire point is guessing human behavior, not recalling external facts. LANGUAGE: simple, everyday words a 12-year-old would understand — never formal/official/textbook vocabulary. TOPIC DIVERSITY: every item in a batch must cover a different kind of behavior — never repeat the same flavor twice in a row (e.g. two food habits, two embarrassing-moment questions). RELATABLE HUMAN BEHAVIOR ONLY, NOT EXTERNAL TRIVIA: every question must be about something ordinary people do, have done, believe, or prefer — daily habits, quirky behaviors, embarrassing moments, common preferences, social situations, minor bad habits, funny coincidences. NEVER ask about external facts, measurements, historical events, celebrities, sports statistics, animal facts, or anything requiring specialized knowledge to answer — if the question could appear in Time Machine, Quiz, or a trivia book, it is the WRONG question for this mode. Good examples (style only, do not reuse verbatim): "What percentage of people have pretended to be on the phone to avoid an awkward conversation?", "What percentage of people check the mirror before leaving the house?", "What percentage of people have sung in the shower?", "What percentage of people have forgotten a close friend\'s birthday?". SURPRISE FACTOR: the entire appeal is that everyone has an instant gut reaction to guess ("surely that\'s way more/fewer people than I think") and can be surprised either way — pick behaviors specific and vivid enough that people actually picture themselves or others doing it, not vague generic ones nobody has a reaction to. ONE CLEAR YES/NO BEHAVIOR: the question must describe one single, concrete, unambiguous action or habit — not a vague feeling, not multiple actions stacked together, not something debatable about what counts. BELIEVABLE RANGE: avoid percentages that are obviously near 0% or 100% before the reveal (e.g. do not ask about something almost nobody or almost everybody would do) — the best percentages sit somewhere in the genuinely surprising middle ground, anywhere from about 10% to 90%, so the guess is never a giveaway either direction. KEEP IT PARTY-APPROPRIATE: funny, embarrassing, quirky, or relatable is great — but never sexual, offensive, humiliating toward a protected group, or inappropriate for a mixed group of friends. "n" must be a plain number (1-99), never a quoted string, and "unit" must always be exactly "%".',
   flaghunt:     'Flag emoji + 4 country options. "correct" is 0-based index. Vary position. Mix all continents.',
   spy:          'Secret word pool. ONE object with "category" and "words" array (15-20 specific items).',
   '2t1l':       'Short personal category prompts that let one player write exactly two truths and one lie. Ask them to name 3 related things. Include a fitting emoji.',
@@ -145,30 +145,26 @@ const GUIDANCE = {
 
 // Pre-seeded banned questions — things Claude defaults to that we NEVER want
 const ALWAYS_BANNED = {
-  'higherlow:en': new Set([
-    'teeth', 'bones', 'human teeth', 'adult teeth', 'adult human',
-    'episodes did friends', 'friends have', 'iPhone released', 'first iphone',
-    'bones in the human body', 'teeth does an adult',
-  ]),
-  'higherlow:ar': new Set(['أسنان', 'عظام', 'عظام الإنسان']),
+  'higherlow:en': new Set([]),
+  'higherlow:ar': new Set([]),
   'bluff:en': new Set(['platypus', 'honey never expires', 'cleopatra']),
 };
 
 // Topic domains to rotate — forces different categories each call
 const DOMAINS = {
   higherlow: [
-    'architecture and buildings (floors, heights of famous structures worldwide)',
-    'animals (speeds, weights, lifespans, number of species)',
-    'sports records (goals scored, medals won, distances, game durations)',
-    'geography (river lengths, mountain heights, country populations, lake depths)',
-    'food and drink (calories, production volumes, price per kg)',
-    'space and astronomy (planet sizes, distances, temperatures)',
-    'technology (storage sizes, processing speeds, user counts)',
-    'historical years (famous events, inventions, discoveries — unit="year")',
-    'Gulf and Arab world facts (heights, populations, oil production)',
-    'movies and TV (box office in millions, runtime in minutes, number of seasons)',
-    'human body (NOT teeth or bones — use: blood vessels km, heartbeats/day, neurons)',
-    'transportation (top speeds, passenger capacity, range in km)',
+    'daily habits and routines (morning/night habits, phone habits, hygiene habits)',
+    'embarrassing moments (social slip-ups, awkward situations, minor accidents)',
+    'food and eating habits (quirky preferences, unusual combinations, table manners)',
+    'social media and phone behavior (checking habits, posting habits, texting habits)',
+    'relationships and social situations (dating, friendships, awkward interactions)',
+    'money and shopping habits (impulse buys, haggling, price-tag habits)',
+    'sleep and bedroom habits (sleep positions, nighttime routines, dreams)',
+    'travel and driving habits (road trip habits, packing habits, driving quirks)',
+    'work and school habits (procrastination, meeting habits, classroom habits)',
+    'minor superstitions and quirky beliefs (lucky habits, small rituals)',
+    'pet and animal-related behavior (talking to pets, treating pets like people)',
+    'small white lies and social fibs (polite lies, excuses, avoidance tactics)',
   ],
   bluff: [
     'Gulf and Arab world unusual laws and customs',
@@ -345,18 +341,19 @@ function isValidPrompt(mode, item, region) {
       return true;
     }
     case 'higherlow': {
+      // v261 — full rebuild per Ali's request (researched Jackbox's
+      // Guesspionage as the reference design): every question is now
+      // "What percentage of people ___?" instead of an external-fact
+      // measurement. Schema simplified accordingly -- unit must always be
+      // "%", and n must be a believable percentage (1-99, never a giveaway
+      // 0 or 100).
       // v253 — same bug class as year/trueorlie/fourChoices above:
       // Number.isFinite(item.n) rejects the whole item if the model returns
       // the number as a quoted string ("50") instead of a bare number (50).
-      if (!text('q') || !text('unit')) return false;
+      if (!text('q')) return false;
       const nNum = Number(item.n);
-      if (!Number.isFinite(nNum)) return false;
-      // v259 — code-level backstop for the guidance change above: even if
-      // the model ignores the "no year unit" instruction, reject it here
-      // rather than relying on prompt-following alone. This is exactly the
-      // bug Ali reported (Berlin Wall shown as "2,015 year" -- the model
-      // hallucinated 2015 instead of the real 1989).
-      if (String(item.unit).trim().toLowerCase().includes('year')) return false;
+      if (!Number.isFinite(nNum) || nNum < 1 || nNum > 99) return false;
+      if (String(item.unit).trim() !== '%') return false;
       item.n = nNum;
       return true;
     }

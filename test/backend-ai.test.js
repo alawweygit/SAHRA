@@ -18,7 +18,7 @@ function sample(mode, index) {
     emoji: { answer: `WORD${suffix}`, category: 'Word', e: '🌊🦉', parts: ['sea', 'owl'], explanation: 'rebus' },
     emojiplace: { answer: `CITY${suffix}`, category: 'City', e: '🐾🌹', parts: ['paw', 'ris'], explanation: 'rebus' },
     year: { q: `Event ${suffix}`, y: 2000 + index },
-    higherlow: { q: `Quantity ${suffix}?`, n: 100 + index, unit: 'items' },
+    higherlow: { q: `Quantity ${suffix}?`, n: 20 + index, unit: '%' },
     flaghunt: { flag: index % 2 ? '🇴🇲' : '🇯🇵', options: ['A', 'B', 'C', 'D'], correct: index % 4 },
     spy: { category: `Places ${suffix}`, words: Array.from({ length: 8 }, (_, wordIndex) => `Place ${suffix}-${wordIndex}`) },
     '2t1l': { cat: `CATEGORY ${suffix}`, emoji: '🤥', q: `Name 3 things ${suffix}` },
