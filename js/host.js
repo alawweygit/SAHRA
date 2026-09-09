@@ -2600,26 +2600,31 @@ const Host = (() => {
     const CORRECT_PTS = 1000;
     for (let i = 0; i < qs.length; i++) {
       const Q = qs[i];
-      // v261 — full rebuild per Ali's request (Guesspionage-style content:
-      // "what % of people do/have done ___?" instead of external facts).
-      // Every question is now a percentage (1-99), so the old year-specific
-      // branch and multiplicative offset (which produced tiny, unguessable
-      // gaps for small numbers — e.g. 121 vs 119 calories) are both gone.
-      // Percentages need an ABSOLUTE point-based gap, not a relative one:
-      // a real answer of 8% with a 25%-relative offset would only move by
-      // ~2 points, the exact "too close to guess" bug this replaces.
+      // v263 — Ali caught a real pattern: with v262's content skewing
+      // almost every truth toward the extremes (14%, 91%, etc.) to chase
+      // "surprise", the hint is mathematically forced onto one side near a
+      // boundary (can't be 15+ points below 14 without going negative), so
+      // the correct answer became guessable from the hint's position alone
+      // ("reference always lands mid, so the direction is obvious"). This
+      // isn't fixable by changing the sampling method alone -- it's a
+      // content distribution problem, fixed below by spreading truths
+      // across the full range instead of clustering at the edges. The
+      // rejection-sampling approach here also varies the ACTUAL gap size
+      // per round (15-45, not a flat range) so hints don't all feel like
+      // the same predictable distance either.
       const real = Math.max(1, Math.min(99, Math.round(Number(Q.n))));
-      const offset = 15 + Math.random() * 20; // always 15–35 points away
-      let hintDir = Math.random() > 0.5 ? 1 : -1;
-      let hint = real + hintDir * offset;
-      if (hint < 1 || hint > 99) { hintDir = -hintDir; hint = real + hintDir * offset; }
-      hint = Math.round(Math.min(99, Math.max(1, hint)));
-      // Rare double-clamp edge case (real itself near 1 or 99): fall back to
-      // whichever direction survives clamping with the larger actual gap.
-      if (Math.abs(hint - real) < 10) {
-        const optLow = Math.round(Math.min(99, Math.max(1, real - offset)));
-        const optHigh = Math.round(Math.min(99, Math.max(1, real + offset)));
-        hint = Math.abs(optLow - real) >= Math.abs(optHigh - real) ? optLow : optHigh;
+      const minGap = 15 + Math.floor(Math.random() * 30); // 15-45, varies per round
+      let hint;
+      for (let tries = 0; tries < 60; tries++) {
+        const candidate = 1 + Math.floor(Math.random() * 99);
+        if (Math.abs(candidate - real) >= minGap) { hint = candidate; break; }
+      }
+      if (hint === undefined) {
+        for (let tries = 0; tries < 60; tries++) {
+          const candidate = 1 + Math.floor(Math.random() * 99);
+          if (Math.abs(candidate - real) >= 10) { hint = candidate; break; }
+        }
+        hint = hint ?? (real <= 50 ? 99 : 1);
       }
       // Percentages always display tight, no space before the % sign.
       const fmtNum = n => `${n}%`;
