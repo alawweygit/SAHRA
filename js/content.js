@@ -371,6 +371,15 @@ const Content = (() => {
       item.en || item.flag || item.category || (Array.isArray(item.words) ? item.words.join('|') : '');
     return String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase().slice(0, 160);
   };
+  const validBlendInPrompt = value => {
+    if (typeof value !== 'string') return false;
+    const prompt = value.trim();
+    if (!prompt || prompt.length > 100 || /[?؟]/u.test(prompt) || prompt.split(/\s+/).length > 14) return false;
+    return !/^(?:what(?:'s|\s+is|\s+are|\s+was|\s+were)?|which|who|where|when|why|how\s+(?:many|much|old|long)|name\s+the|ما\s+(?:هو|هي|اسم)|من\s+(?:هو|هي)|أين|اين|متى|كم|وش\s+اسم|ايش\s+اسم)(?=\s|$)/iu.test(prompt);
+  };
+  const validClientItem = (mode, item) => mode !== 'blendin' || (
+    item && validBlendInPrompt(item.a) && validBlendInPrompt(item.b) && item.a.trim() !== item.b.trim()
+  );
   const readHistory = key => {
     try {
       if (!window.localStorage) return [];
@@ -480,6 +489,9 @@ const Content = (() => {
             // repeated AI item merely because the server forgot its memory.
             const seen = new Set(excluded), unique = [];
             for (const item of data.prompts) {
+              // Protect the game even while an older backend instance or
+              // cached reserve is still serving pre-fix Blend In trivia.
+              if (!validClientItem(mode, item)) continue;
               const fp = fingerprint(item);
               if (!fp || seen.has(fp)) continue;
               seen.add(fp); unique.push(item);
@@ -1143,8 +1155,8 @@ PACKS.busted = {
 };
 
 /* ===== BLEND IN =====
-   Each entry is a PAIR of questions. Everyone gets `a` (the agents'
-   question); the spy gets `b`. Pairs are hand-tuned, not AI-generated: the
+   Each entry is a PAIR of social writing prompts. Everyone gets `a` (the
+   agents' prompt); the spy gets `b`. Pairs are hand-tuned: the
    whole game lives or dies on this calibration. Too similar and the spy is
    invisible and the round is a dud; too different and they're exposed on
    answer one. The target is a pair where MOST answers overlap plausibly but
@@ -1153,38 +1165,80 @@ PACKS.busted = {
    Keep that property when adding new pairs. */
 PACKS.blendin = {
   en: [
-    { a:'Name something you would take to a desert island.', b:'Name something you would take on a road trip.' },
-    { a:'Name something you would find in a hospital.', b:'Name something you would find in a school.' },
-    { a:'Name something you do before going to sleep.', b:'Name something you do as soon as you wake up.' },
-    { a:'Name something you would take to the beach.', b:'Name something you would take to the gym.' },
-    { a:'Name something people do at a wedding.', b:'Name something people do at a birthday party.' },
-    { a:'Name something you would find in a kitchen.', b:'Name something you would find in a restaurant.' },
-    { a:'Name something you pack for a long flight.', b:'Name something you pack for a camping trip.' },
-    { a:'Name something you would buy at a pharmacy.', b:'Name something you would buy at a supermarket.' },
-    { a:'Name something you do when you are bored.', b:'Name something you do when you cannot sleep.' },
-    { a:'Name something you would find in an office.', b:'Name something you would find in a library.' },
-    { a:'Name something you would take to a picnic.', b:'Name something you would take to a football match.' },
-    { a:'Name something people complain about at work.', b:'Name something people complain about at university.' },
-    { a:'Name something you would find in a hotel room.', b:'Name something you would find in a bedroom.' },
-    { a:'Name something you do on a rainy day.', b:'Name something you do on a day off.' },
-    { a:'Name something you would see at an airport.', b:'Name something you would see at a train station.' },
+    { a:'Something you take to school', b:'Something you take to work' },
+    { a:'Something you find in a kitchen', b:'Something you find in a bathroom' },
+    { a:'Something you say to your partner', b:'Something you say to your mother' },
+    { a:'Something you do before sleeping', b:'Something you do after waking up' },
+    { a:'Something you take to the beach', b:'Something you take to a picnic' },
+    { a:'Something you wear to a wedding', b:'Something you wear to a job interview' },
+    { a:'Something kept in the fridge', b:'Something kept in the freezer' },
+    { a:'Something you buy at a pharmacy', b:'Something you buy at a supermarket' },
+    { a:'Something you do when bored', b:'Something you do when you cannot sleep' },
+    { a:'Something people complain about at work', b:'Something people complain about at school' },
+    { a:'Something found in a hotel room', b:'Something found in your bedroom' },
+    { a:'Something you see at an airport', b:'Something you see at a train station' },
+    { a:'Something you bring to the gym', b:'Something you bring to football practice' },
+    { a:'Something you eat for breakfast', b:'Something you eat as a midnight snack' },
+    { a:'Something you use on a rainy day', b:'Something you use on a sunny day' },
+    { a:'An excuse for arriving late to work', b:'An excuse for arriving late to dinner' },
+    { a:'A gift for a close friend', b:'A gift for a coworker' },
+    { a:'Something easy to lose at home', b:'Something easy to lose while travelling' },
+    { a:'Something you put in a backpack', b:'Something you put in a suitcase' },
+    { a:'Something you clean in the kitchen', b:'Something you clean in the car' },
+    { a:'Something you order at a coffee shop', b:'Something you order at a restaurant' },
+    { a:'Something you say to a baby', b:'Something you say to a pet' },
+    { a:'Something people do at a birthday party', b:'Something people do at a wedding' },
+    { a:'Something you pack for camping', b:'Something you pack for a road trip' },
+    { a:'Something you check before leaving home', b:'Something you check before boarding a flight' },
+    { a:'Something you borrow from a neighbor', b:'Something you borrow from a coworker' },
+    { a:'Something you use when sick', b:'Something you use when tired' },
+    { a:'Something found in a classroom', b:'Something found in a meeting room' },
+    { a:'Something people photograph on vacation', b:'Something people photograph at a wedding' },
+    { a:'An app you open when bored', b:'An app you open when lost' },
+    { a:'A sound that wakes you up', b:'A sound that keeps you awake' },
+    { a:'Something always in your pocket', b:'Something always in your bag' },
+    { a:'A reason to cancel plans', b:'A reason to ignore a phone call' },
+    { a:'Something messy to eat', b:'Something difficult to cook' },
+    { a:'A place where people wait', b:'A place where people get lost' },
+    { a:'Something you share with friends', b:'Something you share with family' },
   ],
   ar: [
-    { a:'اذكر شي تاخذه معك لجزيرة مهجورة.', b:'اذكر شي تاخذه معك في رحلة بالسيارة.' },
-    { a:'اذكر شي تلقاه في المستشفى.', b:'اذكر شي تلقاه في المدرسة.' },
-    { a:'اذكر شي تسويه قبل ما تنام.', b:'اذكر شي تسويه أول ما تصحى.' },
-    { a:'اذكر شي تاخذه معك للبحر.', b:'اذكر شي تاخذه معك للنادي.' },
-    { a:'اذكر شي الناس يسوونه في العرس.', b:'اذكر شي الناس يسوونه في عيد الميلاد.' },
-    { a:'اذكر شي تلقاه في المطبخ.', b:'اذكر شي تلقاه في المطعم.' },
-    { a:'اذكر شي تحطه في شنطتك لرحلة طويلة.', b:'اذكر شي تحطه في شنطتك للتخييم.' },
-    { a:'اذكر شي تشتريه من الصيدلية.', b:'اذكر شي تشتريه من السوبرماركت.' },
-    { a:'اذكر شي تسويه لما تطفش.', b:'اذكر شي تسويه لما ما يجيك نوم.' },
-    { a:'اذكر شي تلقاه في المكتب.', b:'اذكر شي تلقاه في المكتبة.' },
-    { a:'اذكر شي تاخذه معك لنزهة.', b:'اذكر شي تاخذه معك لمباراة كورة.' },
-    { a:'اذكر شي الناس يشتكون منه في الشغل.', b:'اذكر شي الناس يشتكون منه في الجامعة.' },
-    { a:'اذكر شي تلقاه في غرفة فندق.', b:'اذكر شي تلقاه في غرفة نوم.' },
-    { a:'اذكر شي تسويه في يوم ممطر.', b:'اذكر شي تسويه في يوم إجازة.' },
-    { a:'اذكر شي تشوفه في المطار.', b:'اذكر شي تشوفه في محطة القطار.' },
+    { a:'شي تاخذه معك للمدرسة', b:'شي تاخذه معك للشغل' },
+    { a:'شي تلقاه في المطبخ', b:'شي تلقاه في الحمام' },
+    { a:'شي تقوله لشريك حياتك', b:'شي تقوله لأمك' },
+    { a:'شي تسويه قبل ما تنام', b:'شي تسويه أول ما تصحى' },
+    { a:'شي تاخذه معك للبحر', b:'شي تاخذه معك للنزهة' },
+    { a:'شي تلبسه في العرس', b:'شي تلبسه في مقابلة عمل' },
+    { a:'شي تحطه في الثلاجة', b:'شي تحطه في الفريزر' },
+    { a:'شي تشتريه من الصيدلية', b:'شي تشتريه من السوبرماركت' },
+    { a:'شي تسويه لما تطفش', b:'شي تسويه لما ما يجيك نوم' },
+    { a:'شي الناس يشتكون منه في الشغل', b:'شي الناس يشتكون منه في المدرسة' },
+    { a:'شي تلقاه في غرفة فندق', b:'شي تلقاه في غرفة نومك' },
+    { a:'شي تشوفه في المطار', b:'شي تشوفه في محطة القطار' },
+    { a:'شي تاخذه معك للنادي', b:'شي تاخذه معك لتمرين الكورة' },
+    { a:'شي تاكله في الفطور', b:'شي تاكله آخر الليل' },
+    { a:'شي تستخدمه في يوم ممطر', b:'شي تستخدمه في يوم مشمس' },
+    { a:'عذر للتأخر عن الشغل', b:'عذر للتأخر عن العشاء' },
+    { a:'هدية لصديق قريب', b:'هدية لزميل في الشغل' },
+    { a:'شي سهل يضيع في البيت', b:'شي سهل يضيع في السفر' },
+    { a:'شي تحطه في شنطة الظهر', b:'شي تحطه في شنطة السفر' },
+    { a:'شي تنظفه في المطبخ', b:'شي تنظفه في السيارة' },
+    { a:'شي تطلبه من الكوفي', b:'شي تطلبه من المطعم' },
+    { a:'شي تقوله لطفل صغير', b:'شي تقوله لحيوانك الأليف' },
+    { a:'شي الناس يسوونه في عيد الميلاد', b:'شي الناس يسوونه في العرس' },
+    { a:'شي تاخذه معك للتخييم', b:'شي تاخذه معك في رحلة بالسيارة' },
+    { a:'شي تتأكد منه قبل تطلع من البيت', b:'شي تتأكد منه قبل تركب الطيارة' },
+    { a:'شي تستعيره من الجيران', b:'شي تستعيره من زميلك' },
+    { a:'شي تستخدمه لما تكون مريض', b:'شي تستخدمه لما تكون تعبان' },
+    { a:'شي تلقاه في الفصل', b:'شي تلقاه في غرفة الاجتماعات' },
+    { a:'شي الناس يصورونه في السفر', b:'شي الناس يصورونه في العرس' },
+    { a:'تطبيق تفتحه لما تطفش', b:'تطبيق تفتحه لما تضيع' },
+    { a:'صوت يصحيك من النوم', b:'صوت ما يخليك تنام' },
+    { a:'شي دايم في جيبك', b:'شي دايم في شنطتك' },
+    { a:'سبب يخليك تلغي طلعة', b:'سبب يخليك ما ترد على اتصال' },
+    { a:'شي أكله يسبب فوضى', b:'شي طبخه صعب' },
+    { a:'مكان الناس تنتظر فيه', b:'مكان الناس تضيع فيه' },
+    { a:'شي تشاركه مع أصدقائك', b:'شي تشاركه مع عائلتك' },
   ],
 };
 

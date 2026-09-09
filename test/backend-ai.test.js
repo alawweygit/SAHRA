@@ -23,7 +23,7 @@ function sample(mode, index) {
     spy: { category: `Places ${suffix}`, words: Array.from({ length: 8 }, (_, wordIndex) => `Place ${suffix}-${wordIndex}`) },
     '2t1l': { cat: `CATEGORY ${suffix}`, emoji: '🤥', q: `Name 3 things ${suffix}` },
     busted: { q: `What is your answer ${suffix}?`, other: `What is {name}'s answer ${suffix}?` },
-    blendin: { a: `Related main question ${suffix}?`, b: `Related spy question ${suffix}?` },
+    blendin: { a: `Something packed for school ${suffix}`, b: `Something packed for work ${suffix}` },
   };
   if (mode === 'harfhunt') return `Broad category ${suffix}`;
   return samples[mode];
@@ -58,6 +58,7 @@ Module._load = function(request, parent, isMain) {
   if (request === 'express') return express;
   if (request === 'cors') return () => (_req, _res, next) => next && next();
   if (request === '@anthropic-ai/sdk') return AnthropicMock;
+  if (request === 'firebase-admin') return {};
   return originalLoad.call(this, request, parent, isMain);
 };
 
@@ -100,6 +101,19 @@ async function postPrompts(body) {
   assert.ok(trueFalseBatch.payload.prompts.some(item => item.truth === true));
   assert.ok(trueFalseBatch.payload.prompts.some(item => item.truth === false),
     'True or False AI must provide both true and false statements');
+
+  assert.equal(backend.isValidPrompt('blendin', {
+    a: "What is the world's longest river?", b: 'What is the largest rainforest?',
+  }), false, 'Blend In must reject factual trivia questions');
+  assert.equal(backend.isValidPrompt('blendin', {
+    a: 'ما هو أطول نهر', b: 'ما اسم أكبر غابة',
+  }), false, 'Blend In must reject Arabic factual trivia even without question marks');
+  assert.equal(backend.isValidPrompt('blendin', {
+    a: 'Something you take to school', b: 'Something you take to work',
+  }), true, 'Blend In must accept closely related everyday writing prompts');
+  assert.equal(backend.isValidPrompt('blendin', {
+    a: 'شي تاخذه للمدرسة', b: 'شي تاخذه للشغل',
+  }), true, 'Blend In must accept Arabic everyday writing prompts');
 
   const firstFresh = await postPrompts({ mode: 'quiz', lang: 'en', topic: 'exclude-test', count: 2 });
   const excluded = firstFresh.payload.prompts.map(backend.getFingerprint);

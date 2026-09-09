@@ -3386,10 +3386,10 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
   }
 
   /* ===== BLEND IN =====
-     Everyone answers the SAME question except one player (the spy), who gets
-     a different but closely-related question. Crucially the spy is NOT told —
+     Everyone answers the SAME social prompt except one player (the spy), who
+     gets a different but closely-related prompt. Crucially the spy is NOT told —
      they answer honestly and look odd without knowing why. At the reveal the
-     AGENTS' question is shown (never the spy's), so the spy works out what
+     AGENTS' prompt is shown (never the spy's), so the spy works out what
      happened at the same moment as everyone else, and can defend themselves
      during the discussion. No scoring by design: the payoff is the discussion
      and the reveal, not points. */
@@ -3407,9 +3407,9 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     for (let q = 0; q < QN; q++) {
       const pair = pairs[q % pairs.length];
       await FX.wipe();
-      setPill(`${LANG==='ar'?'سؤال':'Question'} ${q+1} ${t('of')} ${QN}`);
-      // The stage must NOT show either question — it is visible to everyone,
-      // and showing the agents' question would instantly expose the spy.
+      setPill(`${LANG==='ar'?'المهمة':'Prompt'} ${q+1} ${t('of')} ${QN}`);
+      // The stage must NOT show either prompt — it is visible to everyone,
+      // and showing the agents' prompt would instantly expose the spy.
       // v113 — clearer copy (Ali's feedback on the old "Your question is on
       // your own screen", which read as unclear/generic) plus a real
       // submission tracker matching every other mode: mini avatars with a
@@ -3418,13 +3418,13 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
       // collectWithTimer), so it never got that tracker for free — added
       // manually here, mirroring collectWithTimer's own tracker code.
       scene(`<div class="eyebrow">🎭 ${LANG==='ar'?'اندمج':'BLEND IN'}</div>
-        <div class="prompt-card display">${LANG==='ar'?`سؤال ${q+1} من ${QN}`:`Question ${q+1} of ${QN}`}</div>
-        <div class="pick-sub">${LANG==='ar'?'📱 كل لاعب يشوف سؤاله الخاص على جواله':"📱 Everyone's question is different — check your own phone"}</div>
+        <div class="prompt-card display">${LANG==='ar'?`المهمة ${q+1} من ${QN}`:`Prompt ${q+1} of ${QN}`}</div>
+        <div class="pick-sub">${LANG==='ar'?'📱 لاعب واحد عنده مهمة مختلفة — شوف جوالك':'📱 One player has a different prompt — check your phone'}</div>
         <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         <div id="statusRow" class="status-row"></div>`);
       // Mirror headline stays deliberately generic — it is broadcast to every
-      // device, so it must never carry either question.
-      pushMirror({ headline: LANG==='ar'?`سؤال ${q+1}`:`Question ${q+1}` });
+      // device, so it must never carry either prompt.
+      pushMirror({ headline: LANG==='ar'?`المهمة ${q+1}`:`Prompt ${q+1}` });
       Audio_.sfx.sting();
 
       // v112 — fullscreenInput gives this its own full-screen panel (same
@@ -3527,15 +3527,19 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
     // through the entire reveal sequence for every round, not just one.
     net.setState({ phase: 'wait', msg: t('watch_screen') });
 
-    // ---- Reveal: grouped BY QUESTION, always showing the agents' version ----
+    // ---- Reveal: grouped BY PROMPT, always showing the agents' version ----
     for (let q = 0; q < rounds.length; q++) {
       const { pair, ans } = rounds[q];
       await FX.wipe();
+      // The three inputs are collected first, then revealed. Refresh the
+      // pill for every reveal so it matches the card below. This also keeps
+      // waitNext() from treating reveals 1 and 2 as the final round.
+      setPill(`${LANG==='ar'?'المهمة':'Prompt'} ${q+1} ${t('of')} ${QN}`);
       scene(`
         <div class="tm-wrap">
-          <div class="tm-reveal-statement">${LANG==='ar'?`سؤال ${q+1} من ${QN}`:`Question ${q+1} of ${QN}`}</div>
+          <div class="tm-reveal-statement">${LANG==='ar'?`المهمة ${q+1} من ${QN}`:`Prompt ${q+1} of ${QN}`}</div>
           <div class="tm-reveal-year-card">
-            <div class="tm-reveal-year-label">${LANG==='ar'?'السؤال':'The Question'}</div>
+            <div class="tm-reveal-year-label">${LANG==='ar'?'المهمة':'The Prompt'}</div>
             <div class="tm-reveal-year" style="font-size:clamp(16px,3vmin,26px)">${esc(pair.a)}</div>
           </div>
           <div class="tm-score-list">
@@ -3625,9 +3629,9 @@ ${category} — ${totalLetters} letters`,maxLen:40,seconds:TOTAL_SECS,answerLen:
             </div>`;
           }).join('')}
         </div>
-        <div class="tm-score-list" style="margin-top:1vmin">
+        <div class="tm-score-list blendin-prompt-pairs" style="margin-top:1vmin">
           ${rounds.map((r,i) => `
-            <div class="tm-score-row" style="animation-delay:${(players.length+i)*.08}s">
+            <div class="tm-score-row blendin-prompt-pair" style="animation-delay:${(players.length+i)*.08}s">
               <div class="tm-score-info">
                 <div class="tm-score-name" style="color:var(--green);font-size:clamp(12px,1.8vmin,15px)">${esc(r.pair.a)}</div>
                 <div class="tm-score-guess" style="color:var(--pink)">${LANG==='ar'?'الدخيل شاف: ':'They saw: '}${esc(r.pair.b)}</div>

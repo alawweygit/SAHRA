@@ -118,7 +118,7 @@ const SHAPES = {
   spy:          '[{"category":"location","words":["Coffee shop","Airport","Hospital","Casino","Zoo","Library","Prison","Stadium"]}]',
   '2t1l':       '[{"cat":"ABOUT YOU","emoji":"🤥","q":"Name 3 things you have done while travelling"}]',
   busted:       '[{"q":"A short question asked directly to the subject","other":"The same question about {name}"}]',
-  blendin:      '[{"a":"Question shown to most players","b":"A closely related but different question shown to the spy"}]',
+  blendin:      '[{"a":"Short everyday writing prompt shown to most players","b":"A closely related everyday writing prompt shown to the odd player"}]',
   harfhunt:     '["Animals","Things in a kitchen","Things you take on holiday"]',
 };
 
@@ -139,7 +139,7 @@ const GUIDANCE = {
   spy:          'Secret word pool. ONE object with "category" and "words" array (15-20 specific items).',
   '2t1l':       'Short personal category prompts that let one player write exactly two truths and one lie. Ask them to name 3 related things. Include a fitting emoji.',
   busted:       'Personal, playful questions with two versions. "q" addresses the subject directly. "other" asks the same thing about {name}; preserve the exact {name} placeholder. Answers should be short enough for a party game.',
-  blendin:      'Each object is a subtle question pair. "a" and "b" must be closely related and invite the same kind of short answer, but not be identical. The different answer should be detectable only after discussion.',
+  blendin:      'PUSH-THE-BUTTON-STYLE SOCIAL WRITING PROMPTS, NEVER TRIVIA. Each object contains two short, closely related everyday prompts: "a" goes to most players and "b" goes to one odd player. Write prompt fragments such as "Something you take to school" versus "Something you take to work", or "Something you say to your partner" versus "Something you say to your mother". Every person must understand both prompts instantly without needing factual, scientific, historical, sports, geographic, celebrity, or specialist knowledge. NEVER ask for a correct fact. NEVER use a question mark. NEVER begin with What, Which, Who, Where, When, How many, Name the, or their Arabic trivia equivalents. Both prompts must invite the same KIND of one-to-five-word answer and have believable overlap, while still being different enough to discuss. Keep each prompt under 12 words, natural, concrete, social, and party-appropriate. Do not copy the examples verbatim; invent fresh pairs across daily life, relationships, school/work, food, travel, home, celebrations, and common habits.',
   harfhunt:     'Return broad, familiar party-game category strings only. Each category must have many plausible answers across many starting letters. Avoid narrow or obscure categories.',
 };
 
@@ -369,7 +369,20 @@ function isValidPrompt(mode, item, region) {
     case 'spy': return text('category') && Array.isArray(item.words) && item.words.length >= 8 && item.words.every(word => typeof word === 'string' && word.trim());
     case '2t1l': return text('q');
     case 'busted': return text('q') && text('other') && item.other.includes('{name}');
-    case 'blendin': return text('a') && text('b') && item.a.trim() !== item.b.trim();
+    case 'blendin': {
+      const validSocialPrompt = value => {
+        if (typeof value !== 'string') return false;
+        const prompt = value.trim();
+        if (!prompt || prompt.length > 100 || /[?؟]/u.test(prompt)) return false;
+        if (prompt.split(/\s+/).length > 14) return false;
+        // Fail closed on the exact trivia shapes that reached production
+        // ("What is the world's longest river?", "What sport...").
+        // Creative category prompts do not need interrogative wording.
+        const triviaOpening = /^(?:what(?:'s|\s+is|\s+are|\s+was|\s+were)?|which|who|where|when|why|how\s+(?:many|much|old|long)|name\s+the|ما\s+(?:هو|هي|اسم)|من\s+(?:هو|هي)|أين|اين|متى|كم|وش\s+اسم|ايش\s+اسم)(?=\s|$)/iu;
+        return !triviaOpening.test(prompt);
+      };
+      return validSocialPrompt(item.a) && validSocialPrompt(item.b) && item.a.trim() !== item.b.trim();
+    }
     default: return false;
   }
 }

@@ -2767,6 +2767,24 @@ body.hide-tracker .status-row{display:none!important;}
 .tm-score-pts{font-family:'Fredoka One',sans-serif;font-size:clamp(14px,2.6vmin,18px);color:var(--yellow);flex-shrink:0;padding-left:4px;}
 .tm-score-pts.tm-zero{color:var(--text3);}
 
+/* Blend In's final comparison contains full prompt pairs, not score-line
+   subtitles. Never apply the generic one-line ellipsis used by score rows. */
+.blendin-prompt-pair{align-items:flex-start;padding-block:12px;}
+.blendin-prompt-pair .tm-score-name,
+.blendin-prompt-pair .tm-score-guess{
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  overflow-wrap:anywhere;
+  line-height:1.35;
+}
+.blendin-prompt-pair .tm-score-name{font-size:clamp(13px,2.2vmin,16px)!important;}
+.blendin-prompt-pair .tm-score-guess{font-size:clamp(12px,2vmin,15px);margin-top:4px;}
+@media(max-width:600px){
+  .blendin-prompt-pairs{gap:10px;padding-bottom:max(16px,env(safe-area-inset-bottom));}
+  .blendin-prompt-pair{padding:12px 13px;}
+}
+
 /* Two Truths reveal: desktop already has the right composition. On phones,
    let the reveal occupy the whole area above the fixed Next Round dock and
    center one compact score card instead of leaving the result top-heavy. */
