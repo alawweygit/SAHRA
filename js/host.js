@@ -2600,37 +2600,51 @@ const Host = (() => {
     const CORRECT_PTS = 1000;
     for (let i = 0; i < qs.length; i++) {
       const Q = qs[i];
-      // v263 — Ali caught a real pattern: with v262's content skewing
-      // almost every truth toward the extremes (14%, 91%, etc.) to chase
-      // "surprise", the hint is mathematically forced onto one side near a
-      // boundary (can't be 15+ points below 14 without going negative), so
-      // the correct answer became guessable from the hint's position alone
-      // ("reference always lands mid, so the direction is obvious"). This
-      // isn't fixable by changing the sampling method alone -- it's a
-      // content distribution problem, fixed below by spreading truths
-      // across the full range instead of clustering at the edges. The
-      // rejection-sampling approach here also varies the ACTUAL gap size
-      // per round (15-45, not a flat range) so hints don't all feel like
-      // the same predictable distance either.
+      // v264 — Ali's feedback after playing v263: the direction was still
+      // too easy to call using general life intuition about the topic
+      // itself, regardless of gap size (e.g. "fell asleep in 5 min" just
+      // *feels* uncommon, so 'lower' is an easy guess no matter what the
+      // reference number is). Researched Jackbox's actual Guesspionage
+      // mechanic for the real fix: it doesn't rely on a big gap to create
+      // difficulty. Instead it adds a 15%-threshold "much higher / much
+      // lower" tier worth double points, which forces players to also
+      // judge MAGNITUDE, not just direction. Ali confirmed a genuinely
+      // close gap (5-10%) is fine, so the gap generator below directly
+      // controls the tier split (50/50 "regular" vs "much") instead of
+      // relying on a loose minimum, verified via simulation to produce a
+      // close to even 25/25/25/25 split across all four answer categories
+      // for a mid-range truth.
       const real = Math.max(1, Math.min(99, Math.round(Number(Q.n))));
-      const minGap = 15 + Math.floor(Math.random() * 30); // 15-45, varies per round
-      let hint;
-      for (let tries = 0; tries < 60; tries++) {
-        const candidate = 1 + Math.floor(Math.random() * 99);
-        if (Math.abs(candidate - real) >= minGap) { hint = candidate; break; }
-      }
-      if (hint === undefined) {
-        for (let tries = 0; tries < 60; tries++) {
-          const candidate = 1 + Math.floor(Math.random() * 99);
-          if (Math.abs(candidate - real) >= 10) { hint = candidate; break; }
-        }
-        hint = hint ?? (real <= 50 ? 99 : 1);
-      }
+      const wantMuch = Math.random() < 0.5;
+      const gap = wantMuch ? (15 + Math.random() * 25) : (3 + Math.random() * 11);
+      let hintDir = Math.random() > 0.5 ? 1 : -1;
+      let hint = real + hintDir * gap;
+      if (hint < 1 || hint > 99) { hintDir = -hintDir; hint = real + hintDir * gap; }
+      hint = Math.round(Math.min(99, Math.max(1, hint)));
       // Percentages always display tight, no space before the % sign.
       const fmtNum = n => `${n}%`;
+      // v264 — Jackbox's actual threshold: 15%+ off unlocks "much
+      // higher/lower" as a real answer option worth double points (2000 vs
+      // 1000). Exact-match required for points, same as the real game --
+      // picking plain "higher" when the true gap actually qualifies as
+      // "much higher" does not score, and vice versa. This is what makes
+      // the mode genuinely harder: correctly sensing the DIRECTION isn't
+      // enough anymore, players must also judge roughly how far off the
+      // reference is.
+      const MUCH_THRESHOLD = 15;
+      const actualGap = Math.abs(real - hint);
+      const isMuch = actualGap >= MUCH_THRESHOLD;
+      const baseDir = real > hint ? 'higher' : 'lower';
+      const correctId = isMuch ? (baseDir === 'higher' ? 'muchHigher' : 'muchLower') : baseDir;
+      const MUCH_PTS = CORRECT_PTS * 2;
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
-      const opts = [{id:'higher',label:LANG==='ar'?'⬆️ أكثر':'⬆️ Higher',color:'#34d399'},{id:'lower',label:LANG==='ar'?'⬇️ أقل':'⬇️ Lower',color:'#f472b6'}];
+      const opts = [
+        {id:'muchLower',label:LANG==='ar'?'⬇️⬇️ أقل بكثير':'⬇️⬇️ Much Lower',color:'#ec4899'},
+        {id:'lower',label:LANG==='ar'?'⬇️ أقل':'⬇️ Lower',color:'#f472b6'},
+        {id:'higher',label:LANG==='ar'?'⬆️ أكثر':'⬆️ Higher',color:'#34d399'},
+        {id:'muchHigher',label:LANG==='ar'?'⬆️⬆️ أكثر بكثير':'⬆️⬆️ Much Higher',color:'#10b981'},
+      ];
       // v97 — hint sizing moved out of an inline style into .hl-hint so it can
       // be scaled down while the host's input dock is on screen, same as
       // .flag-display (v95/v96). Inline styles can't be overridden by the
@@ -2638,7 +2652,7 @@ const Host = (() => {
       scene(`<div class="eyebrow">📊 ${LANG==='ar'?'فوق ولا تحت؟':'HIGHER OR LOWER?'}</div>
         <div class="prompt-card display">${esc(Q.q)}</div>
         <div class="pick-sub hl-hint">${fmtNum(hint)}</div>
-        <div class="pick-sub" style="opacity:.7">${LANG==='ar'?'الرقم الحقيقي فوق ولا تحت؟':'Is the real answer higher or lower?'}</div>
+        <div class="pick-sub" style="opacity:.7">${LANG==='ar'?'كم بعيد الرقم الحقيقي؟':'How far off is the real answer?'}</div>
         <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         <div id="statusRow" class="status-row"></div>`);
       // Send to phone as separate fields so controller renders cleanly
@@ -2656,28 +2670,33 @@ const Host = (() => {
       const answers = await collectWithTimer(hlSpec, pids, 60);
       // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
       net.setState({ phase: 'wait', msg: t('watch_screen') });
-      const correctId = real > hint ? 'higher' : 'lower';
       Audio_.sfx.drum(); await sleep(500);
       const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
-      right.forEach(pid=>addScore(pid,CORRECT_PTS));
+      const pointsAwarded = isMuch ? MUCH_PTS : CORRECT_PTS;
+      right.forEach(pid=>addScore(pid,pointsAwarded));
       Audio_.sfx.reveal(); FX.burst(60);
-      const arrow = correctId==='higher'?'⬆️':'⬇️';
-      const ansLabel = `${arrow} ${LANG==='ar'?'الجواب':'Answer'}: ${fmtNum(real)}`;
+      const arrow = baseDir==='higher'?'⬆️':'⬇️';
+      const muchLabel = isMuch ? (LANG==='ar'?' (بكثير)':' (Much)') : '';
+      const ansLabel = `${arrow} ${LANG==='ar'?'الجواب':'Answer'}: ${fmtNum(real)}${muchLabel}`;
       // v97 — same reveal layout as True or Lie (v94) / Time Machine: every
       // piece gets its own column instead of being crammed into a bar whose
       // width varied by correctness. Both modes are two-option guesses, so
       // Ali wants them visually identical apart from the wording.
+      const hlAnswerLabels = {
+        higher: LANG==='ar' ? 'قال أكثر' : 'Said Higher',
+        lower: LANG==='ar' ? 'قال أقل' : 'Said Lower',
+        muchHigher: LANG==='ar' ? 'قال أكثر بكثير' : 'Said Much Higher',
+        muchLower: LANG==='ar' ? 'قال أقل بكثير' : 'Said Much Lower',
+      };
       const hlRows = pids.map(pid => {
         const p = safeP(pid);
         if (!p) return null;
         const a = val(answers, pid);
-        return { p, got: a === correctId, answered: a === 'higher' || a === 'lower', said: a, order: answers[pid]?.order ?? Infinity };
+        return { p, got: a === correctId, answered: !!hlAnswerLabels[a], said: a, order: answers[pid]?.order ?? Infinity };
       }).filter(Boolean).sort((a, b) => (b.got - a.got) || (a.order - b.order));
       const hlSaid = r => !r.answered
         ? (LANG==='ar' ? 'ما جاوب' : 'No answer')
-        : (LANG==='ar'
-            ? (r.said==='higher' ? 'قال أكثر' : 'قال أقل')
-            : (r.said==='higher' ? 'Said Higher' : 'Said Lower'));
+        : hlAnswerLabels[r.said];
       scene(`
         <div class="tm-wrap">
           <div class="tm-reveal-statement">${esc(Q.q)}</div>
@@ -2694,7 +2713,7 @@ const Host = (() => {
                   <div class="tm-score-name">${esc(r.p.name)}</div>
                   <div class="tm-score-guess">${hlSaid(r)}</div>
                 </div>
-                <div class="tm-score-pts${r.got?'':' tm-zero'}">${r.got?'+'+CORRECT_PTS:'0'} ${LANG==='ar'?'نقطة':'pts'}</div>
+                <div class="tm-score-pts${r.got?'':' tm-zero'}">${r.got?'+'+pointsAwarded:'0'} ${LANG==='ar'?'نقطة':'pts'}</div>
               </div>`).join('')}
           </div>
         </div>`);
