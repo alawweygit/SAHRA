@@ -640,6 +640,12 @@ const Controller = (() => {
         refBlock.style.cssText = 'text-align:center;margin:8px 0 4px';
         refBlock.innerHTML = `<div style="font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">${spec.refLabel||'Reference'}</div><div style="font-family:'Fredoka One',sans-serif;font-size:clamp(32px,10vw,52px);color:var(--yellow);line-height:1">${spec.ref||''}</div>`;
         wrap.appendChild(refBlock);
+        if (spec.hint) {
+          const hintEl = document.createElement('div');
+          hintEl.style.cssText = 'text-align:center;font-size:12px;color:var(--text3);opacity:.8;margin-bottom:4px';
+          hintEl.textContent = spec.hint;
+          wrap.appendChild(hintEl);
+        }
       }
       const grid = document.createElement('div');
       grid.className = 'ctrl-choices';

@@ -2653,6 +2653,7 @@ const Host = (() => {
         <div class="prompt-card display">${esc(Q.q)}</div>
         <div class="pick-sub hl-hint">${fmtNum(hint)}</div>
         <div class="pick-sub" style="opacity:.7">${LANG==='ar'?'كم بعيد الرقم الحقيقي؟':'How far off is the real answer?'}</div>
+        <div class="pick-sub" style="opacity:.55;font-size:clamp(11px,1.6vmin,14px)">${LANG==='ar'?'"بكثير" = فرق أكثر من 15%':'"Much" = more than 15% off'}</div>
         <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         <div id="statusRow" class="status-row"></div>`);
       // Send to phone as separate fields so controller renders cleanly
@@ -2661,6 +2662,7 @@ const Host = (() => {
         question: Q.q,
         ref: fmtNum(hint),
         refLabel: LANG==='ar'?'الرقم المرجعي':'Reference number',
+        hint: LANG==='ar'?'"بكثير" = فرق أكثر من 15%':'"Much" = more than 15% off',
         options: opts,
         seconds: 60
       };
