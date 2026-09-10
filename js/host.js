@@ -1457,6 +1457,17 @@ const Host = (() => {
         // No 'context' here — the prompt is already fully visible on the
         // shared display above (eyebrow + prompt-card); repeating it here
         // showed the exact same question text twice on screen.
+        // v271 — Ali caught the translate button missing entirely on
+        // phones for this mode. Root cause: controller.js's translate
+        // button only renders when spec.context or spec.translateContext
+        // is present (it uses spec.context as the translate source when
+        // translateContext isn't set) -- so omitting 'context' above to
+        // avoid the duplicate on-screen text also accidentally disabled
+        // translation. translateContext is checked independently and
+        // does NOT render a visible text block, so setting only this
+        // restores the translate button without reintroducing the
+        // duplicate prompt text.
+        translateContext: promptText,
         maxLen: 80,
       }, writerPids, 60);
 
