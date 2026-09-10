@@ -2648,11 +2648,19 @@ const Host = (() => {
       // the mode genuinely harder: correctly sensing the DIRECTION isn't
       // enough anymore, players must also judge roughly how far off the
       // reference is.
+      // v274 — Ali's clarification: scoring is direction-only, not an
+      // exact-match on the magnitude tier. If the real answer is higher
+      // than the hint (whether by a little or a lot), anyone who picked
+      // "Higher" scores 1000 and anyone who picked "Much Higher" scores
+      // 2000 — regardless of whether the actual gap technically qualified
+      // as "much". Same for lower/much lower. The "much" threshold below
+      // still exists purely to decide the "(Much)" label shown on the
+      // reveal card, and the 15% guidance shown to players before they
+      // answer, but it no longer gates who gets points.
       const MUCH_THRESHOLD = 15;
       const actualGap = Math.abs(real - hint);
       const isMuch = actualGap >= MUCH_THRESHOLD;
       const baseDir = real > hint ? 'higher' : 'lower';
-      const correctId = isMuch ? (baseDir === 'higher' ? 'muchHigher' : 'muchLower') : baseDir;
       const MUCH_PTS = CORRECT_PTS * 2;
       await FX.wipe();
       setPill(`${t('round')} ${i+1} ${t('of')} ${qs.length}`);
@@ -2690,9 +2698,21 @@ const Host = (() => {
       // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
       net.setState({ phase: 'wait', msg: t('watch_screen') });
       Audio_.sfx.drum(); await sleep(500);
-      const right = pids.filter(pid=>val(answers,pid)===correctId).sort((a,b)=>answers[a].order-answers[b].order);
-      const pointsAwarded = isMuch ? MUCH_PTS : CORRECT_PTS;
-      right.forEach(pid=>addScore(pid,pointsAwarded));
+      // v274 — a chosen answer is "correct" if its direction matches
+      // baseDir, regardless of whether the player chose the plain or
+      // "much" version of that direction. Points depend on which button
+      // was pressed: plain Higher/Lower = CORRECT_PTS, Much Higher/Much
+      // Lower = MUCH_PTS, always, whenever the direction is right.
+      const isCorrectChoice = chosen =>
+        (chosen === 'higher' || chosen === 'muchHigher') ? baseDir === 'higher'
+        : (chosen === 'lower' || chosen === 'muchLower') ? baseDir === 'lower'
+        : false;
+      const right = pids.filter(pid => isCorrectChoice(val(answers,pid))).sort((a,b)=>answers[a].order-answers[b].order);
+      right.forEach(pid => {
+        const chosen = val(answers, pid);
+        const pts = (chosen === 'muchHigher' || chosen === 'muchLower') ? MUCH_PTS : CORRECT_PTS;
+        addScore(pid, pts);
+      });
       Audio_.sfx.reveal(); FX.burst(60);
       const arrow = baseDir==='higher'?'⬆️':'⬇️';
       const muchLabel = isMuch ? (LANG==='ar'?' (بكثير)':' (Much)') : '';
@@ -2711,7 +2731,9 @@ const Host = (() => {
         const p = safeP(pid);
         if (!p) return null;
         const a = val(answers, pid);
-        return { p, got: a === correctId, answered: !!hlAnswerLabels[a], said: a, order: answers[pid]?.order ?? Infinity };
+        const got = isCorrectChoice(a);
+        const pts = a === 'muchHigher' || a === 'muchLower' ? MUCH_PTS : CORRECT_PTS;
+        return { p, got, pts, answered: !!hlAnswerLabels[a], said: a, order: answers[pid]?.order ?? Infinity };
       }).filter(Boolean).sort((a, b) => (b.got - a.got) || (a.order - b.order));
       const hlSaid = r => !r.answered
         ? (LANG==='ar' ? 'ما جاوب' : 'No answer')
@@ -2732,7 +2754,7 @@ const Host = (() => {
                   <div class="tm-score-name">${esc(r.p.name)}</div>
                   <div class="tm-score-guess">${hlSaid(r)}</div>
                 </div>
-                <div class="tm-score-pts${r.got?'':' tm-zero'}">${r.got?'+'+pointsAwarded:'0'} ${LANG==='ar'?'نقطة':'pts'}</div>
+                <div class="tm-score-pts${r.got?'':' tm-zero'}">${r.got?'+'+r.pts:'0'} ${LANG==='ar'?'نقطة':'pts'}</div>
               </div>`).join('')}
           </div>
         </div>`);
