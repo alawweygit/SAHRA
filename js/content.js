@@ -1167,7 +1167,7 @@ PACKS.blendin = {
   en: [
     { a:'Something you take to school', b:'Something you take to work' },
     { a:'Something you find in a kitchen', b:'Something you find in a bathroom' },
-    { a:'Something you say to your partner', b:'Something you say to your mother' },
+    { a:'Something you say to your best friend', b:'Something you say to your sibling' },
     { a:'Something you do before sleeping', b:'Something you do after waking up' },
     { a:'Something you take to the beach', b:'Something you take to a picnic' },
     { a:'Something you wear to a wedding', b:'Something you wear to a job interview' },
@@ -1205,7 +1205,7 @@ PACKS.blendin = {
   ar: [
     { a:'شي تاخذه معك للمدرسة', b:'شي تاخذه معك للشغل' },
     { a:'شي تلقاه في المطبخ', b:'شي تلقاه في الحمام' },
-    { a:'شي تقوله لشريك حياتك', b:'شي تقوله لأمك' },
+    { a:'شي تقوله لصديقك المقرب', b:'شي تقوله لأخوك' },
     { a:'شي تسويه قبل ما تنام', b:'شي تسويه أول ما تصحى' },
     { a:'شي تاخذه معك للبحر', b:'شي تاخذه معك للنزهة' },
     { a:'شي تلبسه في العرس', b:'شي تلبسه في مقابلة عمل' },
