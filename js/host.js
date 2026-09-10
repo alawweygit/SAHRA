@@ -1342,50 +1342,51 @@ const Host = (() => {
     const WIN_PTS = 1000;
     const COLS = ['#f472b6','#60a5fa','#34d399','#fb923c','#a78bff','#fbbf24','#22d3ee','#f43f5e'];
 
-    // Static prompts — [NAME] gets replaced with the hot seat player's name
+    // Static prompts — direct "you" framing (HOT SEAT style), no name
+    // placeholder needed. Writers answer AS the hot-seat player.
     const PROMPTS_EN = [
-      'What is [NAME] most scared to do?',
-      'What would [NAME] spend 1 million dollars on first?',
-      'What is [NAME]\'s biggest red flag?',
-      'What is [NAME] definitely lying about right now?',
-      'What would [NAME] do if they were invisible for a day?',
-      'What is [NAME]\'s most embarrassing habit?',
-      'What is [NAME] absolutely terrible at?',
-      'What would [NAME] be doing at 3am on a Friday?',
-      'What is [NAME]\'s go-to excuse for everything?',
-      'What is [NAME] secretly obsessed with?',
-      'What would [NAME]\'s villain origin story be?',
-      'What would [NAME] do if they were president for one day?',
-      'What is [NAME] definitely Googling in private?',
-      'What is [NAME]\'s most useless skill?',
-      'What would [NAME]\'s dating profile say?',
-      'What is [NAME]\'s spirit animal and why?',
-      'What would [NAME] do if they woke up famous tomorrow?',
-      'What job would [NAME] be immediately fired from?',
-      'What is [NAME]\'s most suspicious behavior?',
-      'What is [NAME] definitely not telling us?',
+      'You just bought a private island. What do you name it?',
+      'What\'s the strangest thing in your fridge right now?',
+      'You just got fired. What did you probably do?',
+      'What\'s your go-to karaoke song?',
+      'You just won a trophy. What is it for?',
+      'What\'s in your search history right now?',
+      'You just got kicked out somewhere. Where?',
+      'What\'s your secret talent nobody knows about?',
+      'You just texted the wrong person. What did it say?',
+      'What\'s your weird 3am snack?',
+      'You just became famous overnight. Why?',
+      'What\'s the worst gift you\'d actually love to get?',
+      'You just got banned from a store. Which one?',
+      'What\'s your go-to excuse for being late?',
+      'You just adopted a pet. What did you name it?',
+      'What\'s the one app you can\'t delete?',
+      'You just won the lottery. First thing you buy?',
+      'What job would you be terrible at?',
+      'You just got a tattoo. What is it?',
+      'What\'s your most useless skill?',
     ];
     const PROMPTS_AR = [
-      'شنو أكثر شي [NAME] يخاف يسويه؟',
-      'شنو أول شي [NAME] يشتريه بمليون؟',
-      'شنو أكبر علامة تحذير عند [NAME]؟',
-      'شنو [NAME] يكذب فيه هالحين؟',
-      'شنو [NAME] يسوي لو صار خفي ليوم؟',
-      'شنو أكثر عادة محرجة عند [NAME]؟',
-      'شنو [NAME] فاشل فيه بالكامل؟',
-      'شنو [NAME] يسوي الساعة 3 الفجر يوم الجمعة؟',
-      'شنو عذر [NAME] الجاهز لكل موقف؟',
-      'شنو [NAME] مهووس فيه بسرية؟',
-      'شنو قصة تحول [NAME] للشرير؟',
-      'شنو [NAME] يسوي لو صار رئيس ليوم؟',
-      'شنو [NAME] يبحث عنه بالسر في قوقل؟',
-      'شنو أعظم موهبة عديمة الفايدة عند [NAME]؟',
-      'شنو يكتب [NAME] في بروفايل المواعدة؟',
-      'شنو حيوان يمثل [NAME] وليش؟',
-      'شنو [NAME] يسوي لو صحى مشهور بكرة؟',
-      'من أي وظيفة يطردون [NAME] فوراً؟',
-      'شنو أكثر تصرف مريب يسويه [NAME]؟',
-      'شنو [NAME] ما يقوله لنا؟',
+      'اشتريت جزيرة خاصة. شنو تسميها؟',
+      'شنو أغرب شي بثلاجتك الحين؟',
+      'انطردت من شغلك. شنو الظاهر سويت؟',
+      'شنو أغنيتك المفضلة بالكاريوكي؟',
+      'فزت بجائزة. جائزة على شنو؟',
+      'شنو موجود بسجل بحثك الحين؟',
+      'انطردت من مكان. من وين؟',
+      'شنو موهبتك السرية اللي ما أحد يعرفها؟',
+      'أرسلت رسالة غلط لشخص غلط. شنو كانت؟',
+      'شنو وجبتك الغريبة الساعة 3 الفجر؟',
+      'صرت مشهور بليلة وحدة. ليش؟',
+      'شنو أسوأ هدية بس تحبها فعلاً؟',
+      'انحظرت من محل. أي محل؟',
+      'شنو عذرك الجاهز للتأخير؟',
+      'تبنيت حيوان أليف. شنو سميته؟',
+      'شنو التطبيق اللي ما تقدر تحذفه؟',
+      'فزت باليانصيب. أول شي تشتريه؟',
+      'أي وظيفة بتكون فاشل فيها؟',
+      'سويت وشم. شنو هو؟',
+      'شنو أعظم موهبة عديمة الفايدة عندك؟',
     ];
 
     const shuffledPlayers = shuffle(players.slice());
@@ -1397,8 +1398,8 @@ const Host = (() => {
     } catch (e) {
       console.error('[HYPOX] interrogation content failed:', e.message);
     }
-    // AI prompts may be written generically. Make the subject placeholder
-    // explicit so every question still reads naturally in hot-seat mode.
+    // v272 — prompts are now direct "you" framing (no [NAME] placeholder),
+    // so AI output is used exactly as generated.
     if (!prompts.length) prompts = fallbackPrompts;
     const usedPromptIdxs = new Set();
 
@@ -1412,11 +1413,13 @@ const Host = (() => {
       let promptIdx;
       do { promptIdx = Math.floor(Math.random() * prompts.length); } while (usedPromptIdxs.has(promptIdx) && usedPromptIdxs.size < prompts.length);
       usedPromptIdxs.add(promptIdx);
-      const _hotName = hotSeat.name.charAt(0).toUpperCase() + hotSeat.name.slice(1);
-      let promptText = prompts[promptIdx].replace(/\[NAME\]|\{name\}/gi, _hotName);
-      if (!promptText.includes(_hotName)) {
-        promptText = LANG === 'ar' ? `${promptText} — ${_hotName}` : `${promptText} — ${_hotName}`;
-      }
+      // v272 — Ali's redesign: prompts now speak directly to the hot-seat
+      // player as "you" (HOT SEAT-style), not third-person "What is
+      // [NAME]...". No name substitution needed anymore — the target's
+      // identity is already shown separately in the hot-seat announcement
+      // screen above, and inserting the name into a "you"-phrased prompt
+      // would read as broken grammar ("You just bought... — Sara").
+      const promptText = prompts[promptIdx];
 
       // Phase 1: Hot seat announcement — WYR style
       await FX.wipe();
