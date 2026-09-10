@@ -9,7 +9,7 @@ function sample(mode, index) {
   const samples = {
     bluff: { fact: `A surprising fact ${suffix} contains ___ creatures`, truth: `ANSWER${suffix}`, decoys: [`WRONG${suffix}A`, `WRONG${suffix}B`, `WRONG${suffix}C`, `WRONG${suffix}D`] },
     wyr: { a: `Option A ${suffix}`, b: `Option B ${suffix}` },
-    interrogation: { q: `You just did something ${suffix}. What was it?` },
+    interrogation: { q: `[NAME] just did something ${suffix}. What was it?` },
     diss: { p: `Roast prompt ${suffix}` },
     quiz: { q: `Trivia question ${suffix}?`, options: ['A', 'B', 'C', 'D'], correct: index % 4 },
     mostlikely: { q: `Who is most likely to do thing ${suffix}?` },
