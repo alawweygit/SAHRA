@@ -2815,7 +2815,7 @@ const Host = (() => {
         type: 'multitext',
         title: LANG==='ar' ? '✍️ دورك' : '✍️ Your turn',
         context: QC.q,
-        sub: LANG==='ar' ? 'اكتب حقيقتين وكذبة مقنعة' : 'Write two truths and one convincing lie',
+        sub: LANG==='ar' ? 'اكتب حقيقتين وكذبة مقنعة — خلّي الكل يبانون بنفس درجة التصديق!' : 'Write two truths and one convincing lie — make them all equally believable!',
         fullscreenInput: true,
         maxLen: 80,
         seconds: 180,
