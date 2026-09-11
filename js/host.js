@@ -2818,14 +2818,14 @@ const Host = (() => {
         sub: LANG==='ar' ? 'اكتب حقيقتين وكذبة مقنعة' : 'Write two truths and one convincing lie',
         fullscreenInput: true,
         maxLen: 80,
-        seconds: 60,
+        seconds: 180,
         fields: [
           { label: LANG==='ar' ? '✅ حقيقة ١' : '✅ TRUTH 1', placeholder: LANG==='ar' ? 'شيء صحيح عنك…' : 'Something true…' },
           { label: LANG==='ar' ? '✅ حقيقة ٢' : '✅ TRUTH 2', placeholder: LANG==='ar' ? 'شيء صحيح ثاني…' : 'Another true one…' },
           { label: LANG==='ar' ? '❌ الكذبة' : '❌ THE LIE', placeholder: LANG==='ar' ? 'كذبة مقنعة…' : 'A convincing lie…', lie: true },
         ],
       };
-      const packed = await collectWithTimer(mtSpec, [target.pid], 60);
+      const packed = await collectWithTimer(mtSpec, [target.pid], 180);
       let trio = [];
       try { trio = JSON.parse(val(packed, target.pid) || '[]'); } catch (e) { trio = []; }
       if (!Array.isArray(trio)) trio = [];
@@ -2845,7 +2845,7 @@ const Host = (() => {
       scene(`<div class="eyebrow">${targetSubmitted ? esc(target.name) : (LANG==='ar'?'🤖 البوت':'🤖 BOT')} — ${LANG==='ar'?'أيها الكذبة؟':'which is the lie?'}</div>
         <div class="tm-statement-card" style="margin-bottom:1vmin"><div class="tm-statement-text" style="font-size:clamp(15px,2.8vmin,22px)">${esc(QC.q)}</div></div><div class="quiz-grid" style="grid-template-columns:1fr">${stmts.map((st,j)=>`<div class="quiz-opt" id="stmt-${j}" style="--qc:${colors[j]};font-size:clamp(15px,2vw,18px)"><span class="q-letter display">${'ABC'[j]}</span> ${esc(st.text)}</div>`).join('')}</div><div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>`);
       const others = players.filter(p=>p.pid!==target.pid).map(p=>p.pid);
-      const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'أيها الكذبة؟':'Which is the lie?', context:QC.q, options:stmts.map((st,j)=>({id:j,label:`${'ABC'[j]} · ${st.text}`,color:colors[j]})), seconds:20 }, others, 20);
+      const votes = await collectWithTimer({ type:'choice', title:LANG==='ar'?'أيها الكذبة؟':'Which is the lie?', context:QC.q, options:stmts.map((st,j)=>({id:j,label:`${'ABC'[j]} · ${st.text}`,color:colors[j]})), seconds:60 }, others, 60);
       // v224 — see Quiz's identical fix (playQuiz) for the full explanation.
       net.setState({ phase: 'wait', msg: t('watch_screen') });
       Audio_.sfx.drum(); await sleep(900);
