@@ -2830,9 +2830,76 @@ const Host = (() => {
       try { trio = JSON.parse(val(packed, target.pid) || '[]'); } catch (e) { trio = []; }
       if (!Array.isArray(trio)) trio = [];
       const targetSubmitted = trio.length >= 3 && trio.slice(0, 3).every(value => typeof value === 'string' && value.trim());
-      const botTrio = LANG === 'ar'
-        ? ['سافرت إلى بلد بعيد', 'قابلت شخصاً مشهوراً', 'نمت في المطار']
-        : ['I travelled somewhere far', 'I met someone famous', 'I slept at an airport'];
+      // v278 — Ali caught the bot fallback using the same 3 generic
+      // travel/fame statements regardless of the actual category, so a
+      // "3 embarrassing songs" round could end up with "I met someone
+      // famous" as a filler answer — completely unrelated and nonsensical.
+      // This only ever shows when the target player doesn't submit in
+      // time, but with the richer v277 category set the mismatch became
+      // obvious. Fixed with a keyword-matched, theme-aware fallback bank
+      // instead of one fixed trio for every category.
+      const BOT_TRIO_BANK = [
+        { kw: ['food','eat','ate','meal','dish','snack','breakfast','أكل','طعام','فطور'],
+          en: ['I ate something weird once', 'I have a strange food habit', 'I hate a very popular food'],
+          ar: ['أكلت شيء غريب مرة', 'عندي عادة أكل غريبة', 'أكره أكلة الكل يحبها'] },
+        { kw: ['travel','trip','abroad','country','airport','سفر','رحلة','دولة','مطار'],
+          en: ['I slept at an airport', 'I travelled somewhere far', 'I got lost in a new city'],
+          ar: ['نمت في المطار', 'سافرت إلى بلد بعيد', 'ضعت في مدينة جديدة'] },
+        { kw: ['movie','film','watch','فيلم','مسلسل','أفلام'],
+          en: ['I have watched a movie 10 times', 'I cried during a cartoon', 'I fell asleep in a cinema'],
+          ar: ['شفت فيلم أكثر من ١٠ مرات', 'بكيت بمشهد كرتون', 'نمت بالسينما'] },
+        { kw: ['skill','good at','talent','مهار','موهبة'],
+          en: ['I can juggle', 'I can solve a Rubik\'s cube fast', 'I can whistle really loud'],
+          ar: ['أقدر أشعبذ', 'أحل مكعب روبيك بسرعة', 'أصفر بصوت عالي جداً'] },
+        { kw: ['live anywhere','dream','مكان تعيش','أحلام'],
+          en: ['I\'d move to the mountains', 'I\'d live on a boat', 'I\'d live in a big city'],
+          ar: ['بنتقل للجبال', 'بعيش على قارب', 'بعيش بمدينة كبيرة'] },
+        { kw: ['hobby','hobbies', 'هواي'],
+          en: ['I collect stickers', 'I paint in my free time', 'I play video games for hours'],
+          ar: ['أجمع ملصقات', 'أرسم بوقت فراغي', 'ألعب ألعاب فيديو لساعات'] },
+        { kw: ['famous','celebrity','مشهور'],
+          en: ['I met someone famous', 'I got a celebrity\'s autograph', 'I once sat near a celebrity'],
+          ar: ['قابلت شخصاً مشهوراً', 'أخذت توقيع مشهور', 'مرة جلست جنب مشهور'] },
+        { kw: ['coincidence','fate','صدف','قدر'],
+          en: ['I ran into an old friend abroad', 'I won a raffle once', 'I found money on the street'],
+          ar: ['صادفت صديق قديم بالخارج', 'فزت بسحب مرة', 'لقيت فلوس بالشارع'] },
+        { kw: ['never do','dare','تحدي'],
+          en: ['I sang karaoke in public', 'I ate a whole spicy pepper', 'I jumped into cold water'],
+          ar: ['غنيت كاريوكي بالعلن', 'أكلت فلفل حار كامل', 'قفزت بماي بارد'] },
+        { kw: ['nickname','لقب'],
+          en: ['I was called "Tiny" growing up', 'Friends call me "Chief"', 'I had a nickname I hated'],
+          ar: ['كانوا يسموني "الصغير"', 'أصحابي يسموني "الشيخ"', 'كان عندي لقب أكرهه'] },
+        { kw: ['house fire','grab','emergency','حريق','طوارئ'],
+          en: ['I\'d grab my phone', 'I\'d grab my passport', 'I\'d grab a photo album'],
+          ar: ['بآخذ جوالي', 'بآخذ جواز سفري', 'بآخذ ألبوم صور'] },
+        { kw: ['song','music','karaoke','أغنية','موسيقى'],
+          en: ['I know all the words to a cheesy song', 'I sing in the shower', 'I have a guilty pleasure playlist'],
+          ar: ['أحفظ كل كلمات أغنية محرجة', 'أغني وأنا أستحم', 'عندي قائمة أغاني أخجل منها'] },
+        { kw: ['lost','never found','ضاع','ضيّع'],
+          en: ['I lost my phone once', 'I lost a set of keys', 'I lost a wallet on a trip'],
+          ar: ['ضيعت جوالي مرة', 'ضيعت مفاتيحي', 'ضيعت محفظتي بسفرة'] },
+        { kw: ['habit','habits', 'عاد'],
+          en: ['I bite my nails', 'I talk to myself', 'I crack my knuckles'],
+          ar: ['أقرم أظافري', 'أحكي مع نفسي', 'أفرقع أصابعي'] },
+        { kw: ['scare','fear','afraid','خوف','يخوف'],
+          en: ['I\'m scared of clowns', 'I\'m scared of heights', 'I\'m scared of the dark'],
+          ar: ['أخاف من المهرجين', 'أخاف من المرتفعات', 'أخاف من الظلام'] },
+        { kw: ['broke','broken','oops','كسر'],
+          en: ['I broke a phone screen', 'I broke a mug', 'I broke a chair once'],
+          ar: ['كسرت شاشة جوال', 'كسرت كوب', 'كسرت كرسي مرة'] },
+        { kw: ['fell asleep','sleep','نوم','نمت'],
+          en: ['I fell asleep on a bus', 'I fell asleep at a party', 'I fell asleep during a movie'],
+          ar: ['نمت بالباص', 'نمت بحفلة', 'نمت أثناء فيلم'] },
+        { kw: ['surprised','surprise','فاجأ','مفاج'],
+          en: ['I surprised myself by singing on stage', 'I surprised myself by trying sushi', 'I surprised myself by finishing a marathon'],
+          ar: ['فاجأت نفسي بالغناء على مسرح', 'فاجأت نفسي بتجربة السوشي', 'فاجأت نفسي بإكمال ماراثون'] },
+      ];
+      const haystack = `${QC.cat||''} ${QC.q||''}`.toLowerCase();
+      const matched = BOT_TRIO_BANK.find(entry => entry.kw.some(k => haystack.includes(k)));
+      const botTrio = matched ? (LANG === 'ar' ? matched.ar : matched.en)
+        : (LANG === 'ar'
+          ? ['سافرت إلى بلد بعيد', 'قابلت شخصاً مشهوراً', 'نمت في المطار']
+          : ['I travelled somewhere far', 'I met someone famous', 'I slept at an airport']);
       const s1 = targetSubmitted ? trio[0].trim() : botTrio[0];
       const s2 = targetSubmitted ? trio[1].trim() : botTrio[1];
       const s3 = targetSubmitted ? trio[2].trim() : botTrio[2];
