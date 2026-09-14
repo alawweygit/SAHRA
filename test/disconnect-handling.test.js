@@ -114,7 +114,10 @@ async function testStalePresenceRequiresGraceAndConfirmation() {
   await intervals[0]();
   assert.ok(db.data.rooms.TEST.players.p1, '70 seconds is inside the mobile grace window');
 
-  now = 125_000;
+  // v279 — grace window raised from 90s to 240s (see net.js OFFLINE_MS),
+  // so the "just barely stale" and "confirmed stale" checkpoints below
+  // move out to just past 240s instead of just past the old 90s.
+  now = 345_000; // age = 345_000 - 30_000 = 315s, just past the new 240s grace window
   await intervals[0]();
   assert.ok(db.data.rooms.TEST.players.p1, 'the first stale check must not delete the player');
   await intervals[0]();

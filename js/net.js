@@ -258,7 +258,12 @@ class FirebaseNet {
     this._watchServerTimeOffset();
     const now = this._serverNow();
     const presence = roomData.presence || {};
-    const connected = realPlayers.filter(player => now - Number(presence[player.pid]?.t || 0) < 90_000);
+    // v279 — raised from 90s to 240s to match the OFFLINE_MS bump above,
+    // for the same reason: a host who is themselves mid-answer during a
+    // long input phase (e.g. Two Truths One Lie's 180s writing window)
+    // could have a temporarily stale heartbeat misread as a real
+    // disconnect, triggering an unwanted host handoff mid-round.
+    const connected = realPlayers.filter(player => now - Number(presence[player.pid]?.t || 0) < 240_000);
     const candidates = (connected.length ? connected : realPlayers)
       .sort((a, b) => String(a.pid).localeCompare(String(b.pid)));
     const seedText = String(status.electionId || status.epoch || roomData.createdAt || this.code);
@@ -682,7 +687,22 @@ class FirebaseNet {
     // submit. Only remove a player after a real heartbeat has gone stale for
     // 90 seconds on two consecutive checks. A missing heartbeat is not proof
     // of a disconnect; the host can still remove that player manually.
-    const OFFLINE_MS = 90000;
+    // v279 — raised from 90s to 240s. Ali reported a real 2-player game
+    // where a player who was actively answering (mid text-input, phone
+    // fully connected) got auto-flagged as disconnected, corrupting the
+    // round. Root cause: Two Truths One Lie's writing phase was extended
+    // to 180s in v275 for a longer, more thoughtful answer window, but
+    // this removal threshold was never raised to match -- any player who
+    // locks/backgrounds their phone screen even briefly while thinking
+    // (very plausible during a 3-minute writing task) can have their
+    // heartbeat interval throttled by the browser, easily exceeding the
+    // old 90s window well before they're actually done answering. Not
+    // specific to exactly 2 players -- it's a timer mismatch that can hit
+    // any player, any room size, during any sufficiently long input phase.
+    // 240s gives comfortable headroom beyond the longest input timer
+    // currently in the game (180s) without leaving a truly disconnected
+    // player lingering for an excessive time in faster-paced modes.
+    const OFFLINE_MS = 240000;
     this._offlineWatcher = setInterval(async () => {
       if (!this.code) return;
       try {

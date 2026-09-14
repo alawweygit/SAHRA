@@ -1972,14 +1972,37 @@ const Host = (() => {
         return { p, km, guessed: !!guess, guess };
       }).sort((a,b) => a.km - b.km);
 
-      // Hybrid scoring: distance decides most of the score (precision-based,
-      // GeoGuessr-style exponential decay), with a small rank bonus on top so
-      // 1st/2nd/3rd still feels rewarded. Previously this was pure rank-based
-      // (1000/700/500/300 flat) — a wildly-off guess in 1st place scored the
-      // same as a precise one, and two very different distances could tie.
+      // v279 — replaced the exponential-decay formula with Ali's explicit
+      // distance-bracket scale. Iterated twice with him: first pass had
+      // flat 100-point gaps between every tier and a weak 900+ minimum
+      // score, which he felt didn't reward true precision enough or
+      // meaningfully punish being way off; second pass added five more
+      // brackets past 900km (he wanted finer-grained scoring all the way
+      // out to 5000km+) instead of a single "everything past 900km" catch-
+      // all. Kept the original small rank bonus on top (+200/+100/+50 for
+      // 1st/2nd/3rd) since multiple players can now legitimately land in
+      // the exact same bracket and tie exactly on the base score alone --
+      // the bonus still rewards being the single closest guess in the room.
+      const PINPOINT_TIERS = [
+        { max: 10, pts: 1000 },
+        { max: 20, pts: 700 },
+        { max: 30, pts: 550 },
+        { max: 40, pts: 450 },
+        { max: 50, pts: 380 },
+        { max: 100, pts: 300 },
+        { max: 300, pts: 200 },
+        { max: 600, pts: 100 },
+        { max: 900, pts: 40 },
+        { max: 1000, pts: 20 },
+        { max: 2000, pts: 10 },
+        { max: 3000, pts: 5 },
+        { max: 4000, pts: 2 },
+        { max: 5000, pts: 1 },
+      ]; // anything at or beyond 5000km scores 0 base points
+      const pinpointScoreFor = km => (PINPOINT_TIERS.find(tier => km < tier.max)?.pts) ?? 0;
       results.forEach((r2, i) => {
         if (!r2.guessed) return;
-        const base = Math.round(1000 * Math.exp(-r2.km / 2000)); // ~1000 at 0km, ~368 at 2000km, ~7 at 10000km
+        const base = pinpointScoreFor(r2.km);
         const rankBonus = i === 0 ? 200 : i === 1 ? 100 : i === 2 ? 50 : 0;
         addScore(r2.p.pid, base + rankBonus);
       });
@@ -2030,9 +2053,13 @@ const Host = (() => {
         // new result scene mounts. The host must always initialize its own map.
         const revealMapEl = stage()?.querySelector('.pinpoint-reveal-map');
         if (!revealMapEl) throw new Error('Pin Point host reveal map missing');
+        // v279 — Ali asked for the reveal map to be pannable/zoomable so
+        // everyone can actually explore where their guess landed versus
+        // the real city, instead of a fixed, locked view. minZoom/maxZoom
+        // and the initial fly-to are unchanged; only interactivity flips.
         const rm = HypoxMaps.create(revealMapEl, {
           center: [city.lat, city.lon], zoom: 1.8, minZoom: 1.2, maxZoom: 10,
-          interactive: false, zoomControl: false, worldCopies: false,
+          interactive: true, zoomControl: true, worldCopies: false,
         });
         // Single city marker — a star-in-a-dot with its name label attached
         // directly beneath it, so it reads as ONE unmistakable mark instead

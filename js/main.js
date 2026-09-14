@@ -2405,9 +2405,12 @@
         try {
           const REVEAL_ZOOM = 6;
           const REVEAL_VISIBLE_KM = 700;
+          // v279 — same interactivity flip as the host's own reveal map
+          // (host.js) — Ali wants everyone able to pan/zoom the reveal,
+          // not just the host.
           const rm = HypoxMaps.create(mapEl, {
             center: [city.lat, city.lon], zoom: 1.8, minZoom: 1.2, maxZoom: 10,
-            interactive: false, zoomControl: false, worldCopies: false,
+            interactive: true, zoomControl: true, worldCopies: false,
           });
           // Mark successful ownership only after the renderer accepts the
           // container. If initialization ever throws, a later state/shared

@@ -814,6 +814,24 @@ body.phones-hide-tracker #statusRow{display:none!important;}
 .ctrl-map + .ctrl-submit:not(:disabled){
   box-shadow:0 0 0 3px rgba(255,255,255,0.15),0 8px 28px rgba(244,114,182,0.45);
 }
+/* v279 — Ali caught Pinpoint's countdown timer being invisible on player
+   phones until they opened Full Map. Same root cause as the v238 submit-
+   button fix directly above: .ctrl-timer is prepended as the FIRST child
+   of .ctrl-wrap (before the eyebrow/prompt/map), so once a player scrolls
+   down to actually reach and interact with the map, the timer scrolls out
+   of view above the fold. The Full Map overlay has its own separate timer
+   (see the fsTimer block in controller.js), which is why it only ever
+   appeared there. Pinning the timer with the same sticky pattern keeps it
+   visible the whole time, on every viewport size, without needing :has()
+   parent-selector workarounds for DOM order (.ctrl-timer comes BEFORE
+   .ctrl-map, so a normal adjacent-sibling selector can't reach it -- :has()
+   on the shared wrapper is the correct match here, same technique already
+   used elsewhere in this file, e.g. line ~660). */
+.ctrl-wrap:has(.ctrl-map) .ctrl-timer{
+  position:sticky;top:max(6px,env(safe-area-inset-top));
+  z-index:6;
+  align-self:center;
+}
 .ctrl-choices{display:flex;flex-direction:column;gap:9px;width:100%;}
 .choice-btn{font-family:inherit;font-weight:700;font-size:15px;color:var(--text);background:var(--card);border:2px solid var(--cb,var(--border-hi));border-radius:16px;padding:14px;cursor:pointer;text-align:center;box-shadow:0 4px 0 var(--shadow);transition:transform 0.1s;animation:cardDeal 0.4s both;line-height:1.35;}
 .choice-btn.wyr-btn{background:var(--cb);border-color:var(--cb);color:#000;font-size:clamp(15px,2.2vw,20px);min-height:80px;border-radius:20px;}
