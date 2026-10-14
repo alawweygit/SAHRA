@@ -217,6 +217,13 @@ function isValidPrompt(mode, item, region) {
   if (mode === 'harfhunt') return typeof item === 'string' && item.trim().length >= 3;
   if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
   const text = key => typeof item[key] === 'string' && item[key].trim().length > 0;
+  // Accept model-generated numeric strings, but never turn null, booleans,
+  // empty strings or containers into plausible answers/coordinates.
+  const numeric = value => {
+    if (typeof value !== 'number' && (typeof value !== 'string' || !value.trim())) return NaN;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : NaN;
+  };
   // v253 — same bug class as Time Machine (v239) and True or Lie (v243):
   // Number.isInteger(item.correct) rejects the ENTIRE item the moment the
   // model returns "correct":"2" (a quoted string) instead of "correct":2
@@ -229,7 +236,9 @@ function isValidPrompt(mode, item, region) {
   const fourChoices = () => {
     if (!Array.isArray(item.options) || item.options.length !== 4) return false;
     if (!item.options.every(option => typeof option === 'string' && option.trim())) return false;
-    const correctNum = Number(item.correct);
+    const normalized = item.options.map(option => option.trim().replace(/\s+/g, ' ').toLocaleLowerCase());
+    if (new Set(normalized).size !== 4) return false;
+    const correctNum = numeric(item.correct);
     if (!Number.isInteger(correctNum) || correctNum < 0 || correctNum >= 4) return false;
     item.correct = correctNum;
     return true;
@@ -306,8 +315,10 @@ function isValidPrompt(mode, item, region) {
       // Number.isFinite(item.lat/lon) rejects the whole item if the model
       // returns coordinates as quoted strings instead of bare numbers.
       if (!(text('en') && text('ar') && text('countryEn') && text('countryAr'))) return false;
-      const latNum = Number(item.lat), lonNum = Number(item.lon);
+      const latNum = numeric(item.lat), lonNum = numeric(item.lon);
       if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) return false;
+      if (latNum < -90 || latNum > 90 || lonNum < -180 || lonNum > 180) return false;
+      if (latNum === 0 && lonNum === 0) return false;
       item.lat = latNum; item.lon = lonNum;
       const isMenaCountry = MENA_COUNTRIES.has(String(item.countryEn).trim().toLowerCase()) || MENA_COUNTRIES.has(String(item.countryAr).trim());
       if (region === 'mena' && !isMenaCountry) return false;
@@ -335,8 +346,8 @@ function isValidPrompt(mode, item, region) {
       // arithmetic (the year-difference scoring in host.js) always gets a
       // real number, not a string.
       if (!text('q')) return false;
-      const yNum = Number(item.y);
-      if (!Number.isFinite(yNum)) return false;
+      const yNum = numeric(item.y);
+      if (!Number.isInteger(yNum)) return false;
       item.y = yNum;
       return true;
     }
@@ -351,8 +362,8 @@ function isValidPrompt(mode, item, region) {
       // Number.isFinite(item.n) rejects the whole item if the model returns
       // the number as a quoted string ("50") instead of a bare number (50).
       if (!text('q')) return false;
-      const nNum = Number(item.n);
-      if (!Number.isFinite(nNum) || nNum < 1 || nNum > 99) return false;
+      const nNum = numeric(item.n);
+      if (!Number.isInteger(nNum) || nNum < 1 || nNum > 99) return false;
       if (String(item.unit).trim() !== '%') return false;
       item.n = nNum;
       return true;

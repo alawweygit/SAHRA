@@ -96,6 +96,37 @@ async function postPrompts(body) {
   assert.ok(generationRequests.every(request => request.maxTokens <= 1200),
     'small requests must keep a bounded output budget');
 
+  for (const invalid of [null, undefined, false, true, '', ' ', [], [1], {}]) {
+    for (const mode of ['quiz', 'flaghunt']) {
+      assert.equal(backend.isValidPrompt(mode, { ...sample(mode, 0), correct: invalid }), false,
+        `${mode} must reject a missing or nonnumeric answer index`);
+    }
+    assert.equal(backend.isValidPrompt('year', { q: 'Event?', y: invalid }), false);
+    assert.equal(backend.isValidPrompt('higherlow', { q: 'Behavior?', n: invalid, unit: '%' }), false);
+    for (const field of ['lat', 'lon']) {
+      assert.equal(backend.isValidPrompt('pinpoint', { ...sample('pinpoint', 0), [field]: invalid }), false,
+        `Pinpoint must reject a missing or nonnumeric ${field}`);
+    }
+  }
+  for (const mode of ['quiz', 'flaghunt']) {
+    assert.equal(backend.isValidPrompt(mode, { ...sample(mode, 0), options: ['A', ' a ', 'B', 'C'] }), false,
+      `${mode} choices must remain distinct after normalization`);
+    const numericString = { ...sample(mode, 0), correct: '2' };
+    assert.equal(backend.isValidPrompt(mode, numericString), true);
+    assert.equal(numericString.correct, 2, 'valid numeric strings must still normalize');
+  }
+  for (const [lat, lon] of [[91, 20], [-91, 20], [20, 181], [20, -181], [0, 0]]) {
+    assert.equal(backend.isValidPrompt('pinpoint', { ...sample('pinpoint', 0), lat, lon }), false);
+  }
+  const cityWithStrings = { ...sample('pinpoint', 0), lat: '24.5', lon: '45.5' };
+  assert.equal(backend.isValidPrompt('pinpoint', cityWithStrings), true);
+  assert.equal(cityWithStrings.lat, 24.5);
+  assert.equal(cityWithStrings.lon, 45.5);
+  assert.equal(backend.isValidPrompt('year', { q: 'Event?', y: '2007' }), true);
+  assert.equal(backend.isValidPrompt('year', { q: 'Event?', y: 2007.5 }), false);
+  assert.equal(backend.isValidPrompt('higherlow', { q: 'Behavior?', n: '38', unit: '%' }), true);
+  assert.equal(backend.isValidPrompt('higherlow', { q: 'Behavior?', n: 38.5, unit: '%' }), false);
+
   const trueFalseBatch = await postPrompts({ mode: 'trueorlie', lang: 'en', topic: 'balance-test', count: 8 });
   assert.equal(trueFalseBatch.statusCode, 200);
   assert.ok(trueFalseBatch.payload.prompts.some(item => item.truth === true));
