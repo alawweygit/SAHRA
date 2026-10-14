@@ -2660,6 +2660,9 @@ body.phones-host-docked .hl-hint{
    read-only behaviour of the mirror is exactly preserved.              */
 #scr-controller #phoneSharedStage{pointer-events:auto!important;}
 #scr-controller #phoneSharedStage *{pointer-events:none!important;}
+/* Player reveal maps are created locally, so their canvas and zoom controls
+   must receive touches. Keep mirrored host actions and marker overlays inert. */
+#scr-controller #phoneSharedStage .pinpoint-reveal-map[data-hypox-map-inited="1"] :is(.hypox-map-runtime,.maplibregl-canvas-container,.maplibregl-canvas,.maplibregl-ctrl-group,.maplibregl-ctrl-group *){pointer-events:auto!important;}
 
 /* =====================================================================
    INPUT PHASE: revert to the simpler, proven-working single-scroll-
