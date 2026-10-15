@@ -21,6 +21,7 @@ async function check(reply, items = questions) {
   const client = { messages: { create: async body => { request = body; return reply; } } };
   const accepted = await verifyMedicalQuestions(client, items, { model: 'test-model' });
   assert.ok(request.tools[0].allowed_domains.includes('nhs.uk'));
+  assert.match(request.system,/zero-based options array index/,'independent review must use the same answer numbering as the game');
   const submitted = JSON.parse(request.messages[0].content.split('Questions:\n')[1]);
   assert.equal(submitted[0].correct, undefined, 'the reviewer must not see the generator answer');
   return accepted;
