@@ -25,7 +25,10 @@ async function verifyMedicalBatch(client, items, { model, signal } = {}) {
     }],
   }, { timeout: 45000, maxRetries: 0, signal });
 
-  if (response.stop_reason !== 'end_turn') return [];
+  if (response.stop_reason !== 'end_turn') {
+    console.warn('[medical-review] incomplete:', response.stop_reason);
+    return [];
+  }
   const retrieved = new Set();
   const cited = new Set();
   for (const block of response.content || []) {
@@ -44,7 +47,7 @@ async function verifyMedicalBatch(client, items, { model, signal } = {}) {
   }
   const text = (response.content || []).filter(block => block.type === 'text').map(block => block.text).join('\n');
   const match = text.match(/MEDICAL_VERDICTS_START\s*([\s\S]*?)\s*MEDICAL_VERDICTS_END/);
-  if (!match) return [];
+  if (!match) { console.warn('[medical-review] missing verdicts; retrieved:', retrieved.size, 'cited:', cited.size); return []; }
   let verdicts;
   try { verdicts = JSON.parse(match[1]); } catch (_) { return []; }
   if (!Array.isArray(verdicts)) return [];
@@ -61,6 +64,7 @@ async function verifyMedicalBatch(client, items, { model, signal } = {}) {
     if (sources.some(url => !url || !retrieved.has(url) || !cited.has(url))) continue;
     accepted.push({ ...items[id], medicalSources: [...new Set(sources)] });
   }
+  console.info('[medical-review]', JSON.stringify({questions:items.length,retrieved:retrieved.size,cited:cited.size,verdicts:verdicts.length,approved:accepted.length,searchErrors:(response.content||[]).filter(b=>b.type==='web_search_tool_result'&&!Array.isArray(b.content)).map(b=>b.content?.error_code)}));
   return accepted;
 }
 
