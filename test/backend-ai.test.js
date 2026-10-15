@@ -52,7 +52,7 @@ class AnthropicMock {
           return { stop_reason:'end_turn', content:[
             {type:'web_search_tool_result',content:[{type:'web_search_result',url}]},
             {type:'text',text:'Evidence',citations:[{type:'web_search_result_location',url,cited_text:'Evidence from a test source'}]},
-            {type:'text',text:'MEDICAL_VERDICTS_START'+JSON.stringify(questions.map(question=>({id:question.id,valid:!rejectMedical,correct:question.id%4,sources:[url],reason:'Test evidence'})))+'MEDICAL_VERDICTS_END'},
+            {type:'text',text:'MEDICAL_VERDICTS_START'+JSON.stringify(questions.map(question=>({id:question.id,valid:!rejectMedical,correct:(Number(question.q.match(/(\d+)\?$/)[1])-1)%4,sources:[url],reason:'Test evidence'})))+'MEDICAL_VERDICTS_END'},
           ] };
         }
         const prompt = request.messages[0].content;
@@ -156,8 +156,8 @@ async function postPrompts(body) {
   assert.equal(medical.payload.prompts.length,2);
   assert.ok(medical.payload.prompts.every(item=>item.medicalSources?.length));
   assert.equal(verificationRequests.length,1,'Pharmacy must invoke independent sourced verification');
-  await postPrompts({ mode:'quiz', lang:'en', topic:'medical', count:2 });
-  assert.equal(verificationRequests.length,1,'cached verified questions should not incur another review');
+  assert.equal(generationRequests.at(-1).count,2,'Pharmacy must generate only the requested questions');
+
   rejectMedical = true;
   const rejectedMedical = await postPrompts({ mode:'quiz', lang:'ar', topic:'medical', count:2 });
   assert.equal(rejectedMedical.payload.prompts.length,0,'failed medical review must not leak the original questions');

@@ -512,7 +512,9 @@ async function generateBatch(mode, lang, used, baseKey, requestedCount, region, 
   // game needed only 2 or 3. That made a cold request take long enough for
   // the browser's timeout to fire. Generate a small reserve instead: enough
   // for this game plus a few cached follow-ups, capped for predictable cost.
-  const batchSize = Math.min(40, Math.max(8, Number(requestedCount) + 3));
+  const batchSize = mode === 'quiz' && topic === 'medical'
+    ? Math.min(6, Math.max(1, Number(requestedCount)))
+    : Math.min(40, Math.max(8, Number(requestedCount) + 3));
   const msg = await anthropic.messages.create({
     model: AI_MODEL,
     max_tokens: Math.min(4000, Math.max(1200, batchSize * 140)),

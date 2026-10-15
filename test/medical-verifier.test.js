@@ -48,5 +48,21 @@ async function check(reply, items = questions) {
   assert.equal((await check(invalidJson)).length, 0);
   await assert.rejects(verifyMedicalQuestions({ messages: { create: async()=>{throw Error('Search unavailable');} } }, questions, {model:'test'}));
   for(const url of ['http://nhs.uk/test','https://nhs.uk@evil.example/test','https://evilnhs.uk/test','https://www.nhs.uk:444/test']) assert.equal(medicalSource(url),null);
+  let active = 0, peak = 0;
+  const batchSizes = [];
+  const many = Array.from({length:8}, (_,i)=>({...questions[0],q:'Question '+i}));
+  const concurrent = await verifyMedicalQuestions({messages:{create:async body=>{
+    const submitted = JSON.parse(body.messages[0].content.split('Questions:\n')[1]);
+    batchSizes.push(submitted.length);
+    peak = Math.max(peak, ++active);
+    await new Promise(resolve=>setImmediate(resolve));
+    active--;
+    const reply = response();
+    reply.content[2].text = 'MEDICAL_VERDICTS_START'+JSON.stringify(submitted.map(item=>({id:item.id,valid:true,correct:1,sources:[source],reason:'Verified evidence'})))+'MEDICAL_VERDICTS_END';
+    return reply;
+  }}}, many, {model:'test'});
+  assert.deepEqual(batchSizes,[2,2,2,2],'reviews must use small source-check batches');
+  assert.equal(peak,3,'review concurrency must remain bounded');
+  assert.deepEqual(concurrent.map(item=>item.q),many.map(item=>item.q),'batch-local verdict IDs must preserve every original question');
   console.log('Medical source verification: blind review, wrong answers, ambiguity, provenance and failure handling passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});
