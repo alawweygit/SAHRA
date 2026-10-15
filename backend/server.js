@@ -541,6 +541,7 @@ async function generateBatch(mode, lang, used, baseKey, requestedCount, region, 
   }
   if (mode === 'quiz' && topic === 'medical') {
     const candidates = parsed.filter(item => isValidPrompt(mode, item, region));
+    console.info('[medical-generation]', JSON.stringify({generated:parsed.length,valid:candidates.length,fields:parsed.map(item=>item&&typeof item==='object'?Object.keys(item):typeof item)}));
     const verified = await verifyMedicalQuestions(anthropic, candidates, { model: AI_MODEL, signal });
     const approved = new Set(verified.map(getFingerprint));
     // Replacement attempts must avoid the rejected questions too, without

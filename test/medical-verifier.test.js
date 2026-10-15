@@ -36,6 +36,12 @@ async function check(reply, items = questions) {
     { sources: [] }, { sources: ['https://www.nhs.uk/not-retrieved'] },
     { sources: ['https://www.nhs.uk.evil.example/medicines'] }, { reason: '' },
   ]) assert.equal((await check(response(verdict))).length, 0);
+  const split = response();
+  const raw = split.content[2].text;
+  const cut = raw.indexOf('nhs.uk') + 3;
+  split.content[2].text = raw.slice(0,cut);
+  split.content.push({type:'text',text:raw.slice(cut)});
+  assert.equal((await check(split)).length,1,'text block boundaries must not corrupt verdict JSON');
   const uncited = response();uncited.content[1].citations=[];
   assert.equal((await check(uncited)).length, 0);
   const noSearch = response();noSearch.content.shift();
