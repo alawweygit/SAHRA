@@ -34,8 +34,7 @@ async function check(reply, items = questions) {
     'the reported amlodipine/ACE-inhibitor error must be rejected');
   for (const verdict of [
     { valid: false }, { valid: 'true' }, { correct: '1' }, { correct: 0 },
-    { sources: [] }, { sources: ['https://www.nhs.uk/not-retrieved'] },
-    { sources: ['https://www.nhs.uk.evil.example/medicines'] }, { reason: '' },
+    { reason: '' },
   ]) assert.equal((await check(response(verdict))).length, 0);
   const split = response();
   const raw = split.content[2].text;
@@ -43,6 +42,12 @@ async function check(reply, items = questions) {
   split.content[2].text = raw.slice(0,cut);
   split.content.push({type:'text',text:raw.slice(cut)});
   assert.equal((await check(split)).length,1,'text block boundaries must not corrupt verdict JSON');
+  const copiedWrong = response({sources:['https://www.nhs.uk/not-retrieved']});
+  assert.deepEqual((await check(copiedWrong))[0].medicalSources,[source],'source links must come from native citations rather than copied URLs');
+  for (const url of ['https://www.nhs.uk/not-retrieved','https://www.nhs.uk.evil.example/medicines']) {
+    const badCitation=response(); badCitation.content[1].citations[0].url=url;
+    assert.equal((await check(badCitation)).length,0,'unretrieved or untrusted citations must fail closed');
+  }
   const uncited = response();uncited.content[1].citations=[];
   assert.equal((await check(uncited)).length, 0);
   const noSearch = response();noSearch.content.shift();
@@ -68,7 +73,7 @@ async function check(reply, items = questions) {
     reply.content[2].text = 'MEDICAL_VERDICTS_START'+JSON.stringify(submitted.map(item=>({id:item.id,valid:true,correct:1,sources:[source],reason:'Verified evidence'})))+'MEDICAL_VERDICTS_END';
     return reply;
   }}}, many, {model:'test'});
-  assert.deepEqual(batchSizes,[2,2,2,2],'reviews must use small source-check batches');
+  assert.deepEqual(batchSizes,Array(8).fill(1),'each question must have its own independent source-check context');
   assert.equal(peak,3,'review concurrency must remain bounded');
   assert.deepEqual(concurrent.map(item=>item.q),many.map(item=>item.q),'batch-local verdict IDs must preserve every original question');
   console.log('Medical source verification: blind review, wrong answers, ambiguity, provenance and failure handling passed');

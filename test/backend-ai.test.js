@@ -155,7 +155,7 @@ async function postPrompts(body) {
   assert.equal(medical.statusCode,200);
   assert.equal(medical.payload.prompts.length,2);
   assert.ok(medical.payload.prompts.every(item=>item.medicalSources?.length));
-  assert.equal(verificationRequests.length,1,'Pharmacy must invoke independent sourced verification');
+  assert.equal(verificationRequests.length,2,'each Pharmacy question needs independent sourced verification');
   assert.equal(generationRequests.at(-1).count,2,'Pharmacy must generate only the requested questions');
 
   rejectMedical = true;
