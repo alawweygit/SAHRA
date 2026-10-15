@@ -238,28 +238,19 @@ const Host = (() => {
       _hostDisconnectWarnInt = null;
     }
   }
-  function showHostDisconnectWarning(player, deadline) {
+  function showHostDisconnectWarning(player) {
     clearHostDisconnectWarning();
     const banner = document.createElement('div');
     banner.id = 'disconnectWarnBanner';
-    banner.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(200,40,40,0.92);color:#fff;font-family:Fredoka One,sans-serif;font-size:13px;padding:10px 18px;border-radius:14px;z-index:1000;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.4);text-align:center;';
+    banner.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(200,40,40,0.92);color:#fff;font-family:Fredoka One,sans-serif;font-size:13px;padding:10px 18px;border-radius:14px;z-index:1000;box-shadow:0 4px 16px rgba(0,0,0,0.4);text-align:center;';
     const name = player?.name || 'Player';
     const emoji = player?.emoji || '👤';
-    const label = LANG==='ar'
-      ? seconds => `${emoji} ${name} انقطع اتصاله — تكمل اللعبة خلال ${seconds} ث`
-      : seconds => `${emoji} ${name} disconnected — game continues in ${seconds}s`;
-    const tick = () => {
-      const seconds = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
-      banner.textContent = label(seconds);
-      if (seconds <= 0 && _hostDisconnectWarnInt) {
-        clearInterval(_hostDisconnectWarnInt);
-        _hostDisconnectWarnInt = null;
-      }
-    };
-    tick();
+    banner.textContent = LANG==='ar'
+      ? `${emoji} ${name} انقطع اتصاله — بانتظار عودته`
+      : `${emoji} ${name} lost connection — waiting to reconnect`;
     document.body.appendChild(banner);
-    _hostDisconnectWarnInt = setInterval(tick, 1000);
   }
+
   let fxSeq = 0, fxQueue = [], fxPublishTimer = null;
   // Confetti (canvas) and flyPoints (a transient div appended to
   // document.body, auto-removed after 1.3s) are both invisible to the
@@ -493,17 +484,16 @@ const Host = (() => {
           return;
         }
         const _st = _pres[pid];
-        const _off = _st === 'away' || _st === 'offline';
+        const _off = _st === 'offline';
         // Warning delivery must not depend on this particular mode rendering
         // a #statusRow/#mini-* tracker. Busted and several bespoke modes do
         // not, which made their disconnected-player countdown silently skip.
         if (_off && !_warnedOffline.has(pid)) {
           _warnedOffline.add(pid);
           const p = safeP(pid);
-          const deadline = Date.now() + 13000;
-          showHostDisconnectWarning(p, deadline);
+          showHostDisconnectWarning(p);
           pushMirror({
-            disconnectWarn: { name: p?.name || 'Player', emoji: p?.emoji || '👤', deadline },
+            disconnectWarn: { name: p?.name || 'Player', emoji: p?.emoji || '👤' },
             disconnectWarnId: Date.now(),
           });
         } else if (!_off && _warnedOffline.has(pid)) {
@@ -1864,6 +1854,19 @@ const Host = (() => {
       hostSay('reveal');
       $('#qopt-' + Q.correct)?.classList.add('q-correct');
       Q.options.forEach((_, j) => { if (j !== Q.correct) $('#qopt-' + j)?.classList.add('q-dim'); });
+      if (cat === 'medical' && Array.isArray(Q.medicalSources)) {
+        const sources = Q.medicalSources.filter(value => {
+          try {
+            const url = new URL(value);
+            return url.protocol === 'https:' && !url.username && !url.password && !url.port &&
+              ['fda.gov','nhs.uk','medlineplus.gov','dailymed.nlm.nih.gov','ema.europa.eu']
+                .some(domain => url.hostname === domain || url.hostname.endsWith('.'+domain));
+          } catch (_) { return false; }
+        });
+        if (sources.length) stage()?.querySelector('.quiz-grid')?.insertAdjacentHTML('afterend',
+          `<div class="medical-source-links">${LANG==='ar'?'المصادر:':'Sources:'} ${sources.map(url =>
+            `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(new URL(url).hostname.replace(/^www\./,''))}</a>`).join(' · ')}</div>`);
+      }
       Audio_.sfx.correct(); FX.burst(80);
 
       const right = pids.filter(pid => val(answers, pid) === Q.correct)
@@ -2704,8 +2707,8 @@ const Host = (() => {
       scene(`<div class="eyebrow">📊 ${LANG==='ar'?'فوق ولا تحت؟':'HIGHER OR LOWER?'}</div>
         <div class="prompt-card display">${esc(Q.q)}</div>
         <div class="pick-sub hl-hint">${fmtNum(hint)}</div>
-        <div class="pick-sub" style="opacity:.7">${LANG==='ar'?'كم بعيد الرقم الحقيقي؟':'How far off is the real answer?'}</div>
-        <div class="pick-sub" style="opacity:.55;font-size:clamp(11px,1.6vmin,14px)">${LANG==='ar'?'"بكثير" = فرق أكثر من 15%':'"Much" = more than 15% off'}</div>
+        <div class="pick-sub" style="opacity:.7">${LANG==='ar'?'كم يبعد تقدير اللعبة؟':'How far off is the game estimate?'}</div>
+        <div class="pick-sub" style="opacity:.55;font-size:clamp(11px,1.6vmin,14px)">${LANG==='ar'?'"بكثير" = فرق 15 نقطة مئوية أو أكثر':'"Much" = 15 percentage points or more'}</div>
         <div class="ring-timer" id="ringTimer"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44"/><circle class="ring-fg" id="timerFill" cx="50" cy="50" r="44"/></svg><div class="timer-num" id="timerNum"></div></div>
         <div id="statusRow" class="status-row"></div>`);
       // Send to phone as separate fields so controller renders cleanly
@@ -2714,7 +2717,7 @@ const Host = (() => {
         question: Q.q,
         ref: fmtNum(hint),
         refLabel: LANG==='ar'?'الرقم المرجعي':'Reference number',
-        hint: LANG==='ar'?'"بكثير" = فرق أكثر من 15%':'"Much" = more than 15% off',
+        hint: LANG==='ar'?'"بكثير" = فرق 15 نقطة مئوية أو أكثر':'"Much" = 15 percentage points or more',
         options: opts,
         seconds: 60
       };
@@ -2743,7 +2746,7 @@ const Host = (() => {
       Audio_.sfx.reveal(); FX.burst(60);
       const arrow = baseDir==='higher'?'⬆️':'⬇️';
       const muchLabel = isMuch ? (LANG==='ar'?' (بكثير)':' (Much)') : '';
-      const ansLabel = `${arrow} ${LANG==='ar'?'الجواب':'Answer'}: ${fmtNum(real)}${muchLabel}`;
+      const ansLabel = `${arrow} ${LANG==='ar'?'تقدير اللعبة':'Game estimate'}: ${fmtNum(real)}${muchLabel}`;
       // v97 — same reveal layout as True or Lie (v94) / Time Machine: every
       // piece gets its own column instead of being crammed into a bar whose
       // width varied by correctness. Both modes are two-option guesses, so

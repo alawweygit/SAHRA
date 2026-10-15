@@ -114,10 +114,14 @@ async function testStalePresenceRequiresGraceAndConfirmation() {
   await intervals[0]();
   assert.ok(db.data.rooms.TEST.players.p1, '70 seconds is inside the mobile grace window');
 
-  // v279 — grace window raised from 90s to 240s (see net.js OFFLINE_MS),
-  // so the "just barely stale" and "confirmed stale" checkpoints below
-  // move out to just past 240s instead of just past the old 90s.
-  now = 345_000; // age = 345_000 - 30_000 = 315s, just past the new 240s grace window
+  for (const age of [180_000, 300_000, 360_000]) {
+    now = 30_000 + age;
+    await intervals[0]();
+    await intervals[0]();
+    assert.ok(db.data.rooms.TEST.players.p1, 'long writing/discussion and recovery grace must retain the guest');
+  }
+  now = 391_000; // 361 seconds since the guest heartbeat, beyond six-minute grace
+
   await intervals[0]();
   assert.ok(db.data.rooms.TEST.players.p1, 'the first stale check must not delete the player');
   await intervals[0]();
@@ -136,8 +140,31 @@ function testWarningDoesNotDependOnStatusAvatar() {
   assert.ok(warning >= 0 && missingAvatarReturn >= 0);
   assert.ok(warning < missingAvatarReturn,
     'countdown broadcast must run even when a mode has no #statusRow avatar');
-  assert.match(paintOffline, /showHostDisconnectWarning\(p, deadline\)/,
-    'phones-only host must see the same countdown as surviving players');
+  assert.match(paintOffline, /showHostDisconnectWarning\(p\)/,
+    'phones-only host must see the same connection warning as surviving players');
+  assert.match(paintOffline, /const _off = _st === 'offline'/,
+    'a delayed heartbeat must not trigger a disconnect warning');
+  assert.doesNotMatch(source, /disconnected — game continues in/,
+    'connection warnings must not promise an unrelated removal countdown');
+}
+
+async function testPresenceStatusUsesLongRoundGrace() {
+  const intervals=[];
+  let now=100_000;
+  const FirebaseNet=loadFirebaseNet({now:()=>now,intervals});
+  const net=new FirebaseNet({ref(){return {on(_event,callback){callback({val:()=>({guest:{t:100_000}})});}};}});
+  net.code='TEST';
+  let statuses;
+  net.onPresence(value=>{statuses=value;});
+  assert.equal(statuses.guest,'online');
+  for(const age of [16_000,90_000,180_000,300_000,360_000]){
+    now=100_000+age;await intervals[0]();
+    assert.equal(statuses.guest,'away','short delays and long discussions must remain recoverable');
+  }
+  now=460_001;await intervals[0]();
+  assert.equal(statuses.guest,'offline');
+  now=100_001;await intervals[0]();
+  assert.equal(statuses.guest,'online','a fresh heartbeat must clear the stale status');
 }
 
 function testRosterDeletionNotifiesHost() {
@@ -292,6 +319,7 @@ function testNewChoiceHidesPreviousResultImmediately() {
   await testPresenceCleanupCannotBlockCallback();
   await testMissingPresenceDoesNotFalseRemovePlayer();
   await testStalePresenceRequiresGraceAndConfirmation();
+  await testPresenceStatusUsesLongRoundGrace();
   testWarningDoesNotDependOnStatusAvatar();
   testRosterDeletionNotifiesHost();
   testPlayerLeaveCannotReplaceSharedPhase();
@@ -303,7 +331,7 @@ function testNewChoiceHidesPreviousResultImmediately() {
   testStaleDepartureAnnouncementCannotOverrideRejoin();
   testHostLeftPreservesActivePlayerScreen();
   testNewChoiceHidesPreviousResultImmediately();
-  console.log('disconnect handling: 14 tests passed');
+  console.log('disconnect handling: 15 tests passed');
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;

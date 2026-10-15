@@ -10,7 +10,7 @@
     {emoji:'🐺',color:'#94a3b8',label:'Wolf'},{emoji:'🐯',color:'#f59e0b',label:'Tiger'},
     {emoji:'🦈',color:'#0ea5e9',label:'Shark'},
   ];
-  const MODE_MIN = {bluff:3,wyr:3,interrogation:3,diss:3,trivia:2,pinpoint:2,emoji:2,year:2,mostlikely:3,trueorlie:2,flaghunt:2,higherlow:2,'2t1l':3,emojiplace:2,spy:3,blendin:4,busted:3,harfhunt:2};
+  const MODE_MIN = {bluff:3,wyr:3,interrogation:3,diss:3,trivia:2,pinpoint:2,emoji:2,year:2,mostlikely:3,trueorlie:2,flaghunt:2,higherlow:2,'2t1l':2,emojiplace:2,spy:3,blendin:4,busted:3,harfhunt:2};
   const MODE_ICONS = {bluff:'🔍',wyr:'⚖️',interrogation:'🔥',diss:'🎤',trivia:'⚡',pinpoint:'📍',emoji:'🧩',year:'⏳',mostlikely:'🏆',trueorlie:'✅',flaghunt:'🚩',higherlow:'📊','2t1l':'🤥',emojiplace:'🌍',spy:'🕵️',blendin:'🎭',busted:'🎯',harfhunt:'🔤'};
   const MODE_COLORS = {bluff:'#f472b6',wyr:'#60a5fa',interrogation:'#ff6b35',diss:'#fb923c',trivia:'#facc15',pinpoint:'#22d3ee',emoji:'#e879f9',year:'#fbbf24',mostlikely:'#f43f5e',trueorlie:'#10b981',flaghunt:'#ef4444',higherlow:'#8b5cf6','2t1l':'#f97316',emojiplace:'#06b6d4',spy:'#64748b',blendin:'#a78bfa',busted:'#f43f5e',harfhunt:'#22d3ee'};
   const CAT_INFO = [
@@ -1356,7 +1356,7 @@
               const _offline=_pStatus[p.pid]==='away'||_pStatus[p.pid]==='offline';
               const _isHost=net.isRoomOwner||net.isOffline;
               const _xBtn=_isHost&&!p.isVip?`<button class="kick-btn" data-pid="${p.pid}" title="Remove" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:2px 4px;line-height:1;margin-left:4px">✕</button>`:'';
-              return `<div class="player${_offline?' player-offline':''}"><div class="avatar" style="background:${p.color};${_offline?'filter:grayscale(0.8);opacity:0.5':''}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}${_offline?'<span style="display:block;font-size:10px;color:var(--text3)">📶 offline</span>':''}${_xBtn}</div></div>`;
+              return `<div class="player${_offline?' player-offline':''}"><div class="avatar" style="background:${p.color};${_offline?'filter:grayscale(0.8);opacity:0.5':''}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}${_offline?`<span style="display:block;font-size:10px;color:var(--text3)">📶 ${_pStatus[p.pid]==='away'?(LANG==='ar'?'جاري إعادة الاتصال…':'Reconnecting…'):(LANG==='ar'?'غير متصل':'Offline')}</span>`:''}${_xBtn}</div></div>`;
             }).join('');
             row.querySelectorAll('.kick-btn').forEach(btn=>{
               btn.addEventListener('click',async()=>{
@@ -1374,7 +1374,7 @@
         }
       });
     }
-    // Auto-remove offline players from lobby after 30s
+    // Use the networking layer's shared mobile grace period for lobby removal.
     if(net&&net.watchAndRemoveOffline){
       net.watchAndRemoveOffline(pid=>{
         players=players.filter(p=>p.pid!==pid);
@@ -1470,20 +1470,22 @@
         window._hypoxLastPlayerRowSig = _rowSig;
         $('#playerRow').innerHTML=list.map(p=>{
           const _offline=_pStatus[p.pid]==='away'||_pStatus[p.pid]==='offline';
-          return `<div class="player${_offline?' player-offline':''}"><div class="avatar" style="background:${p.color};${_offline?'filter:grayscale(0.8);opacity:0.5':''}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}${_offline?'<span style="display:block;font-size:10px;color:var(--text3)">📶 offline</span>':''}</div></div>`;
+          return `<div class="player${_offline?' player-offline':''}"><div class="avatar" style="background:${p.color};${_offline?'filter:grayscale(0.8);opacity:0.5':''}">${p.emoji}</div><div class="pname">${p.isVip?'👑 ':''}${esc(p.name)}${_offline?`<span style="display:block;font-size:10px;color:var(--text3)">📶 ${_pStatus[p.pid]==='away'?(LANG==='ar'?'جاري إعادة الاتصال…':'Reconnecting…'):(LANG==='ar'?'غير متصل':'Offline')}</span>`:''}</div></div>`;
         }).join('');
       }
       if(_ls){requestAnimationFrame(()=>{_ls.scrollTop=_prevScroll<10?0:_prevScroll;requestAnimationFrame(()=>{if(_ls.scrollTop<10)_ls.scrollTop=0;});});}
-      const canStart=list.length>=2;
+      const requiredPlayers=MODE_MIN[gameMode]||2;
+      const canStart=list.length>=requiredPlayers;
       $('#startGameBtn').classList.toggle('dim',!canStart);
-      $('#lobbyHint').textContent=list.length<2?T.need2():list.length<3?T.need3():'';
+      $('#lobbyHint').textContent=canStart?'':(LANG==='ar'?`تحتاج ${requiredPlayers} لاعبين على الأقل`:`Need at least ${requiredPlayers} players`);
     });
 
     const startBtn=document.getElementById('startGameBtn');
     if(startBtn)startBtn.onclick=()=>{
       startBtn.disabled=true;startBtn.innerHTML='<span style="display:inline-flex;align-items:center;gap:8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="animation:spin 0.8s linear infinite"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>'+(LANG==='ar'?'جاري...':'Starting...')+'</span>';
-      const minPlayers = 2; // testing: allow 2 players for any game (real min shown on cards)
+      const minPlayers = MODE_MIN[gameMode] || 2;
       if(players.length<minPlayers){
+        startBtn.disabled=false;startBtn.textContent=T.startGame();
         Audio_.sfx.buzzer();
         $('#lobbyHint').textContent=T.needPlayers();
         $('#lobbyHint').classList.add('shake');
@@ -2043,21 +2045,14 @@
         if(_old) _old.remove();
         if(_disconnectWarnInt){ clearInterval(_disconnectWarnInt); _disconnectWarnInt = null; }
         if(m.disconnectWarn){
-          const { name, emoji, deadline } = m.disconnectWarn;
+          const { name, emoji } = m.disconnectWarn;
           const banner = document.createElement('div');
           banner.id = 'disconnectWarnBanner';
-          banner.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(200,40,40,0.92);color:#fff;font-family:Fredoka One,sans-serif;font-size:13px;padding:10px 18px;border-radius:14px;z-index:1000;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.4);text-align:center;';
-          const label = LANG==='ar'
-            ? txt => `${emoji} ${name} انقطع اتصاله — تكمل اللعبة خلال ${txt} ث`
-            : txt => `${emoji} ${name} disconnected — game continues in ${txt}s`;
-          const tick = () => {
-            const secs = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
-            banner.textContent = label(secs);
-            if(secs <= 0 && _disconnectWarnInt){ clearInterval(_disconnectWarnInt); _disconnectWarnInt = null; }
-          };
-          tick();
+          banner.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(200,40,40,0.92);color:#fff;font-family:Fredoka One,sans-serif;font-size:13px;padding:10px 18px;border-radius:14px;z-index:1000;box-shadow:0 4px 16px rgba(0,0,0,0.4);text-align:center;';
+          banner.textContent = LANG==='ar'
+            ? `${emoji} ${name} انقطع اتصاله — بانتظار عودته`
+            : `${emoji} ${name} lost connection — waiting to reconnect`;
           document.body.appendChild(banner);
-          _disconnectWarnInt = setInterval(tick, 1000);
         }
       }
       // Show the newest roster announcement on phones. State snapshots can

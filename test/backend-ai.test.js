@@ -3,6 +3,8 @@ const Module = require('node:module');
 
 const routes = new Map();
 const generationRequests = [];
+const verificationRequests = [];
+let rejectMedical = false;
 
 function sample(mode, index) {
   const suffix = String(index + 1);
@@ -43,11 +45,23 @@ class AnthropicMock {
   constructor() {
     this.messages = {
       create: async request => {
+        if (request.tools?.some(tool => tool.name === 'web_search')) {
+          verificationRequests.push(request);
+          const questions = JSON.parse(request.messages[0].content.split('Questions:\n')[1]);
+          const url = 'https://www.fda.gov/drugs/test-source';
+          return { stop_reason:'end_turn', content:[
+            {type:'web_search_tool_result',content:[{type:'web_search_result',url}]},
+            {type:'text',text:'Evidence',citations:[{type:'web_search_result_location',url,cited_text:'Evidence from a test source'}]},
+            {type:'text',text:'MEDICAL_VERDICTS_START'+JSON.stringify(questions.map(question=>({id:question.id,valid:!rejectMedical,correct:question.id%4,sources:[url],reason:'Test evidence'})))+'MEDICAL_VERDICTS_END'},
+          ] };
+        }
         const prompt = request.messages[0].content;
         const mode = prompt.match(/prompts for "([^"]+)"/)?.[1];
         const count = Number(prompt.match(/Generate exactly (\d+)/)?.[1]);
         generationRequests.push({ mode, count, maxTokens: request.max_tokens });
-        return { content: [{ type: 'text', text: JSON.stringify(Array.from({ length: count }, (_, index) => sample(mode, index))) }] };
+        const items = Array.from({ length: count }, (_, index) => sample(mode, index));
+        if (prompt.includes('quoted-booleans')) items.forEach(item => { item.truth = String(item.truth); });
+        return { content: [{ type: 'text', text: JSON.stringify(items) }] };
       },
     };
   }
@@ -58,7 +72,8 @@ Module._load = function(request, parent, isMain) {
   if (request === 'express') return express;
   if (request === 'cors') return () => (_req, _res, next) => next && next();
   if (request === '@anthropic-ai/sdk') return AnthropicMock;
-  if (request === 'firebase-admin') return {};
+  if (request === 'firebase-admin/app') return {};
+  if (request === 'firebase-admin/database') return {};
   return originalLoad.call(this, request, parent, isMain);
 };
 
@@ -132,6 +147,22 @@ async function postPrompts(body) {
   assert.ok(trueFalseBatch.payload.prompts.some(item => item.truth === true));
   assert.ok(trueFalseBatch.payload.prompts.some(item => item.truth === false),
     'True or False AI must provide both true and false statements');
+  const quoted = await postPrompts({ mode:'trueorlie', lang:'en', topic:'quoted-booleans', count:8 });
+  assert.equal(quoted.statusCode,200);
+  assert.equal(quoted.payload.prompts.length,8);
+  assert.deepEqual(new Set(quoted.payload.prompts.map(item=>item.truth)),new Set([true,false]));
+  const medical = await postPrompts({ mode:'quiz', lang:'en', topic:'medical', count:2 });
+  assert.equal(medical.statusCode,200);
+  assert.equal(medical.payload.prompts.length,2);
+  assert.ok(medical.payload.prompts.every(item=>item.medicalSources?.length));
+  assert.equal(verificationRequests.length,1,'Pharmacy must invoke independent sourced verification');
+  await postPrompts({ mode:'quiz', lang:'en', topic:'medical', count:2 });
+  assert.equal(verificationRequests.length,1,'cached verified questions should not incur another review');
+  rejectMedical = true;
+  const rejectedMedical = await postPrompts({ mode:'quiz', lang:'ar', topic:'medical', count:2 });
+  assert.equal(rejectedMedical.payload.prompts.length,0,'failed medical review must not leak the original questions');
+  rejectMedical = false;
+
 
   assert.equal(backend.isValidPrompt('blendin', {
     a: "What is the world's longest river?", b: 'What is the largest rainforest?',

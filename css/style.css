@@ -2663,6 +2663,10 @@ body.phones-host-docked .hl-hint{
 /* Player reveal maps are created locally, so their canvas and zoom controls
    must receive touches. Keep mirrored host actions and marker overlays inert. */
 #scr-controller #phoneSharedStage .pinpoint-reveal-map[data-hypox-map-inited="1"] :is(.hypox-map-runtime,.maplibregl-canvas-container,.maplibregl-canvas,.maplibregl-ctrl-group,.maplibregl-ctrl-group *){pointer-events:auto!important;}
+/* Verified medical references appear only after the answer is revealed. */
+.medical-source-links{font-size:13px;text-align:center;color:var(--text2);}
+.medical-source-links a{color:var(--blue);text-decoration:underline;}
+#scr-controller #phoneSharedStage .medical-source-links a{pointer-events:auto!important;}
 
 /* =====================================================================
    INPUT PHASE: revert to the simpler, proven-working single-scroll-

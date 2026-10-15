@@ -1,7 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 const Anthropic = require('@anthropic-ai/sdk');
-const admin = require('firebase-admin');
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getDatabase } = require('firebase-admin/database');
+const { verifyMedicalQuestions } = require('./medical-verifier');
 const app = express();
 app.use(cors({ origin: '*' }));
 app.use(express.json());
@@ -29,11 +31,11 @@ try {
   const svcAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (svcAccountRaw) {
     const svcAccount = JSON.parse(svcAccountRaw);
-    admin.initializeApp({
-      credential: admin.credential.cert(svcAccount),
+    const firebaseApp = initializeApp({
+      credential: cert(svcAccount),
       databaseURL: process.env.FIREBASE_DATABASE_URL || 'https://highpox-1eec7-default-rtdb.firebaseio.com',
     });
-    firebaseDb = admin.database();
+    firebaseDb = getDatabase(firebaseApp);
     console.log('[HYPOX] Global content dedup: Firebase connected.');
   } else {
     console.log('[HYPOX] Global content dedup: FIREBASE_SERVICE_ACCOUNT not set, using in-memory dedup only.');
@@ -445,7 +447,7 @@ const QUIZ_TOPICS = {
   history:   'History — major world events, civilizations, wars, discoveries, historical figures. Keep dates/names widely known, not obscure.',
 };
 
-async function generateBatch(mode, lang, used, baseKey, requestedCount, region, topic) {
+async function generateBatch(mode, lang, used, baseKey, requestedCount, region, topic, signal) {
   const langName = lang === 'ar' ? 'Gulf Arabic (khaleeji dialect)' : 'English';
   const isMena = region === 'mena';
   // Language and region are independent: previously several per-mode
@@ -525,14 +527,24 @@ async function generateBatch(mode, lang, used, baseKey, requestedCount, region, 
       `- Return ONLY a valid JSON array, no markdown or explanation\n` +
       `- Every item must match: ${SHAPES[mode]}`
     }],
-  });
+  }, signal ? { signal, timeout: 30000, maxRetries: 0 } : {});
 
   const text = msg.content.filter(b => b.type === 'text').map(b => b.text).join('');
   const clean = text.replace(/```json|```/g, '').trim();
   const parsed = JSON.parse(clean);
+  if (!Array.isArray(parsed)) throw new Error('AI response must be an array');
   if (mode === 'trueorlie' && parsed.length > 1) {
-    const truthValues = new Set(parsed.filter(item => typeof item?.truth === 'boolean').map(item => item.truth));
+    const truthValues = new Set(parsed.filter(item => isValidPrompt(mode, item, region)).map(item => item.truth));
     if (truthValues.size < 2) throw new Error('trueorlie batch must mix true and false statements');
+  }
+  if (mode === 'quiz' && topic === 'medical') {
+    const candidates = parsed.filter(item => isValidPrompt(mode, item, region));
+    const verified = await verifyMedicalQuestions(anthropic, candidates, { model: AI_MODEL, signal });
+    const approved = new Set(verified.map(getFingerprint));
+    // Replacement attempts must avoid the rejected questions too, without
+    // recording them as content that players have actually seen.
+    candidates.forEach(item => { const fp = getFingerprint(item); if (fp && !approved.has(fp)) used.add(fp); });
+    return verified;
   }
   return parsed;
 }
@@ -540,6 +552,8 @@ async function generateBatch(mode, lang, used, baseKey, requestedCount, region, 
 app.post('/api/prompts', async (req, res) => {
   try {
     const { mode, lang = 'en', region = null, topic = null } = req.body || {};
+    // Bound the complete generation + sourced review + replacement budget.
+    const medicalSignal = mode === 'quiz' && topic === 'medical' ? AbortSignal.timeout(75000) : undefined;
     const count = Math.min(40, Math.max(1, Math.floor(Number(req.body && req.body.count) || 10)));
     if (!SHAPES[mode]) return res.status(400).json({ error: 'Unknown mode: ' + mode });
 
@@ -569,7 +583,8 @@ app.post('/api/prompts', async (req, res) => {
     // pool is large enough; otherwise an excluded item could still be served.
     currentPool = currentPool.filter(item => {
       const fp = getFingerprint(item);
-      return fp && !blocked.has(fp) && !isBanned(item, baseKey);
+      return fp && !blocked.has(fp) && !isBanned(item, baseKey) &&
+        (!medicalSignal || (Array.isArray(item.medicalSources) && item.medicalSources.length));
     });
     currentPool.forEach(item => blocked.add(getFingerprint(item)));
 
@@ -578,7 +593,7 @@ app.post('/api/prompts', async (req, res) => {
     // full fresh set instead of silently reusing an excluded prompt.
     for (let attempt = 0; currentPool.length < count && attempt < 3; attempt++) {
       try {
-        const fresh = await generateBatch(mode, lang, blocked, baseKey, count - currentPool.length, region, topic);
+        const fresh = await generateBatch(mode, lang, blocked, baseKey, count - currentPool.length, region, topic, medicalSignal);
         // Filter out used AND always-banned items
         const novel = fresh.filter(item => {
           const fp = getFingerprint(item);
@@ -589,6 +604,10 @@ app.post('/api/prompts', async (req, res) => {
         currentPool = [...currentPool, ...novel].sort(() => Math.random() - 0.5);
       } catch(e) {
         console.error('Generation error:', e.message);
+        if (medicalSignal?.aborted || e.status === 401 || e.status === 403) {
+          if (!currentPool.length) return res.status(503).json({ error: 'AI generation or verification unavailable' });
+          break;
+        }
         // Invalid model output (including an all-true/all-false batch) gets a
         // fresh attempt. Do not turn one malformed AI response into a failed
         // game when two retry opportunities remain.

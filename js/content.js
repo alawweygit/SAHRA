@@ -295,7 +295,7 @@ const PACKS = {
       { q: 'Which country has the most islands in the world?', options: ['Indonesia', 'Sweden', 'Philippines', 'Greece'], correct: 1 },
       { q: 'What is the national animal of Oman?', options: ['Falcon', 'Arabian Horse', 'Arabian Oryx', 'Camel'], correct: 2 },
       { q: 'How many strings does a classic oud usually have?', options: ['6', '8', '11', '12'], correct: 2 },
-      { q: 'Which planet has the most moons?', options: ['Jupiter', 'Saturn', 'Neptune', 'Mars'], correct: 1 },
+      { q: 'Which planet did the Cassini spacecraft orbit?', options: ['Jupiter', 'Saturn', 'Neptune', 'Mars'], correct: 1 },
       { q: 'The capital of Australia is…', options: ['Sydney', 'Melbourne', 'Canberra', 'Perth'], correct: 2 },
       { q: 'Which sea has no coastline at all?', options: ['Dead Sea', 'Sargasso Sea', 'Caspian Sea', 'Coral Sea'], correct: 1 },
       { q: 'The first Arab country to play in a FIFA World Cup?', options: ['Morocco', 'Saudi Arabia', 'Egypt', 'Tunisia'], correct: 2 },
@@ -321,7 +321,7 @@ const PACKS = {
       { q: 'أي دولة عندها أكبر عدد جزر في العالم؟', options: ['إندونيسيا', 'السويد', 'الفلبين', 'اليونان'], correct: 1 },
       { q: 'شنو الحيوان الوطني لسلطنة عُمان؟', options: ['الصقر', 'الحصان العربي', 'المها العربي', 'الجمل'], correct: 2 },
       { q: 'كم وتر عادةً في العود الكلاسيكي؟', options: ['٦', '٨', '١١', '١٢'], correct: 2 },
-      { q: 'أي كوكب عنده أكبر عدد أقمار؟', options: ['المشتري', 'زحل', 'نبتون', 'المريخ'], correct: 1 },
+      { q: 'أي كوكب دار حوله المسبار كاسيني؟', options: ['المشتري', 'زحل', 'نبتون', 'المريخ'], correct: 1 },
       { q: '…عاصمة أستراليا هي', options: ['سيدني', 'ملبورن', 'كانبرا', 'بيرث'], correct: 2 },
       { q: 'أي بحر ما عنده أي سواحل؟', options: ['البحر الميت', 'بحر سارجاسو', 'بحر قزوين', 'البحر المرجاني'], correct: 1 },
       { q: 'أول دولة عربية تشارك في كأس العالم؟', options: ['المغرب', 'السعودية', 'مصر', 'تونس'], correct: 2 },
@@ -467,7 +467,10 @@ const Content = (() => {
         const persistentKey = historyKey(mode, lang, region, topic);
         const excluded = readHistory(persistentKey);
         const controller = new AbortController();
-        timeoutId = setTimeout(() => controller.abort(), 30000); // keep game startup responsive
+        // Pharmacy includes a separate sourced review; other games retain
+        // their existing startup limit. The server bounds medical work at 75s.
+        const aiTimeout = mode === 'quiz' && topic === 'medical' ? 90000 : 30000;
+        timeoutId = setTimeout(() => controller.abort(), aiTimeout);
         const res = await fetch(cfg.aiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -492,6 +495,10 @@ const Content = (() => {
               // Protect the game even while an older backend instance or
               // cached reserve is still serving pre-fix Blend In trivia.
               if (!validClientItem(mode, item)) continue;
+              // Reject Pharmacy content from an older backend that has not
+              // performed the sourced review yet (including during redeploys).
+              if (mode === 'quiz' && topic === 'medical' &&
+                  (!Array.isArray(item.medicalSources) || !item.medicalSources.length)) continue;
               const fp = fingerprint(item);
               if (!fp || seen.has(fp)) continue;
               seen.add(fp); unique.push(item);
@@ -617,7 +624,7 @@ const TRIVIA_CATS = {
       { q:'How many hearts does an octopus have?', options:['1','2','3','4'], correct:2 },
       { q:'What is the powerhouse of the cell?', options:['Nucleus','Ribosome','Mitochondria','Golgi body'], correct:2 },
       { q:'Water boils at what temperature at sea level?', options:['90°C','95°C','100°C','105°C'], correct:2 },
-      { q:'Which planet has the most moons?', options:['Jupiter','Saturn','Neptune','Uranus'], correct:1 },
+      { q:'Which planet did the Cassini spacecraft orbit?', options:['Jupiter','Saturn','Neptune','Uranus'], correct:1 },
       { q:'What is the most abundant gas in Earth\'s atmosphere?', options:['Oxygen','Argon','Carbon Dioxide','Nitrogen'], correct:3 },
     ],
     ar: [
@@ -631,7 +638,7 @@ const TRIVIA_CATS = {
       { q:'كم قلب عند الأخطبوط؟', options:['١','٢','٣','٤'], correct:2 },
       { q:'محطة الطاقة في الخلية؟', options:['النواة','الريبوسوم','الميتوكوندريا','جهاز غولجي'], correct:2 },
       { q:'الماء يغلي على كم درجة عند مستوى البحر؟', options:['٩٠','٩٥','١٠٠','١٠٥'], correct:2 },
-      { q:'أي كوكب عنده أكثر أقمار؟', options:['المشتري','زحل','نبتون','أورانوس'], correct:1 },
+      { q:'أي كوكب دار حوله المسبار كاسيني؟', options:['المشتري','زحل','نبتون','أورانوس'], correct:1 },
       { q:'أكثر غاز في الغلاف الجوي للأرض؟', options:['الأكسجين','الأرغون','ثاني أكسيد الكربون','النيتروجين'], correct:3 },
     ],
   },
@@ -652,7 +659,7 @@ const TRIVIA_CATS = {
       { q:'What type of drug is used to relieve allergy symptoms like sneezing?', options:['Antihistamine','Antibiotic','Antacid','Antiseptic'], correct:0 },
       { q:'Insulin is used to manage which condition?', options:['Asthma','Diabetes','Migraine','Arthritis'], correct:1 },
       { q:'What does "expiry date" on a medicine tell you?', options:['When it was made','The last date it is guaranteed effective','Its price','Its dosage strength'], correct:1 },
-      { q:'Which form is a medicine when it dissolves in the mouth or stomach quickly, taken by mouth?', options:['Injection','Tablet','Inhaler','Patch'], correct:1 },
+      { q:'Which of these is a solid medicine taken by mouth?', options:['Injection','Tablet','Inhaler','Patch'], correct:1 },
       { q:'What is a "generic" medicine?', options:['A fake, illegal drug','A copy of a brand-name drug with the same active ingredient','A drug with no active ingredient','A drug only for children'], correct:1 },
       { q:'Which everyday drug is well known for thinning the blood at low doses?', options:['Paracetamol','Aspirin','Amoxicillin','Loratadine'], correct:1 },
       { q:'A pharmacist is trained mainly to be an expert in what?', options:['Surgery','Medicines and how they work','Dentistry','Physical therapy'], correct:1 },
@@ -674,7 +681,7 @@ const TRIVIA_CATS = {
       { q:'أي نوع من الأدوية يُستخدم لتخفيف أعراض الحساسية مثل العطاس؟', options:['مضاد الهيستامين','مضاد حيوي','مضاد حموضة','مطهر'], correct:0 },
       { q:'الإنسولين يُستخدم للتحكم في أي حالة؟', options:['الربو','السكري','الصداع النصفي','التهاب المفاصل'], correct:1 },
       { q:'ماذا يخبرك "تاريخ انتهاء الصلاحية" على الدواء؟', options:['متى تم تصنيعه','آخر تاريخ يُضمن فيه فعاليته','سعره','قوة الجرعة'], correct:1 },
-      { q:'أي شكل دوائي يُؤخذ عن طريق الفم ويذوب بسرعة؟', options:['حقنة','حبة (قرص)','بخاخ استنشاق','لاصقة'], correct:1 },
+      { q:'أي من هذه الأشكال الدوائية صلب ويُؤخذ عن طريق الفم؟', options:['حقنة','حبة (قرص)','بخاخ استنشاق','لاصقة'], correct:1 },
       { q:'ما هو الدواء "الجنيس" (Generic)؟', options:['دواء مزيف وغير قانوني','نسخة من دواء تجاري تحتوي نفس المادة الفعالة','دواء بدون مادة فعالة','دواء للأطفال فقط'], correct:1 },
       { q:'أي دواء يومي معروف بترقيق الدم بجرعات منخفضة؟', options:['باراسيتامول','أسبرين','أموكسيسيلين','لوراتادين'], correct:1 },
       { q:'الصيدلي مُدرَّب بشكل أساسي ليكون خبيراً في ماذا؟', options:['الجراحة','الأدوية وطريقة عملها','طب الأسنان','العلاج الطبيعي'], correct:1 },

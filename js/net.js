@@ -35,6 +35,9 @@ const normalizeUniqueAnswer = value => String(value ?? '')
 const uniqueAnswerKey = value => encodeURIComponent(normalizeUniqueAnswer(value)).replace(/\./g, '%2E');
 const validPlayerRecord = (pid, player) => typeof pid === 'string' && pid.trim()
   && player && typeof player.name === 'string' && player.name.trim();
+// Allow the longest supported discussion (five minutes) plus a minute for
+// mobile timers/network recovery. Status, removal and host eligibility agree.
+const PRESENCE_GRACE_MS = 360_000;
 
 /* ---------------- Firebase (online) ---------------- */
 class FirebaseNet {
@@ -258,12 +261,7 @@ class FirebaseNet {
     this._watchServerTimeOffset();
     const now = this._serverNow();
     const presence = roomData.presence || {};
-    // v279 — raised from 90s to 240s to match the OFFLINE_MS bump above,
-    // for the same reason: a host who is themselves mid-answer during a
-    // long input phase (e.g. Two Truths One Lie's 180s writing window)
-    // could have a temporarily stale heartbeat misread as a real
-    // disconnect, triggering an unwanted host handoff mid-round.
-    const connected = realPlayers.filter(player => now - Number(presence[player.pid]?.t || 0) < 240_000);
+    const connected = realPlayers.filter(player => now - Number(presence[player.pid]?.t || 0) <= PRESENCE_GRACE_MS);
     const candidates = (connected.length ? connected : realPlayers)
       .sort((a, b) => String(a.pid).localeCompare(String(b.pid)));
     const seedText = String(status.electionId || status.epoch || roomData.createdAt || this.code);
@@ -681,28 +679,9 @@ class FirebaseNet {
     // would never run.
     if (onRemove) this._onRemoveCb = onRemove;
     if (this._offlineWatcher) return;
-    // Mobile Safari can pause timers and delay writes during a radio/Wi-Fi
-    // handoff while Firebase reads still arrive. A 20-second deadline falsely
-    // removed healthy remote players, leaving them able to watch but unable to
-    // submit. Only remove a player after a real heartbeat has gone stale for
-    // 90 seconds on two consecutive checks. A missing heartbeat is not proof
-    // of a disconnect; the host can still remove that player manually.
-    // v279 — raised from 90s to 240s. Ali reported a real 2-player game
-    // where a player who was actively answering (mid text-input, phone
-    // fully connected) got auto-flagged as disconnected, corrupting the
-    // round. Root cause: Two Truths One Lie's writing phase was extended
-    // to 180s in v275 for a longer, more thoughtful answer window, but
-    // this removal threshold was never raised to match -- any player who
-    // locks/backgrounds their phone screen even briefly while thinking
-    // (very plausible during a 3-minute writing task) can have their
-    // heartbeat interval throttled by the browser, easily exceeding the
-    // old 90s window well before they're actually done answering. Not
-    // specific to exactly 2 players -- it's a timer mismatch that can hit
-    // any player, any room size, during any sufficiently long input phase.
-    // 240s gives comfortable headroom beyond the longest input timer
-    // currently in the game (180s) without leaving a truly disconnected
-    // player lingering for an excessive time in faster-paced modes.
-    const OFFLINE_MS = 240000;
+    // Backgrounded phones can pause heartbeats during writing/discussion.
+    // Require two stale checks beyond the shared grace period. Missing
+    // presence alone is not proof of a disconnect; manual removal stays available.
     this._offlineWatcher = setInterval(async () => {
       if (!this.code) return;
       try {
@@ -724,7 +703,7 @@ class FirebaseNet {
             continue;
           }
           const age = now - lastSeen;
-          if (age > OFFLINE_MS) {
+          if (age > PRESENCE_GRACE_MS) {
             const checks = (this._stalePresenceChecks.get(pid) || 0) + 1;
             this._stalePresenceChecks.set(pid, checks);
             if (checks >= 2) {
@@ -801,7 +780,7 @@ class FirebaseNet {
       const status = {};
       for (const [pid, data] of Object.entries(v)) {
         const age = now - (data.t || 0);
-        status[pid] = age < 15000 ? 'online' : age < 90000 ? 'away' : 'offline';
+        status[pid] = age < 15000 ? 'online' : age <= PRESENCE_GRACE_MS ? 'away' : 'offline';
       }
       cb(status);
     };
